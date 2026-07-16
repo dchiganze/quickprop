@@ -19,8 +19,9 @@ const STATUS_PILL: Record<string, { label: string; color: string }> = {
 export default function BrochureCatalog() {
   const params = new URLSearchParams(window.location.search);
   const mode = (params.get('mode') ?? 'company') as 'my' | 'company' | 'custom';
-  const agentParam = params.get('agents') ?? '';
-  const selectedAgentIds = agentParam ? agentParam.split(',').map(Number) : [];
+  // custom mode now passes individual prop IDs
+  const propParam = params.get('props') ?? '';
+  const selectedPropIds = propParam ? new Set(propParam.split(',').map(Number)) : new Set<number>();
 
   const { data: currentUser } = useGetCurrentUser();
   const { data: allProps, isLoading } = useListProperties();
@@ -32,9 +33,9 @@ export default function BrochureCatalog() {
     if (!allProps) return [];
     const pub = allProps.filter(p => PUBLIC_STATUSES.includes(p.status));
     if (mode === 'my') return pub.filter(p => p.agentId === currentUser?.id);
-    if (mode === 'custom') return pub.filter(p => p.agentId != null && selectedAgentIds.includes(p.agentId));
+    if (mode === 'custom') return pub.filter(p => selectedPropIds.has(p.id));
     return pub; // company
-  }, [allProps, mode, currentUser, selectedAgentIds.join(',')]);
+  }, [allProps, mode, currentUser, propParam]);
 
   const agentMap = React.useMemo(() => {
     const m: Record<number, string> = {};
@@ -42,10 +43,17 @@ export default function BrochureCatalog() {
     return m;
   }, [users]);
 
+  // For custom, derive agent names from the selected properties
+  const customAgentNames = React.useMemo(() => {
+    if (mode !== 'custom') return [];
+    const ids = new Set(properties.map(p => p.agentId).filter(Boolean));
+    return [...ids].map(id => agentMap[id as number]).filter(Boolean);
+  }, [mode, properties, agentMap]);
+
   const titleLine = mode === 'my'
     ? `${currentUser?.name ?? 'Agent'}'s Property Catalogue`
-    : mode === 'custom' && selectedAgentIds.length > 0
-      ? selectedAgentIds.map(id => agentMap[id]).filter(Boolean).join(', ') + ' — Property Catalogue'
+    : mode === 'custom' && customAgentNames.length > 0
+      ? customAgentNames.join(', ') + ' — Property Catalogue'
       : 'Company Property Catalogue';
 
   const forSale = properties.filter(p => p.listingType === 'sale');

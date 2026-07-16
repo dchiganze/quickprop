@@ -88,7 +88,6 @@ export function QuickShareSheet({ visible, onClose }: QuickShareSheetProps) {
     if (canOpen) {
       await Linking.openURL(waUrl);
     } else {
-      // Fallback to web WhatsApp
       await Linking.openURL(`https://wa.me/?text=${encodeURIComponent(text)}`);
     }
     onClose();
@@ -104,7 +103,6 @@ export function QuickShareSheet({ visible, onClose }: QuickShareSheetProps) {
   const handleInstagram = useCallback(async () => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     const text = buildCatalogText(activeProps, mode, user?.name, catalogUrl);
-    // Instagram doesn't accept URL shares directly — use native share sheet
     await Share.share({
       title: 'QuickProp Property Catalogue',
       message: text,
@@ -122,6 +120,11 @@ export function QuickShareSheet({ visible, onClose }: QuickShareSheetProps) {
       url: catalogUrl,
     });
   }, [activeProps, mode, user?.name, catalogUrl]);
+
+  const selectMode = async (m: CatalogMode) => {
+    await Haptics.selectionAsync();
+    setMode(m);
+  };
 
   return (
     <Modal
@@ -147,19 +150,46 @@ export function QuickShareSheet({ visible, onClose }: QuickShareSheetProps) {
             </TouchableOpacity>
           </View>
 
-          {/* Mode Toggle */}
-          <View style={[styles.toggle, { backgroundColor: colors.muted, borderColor: colors.border }]}>
+          {/* Mode selector — two prominent cards */}
+          <View style={styles.modeRow}>
             <TouchableOpacity
-              style={[styles.toggleBtn, mode === 'agent' && { backgroundColor: colors.card, shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 4, elevation: 2 }]}
-              onPress={async () => { await Haptics.selectionAsync(); setMode('agent'); }}
+              style={[
+                styles.modeCard,
+                { borderColor: mode === 'agent' ? colors.primary : colors.border, backgroundColor: mode === 'agent' ? colors.primary + '12' : colors.muted },
+              ]}
+              onPress={() => selectMode('agent')}
+              activeOpacity={0.75}
             >
-              <Text style={[styles.toggleText, { color: mode === 'agent' ? colors.foreground : colors.mutedForeground }]}>My Catalog</Text>
+              <View style={[styles.modeIconWrap, { backgroundColor: mode === 'agent' ? colors.primary : colors.border }]}>
+                <Ionicons name="person" size={18} color={mode === 'agent' ? '#fff' : colors.mutedForeground} />
+              </View>
+              <Text style={[styles.modeLabel, { color: colors.foreground }]}>My Catalogue</Text>
+              <Text style={[styles.modeSub, { color: colors.mutedForeground }]}>Your listings only</Text>
+              {mode === 'agent' && (
+                <View style={[styles.modeBadge, { backgroundColor: colors.primary + '20' }]}>
+                  <Text style={[styles.modeBadgeText, { color: colors.primary }]}>{myProps.length}</Text>
+                </View>
+              )}
             </TouchableOpacity>
+
             <TouchableOpacity
-              style={[styles.toggleBtn, mode === 'company' && { backgroundColor: colors.card, shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 4, elevation: 2 }]}
-              onPress={async () => { await Haptics.selectionAsync(); setMode('company'); }}
+              style={[
+                styles.modeCard,
+                { borderColor: mode === 'company' ? colors.primary : colors.border, backgroundColor: mode === 'company' ? colors.primary + '12' : colors.muted },
+              ]}
+              onPress={() => selectMode('company')}
+              activeOpacity={0.75}
             >
-              <Text style={[styles.toggleText, { color: mode === 'company' ? colors.foreground : colors.mutedForeground }]}>Company Catalog</Text>
+              <View style={[styles.modeIconWrap, { backgroundColor: mode === 'company' ? colors.primary : colors.border }]}>
+                <Ionicons name="business" size={18} color={mode === 'company' ? '#fff' : colors.mutedForeground} />
+              </View>
+              <Text style={[styles.modeLabel, { color: colors.foreground }]}>Company</Text>
+              <Text style={[styles.modeSub, { color: colors.mutedForeground }]}>All agency listings</Text>
+              {mode === 'company' && (
+                <View style={[styles.modeBadge, { backgroundColor: colors.primary + '20' }]}>
+                  <Text style={[styles.modeBadgeText, { color: colors.primary }]}>{allProps.length}</Text>
+                </View>
+              )}
             </TouchableOpacity>
           </View>
 
@@ -202,7 +232,6 @@ export function QuickShareSheet({ visible, onClose }: QuickShareSheetProps) {
               <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>No published listings yet</Text>
             )}
 
-            {/* Mini property list */}
             {activeProps.slice(0, 3).map(p => (
               <View key={p.id} style={[styles.propRow, { borderTopColor: colors.border }]}>
                 <Text style={[styles.propName, { color: colors.foreground }]} numberOfLines={1}>
@@ -289,9 +318,18 @@ const styles = StyleSheet.create({
   headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   title: { fontSize: 18, fontWeight: '700' },
   closeBtn: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
-  toggle: { flexDirection: 'row', borderRadius: 12, padding: 3, marginBottom: 16, borderWidth: 1 },
-  toggleBtn: { flex: 1, paddingVertical: 8, borderRadius: 10, alignItems: 'center' },
-  toggleText: { fontSize: 13, fontWeight: '600' },
+
+  // Mode cards
+  modeRow: { flexDirection: 'row', gap: 10, marginBottom: 16 },
+  modeCard: {
+    flex: 1, alignItems: 'center', padding: 14, borderRadius: 16, borderWidth: 2, gap: 6,
+  },
+  modeIconWrap: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  modeLabel: { fontSize: 13, fontWeight: '700', textAlign: 'center' },
+  modeSub: { fontSize: 11, textAlign: 'center' },
+  modeBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 },
+  modeBadgeText: { fontSize: 11, fontWeight: '700' },
+
   preview: { borderRadius: 14, padding: 14, borderWidth: 1, marginBottom: 20, gap: 8 },
   previewTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   previewInfo: { flex: 1, marginRight: 8 },
@@ -309,10 +347,7 @@ const styles = StyleSheet.create({
   propPrice: { fontSize: 12, fontWeight: '600', marginLeft: 8 },
   sectionLabel: { fontSize: 11, fontWeight: '700', letterSpacing: 0.8, marginBottom: 12 },
   shareRow: { flexDirection: 'row', gap: 12, marginBottom: 16 },
-  shareBtn: {
-    flex: 1, alignItems: 'center', padding: 14, borderRadius: 16, borderWidth: 1,
-    gap: 6,
-  },
+  shareBtn: { flex: 1, alignItems: 'center', padding: 14, borderRadius: 16, borderWidth: 1, gap: 6 },
   shareIcon: { width: 48, height: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   shareName: { fontSize: 13, fontWeight: '600' },
   shareHint: { fontSize: 11 },
