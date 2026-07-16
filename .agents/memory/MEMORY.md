@@ -1,0 +1,1 @@
+- [QuickProp Agent Architecture](quickprop-agent.md) — expo mobile app for estate agents; AsyncStorage-only persistence, mock Zimbabwe real estate data, deep blue/emerald theme.

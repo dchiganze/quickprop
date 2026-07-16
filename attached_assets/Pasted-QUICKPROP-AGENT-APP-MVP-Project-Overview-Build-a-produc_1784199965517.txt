@@ -1,0 +1,430 @@
+QUICKPROP AGENT APP (MVP)
+Project Overview
+Build a production-ready native mobile application called QuickProp Agent.
+This application is designed for licensed estate agents and agency administrators to manage their property inventory while in the field.
+The app must be extremely fast, intuitive and mobile-first.
+The objective is:
+Allow an agent to obtain a signed mandate and publish a professional property listing in under 5 minutes.
+The app should feel closer to Airbnb Host than Salesforce.
+Avoid unnecessary complexity.
+________________________________________
+Technology Stack
+Build using:
+React Native
+Expo SDK (latest stable)
+TypeScript
+React Navigation
+React Query / TanStack Query
+Redux Toolkit (only where global state is required)
+React Hook Form
+Zod Validation
+NativeWind (Tailwind)
+Expo Image Picker
+Expo Camera
+Expo Location
+Expo Notifications
+Expo File System
+Expo Secure Store
+Axios
+Firebase Cloud Messaging
+The application should be production ready.
+________________________________________
+Authentication
+Support:
+Email
+Password
+Google Sign In
+Apple Sign In (iOS)
+Biometric Login
+Face ID
+Touch ID
+JWT Authentication
+Refresh Tokens
+Remember Login
+Role Based Access
+Agent
+Agency Administrator
+QuickProp Admin
+________________________________________
+Design Philosophy
+Modern
+Clean
+Premium
+Fast
+No clutter
+Minimal taps
+Large touch targets
+Optimised for one-handed use
+Dark Mode
+Light Mode
+Accessibility support
+Offline support
+________________________________________
+Home Dashboard
+After login show:
+Welcome back John.
+Today's Overview
+Properties
+Leads
+Buyer Matches
+Tasks
+Viewings Today
+Notifications
+Recent Activity
+Quick Actions
+•	New Listing 
+Search Inventory
+Buyer Requests
+Share Catalogue
+Generate Brochure
+________________________________________
+Bottom Navigation
+Dashboard
+Listings
+Leads
+Buyer Matches
+Profile
+________________________________________
+LISTINGS
+Show
+My Listings
+Agency Listings
+Draft Listings
+Archived
+Sold
+Rented
+Pending
+Search bar always visible.
+Instant search.
+Search by
+Address
+Suburb
+Price
+Seller Name
+Reference Number
+Keyword
+________________________________________
+CREATE NEW LISTING
+This is the most important workflow.
+Maximum completion time:
+5 minutes.
+Workflow:
+STEP 1
+Take Photos
+or
+Upload Photos
+Support:
+Multiple photos
+Drag to reorder
+Crop
+Rotate
+Compress
+Auto upload
+Offline queue
+________________________________________
+STEP 2
+Property Video
+Optional
+Maximum 60 seconds initially
+Compress automatically
+Background upload
+________________________________________
+STEP 3
+Property Location
+Current GPS
+or
+Search Address
+or
+Drop Pin
+Store exact coordinates privately.
+Public listing shows approximate location only.
+________________________________________
+STEP 4
+Property Details
+Property Type
+Sale
+Rent
+Commercial
+Stand
+Farm
+Mine
+Bedrooms
+Bathrooms
+Garages
+Land Size
+Floor Area
+Price
+Currency
+Negotiable
+Levies
+Rates
+Reference Number
+________________________________________
+STEP 5
+Features
+Selectable chips.
+Examples
+Solar
+Borehole
+Swimming Pool
+Electric Fence
+Staff Quarters
+Cottage
+Fitted Kitchen
+Generator
+Fireplace
+Fibre
+Air Conditioning
+Alarm
+Paved Driveway
+Municipal Water
+Septic Tank
+Internet
+Schools Nearby
+Hospital Nearby
+Shopping Centre Nearby
+Custom Features
+Agent can create additional features.
+________________________________________
+STEP 6
+Description
+AI assisted.
+Buttons
+Improve Writing
+Shorten
+Luxury Tone
+Investment Tone
+Professional Tone
+The AI must never invent information.
+________________________________________
+STEP 7
+Seller Details
+Private
+Never visible publicly.
+Seller Name
+Phone
+Email
+Mandate Expiry
+Mandate Type
+Open
+Sole
+Exclusive
+Internal Notes
+________________________________________
+STEP 8
+Publish
+Review page.
+Publish
+Save Draft
+Schedule Later
+________________________________________
+PROPERTY DETAIL SCREEN
+Gallery
+Video
+Property Information
+Features
+Map
+Seller Notes (private)
+Documents
+Activity Timeline
+Leads
+Edit
+Generate Brochure
+Share Listing
+Archive
+Sold
+Withdraw
+________________________________________
+BUYER MATCHES
+Automatically generated.
+Each property shows
+Match %
+Budget
+Location
+Buyer Preferences
+Cash
+Mortgage
+Diaspora
+Urgency
+Buttons
+Respond
+Call
+Message
+Dismiss
+________________________________________
+LEAD MANAGEMENT
+Every enquiry becomes a lead.
+Stages
+New
+Contacted
+Viewing Booked
+Offer
+Negotiation
+Completed
+Lost
+Every lead contains
+Notes
+Call History
+Viewing Dates
+Follow Up
+Reminders
+________________________________________
+TASKS
+Today's Tasks
+Upcoming
+Overdue
+Examples
+Call Seller
+Viewing
+Price Update
+Renew Mandate
+Take Photos
+________________________________________
+SEARCH INVENTORY
+This is one of the main selling points.
+Natural Language Search.
+Examples
+3 bedroom Highlands
+Borrowdale under 350k
+Solar Greendale
+Commercial CBD
+Search entire agency inventory instantly.
+________________________________________
+AGENCY CATALOGUE
+Every agent has:
+My Catalogue
+Agency Catalogue
+Buttons
+Share Catalogue
+Generate PDF
+Generate Brochure
+Generate Social Media Pack
+QR Code
+Statistics
+________________________________________
+SHARE FUNCTION
+Native OS Share Sheet.
+Support
+WhatsApp
+Facebook
+Instagram
+Email
+SMS
+Copy Link
+Generate
+Single Property
+Entire Catalogue
+QR Code
+Status Card
+Social Pack
+Never automate posting.
+Only prepare beautiful assets.
+________________________________________
+STATUS CARD GENERATOR
+Automatically generate
+1080 × 1920
+Modern layout
+Hero Image
+Price
+Location
+Bedrooms
+Bathrooms
+QR Code
+Agency Logo
+Agent Photo
+QuickProp Branding
+________________________________________
+PUSH NOTIFICATIONS
+New Lead
+Buyer Match
+Viewing Reminder
+Offer Received
+Mandate Expiring
+Document Uploaded
+Task Due
+________________________________________
+OFFLINE MODE
+Critical requirement.
+Agent can:
+Create listing
+Take photos
+Edit details
+Queue uploads
+Everything syncs automatically.
+________________________________________
+PROFILE
+Photo
+Agency
+Branch
+Contact Details
+Licence Number
+Statistics
+Settings
+Dark Mode
+Logout
+________________________________________
+SETTINGS
+Notifications
+Biometric Login
+Language
+Image Quality
+Offline Storage
+Privacy
+Support
+________________________________________
+PERFORMANCE
+Launch under 2 seconds
+Search under 500ms
+Support 100,000+ listings
+Background uploads
+Image caching
+Lazy loading
+Pagination
+Retry failed uploads
+________________________________________
+SECURITY
+Encrypted storage
+HTTPS only
+JWT
+Role permissions
+Audit logging
+No seller information exposed publicly
+________________________________________
+UI DESIGN
+Use a premium design system.
+Rounded cards
+Soft shadows
+Large typography
+Minimal colours
+Primary:
+Deep Blue
+Secondary:
+White
+Accent:
+Emerald Green
+Avoid clutter.
+Everything should feel modern and luxurious.
+________________________________________
+SUCCESS CRITERIA
+The app should allow an agent to:
+• Create a professional listing in under 5 minutes.
+• Instantly search every property within their agency.
+• Generate a brochure with one tap.
+• Share a property or their full catalogue directly using the native share sheet.
+• Manage leads and buyer matches while in the field.
+The app should feel like the indispensable daily tool for an estate agent—not just another portal app.
+
+1. Quick Capture Mode
+When an agent is standing at a property, they often don't have time to complete every field.
+Add a Quick Capture option:
+•	Take photos 
+•	Record a short video 
+•	Enter price 
+•	Select suburb 
+•	Save as Draft 
+Everything uploads immediately, and the agent (or an office administrator) can complete the remaining details later. This reduces friction at the moment the mandate is secured.
+2. Voice-to-Listing
+Allow the agent to tap a microphone and say:
+"Four-bedroom house in Borrowdale, double storey, borehole, solar, asking four hundred and twenty thousand dollars, approximately four thousand square metres..."
+The app extracts structured fields and drafts the description automatically for review. That would dramatically reduce typing in the field and align with your goal of making listing creation as fast as possible.
+
