@@ -1,0 +1,27 @@
+kind = "web"
+previewPath = "/office/"
+title = "QuickProp Office"
+version = "1.0.0"
+id = "artifacts/office"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/office/" ]
+localPort = 26092
+
+[services.development]
+run = "pnpm --filter @workspace/office run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/office", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/office/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "26092"
+BASE_PATH = "/office/"

@@ -3,20 +3,35 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: QuickProp Office API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
-    description: Health operations
+  - name: auth
+  - name: properties
+  - name: sellers
+  - name: buyers
+  - name: buyerRequests
+  - name: leads
+  - name: tasks
+  - name: viewings
+  - name: documents
+  - name: users
+  - name: branches
+  - name: notifications
+  - name: audit
+  - name: dashboard
+  - name: analytics
+  - name: search
+  - name: marketing
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,13 +39,1396 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginInput"
+      responses:
+        "200":
+          description: Logged in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          description: Invalid credentials
+  /auth/logout:
+    post:
+      operationId: logout
+      tags: [auth]
+      responses:
+        "200":
+          description: Logged out
+  /auth/me:
+    get:
+      operationId: getCurrentUser
+      tags: [auth]
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          description: Not logged in
+  /properties:
+    get:
+      operationId: listProperties
+      tags: [properties]
+      parameters:
+        - { name: status, in: query, schema: { type: string } }
+        - { name: pipelineStage, in: query, schema: { type: string } }
+        - { name: listingType, in: query, schema: { type: string } }
+        - { name: propertyType, in: query, schema: { type: string } }
+        - { name: suburb, in: query, schema: { type: string } }
+        - { name: agentId, in: query, schema: { type: integer } }
+        - { name: q, in: query, schema: { type: string } }
+        - { name: minPrice, in: query, schema: { type: number } }
+        - { name: maxPrice, in: query, schema: { type: number } }
+      responses:
+        "200":
+          description: Properties
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Property" }
+    post:
+      operationId: createProperty
+      tags: [properties]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PropertyInput" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Property" }
+  /properties/{id}:
+    get:
+      operationId: getProperty
+      tags: [properties]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "200":
+          description: Property
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Property" }
+        "404": { description: Not found }
+    patch:
+      operationId: updateProperty
+      tags: [properties]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PropertyUpdate" }
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Property" }
+    delete:
+      operationId: deleteProperty
+      tags: [properties]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "204": { description: Deleted }
+  /properties/{id}/price-history:
+    get:
+      operationId: getPropertyPriceHistory
+      tags: [properties]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "200":
+          description: Price history
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/PriceHistoryEntry" }
+  /properties/{id}/activity:
+    get:
+      operationId: getPropertyActivity
+      tags: [properties]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "200":
+          description: Activity timeline
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/ActivityEntry" }
+  /properties/{id}/share:
+    post:
+      operationId: shareProperty
+      tags: [marketing]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ShareInput" }
+      responses:
+        "200":
+          description: Share link
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ShareResult" }
+  /properties/{id}/brochure:
+    post:
+      operationId: generateBrochure
+      tags: [marketing]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "200":
+          description: Brochure generated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BrochureResult" }
+  /pipeline:
+    get:
+      operationId: getPipeline
+      tags: [properties]
+      summary: Properties grouped by pipeline stage
+      responses:
+        "200":
+          description: Pipeline board
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/PipelineColumn" }
+  /sellers:
+    get:
+      operationId: listSellers
+      tags: [sellers]
+      parameters:
+        - { name: q, in: query, schema: { type: string } }
+      responses:
+        "200":
+          description: Sellers
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Seller" }
+    post:
+      operationId: createSeller
+      tags: [sellers]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SellerInput" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Seller" }
+  /sellers/{id}:
+    get:
+      operationId: getSeller
+      tags: [sellers]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "200":
+          description: Seller
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Seller" }
+        "404": { description: Not found }
+    patch:
+      operationId: updateSeller
+      tags: [sellers]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SellerUpdate" }
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Seller" }
+  /buyers:
+    get:
+      operationId: listBuyers
+      tags: [buyers]
+      parameters:
+        - { name: q, in: query, schema: { type: string } }
+      responses:
+        "200":
+          description: Buyers
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Buyer" }
+    post:
+      operationId: createBuyer
+      tags: [buyers]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/BuyerInput" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Buyer" }
+  /buyers/{id}:
+    get:
+      operationId: getBuyer
+      tags: [buyers]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "200":
+          description: Buyer
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Buyer" }
+        "404": { description: Not found }
+    patch:
+      operationId: updateBuyer
+      tags: [buyers]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/BuyerUpdate" }
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Buyer" }
+  /buyers/{id}/matches:
+    get:
+      operationId: getBuyerMatches
+      tags: [buyers]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "200":
+          description: Matching properties
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/PropertyMatch" }
+  /buyer-requests:
+    get:
+      operationId: listBuyerRequests
+      tags: [buyerRequests]
+      parameters:
+        - { name: status, in: query, schema: { type: string } }
+      responses:
+        "200":
+          description: Buyer requests
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/BuyerRequest" }
+    post:
+      operationId: createBuyerRequest
+      tags: [buyerRequests]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/BuyerRequestInput" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BuyerRequest" }
+  /buyer-requests/{id}:
+    patch:
+      operationId: updateBuyerRequest
+      tags: [buyerRequests]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/BuyerRequestUpdate" }
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BuyerRequest" }
+  /buyer-requests/{id}/matches:
+    get:
+      operationId: getBuyerRequestMatches
+      tags: [buyerRequests]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "200":
+          description: Matching properties
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/PropertyMatch" }
+  /leads:
+    get:
+      operationId: listLeads
+      tags: [leads]
+      parameters:
+        - { name: stage, in: query, schema: { type: string } }
+        - { name: agentId, in: query, schema: { type: integer } }
+      responses:
+        "200":
+          description: Leads
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Lead" }
+    post:
+      operationId: createLead
+      tags: [leads]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/LeadInput" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Lead" }
+  /leads/{id}:
+    get:
+      operationId: getLead
+      tags: [leads]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "200":
+          description: Lead
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Lead" }
+        "404": { description: Not found }
+    patch:
+      operationId: updateLead
+      tags: [leads]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/LeadUpdate" }
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Lead" }
+  /leads/{id}/timeline:
+    get:
+      operationId: getLeadTimeline
+      tags: [leads]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "200":
+          description: Timeline entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/TimelineEntry" }
+    post:
+      operationId: addLeadTimelineEntry
+      tags: [leads]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TimelineEntryInput" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TimelineEntry" }
+  /tasks:
+    get:
+      operationId: listTasks
+      tags: [tasks]
+      parameters:
+        - { name: status, in: query, schema: { type: string } }
+        - { name: assigneeId, in: query, schema: { type: integer } }
+      responses:
+        "200":
+          description: Tasks
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Task" }
+    post:
+      operationId: createTask
+      tags: [tasks]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TaskInput" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Task" }
+  /tasks/{id}:
+    patch:
+      operationId: updateTask
+      tags: [tasks]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TaskUpdate" }
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Task" }
+    delete:
+      operationId: deleteTask
+      tags: [tasks]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "204": { description: Deleted }
+  /viewings:
+    get:
+      operationId: listViewings
+      tags: [viewings]
+      parameters:
+        - { name: propertyId, in: query, schema: { type: integer } }
+        - { name: agentId, in: query, schema: { type: integer } }
+        - { name: date, in: query, schema: { type: string } }
+      responses:
+        "200":
+          description: Viewings
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Viewing" }
+    post:
+      operationId: createViewing
+      tags: [viewings]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ViewingInput" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Viewing" }
+  /viewings/{id}:
+    patch:
+      operationId: updateViewing
+      tags: [viewings]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ViewingUpdate" }
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Viewing" }
+  /documents:
+    get:
+      operationId: listDocuments
+      tags: [documents]
+      parameters:
+        - { name: propertyId, in: query, schema: { type: integer } }
+        - { name: category, in: query, schema: { type: string } }
+        - { name: q, in: query, schema: { type: string } }
+      responses:
+        "200":
+          description: Documents
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Document" }
+    post:
+      operationId: createDocument
+      tags: [documents]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DocumentInput" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Document" }
+  /documents/{id}:
+    delete:
+      operationId: deleteDocument
+      tags: [documents]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "204": { description: Deleted }
+  /users:
+    get:
+      operationId: listUsers
+      tags: [users]
+      responses:
+        "200":
+          description: Users
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/User" }
+    post:
+      operationId: createUser
+      tags: [users]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UserInput" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/User" }
+  /users/{id}:
+    patch:
+      operationId: updateUser
+      tags: [users]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UserUpdate" }
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/User" }
+  /branches:
+    get:
+      operationId: listBranches
+      tags: [branches]
+      responses:
+        "200":
+          description: Branches
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Branch" }
+    post:
+      operationId: createBranch
+      tags: [branches]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/BranchInput" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Branch" }
+  /notifications:
+    get:
+      operationId: listNotifications
+      tags: [notifications]
+      responses:
+        "200":
+          description: Notifications
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Notification" }
+  /notifications/{id}/read:
+    patch:
+      operationId: markNotificationRead
+      tags: [notifications]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "200":
+          description: Marked read
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Notification" }
+  /audit-log:
+    get:
+      operationId: listAuditLog
+      tags: [audit]
+      parameters:
+        - { name: entityType, in: query, schema: { type: string } }
+        - { name: userId, in: query, schema: { type: integer } }
+      responses:
+        "200":
+          description: Audit entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/AuditEntry" }
+  /dashboard/summary:
+    get:
+      operationId: getDashboardSummary
+      tags: [dashboard]
+      responses:
+        "200":
+          description: Dashboard cards
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DashboardSummary" }
+  /dashboard/command-centre:
+    get:
+      operationId: getCommandCentre
+      tags: [dashboard]
+      summary: Attention items for the inventory command centre
+      responses:
+        "200":
+          description: Attention items
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/AttentionItem" }
+  /dashboard/charts:
+    get:
+      operationId: getDashboardCharts
+      tags: [dashboard]
+      responses:
+        "200":
+          description: Chart data
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DashboardCharts" }
+  /activity/recent:
+    get:
+      operationId: getRecentActivity
+      tags: [dashboard]
+      responses:
+        "200":
+          description: Recent activity across the agency
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/ActivityEntry" }
+  /analytics/summary:
+    get:
+      operationId: getAnalyticsSummary
+      tags: [analytics]
+      responses:
+        "200":
+          description: Analytics data
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AnalyticsSummary" }
+  /search:
+    get:
+      operationId: officeSearch
+      tags: [search]
+      summary: Natural-language office-wide search
+      parameters:
+        - { name: q, in: query, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Search results
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SearchResults" }
 components:
   schemas:
     HealthStatus:
       type: object
       properties:
-        status:
-          type: string
-      required:
-        - status
-
+        status: { type: string }
+      required: [status]
+    LoginInput:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string }
+        password: { type: string }
+    User:
+      type: object
+      required: [id, name, email, role, status]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        email: { type: string }
+        phone: { type: ["string", "null"] }
+        role: { type: string, description: "principal | admin | senior_agent | agent | receptionist | marketing | viewer" }
+        branchId: { type: ["integer", "null"] }
+        status: { type: string, description: "active | suspended | inactive" }
+        avatarUrl: { type: ["string", "null"] }
+    UserInput:
+      type: object
+      required: [name, email, role]
+      properties:
+        name: { type: string }
+        email: { type: string }
+        phone: { type: string }
+        role: { type: string }
+        branchId: { type: integer }
+        password: { type: string }
+    UserUpdate:
+      type: object
+      properties:
+        name: { type: string }
+        email: { type: string }
+        phone: { type: string }
+        role: { type: string }
+        branchId: { type: ["integer", "null"] }
+        status: { type: string }
+    Branch:
+      type: object
+      required: [id, name]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        address: { type: ["string", "null"] }
+        phone: { type: ["string", "null"] }
+    BranchInput:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string }
+        address: { type: string }
+        phone: { type: string }
+    Property:
+      type: object
+      required: [id, reference, title, status, pipelineStage, listingType, propertyType, price, currency, suburb, city]
+      properties:
+        id: { type: integer }
+        reference: { type: string }
+        title: { type: string }
+        description: { type: ["string", "null"] }
+        propertyType: { type: string, description: "house | apartment | townhouse | stand | commercial | industrial | farm" }
+        listingType: { type: string, description: "sale | rent" }
+        status: { type: string, description: "draft | internal_only | public | under_offer | sold | rented | archived | withdrawn | coming_soon | private_listing" }
+        pipelineStage: { type: string, description: "draft | awaiting_photos | ready | published | under_offer | sold | archived" }
+        price: { type: number }
+        currency: { type: string }
+        suburb: { type: string }
+        city: { type: string }
+        address: { type: ["string", "null"] }
+        bedrooms: { type: ["integer", "null"] }
+        bathrooms: { type: ["integer", "null"] }
+        parking: { type: ["integer", "null"] }
+        landSize: { type: ["number", "null"], description: "square metres" }
+        buildingSize: { type: ["number", "null"] }
+        features:
+          type: array
+          items: { type: string }
+        photos:
+          type: array
+          items: { type: string }
+        coverImage: { type: ["string", "null"] }
+        agentId: { type: ["integer", "null"] }
+        branchId: { type: ["integer", "null"] }
+        sellerId: { type: ["integer", "null"] }
+        mandateType: { type: ["string", "null"], description: "open | sole | exclusive" }
+        mandateStart: { type: ["string", "null"] }
+        mandateExpiry: { type: ["string", "null"] }
+        commissionPercent: { type: ["number", "null"] }
+        privateNotes: { type: ["string", "null"] }
+        views: { type: integer }
+        enquiries: { type: integer }
+        shares: { type: integer }
+        hasBrochure: { type: boolean }
+        publishedAt: { type: ["string", "null"] }
+        createdAt: { type: string }
+        updatedAt: { type: string }
+    PropertyInput:
+      type: object
+      required: [title, propertyType, listingType, price, suburb, city]
+      properties:
+        title: { type: string }
+        description: { type: string }
+        propertyType: { type: string }
+        listingType: { type: string }
+        status: { type: string }
+        pipelineStage: { type: string }
+        price: { type: number }
+        currency: { type: string }
+        suburb: { type: string }
+        city: { type: string }
+        address: { type: string }
+        bedrooms: { type: integer }
+        bathrooms: { type: integer }
+        parking: { type: integer }
+        landSize: { type: number }
+        buildingSize: { type: number }
+        features:
+          type: array
+          items: { type: string }
+        photos:
+          type: array
+          items: { type: string }
+        coverImage: { type: string }
+        agentId: { type: integer }
+        branchId: { type: integer }
+        sellerId: { type: integer }
+        mandateType: { type: string }
+        mandateStart: { type: string }
+        mandateExpiry: { type: string }
+        commissionPercent: { type: number }
+        privateNotes: { type: string }
+    PropertyUpdate:
+      type: object
+      properties:
+        title: { type: string }
+        description: { type: string }
+        propertyType: { type: string }
+        listingType: { type: string }
+        status: { type: string }
+        pipelineStage: { type: string }
+        price: { type: number }
+        currency: { type: string }
+        suburb: { type: string }
+        city: { type: string }
+        address: { type: string }
+        bedrooms: { type: integer }
+        bathrooms: { type: integer }
+        parking: { type: integer }
+        landSize: { type: number }
+        buildingSize: { type: number }
+        features:
+          type: array
+          items: { type: string }
+        photos:
+          type: array
+          items: { type: string }
+        coverImage: { type: string }
+        agentId: { type: integer }
+        branchId: { type: integer }
+        sellerId: { type: integer }
+        mandateType: { type: string }
+        mandateStart: { type: string }
+        mandateExpiry: { type: string }
+        commissionPercent: { type: number }
+        privateNotes: { type: string }
+    PriceHistoryEntry:
+      type: object
+      required: [id, propertyId, price, changedAt]
+      properties:
+        id: { type: integer }
+        propertyId: { type: integer }
+        price: { type: number }
+        previousPrice: { type: ["number", "null"] }
+        changedAt: { type: string }
+        changedBy: { type: ["string", "null"] }
+    ActivityEntry:
+      type: object
+      required: [id, type, message, createdAt]
+      properties:
+        id: { type: integer }
+        type: { type: string, description: "created | edited | status_change | price_change | published | photo_upload | viewing | enquiry | share | brochure | login" }
+        message: { type: string }
+        entityType: { type: ["string", "null"] }
+        entityId: { type: ["integer", "null"] }
+        userName: { type: ["string", "null"] }
+        createdAt: { type: string }
+    PipelineColumn:
+      type: object
+      required: [stage, properties]
+      properties:
+        stage: { type: string }
+        properties:
+          type: array
+          items: { $ref: "#/components/schemas/Property" }
+    ShareInput:
+      type: object
+      required: [channel]
+      properties:
+        channel: { type: string, description: "link | whatsapp | facebook | email | sms" }
+    ShareResult:
+      type: object
+      required: [url]
+      properties:
+        url: { type: string }
+        qrData: { type: ["string", "null"] }
+    BrochureResult:
+      type: object
+      required: [propertyId, generatedAt]
+      properties:
+        propertyId: { type: integer }
+        url: { type: ["string", "null"] }
+        generatedAt: { type: string }
+    Seller:
+      type: object
+      required: [id, name]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        idNumber: { type: ["string", "null"] }
+        phone: { type: ["string", "null"] }
+        email: { type: ["string", "null"] }
+        postalAddress: { type: ["string", "null"] }
+        notes: { type: ["string", "null"] }
+        createdAt: { type: string }
+    SellerInput:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string }
+        idNumber: { type: string }
+        phone: { type: string }
+        email: { type: string }
+        postalAddress: { type: string }
+        notes: { type: string }
+    SellerUpdate:
+      type: object
+      properties:
+        name: { type: string }
+        idNumber: { type: string }
+        phone: { type: string }
+        email: { type: string }
+        postalAddress: { type: string }
+        notes: { type: string }
+    Buyer:
+      type: object
+      required: [id, name]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        phone: { type: ["string", "null"] }
+        email: { type: ["string", "null"] }
+        budgetMin: { type: ["number", "null"] }
+        budgetMax: { type: ["number", "null"] }
+        preferredAreas:
+          type: array
+          items: { type: string }
+        propertyType: { type: ["string", "null"] }
+        bedroomsMin: { type: ["integer", "null"] }
+        bathroomsMin: { type: ["integer", "null"] }
+        features:
+          type: array
+          items: { type: string }
+        financing: { type: ["string", "null"], description: "cash | mortgage | diaspora" }
+        urgency: { type: ["string", "null"], description: "low | medium | high" }
+        agentId: { type: ["integer", "null"] }
+        notes: { type: ["string", "null"] }
+        createdAt: { type: string }
+    BuyerInput:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string }
+        phone: { type: string }
+        email: { type: string }
+        budgetMin: { type: number }
+        budgetMax: { type: number }
+        preferredAreas:
+          type: array
+          items: { type: string }
+        propertyType: { type: string }
+        bedroomsMin: { type: integer }
+        bathroomsMin: { type: integer }
+        features:
+          type: array
+          items: { type: string }
+        financing: { type: string }
+        urgency: { type: string }
+        agentId: { type: integer }
+        notes: { type: string }
+    BuyerUpdate:
+      type: object
+      properties:
+        name: { type: string }
+        phone: { type: string }
+        email: { type: string }
+        budgetMin: { type: number }
+        budgetMax: { type: number }
+        preferredAreas:
+          type: array
+          items: { type: string }
+        propertyType: { type: string }
+        bedroomsMin: { type: integer }
+        bathroomsMin: { type: integer }
+        features:
+          type: array
+          items: { type: string }
+        financing: { type: string }
+        urgency: { type: string }
+        agentId: { type: integer }
+        notes: { type: string }
+    PropertyMatch:
+      type: object
+      required: [property, matchPercent, reasons]
+      properties:
+        property: { $ref: "#/components/schemas/Property" }
+        matchPercent: { type: integer }
+        reasons:
+          type: array
+          items: { type: string }
+    BuyerRequest:
+      type: object
+      required: [id, requestText, status, createdAt]
+      properties:
+        id: { type: integer }
+        buyerName: { type: ["string", "null"] }
+        phone: { type: ["string", "null"] }
+        email: { type: ["string", "null"] }
+        requestText: { type: string }
+        budgetMin: { type: ["number", "null"] }
+        budgetMax: { type: ["number", "null"] }
+        areas:
+          type: array
+          items: { type: string }
+        propertyType: { type: ["string", "null"] }
+        status: { type: string, description: "new | in_progress | responded | closed" }
+        agentId: { type: ["integer", "null"] }
+        createdAt: { type: string }
+    BuyerRequestInput:
+      type: object
+      required: [requestText]
+      properties:
+        buyerName: { type: string }
+        phone: { type: string }
+        email: { type: string }
+        requestText: { type: string }
+        budgetMin: { type: number }
+        budgetMax: { type: number }
+        areas:
+          type: array
+          items: { type: string }
+        propertyType: { type: string }
+        agentId: { type: integer }
+    BuyerRequestUpdate:
+      type: object
+      properties:
+        status: { type: string }
+        agentId: { type: integer }
+    Lead:
+      type: object
+      required: [id, name, stage, createdAt]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        phone: { type: ["string", "null"] }
+        email: { type: ["string", "null"] }
+        source: { type: ["string", "null"], description: "website | whatsapp | referral | walk_in | facebook | instagram | quickprop" }
+        stage: { type: string, description: "new | attempted_contact | viewing_booked | offer_received | negotiation | completed | lost" }
+        propertyId: { type: ["integer", "null"] }
+        agentId: { type: ["integer", "null"] }
+        notes: { type: ["string", "null"] }
+        createdAt: { type: string }
+        updatedAt: { type: string }
+    LeadInput:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string }
+        phone: { type: string }
+        email: { type: string }
+        source: { type: string }
+        stage: { type: string }
+        propertyId: { type: integer }
+        agentId: { type: integer }
+        notes: { type: string }
+    LeadUpdate:
+      type: object
+      properties:
+        name: { type: string }
+        phone: { type: string }
+        email: { type: string }
+        source: { type: string }
+        stage: { type: string }
+        propertyId: { type: integer }
+        agentId: { type: integer }
+        notes: { type: string }
+    TimelineEntry:
+      type: object
+      required: [id, leadId, type, content, createdAt]
+      properties:
+        id: { type: integer }
+        leadId: { type: integer }
+        type: { type: string, description: "note | call | email | meeting | viewing | status_change" }
+        content: { type: string }
+        userName: { type: ["string", "null"] }
+        createdAt: { type: string }
+    TimelineEntryInput:
+      type: object
+      required: [type, content]
+      properties:
+        type: { type: string }
+        content: { type: string }
+    Task:
+      type: object
+      required: [id, title, status, priority, createdAt]
+      properties:
+        id: { type: integer }
+        title: { type: string }
+        description: { type: ["string", "null"] }
+        type: { type: ["string", "null"], description: "renew_mandate | take_photos | follow_up | price_review | viewing | call_seller | other" }
+        assigneeId: { type: ["integer", "null"] }
+        propertyId: { type: ["integer", "null"] }
+        leadId: { type: ["integer", "null"] }
+        dueDate: { type: ["string", "null"] }
+        priority: { type: string, description: "low | medium | high" }
+        status: { type: string, description: "open | done" }
+        recurring: { type: boolean }
+        createdAt: { type: string }
+    TaskInput:
+      type: object
+      required: [title]
+      properties:
+        title: { type: string }
+        description: { type: string }
+        type: { type: string }
+        assigneeId: { type: integer }
+        propertyId: { type: integer }
+        leadId: { type: integer }
+        dueDate: { type: string }
+        priority: { type: string }
+        recurring: { type: boolean }
+    TaskUpdate:
+      type: object
+      properties:
+        title: { type: string }
+        description: { type: string }
+        type: { type: string }
+        assigneeId: { type: integer }
+        propertyId: { type: integer }
+        leadId: { type: integer }
+        dueDate: { type: string }
+        priority: { type: string }
+        status: { type: string }
+        recurring: { type: boolean }
+    Viewing:
+      type: object
+      required: [id, propertyId, scheduledAt, status]
+      properties:
+        id: { type: integer }
+        propertyId: { type: integer }
+        buyerName: { type: ["string", "null"] }
+        leadId: { type: ["integer", "null"] }
+        agentId: { type: ["integer", "null"] }
+        scheduledAt: { type: string }
+        status: { type: string, description: "scheduled | completed | cancelled | no_show" }
+        outcome: { type: ["string", "null"] }
+        notes: { type: ["string", "null"] }
+    ViewingInput:
+      type: object
+      required: [propertyId, scheduledAt]
+      properties:
+        propertyId: { type: integer }
+        buyerName: { type: string }
+        leadId: { type: integer }
+        agentId: { type: integer }
+        scheduledAt: { type: string }
+        notes: { type: string }
+    ViewingUpdate:
+      type: object
+      properties:
+        scheduledAt: { type: string }
+        status: { type: string }
+        outcome: { type: string }
+        notes: { type: string }
+        agentId: { type: integer }
+    Document:
+      type: object
+      required: [id, name, category, createdAt]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        category: { type: string, description: "mandate | title_deed | id | contract | photo | video | inspection | valuation | other" }
+        propertyId: { type: ["integer", "null"] }
+        url: { type: ["string", "null"] }
+        sizeKb: { type: ["integer", "null"] }
+        version: { type: integer }
+        uploadedBy: { type: ["string", "null"] }
+        createdAt: { type: string }
+    DocumentInput:
+      type: object
+      required: [name, category]
+      properties:
+        name: { type: string }
+        category: { type: string }
+        propertyId: { type: integer }
+        url: { type: string }
+        sizeKb: { type: integer }
+    Notification:
+      type: object
+      required: [id, type, title, read, createdAt]
+      properties:
+        id: { type: integer }
+        userId: { type: ["integer", "null"] }
+        type: { type: string, description: "mandate_expiring | buyer_match | offer | task_due | viewing_reminder | system" }
+        title: { type: string }
+        message: { type: ["string", "null"] }
+        read: { type: boolean }
+        createdAt: { type: string }
+    AuditEntry:
+      type: object
+      required: [id, action, entityType, createdAt]
+      properties:
+        id: { type: integer }
+        userId: { type: ["integer", "null"] }
+        userName: { type: ["string", "null"] }
+        action: { type: string }
+        entityType: { type: string }
+        entityId: { type: ["integer", "null"] }
+        detail: { type: ["string", "null"] }
+        createdAt: { type: string }
+    DashboardSummary:
+      type: object
+      required: [activeMandates, publicListings, draftListings, propertiesSold, propertiesRented, newLeads, buyerRequests, viewingsToday, offers, openTasks]
+      properties:
+        activeMandates: { type: integer }
+        publicListings: { type: integer }
+        draftListings: { type: integer }
+        propertiesSold: { type: integer }
+        propertiesRented: { type: integer }
+        newLeads: { type: integer }
+        buyerRequests: { type: integer }
+        viewingsToday: { type: integer }
+        offers: { type: integer }
+        openTasks: { type: integer }
+    AttentionItem:
+      type: object
+      required: [key, label, count, severity]
+      properties:
+        key: { type: string, description: "awaiting_photos | mandates_expiring | unmatched_requests | missing_brochures | leads_awaiting_response | price_review | not_shared_recently" }
+        label: { type: string }
+        count: { type: integer }
+        severity: { type: string, description: "info | warning | critical" }
+    ChartPoint:
+      type: object
+      required: [label, value]
+      properties:
+        label: { type: string }
+        value: { type: number }
+    DashboardCharts:
+      type: object
+      required: [newListingsByMonth, leadSources, propertiesBySuburb, salesByMonth, topAgents]
+      properties:
+        newListingsByMonth:
+          type: array
+          items: { $ref: "#/components/schemas/ChartPoint" }
+        leadSources:
+          type: array
+          items: { $ref: "#/components/schemas/ChartPoint" }
+        propertiesBySuburb:
+          type: array
+          items: { $ref: "#/components/schemas/ChartPoint" }
+        salesByMonth:
+          type: array
+          items: { $ref: "#/components/schemas/ChartPoint" }
+        topAgents:
+          type: array
+          items: { $ref: "#/components/schemas/ChartPoint" }
+    AnalyticsSummary:
+      type: object
+      required: [inventoryGrowth, leadConversionPercent, avgDaysOnMarket, propertyTypes, suburbs, totals]
+      properties:
+        inventoryGrowth:
+          type: array
+          items: { $ref: "#/components/schemas/ChartPoint" }
+        leadConversionPercent: { type: number }
+        avgDaysOnMarket: { type: number }
+        propertyTypes:
+          type: array
+          items: { $ref: "#/components/schemas/ChartPoint" }
+        suburbs:
+          type: array
+          items: { $ref: "#/components/schemas/ChartPoint" }
+        totals:
+          type: object
+          required: [views, enquiries, shares, brochures]
+          properties:
+            views: { type: integer }
+            enquiries: { type: integer }
+            shares: { type: integer }
+            brochures: { type: integer }
+    SearchResults:
+      type: object
+      required: [properties, buyers, sellers, leads, interpretation]
+      properties:
+        interpretation: { type: string, description: "Human-readable explanation of how the query was parsed" }
+        properties:
+          type: array
+          items: { $ref: "#/components/schemas/Property" }
+        buyers:
+          type: array
+          items: { $ref: "#/components/schemas/Buyer" }
+        sellers:
+          type: array
+          items: { $ref: "#/components/schemas/Seller" }
+        leads:
+          type: array
+          items: { $ref: "#/components/schemas/Lead" }

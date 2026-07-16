@@ -1,1 +1,2 @@
 - [QuickProp Agent Architecture](quickprop-agent.md) — expo mobile app for estate agents; AsyncStorage-only persistence, mock Zimbabwe real estate data, deep blue/emerald theme.
+- [QuickProp Office CRM](quickprop-office.md) — web CRM lessons: jsonify DB rows before zod parse, wouter param-passing in protected routes, seed esbuild bundling, orval queryKey quirk.

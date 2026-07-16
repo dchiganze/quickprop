@@ -1,0 +1,322 @@
+Below is a Replit AI prompt focused specifically on the QuickList public website, but architected correctly so the website, native app, and CRM share one backend/database and sync in real time.
+The goal is not to build three separate products. It is one property operating system with three interfaces:
+1.	Public Website → buyers/searchers
+2.	Agent App → agents managing inventory and mandates
+3.	CRM/Admin → internal operations and marketplace management
+________________________________________
+Replit AI Prompt — QuickList Website (Shared Backend Architecture)
+Project Overview
+Build the public-facing website for QuickList, a Zimbabwean property marketplace and property transaction platform.
+The website must share the exact same backend, database, APIs, authentication system, and real-time data layer as:
+•	QuickList Agent Mobile App
+•	QuickList CRM/Admin Dashboard
+The website is not a standalone classifieds website. It is the public discovery layer of a complete property operating system.
+The core objective:
+Become the most complete and trusted database of active property mandates in Zimbabwe by making property discovery simple while enabling estate agents to manage, distribute and transact efficiently.
+________________________________________
+Technical Architecture Requirements
+Single Backend
+Create one central backend powering:
+•	Website
+•	Mobile app
+•	CRM
+Use:
+•	Single database
+•	Single API layer
+•	Shared authentication
+•	Real-time synchronisation
+Any property created or edited from:
+•	Agent app
+•	CRM
+•	Website admin
+must instantly update everywhere.
+Example:
+Agent uploads property:
+Agent App →
+Database →
+CRM →
+Website listing →
+WhatsApp catalogue generation
+No duplicate data storage.
+________________________________________
+User Types
+1. Buyer / Public User
+Can:
+•	Search properties
+•	Save properties
+•	Request viewing
+•	Contact agent
+•	Create buyer profile
+•	Receive property recommendations
+________________________________________
+2. Estate Agent
+Managed through the agent app but visible publicly.
+Can:
+•	Manage agency profile
+•	Upload mandates
+•	Edit properties
+•	Generate catalogues
+•	Receive enquiries
+•	Track leads
+________________________________________
+3. Agency Admin
+Can:
+•	Manage multiple agents
+•	View agency inventory
+•	Assign leads
+•	Monitor performance
+________________________________________
+4. QuickList Admin
+CRM access:
+•	Verify agents
+•	Verify mandates
+•	Manage disputes
+•	Monitor marketplace statistics
+•	Manage subscriptions
+________________________________________
+Website Core Features
+1. Property Search Engine
+This is the main feature.
+Users must be able to search:
+Location:
+•	City
+•	Suburb
+•	Area
+•	Development
+Property type:
+•	House
+•	Apartment
+•	Townhouse
+•	Commercial
+•	Land
+•	Farm
+Filters:
+•	Price range
+•	Bedrooms
+•	Bathrooms
+•	Parking
+•	Property size
+•	Date listed
+•	Agent
+•	Verified mandate
+________________________________________
+2. AI Property Search
+Allow natural language search.
+Examples:
+"3 bedroom house in Borrowdale under $250,000"
+"Apartment near CBD suitable for investment"
+"Commercial property with parking in Harare"
+The system converts user intent into filters.
+________________________________________
+3. Property Listing Pages
+Each property page must contain:
+•	High-quality images
+•	Video
+•	Virtual tour capability
+•	Price
+•	Description
+•	Location
+•	Features
+•	Agent information
+•	Agency information
+•	Verification status
+Buttons:
+•	Request viewing
+•	Contact agent
+•	Save property
+•	Share WhatsApp
+•	Share Facebook
+________________________________________
+4. Agent Profiles
+Each agent receives a public profile.
+Display:
+•	Name
+•	Agency
+•	Profile photo
+•	Contact details
+•	Properties available
+•	Reviews (future feature)
+•	Sales history (future feature)
+________________________________________
+5. Agency Pages
+Every registered agency has:
+•	Logo
+•	About section
+•	All active mandates
+•	Agent list
+•	Contact information
+________________________________________
+6. WhatsApp Catalogue Integration
+Critical feature.
+Every agent can generate a catalogue automatically.
+The system creates:
+•	Branded catalogue
+•	Selected properties
+•	Agent details
+•	QuickList branding
+•	QR code
+•	Property links
+Button:
+"Share Catalogue to WhatsApp"
+Track catalogue generation and sharing activity.
+This supports the agent distribution strategy:
+Agents receive free access when they actively distribute their inventory.
+________________________________________
+7. Buyer Matching System
+Users can create:
+"My Property Requirements"
+Example:
+Looking for:
+•	Borrowdale
+•	4 bedrooms
+•	$300k maximum
+The system:
+•	Matches available properties
+•	Alerts buyer
+•	Sends qualified leads to agents
+________________________________________
+8. Lead Management
+Every enquiry becomes a CRM lead.
+Capture:
+•	Buyer details
+•	Property interested in
+•	Date
+•	Agent assigned
+•	Status
+Statuses:
+•	New enquiry
+•	Contacted
+•	Viewing booked
+•	Negotiation
+•	Offer made
+•	Completed
+•	Lost
+________________________________________
+9. Mortgage Integration Ready
+Build architecture for future integrations:
+Mortgage providers:
+•	Banks
+•	Microfinance lenders
+•	Financial institutions
+On property pages:
+"Can I afford this property?"
+Future functionality:
+Calculate affordability.
+Submit mortgage enquiry.
+Receive lender offers.
+________________________________________
+10. Conveyancing Integration Ready
+Future capability:
+After offer acceptance:
+Connect:
+•	Buyer
+•	Seller
+•	Agent
+•	Conveyancer
+Track:
+•	Documents
+•	Progress
+•	Settlement
+________________________________________
+Database Structure
+Create relational database tables:
+Users
+Fields:
+•	id
+•	name
+•	email
+•	phone
+•	role
+•	authentication details
+Agencies
+•	agency_id
+•	name
+•	logo
+•	registration details
+Agents
+•	agent_id
+•	agency_id
+•	profile
+•	verification status
+Properties
+•	property_id
+•	agent_id
+•	agency_id
+•	location
+•	price
+•	type
+•	bedrooms
+•	bathrooms
+•	images
+•	description
+•	mandate status
+•	availability
+Leads
+•	lead_id
+•	buyer_id
+•	property_id
+•	agent_id
+•	status
+Saved Properties
+•	user_id
+•	property_id
+Catalogue Sharing
+Track:
+•	agent
+•	date
+•	number of shares
+•	catalogue generated
+________________________________________
+Subscription Logic
+Implement future-ready subscription model.
+Free Growth Plan:
+Agent keeps access by:
+•	Uploading inventory
+•	Sharing catalogue regularly through QuickList
+Paid Plans:
+Future:
+Basic Agency
+Professional Agency
+Enterprise Developer
+________________________________________
+Design Requirements
+The website should feel:
+•	Modern
+•	Trustworthy
+•	Premium
+•	Simple
+Reference feeling:
+•	Realestate.com.au
+•	Property24
+•	Airbnb search experience
+but adapted for Zimbabwe.
+Prioritise:
+•	Speed
+•	Mobile-first design
+•	WhatsApp sharing
+•	Low bandwidth optimisation
+________________________________________
+Important Business Rule
+The system must optimise for:
+Maximum mandate coverage.
+Do not optimise only for listings.
+Track:
+•	Total registered agents
+•	Active mandates
+•	Percentage of estimated market inventory captured
+•	Buyer demand
+The ultimate goal:
+90–95% of active property mandates in Zimbabwe available through QuickList.
+________________________________________
+Future Expansion
+Architecture must allow:
+•	Cars marketplace
+•	Rentals
+•	Commercial property
+•	Insurance integration
+•	Mortgage marketplace
+•	Property valuation tools
+•	Deeds verification
+Build QuickList as a property transaction infrastructure platform, not just a listing website. Make it optimised for mobile.
+________________________________________
+

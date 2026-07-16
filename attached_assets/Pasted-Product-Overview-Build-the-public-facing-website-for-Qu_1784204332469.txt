@@ -1,0 +1,461 @@
+Product Overview
+
+Build the public-facing website for QuickList, a Zimbabwean property marketplace.
+
+QuickList consists of three connected products:
+
+Public Website
+Buyers and tenants search properties.
+Users discover verified property mandates.
+Users submit enquiries.
+Agent Mobile App
+Estate agents capture and manage mandates.
+Agents distribute their inventory.
+Agents manage leads.
+CRM/Admin Dashboard
+QuickList manages agents, agencies, listings and marketplace operations.
+
+All three products must run from:
+
+One backend
+One database
+One API layer
+One authentication system
+
+The website must never have separate listing data from the app or CRM.
+
+Any change made in one system must immediately sync across all platforms.
+
+Core MVP Objective
+
+Create the most efficient property discovery platform in Zimbabwe.
+
+The MVP must solve:
+
+Agent Problems
+Slow property uploads
+Poor internal inventory management
+Difficulty finding their own stock
+Fragmented WhatsApp/PDF/spreadsheet systems
+Difficulty distributing listings consistently
+Difficulty managing buyer enquiries
+Buyer Problems
+Cannot easily find all available properties
+Duplicate listings across agents
+Poor search experience
+Slow response from agents
+Lack of trust in listings
+Technology Architecture
+
+Build a scalable, mobile-first architecture.
+
+Frontend
+
+Use:
+
+React / Next.js
+Responsive design
+Progressive Web App (PWA) capability
+Mobile-first UI
+
+The majority of users will access through mobile devices.
+
+Optimise for:
+
+Low bandwidth environments
+Fast loading
+Compressed images
+Minimal data usage
+Backend
+
+Use a central backend API.
+
+Recommended:
+
+Node.js backend
+REST API architecture
+PostgreSQL database
+Cloud storage for images
+Real-time updates using WebSockets or similar technology
+
+The backend must support:
+
+Website
+Mobile app
+CRM
+Database Design
+
+Create a shared relational database.
+
+Users
+
+Fields:
+
+user_id
+name
+phone
+email
+password/authentication
+role
+
+Roles:
+
+Buyer
+Tenant
+Agent
+Agency Admin
+QuickList Admin
+Agencies
+
+Fields:
+
+agency_id
+company name
+logo
+description
+contact details
+verification status
+Agents
+
+Fields:
+
+agent_id
+agency_id
+name
+profile photo
+phone
+email
+verification status
+Properties
+
+Core table.
+
+Fields:
+
+property_id
+agent_id
+agency_id
+listing type
+
+Listing type:
+
+Sale
+Rental
+
+Property categories:
+
+House
+Apartment
+Townhouse
+Commercial
+Land
+Farm
+
+Fields:
+
+title
+description
+price
+rental price
+currency
+location
+suburb
+city
+bedrooms
+bathrooms
+parking
+property size
+images
+videos
+availability status
+date created
+date updated
+Leads
+
+Every enquiry becomes a lead.
+
+Fields:
+
+lead_id
+buyer/tenant details
+property interested in
+assigned agent
+enquiry date
+status
+
+Statuses:
+
+New
+Contacted
+Viewing Scheduled
+Negotiation
+Completed
+Lost
+Website Features
+1. Property Search
+
+The main website experience.
+
+Users can search:
+
+Location:
+
+City
+Suburb
+Area
+
+Property type:
+
+House
+Apartment
+Townhouse
+Commercial
+Land
+
+Purpose:
+
+Buy
+Rent
+
+Filters:
+
+Price
+Bedrooms
+Bathrooms
+Parking
+Property size
+Date listed
+2. Search Experience
+
+Optimise for mobile.
+
+Requirements:
+
+Fast autocomplete
+Simple filters
+Map-ready architecture
+Save searches
+Recently viewed properties
+
+Future-ready for AI search but MVP can use structured filters.
+
+3. Property Detail Pages
+
+Each listing must display:
+
+Images
+Description
+Price
+Location
+Features
+Agent details
+Agency details
+Date listed
+
+Actions:
+
+Primary buttons:
+
+Contact Agent
+Request Viewing
+WhatsApp Agent
+Save Property
+Share Property
+4. Agent and Agency Profiles
+
+Public profiles.
+
+Display:
+
+Agent:
+
+Name
+Photo
+Agency
+Contact
+Active listings
+
+Agency:
+
+Logo
+About
+All active listings
+Agents
+5. Buyer/Tenant Accounts
+
+Users can:
+
+Register
+Save properties
+Save searches
+Receive matching property alerts
+Track enquiries
+6. WhatsApp Distribution System
+
+Critical MVP feature.
+
+Agents need to distribute listings easily.
+
+Create:
+
+"Generate Catalogue"
+
+Function:
+
+Automatically create:
+
+Branded property catalogue
+Agent details
+Property images
+Prices
+Links back to QuickList
+
+Button:
+
+"Share to WhatsApp"
+
+The system should make QuickList the easiest way for agents to market their inventory.
+
+Track:
+
+Catalogue created
+Share initiated
+Date shared
+CRM/Admin Dashboard
+
+Build alongside the website.
+
+Admin can:
+
+Manage Agents
+Approve agents
+Verify agencies
+Suspend users
+Manage Listings
+Review listings
+Remove duplicates
+Mark expired listings
+Manage Leads
+
+View:
+
+Total enquiries
+Agent response times
+Conversion status
+Marketplace Analytics
+
+Track:
+
+Total listings
+Active mandates
+Active agents
+Search activity
+Enquiries generated
+Agent App Integration Requirements
+
+The website must consume the same data created by the app.
+
+Example workflow:
+
+Agent creates property:
+
+Agent App
+↓
+Backend Database
+↓
+CRM
+↓
+Website listing immediately live
+
+Agent edits price:
+
+App
+↓
+Database
+↓
+Website updates instantly
+
+Buyer enquiry:
+
+Website
+↓
+Lead created
+↓
+Agent receives notification in app
+
+User Experience Requirements
+
+Design principles:
+
+Mobile First
+
+Most users are on:
+
+Android phones
+Mobile data
+WhatsApp
+
+Prioritise:
+
+Large buttons
+Simple navigation
+Fast pages
+Minimal typing
+Performance
+
+Optimise:
+
+Image compression
+Lazy loading
+CDN delivery
+API efficiency
+
+Target:
+
+Fast experience even on slow connections.
+
+MVP Does NOT Include
+
+Do not build:
+
+Mortgage origination
+Insurance
+Conveyancing
+Payments
+Property financing
+Deeds integration
+Complex transaction workflows
+
+These can be future phases.
+
+Success Metrics
+
+The MVP should optimise for:
+
+Supply
+Number of verified agents onboarded
+Number of active mandates
+Percentage of available properties captured
+Demand
+Searches performed
+Property views
+Enquiries generated
+Viewing requests
+Agent Adoption
+Properties uploaded per agent
+Catalogue shares
+Weekly active agents
+Final Product Vision
+
+QuickList is not just another property listing website.
+
+It is a shared property inventory system where:
+
+Agents manage their entire stock
+Buyers discover available properties
+Agencies organise their business
+The market gradually moves from fragmented mandates to transparent inventory
+
+The MVP must first win by being:
+
+The fastest way for agents to manage and distribute property mandates, and the easiest place for buyers to find property.
