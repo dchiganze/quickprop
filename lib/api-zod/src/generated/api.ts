@@ -1416,3 +1416,307 @@ export const OfficeSearchResponse = zod.object({
 })
 
 
+/**
+ * @summary Public property listings (no auth required)
+ */
+export const ListPublicPropertiesQueryParams = zod.object({
+  "listingType": zod.coerce.string().optional(),
+  "propertyType": zod.coerce.string().optional(),
+  "suburb": zod.coerce.string().optional(),
+  "city": zod.coerce.string().optional(),
+  "minPrice": zod.coerce.number().optional(),
+  "maxPrice": zod.coerce.number().optional(),
+  "minBeds": zod.coerce.number().optional(),
+  "minBaths": zod.coerce.number().optional(),
+  "q": zod.coerce.string().optional(),
+  "page": zod.coerce.number().optional(),
+  "limit": zod.coerce.number().optional(),
+  "sort": zod.coerce.string().optional()
+})
+
+export const ListPublicPropertiesResponse = zod.object({
+  "properties": zod.array(zod.object({
+  "id": zod.number(),
+  "reference": zod.string(),
+  "title": zod.string(),
+  "description": zod.string().nullish(),
+  "propertyType": zod.string(),
+  "listingType": zod.string(),
+  "status": zod.string().optional(),
+  "price": zod.number(),
+  "currency": zod.string(),
+  "suburb": zod.string(),
+  "city": zod.string(),
+  "address": zod.string().nullish(),
+  "bedrooms": zod.number().nullish(),
+  "bathrooms": zod.number().nullish(),
+  "parking": zod.number().nullish(),
+  "landSize": zod.number().nullish(),
+  "buildingSize": zod.number().nullish(),
+  "features": zod.array(zod.string()),
+  "photos": zod.array(zod.string()),
+  "coverImage": zod.string().nullish(),
+  "agentId": zod.number().nullish(),
+  "views": zod.number(),
+  "enquiries": zod.number(),
+  "publishedAt": zod.string().nullish(),
+  "createdAt": zod.string()
+})),
+  "total": zod.number(),
+  "page": zod.number(),
+  "limit": zod.number()
+})
+
+
+/**
+ * @summary Public property detail (no auth required)
+ */
+export const GetPublicPropertyParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const GetPublicPropertyResponse = zod.object({
+  "property": zod.object({
+  "id": zod.number(),
+  "reference": zod.string(),
+  "title": zod.string(),
+  "description": zod.string().nullish(),
+  "propertyType": zod.string(),
+  "listingType": zod.string(),
+  "status": zod.string().optional(),
+  "price": zod.number(),
+  "currency": zod.string(),
+  "suburb": zod.string(),
+  "city": zod.string(),
+  "address": zod.string().nullish(),
+  "bedrooms": zod.number().nullish(),
+  "bathrooms": zod.number().nullish(),
+  "parking": zod.number().nullish(),
+  "landSize": zod.number().nullish(),
+  "buildingSize": zod.number().nullish(),
+  "features": zod.array(zod.string()),
+  "photos": zod.array(zod.string()),
+  "coverImage": zod.string().nullish(),
+  "agentId": zod.number().nullish(),
+  "views": zod.number(),
+  "enquiries": zod.number(),
+  "publishedAt": zod.string().nullish(),
+  "createdAt": zod.string()
+}),
+  "agent": zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "phone": zod.string().nullish(),
+  "email": zod.string().nullish(),
+  "avatarUrl": zod.string().nullish(),
+  "role": zod.string(),
+  "branchId": zod.number().nullish(),
+  "branchName": zod.string().nullish(),
+  "activeListings": zod.number()
+}).optional()
+})
+
+
+/**
+ * @summary List all active agents (no auth required)
+ */
+export const ListPublicAgentsResponseItem = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "phone": zod.string().nullish(),
+  "email": zod.string().nullish(),
+  "avatarUrl": zod.string().nullish(),
+  "role": zod.string(),
+  "branchId": zod.number().nullish(),
+  "branchName": zod.string().nullish(),
+  "activeListings": zod.number()
+})
+export const ListPublicAgentsResponse = zod.array(ListPublicAgentsResponseItem)
+
+
+/**
+ * @summary Agent public profile with listings
+ */
+export const GetPublicAgentParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const GetPublicAgentResponse = zod.object({
+  "agent": zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "phone": zod.string().nullish(),
+  "email": zod.string().nullish(),
+  "avatarUrl": zod.string().nullish(),
+  "role": zod.string(),
+  "branchId": zod.number().nullish(),
+  "branchName": zod.string().nullish(),
+  "activeListings": zod.number()
+}),
+  "listings": zod.array(zod.object({
+  "id": zod.number(),
+  "reference": zod.string(),
+  "title": zod.string(),
+  "description": zod.string().nullish(),
+  "propertyType": zod.string(),
+  "listingType": zod.string(),
+  "status": zod.string().optional(),
+  "price": zod.number(),
+  "currency": zod.string(),
+  "suburb": zod.string(),
+  "city": zod.string(),
+  "address": zod.string().nullish(),
+  "bedrooms": zod.number().nullish(),
+  "bathrooms": zod.number().nullish(),
+  "parking": zod.number().nullish(),
+  "landSize": zod.number().nullish(),
+  "buildingSize": zod.number().nullish(),
+  "features": zod.array(zod.string()),
+  "photos": zod.array(zod.string()),
+  "coverImage": zod.string().nullish(),
+  "agentId": zod.number().nullish(),
+  "views": zod.number(),
+  "enquiries": zod.number(),
+  "publishedAt": zod.string().nullish(),
+  "createdAt": zod.string()
+}))
+})
+
+
+/**
+ * @summary Submit an enquiry (no auth required)
+ */
+export const SubmitEnquiryBody = zod.object({
+  "name": zod.string(),
+  "email": zod.string().optional(),
+  "phone": zod.string().optional(),
+  "message": zod.string(),
+  "propertyId": zod.number().optional(),
+  "agentId": zod.number().optional(),
+  "enquiryType": zod.string().optional().describe('viewing | info | offer | general')
+})
+
+export const SubmitEnquiryResponse = zod.object({
+  "leadId": zod.number(),
+  "message": zod.string().optional()
+})
+
+
+/**
+ * @summary Register a buyer account
+ */
+export const RegisterBuyerBody = zod.object({
+  "name": zod.string(),
+  "email": zod.string(),
+  "phone": zod.string().optional(),
+  "password": zod.string()
+})
+
+export const RegisterBuyerResponse = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "email": zod.string(),
+  "phone": zod.string().nullish(),
+  "role": zod.string()
+})
+
+
+/**
+ * @summary Login as buyer
+ */
+export const LoginBuyerBody = zod.object({
+  "email": zod.string(),
+  "password": zod.string()
+})
+
+export const LoginBuyerResponse = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "email": zod.string(),
+  "phone": zod.string().nullish(),
+  "role": zod.string()
+})
+
+
+export const LogoutBuyerResponse = zod.unknown()
+
+
+/**
+ * @summary Get current buyer session
+ */
+export const GetPublicMeResponse = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "email": zod.string(),
+  "phone": zod.string().nullish(),
+  "role": zod.string()
+})
+
+
+/**
+ * @summary List buyer's saved properties (buyer auth required)
+ */
+export const ListSavedPropertiesResponseItem = zod.object({
+  "id": zod.number(),
+  "reference": zod.string(),
+  "title": zod.string(),
+  "description": zod.string().nullish(),
+  "propertyType": zod.string(),
+  "listingType": zod.string(),
+  "status": zod.string().optional(),
+  "price": zod.number(),
+  "currency": zod.string(),
+  "suburb": zod.string(),
+  "city": zod.string(),
+  "address": zod.string().nullish(),
+  "bedrooms": zod.number().nullish(),
+  "bathrooms": zod.number().nullish(),
+  "parking": zod.number().nullish(),
+  "landSize": zod.number().nullish(),
+  "buildingSize": zod.number().nullish(),
+  "features": zod.array(zod.string()),
+  "photos": zod.array(zod.string()),
+  "coverImage": zod.string().nullish(),
+  "agentId": zod.number().nullish(),
+  "views": zod.number(),
+  "enquiries": zod.number(),
+  "publishedAt": zod.string().nullish(),
+  "createdAt": zod.string()
+})
+export const ListSavedPropertiesResponse = zod.array(ListSavedPropertiesResponseItem)
+
+
+/**
+ * @summary Save a property (buyer auth required)
+ */
+export const SavePropertyParams = zod.object({
+  "propertyId": zod.coerce.number()
+})
+
+export const SavePropertyResponse = zod.object({
+  "saved": zod.boolean(),
+  "propertyId": zod.number()
+})
+
+
+/**
+ * @summary Unsave a property (buyer auth required)
+ */
+export const UnsavePropertyParams = zod.object({
+  "propertyId": zod.coerce.number()
+})
+
+export const UnsavePropertyResponse = zod.void()
+
+
+/**
+ * @summary Marketplace statistics for homepage
+ */
+export const GetMarketplaceStatsResponse = zod.object({
+  "totalListings": zod.number(),
+  "forSale": zod.number(),
+  "forRent": zod.number(),
+  "suburbs": zod.array(zod.string())
+})
+
+

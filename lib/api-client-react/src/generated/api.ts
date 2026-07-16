@@ -29,6 +29,7 @@ import type {
   BrochureResult,
   Buyer,
   BuyerInput,
+  BuyerRegistration,
   BuyerRequest,
   BuyerRequestInput,
   BuyerRequestUpdate,
@@ -37,6 +38,8 @@ import type {
   DashboardSummary,
   Document,
   DocumentInput,
+  EnquiryInput,
+  EnquiryResult,
   HealthStatus,
   Lead,
   LeadInput,
@@ -47,10 +50,12 @@ import type {
   ListDocumentsParams,
   ListLeadsParams,
   ListPropertiesParams,
+  ListPublicPropertiesParams,
   ListSellersParams,
   ListTasksParams,
   ListViewingsParams,
   LoginInput,
+  MarketplaceStats,
   Notification,
   OfficeSearchParams,
   PipelineColumn,
@@ -59,6 +64,13 @@ import type {
   PropertyInput,
   PropertyMatch,
   PropertyUpdate,
+  PublicAgent,
+  PublicAgentProfile,
+  PublicBuyer,
+  PublicProperty,
+  PublicPropertyDetail,
+  PublicPropertyList,
+  SavedResult,
   SearchResults,
   Seller,
   SellerInput,
@@ -4082,6 +4094,972 @@ export function useOfficeSearch<TData = Awaited<ReturnType<typeof officeSearch>>
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getOfficeSearchQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getListPublicPropertiesUrl = (params?: ListPublicPropertiesParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/public/properties?${stringifiedParams}` : `/api/public/properties`
+}
+
+/**
+ * @summary Public property listings (no auth required)
+ */
+export const listPublicProperties = async (params?: ListPublicPropertiesParams, options?: RequestInit): Promise<PublicPropertyList> => {
+
+  return customFetch<PublicPropertyList>(getListPublicPropertiesUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListPublicPropertiesQueryKey = (params?: ListPublicPropertiesParams,) => {
+    return [
+    `/api/public/properties`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListPublicPropertiesQueryOptions = <TData = Awaited<ReturnType<typeof listPublicProperties>>, TError = ErrorType<unknown>>(params?: ListPublicPropertiesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listPublicProperties>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListPublicPropertiesQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listPublicProperties>>> = ({ signal }) => listPublicProperties(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listPublicProperties>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListPublicPropertiesQueryResult = NonNullable<Awaited<ReturnType<typeof listPublicProperties>>>
+export type ListPublicPropertiesQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Public property listings (no auth required)
+ */
+
+export function useListPublicProperties<TData = Awaited<ReturnType<typeof listPublicProperties>>, TError = ErrorType<unknown>>(
+ params?: ListPublicPropertiesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listPublicProperties>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListPublicPropertiesQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetPublicPropertyUrl = (id: number,) => {
+
+
+
+
+  return `/api/public/properties/${id}`
+}
+
+/**
+ * @summary Public property detail (no auth required)
+ */
+export const getPublicProperty = async (id: number, options?: RequestInit): Promise<PublicPropertyDetail> => {
+
+  return customFetch<PublicPropertyDetail>(getGetPublicPropertyUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPublicPropertyQueryKey = (id: number,) => {
+    return [
+    `/api/public/properties/${id}`
+    ] as const;
+    }
+
+
+export const getGetPublicPropertyQueryOptions = <TData = Awaited<ReturnType<typeof getPublicProperty>>, TError = ErrorType<void>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPublicProperty>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPublicPropertyQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPublicProperty>>> = ({ signal }) => getPublicProperty(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPublicProperty>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetPublicPropertyQueryResult = NonNullable<Awaited<ReturnType<typeof getPublicProperty>>>
+export type GetPublicPropertyQueryError = ErrorType<void>
+
+
+/**
+ * @summary Public property detail (no auth required)
+ */
+
+export function useGetPublicProperty<TData = Awaited<ReturnType<typeof getPublicProperty>>, TError = ErrorType<void>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPublicProperty>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetPublicPropertyQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getListPublicAgentsUrl = () => {
+
+
+
+
+  return `/api/public/agents`
+}
+
+/**
+ * @summary List all active agents (no auth required)
+ */
+export const listPublicAgents = async ( options?: RequestInit): Promise<PublicAgent[]> => {
+
+  return customFetch<PublicAgent[]>(getListPublicAgentsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListPublicAgentsQueryKey = () => {
+    return [
+    `/api/public/agents`
+    ] as const;
+    }
+
+
+export const getListPublicAgentsQueryOptions = <TData = Awaited<ReturnType<typeof listPublicAgents>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listPublicAgents>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListPublicAgentsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listPublicAgents>>> = ({ signal }) => listPublicAgents({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listPublicAgents>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListPublicAgentsQueryResult = NonNullable<Awaited<ReturnType<typeof listPublicAgents>>>
+export type ListPublicAgentsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List all active agents (no auth required)
+ */
+
+export function useListPublicAgents<TData = Awaited<ReturnType<typeof listPublicAgents>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listPublicAgents>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListPublicAgentsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetPublicAgentUrl = (id: number,) => {
+
+
+
+
+  return `/api/public/agents/${id}`
+}
+
+/**
+ * @summary Agent public profile with listings
+ */
+export const getPublicAgent = async (id: number, options?: RequestInit): Promise<PublicAgentProfile> => {
+
+  return customFetch<PublicAgentProfile>(getGetPublicAgentUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPublicAgentQueryKey = (id: number,) => {
+    return [
+    `/api/public/agents/${id}`
+    ] as const;
+    }
+
+
+export const getGetPublicAgentQueryOptions = <TData = Awaited<ReturnType<typeof getPublicAgent>>, TError = ErrorType<void>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPublicAgent>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPublicAgentQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPublicAgent>>> = ({ signal }) => getPublicAgent(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPublicAgent>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetPublicAgentQueryResult = NonNullable<Awaited<ReturnType<typeof getPublicAgent>>>
+export type GetPublicAgentQueryError = ErrorType<void>
+
+
+/**
+ * @summary Agent public profile with listings
+ */
+
+export function useGetPublicAgent<TData = Awaited<ReturnType<typeof getPublicAgent>>, TError = ErrorType<void>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPublicAgent>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetPublicAgentQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getSubmitEnquiryUrl = () => {
+
+
+
+
+  return `/api/public/enquiries`
+}
+
+/**
+ * @summary Submit an enquiry (no auth required)
+ */
+export const submitEnquiry = async (enquiryInput: EnquiryInput, options?: RequestInit): Promise<EnquiryResult> => {
+
+  return customFetch<EnquiryResult>(getSubmitEnquiryUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(enquiryInput)
+  }
+);}
+
+
+
+
+
+export const getSubmitEnquiryMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof submitEnquiry>>, TError,{data: BodyType<EnquiryInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof submitEnquiry>>, TError,{data: BodyType<EnquiryInput>}, TContext> => {
+
+const mutationKey = ['submitEnquiry'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof submitEnquiry>>, {data: BodyType<EnquiryInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  submitEnquiry(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SubmitEnquiryMutationResult = NonNullable<Awaited<ReturnType<typeof submitEnquiry>>>
+    export type SubmitEnquiryMutationBody = BodyType<EnquiryInput>
+    export type SubmitEnquiryMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Submit an enquiry (no auth required)
+ */
+export const useSubmitEnquiry = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof submitEnquiry>>, TError,{data: BodyType<EnquiryInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof submitEnquiry>>,
+        TError,
+        {data: BodyType<EnquiryInput>},
+        TContext
+      > => {
+      return useMutation(getSubmitEnquiryMutationOptions(options));
+    }
+
+export const getRegisterBuyerUrl = () => {
+
+
+
+
+  return `/api/public/auth/register`
+}
+
+/**
+ * @summary Register a buyer account
+ */
+export const registerBuyer = async (buyerRegistration: BuyerRegistration, options?: RequestInit): Promise<PublicBuyer> => {
+
+  return customFetch<PublicBuyer>(getRegisterBuyerUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(buyerRegistration)
+  }
+);}
+
+
+
+
+
+export const getRegisterBuyerMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof registerBuyer>>, TError,{data: BodyType<BuyerRegistration>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof registerBuyer>>, TError,{data: BodyType<BuyerRegistration>}, TContext> => {
+
+const mutationKey = ['registerBuyer'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof registerBuyer>>, {data: BodyType<BuyerRegistration>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  registerBuyer(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RegisterBuyerMutationResult = NonNullable<Awaited<ReturnType<typeof registerBuyer>>>
+    export type RegisterBuyerMutationBody = BodyType<BuyerRegistration>
+    export type RegisterBuyerMutationError = ErrorType<void>
+
+    /**
+ * @summary Register a buyer account
+ */
+export const useRegisterBuyer = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof registerBuyer>>, TError,{data: BodyType<BuyerRegistration>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof registerBuyer>>,
+        TError,
+        {data: BodyType<BuyerRegistration>},
+        TContext
+      > => {
+      return useMutation(getRegisterBuyerMutationOptions(options));
+    }
+
+export const getLoginBuyerUrl = () => {
+
+
+
+
+  return `/api/public/auth/login`
+}
+
+/**
+ * @summary Login as buyer
+ */
+export const loginBuyer = async (loginInput: LoginInput, options?: RequestInit): Promise<PublicBuyer> => {
+
+  return customFetch<PublicBuyer>(getLoginBuyerUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(loginInput)
+  }
+);}
+
+
+
+
+
+export const getLoginBuyerMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof loginBuyer>>, TError,{data: BodyType<LoginInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof loginBuyer>>, TError,{data: BodyType<LoginInput>}, TContext> => {
+
+const mutationKey = ['loginBuyer'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof loginBuyer>>, {data: BodyType<LoginInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  loginBuyer(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type LoginBuyerMutationResult = NonNullable<Awaited<ReturnType<typeof loginBuyer>>>
+    export type LoginBuyerMutationBody = BodyType<LoginInput>
+    export type LoginBuyerMutationError = ErrorType<void>
+
+    /**
+ * @summary Login as buyer
+ */
+export const useLoginBuyer = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof loginBuyer>>, TError,{data: BodyType<LoginInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof loginBuyer>>,
+        TError,
+        {data: BodyType<LoginInput>},
+        TContext
+      > => {
+      return useMutation(getLoginBuyerMutationOptions(options));
+    }
+
+export const getLogoutBuyerUrl = () => {
+
+
+
+
+  return `/api/public/auth/logout`
+}
+
+export const logoutBuyer = async ( options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getLogoutBuyerUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getLogoutBuyerMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof logoutBuyer>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof logoutBuyer>>, TError,void, TContext> => {
+
+const mutationKey = ['logoutBuyer'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof logoutBuyer>>, void> = () => {
+
+
+          return  logoutBuyer(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type LogoutBuyerMutationResult = NonNullable<Awaited<ReturnType<typeof logoutBuyer>>>
+
+    export type LogoutBuyerMutationError = ErrorType<unknown>
+
+    export const useLogoutBuyer = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof logoutBuyer>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof logoutBuyer>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getLogoutBuyerMutationOptions(options));
+    }
+
+export const getGetPublicMeUrl = () => {
+
+
+
+
+  return `/api/public/auth/me`
+}
+
+/**
+ * @summary Get current buyer session
+ */
+export const getPublicMe = async ( options?: RequestInit): Promise<PublicBuyer> => {
+
+  return customFetch<PublicBuyer>(getGetPublicMeUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPublicMeQueryKey = () => {
+    return [
+    `/api/public/auth/me`
+    ] as const;
+    }
+
+
+export const getGetPublicMeQueryOptions = <TData = Awaited<ReturnType<typeof getPublicMe>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPublicMe>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPublicMeQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPublicMe>>> = ({ signal }) => getPublicMe({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPublicMe>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetPublicMeQueryResult = NonNullable<Awaited<ReturnType<typeof getPublicMe>>>
+export type GetPublicMeQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get current buyer session
+ */
+
+export function useGetPublicMe<TData = Awaited<ReturnType<typeof getPublicMe>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPublicMe>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetPublicMeQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getListSavedPropertiesUrl = () => {
+
+
+
+
+  return `/api/public/saved`
+}
+
+/**
+ * @summary List buyer's saved properties (buyer auth required)
+ */
+export const listSavedProperties = async ( options?: RequestInit): Promise<PublicProperty[]> => {
+
+  return customFetch<PublicProperty[]>(getListSavedPropertiesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListSavedPropertiesQueryKey = () => {
+    return [
+    `/api/public/saved`
+    ] as const;
+    }
+
+
+export const getListSavedPropertiesQueryOptions = <TData = Awaited<ReturnType<typeof listSavedProperties>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listSavedProperties>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListSavedPropertiesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listSavedProperties>>> = ({ signal }) => listSavedProperties({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listSavedProperties>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListSavedPropertiesQueryResult = NonNullable<Awaited<ReturnType<typeof listSavedProperties>>>
+export type ListSavedPropertiesQueryError = ErrorType<void>
+
+
+/**
+ * @summary List buyer's saved properties (buyer auth required)
+ */
+
+export function useListSavedProperties<TData = Awaited<ReturnType<typeof listSavedProperties>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listSavedProperties>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListSavedPropertiesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getSavePropertyUrl = (propertyId: number,) => {
+
+
+
+
+  return `/api/public/saved/${propertyId}`
+}
+
+/**
+ * @summary Save a property (buyer auth required)
+ */
+export const saveProperty = async (propertyId: number, options?: RequestInit): Promise<SavedResult> => {
+
+  return customFetch<SavedResult>(getSavePropertyUrl(propertyId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getSavePropertyMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof saveProperty>>, TError,{propertyId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof saveProperty>>, TError,{propertyId: number}, TContext> => {
+
+const mutationKey = ['saveProperty'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof saveProperty>>, {propertyId: number}> = (props) => {
+          const {propertyId} = props ?? {};
+
+          return  saveProperty(propertyId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SavePropertyMutationResult = NonNullable<Awaited<ReturnType<typeof saveProperty>>>
+
+    export type SavePropertyMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Save a property (buyer auth required)
+ */
+export const useSaveProperty = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof saveProperty>>, TError,{propertyId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof saveProperty>>,
+        TError,
+        {propertyId: number},
+        TContext
+      > => {
+      return useMutation(getSavePropertyMutationOptions(options));
+    }
+
+export const getUnsavePropertyUrl = (propertyId: number,) => {
+
+
+
+
+  return `/api/public/saved/${propertyId}`
+}
+
+/**
+ * @summary Unsave a property (buyer auth required)
+ */
+export const unsaveProperty = async (propertyId: number, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getUnsavePropertyUrl(propertyId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getUnsavePropertyMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof unsaveProperty>>, TError,{propertyId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof unsaveProperty>>, TError,{propertyId: number}, TContext> => {
+
+const mutationKey = ['unsaveProperty'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof unsaveProperty>>, {propertyId: number}> = (props) => {
+          const {propertyId} = props ?? {};
+
+          return  unsaveProperty(propertyId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UnsavePropertyMutationResult = NonNullable<Awaited<ReturnType<typeof unsaveProperty>>>
+
+    export type UnsavePropertyMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Unsave a property (buyer auth required)
+ */
+export const useUnsaveProperty = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof unsaveProperty>>, TError,{propertyId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof unsaveProperty>>,
+        TError,
+        {propertyId: number},
+        TContext
+      > => {
+      return useMutation(getUnsavePropertyMutationOptions(options));
+    }
+
+export const getGetMarketplaceStatsUrl = () => {
+
+
+
+
+  return `/api/public/stats`
+}
+
+/**
+ * @summary Marketplace statistics for homepage
+ */
+export const getMarketplaceStats = async ( options?: RequestInit): Promise<MarketplaceStats> => {
+
+  return customFetch<MarketplaceStats>(getGetMarketplaceStatsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetMarketplaceStatsQueryKey = () => {
+    return [
+    `/api/public/stats`
+    ] as const;
+    }
+
+
+export const getGetMarketplaceStatsQueryOptions = <TData = Awaited<ReturnType<typeof getMarketplaceStats>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMarketplaceStats>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMarketplaceStatsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMarketplaceStats>>> = ({ signal }) => getMarketplaceStats({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMarketplaceStats>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetMarketplaceStatsQueryResult = NonNullable<Awaited<ReturnType<typeof getMarketplaceStats>>>
+export type GetMarketplaceStatsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Marketplace statistics for homepage
+ */
+
+export function useGetMarketplaceStats<TData = Awaited<ReturnType<typeof getMarketplaceStats>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMarketplaceStats>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetMarketplaceStatsQueryOptions(options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

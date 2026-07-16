@@ -649,6 +649,122 @@ export interface SearchResults {
   leads: Lead[];
 }
 
+export interface PublicProperty {
+  id: number;
+  reference: string;
+  title: string;
+  /** @nullable */
+  description?: string | null;
+  propertyType: string;
+  listingType: string;
+  status?: string;
+  price: number;
+  currency: string;
+  suburb: string;
+  city: string;
+  /** @nullable */
+  address?: string | null;
+  /** @nullable */
+  bedrooms?: number | null;
+  /** @nullable */
+  bathrooms?: number | null;
+  /** @nullable */
+  parking?: number | null;
+  /** @nullable */
+  landSize?: number | null;
+  /** @nullable */
+  buildingSize?: number | null;
+  features: string[];
+  photos: string[];
+  /** @nullable */
+  coverImage?: string | null;
+  /** @nullable */
+  agentId?: number | null;
+  views: number;
+  enquiries: number;
+  /** @nullable */
+  publishedAt?: string | null;
+  createdAt: string;
+}
+
+export interface PublicPropertyList {
+  properties: PublicProperty[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export interface PublicAgent {
+  id: number;
+  name: string;
+  /** @nullable */
+  phone?: string | null;
+  /** @nullable */
+  email?: string | null;
+  /** @nullable */
+  avatarUrl?: string | null;
+  role: string;
+  /** @nullable */
+  branchId?: number | null;
+  /** @nullable */
+  branchName?: string | null;
+  activeListings: number;
+}
+
+export interface PublicAgentProfile {
+  agent: PublicAgent;
+  listings: PublicProperty[];
+}
+
+export interface PublicPropertyDetail {
+  property: PublicProperty;
+  agent?: PublicAgent;
+}
+
+export interface EnquiryInput {
+  name: string;
+  email?: string;
+  phone?: string;
+  message: string;
+  propertyId?: number;
+  agentId?: number;
+  /** viewing | info | offer | general */
+  enquiryType?: string;
+}
+
+export interface EnquiryResult {
+  leadId: number;
+  message?: string;
+}
+
+export interface BuyerRegistration {
+  name: string;
+  email: string;
+  phone?: string;
+  password: string;
+}
+
+export interface PublicBuyer {
+  id: number;
+  name: string;
+  email: string;
+  /** @nullable */
+  phone?: string | null;
+  role: string;
+}
+
+export interface SavedResult {
+  saved: boolean;
+  propertyId: number;
+}
+
+export interface MarketplaceStats {
+  totalListings: number;
+  forSale: number;
+  forRent: number;
+  suburbs: string[];
+}
+
 export type ListPropertiesParams = {
 status?: string;
 pipelineStage?: string;
@@ -702,5 +818,20 @@ userId?: number;
 
 export type OfficeSearchParams = {
 q: string;
+};
+
+export type ListPublicPropertiesParams = {
+listingType?: string;
+propertyType?: string;
+suburb?: string;
+city?: string;
+minPrice?: number;
+maxPrice?: number;
+minBeds?: number;
+minBaths?: number;
+q?: string;
+page?: number;
+limit?: number;
+sort?: string;
 };
 

@@ -1,0 +1,361 @@
+import { Router, type IRouter, type Request, type Response } from "express";
+import { eq, and, gte, lte, ilike, or, inArray, sql } from "drizzle-orm";
+import { db, usersTable, branchesTable, propertiesTable, savedPropertiesTable } from "@workspace/db";
+import { jsonify } from "../lib/helpers";
+import {
+  SubmitEnquiryBody,
+  RegisterBuyerBody,
+  LoginBuyerBody,
+} from "@workspace/api-zod";
+import { leadsTable } from "@workspace/db";
+
+const router: IRouter = Router();
+
+const PUBLIC_STATUSES = ["public", "under_offer", "coming_soon"];
+const BUYER_COOKIE = "qp_buyer";
+
+/* ─── helpers ─────────────────────────────────────────────────────────── */
+
+async function currentBuyer(req: Request) {
+  const raw = req.cookies?.[BUYER_COOKIE];
+  const id = parseInt(raw ?? "", 10);
+  if (!id || Number.isNaN(id)) return null;
+  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, id));
+  return user?.role === "buyer" && user.status === "active" ? user : null;
+}
+
+function stripPrivate(p: typeof propertiesTable.$inferSelect) {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { privateNotes, commissionPercent, sellerId, mandateType, mandateStart, mandateExpiry, pipelineStage, hasBrochure, shares, ...pub } = p;
+  return pub;
+}
+
+async function agentWithBranch(agentId: number | null) {
+  if (!agentId) return null;
+  const [agent] = await db.select().from(usersTable).where(eq(usersTable.id, agentId));
+  if (!agent) return null;
+  let branchName: string | null = null;
+  if (agent.branchId) {
+    const [branch] = await db.select().from(branchesTable).where(eq(branchesTable.id, agent.branchId));
+    branchName = branch?.name ?? null;
+  }
+  const listings = await db.select().from(propertiesTable).where(
+    and(eq(propertiesTable.agentId, agent.id), inArray(propertiesTable.status, PUBLIC_STATUSES))
+  );
+  return {
+    id: agent.id,
+    name: agent.name,
+    phone: agent.phone ?? null,
+    email: agent.email,
+    avatarUrl: agent.avatarUrl ?? null,
+    role: agent.role,
+    branchId: agent.branchId ?? null,
+    branchName,
+    activeListings: listings.length,
+  };
+}
+
+/* ─── GET /public/stats ────────────────────────────────────────────────── */
+router.get("/public/stats", async (_req, res): Promise<void> => {
+  const all = await db.select().from(propertiesTable).where(
+    inArray(propertiesTable.status, PUBLIC_STATUSES)
+  );
+  const forSale = all.filter((p) => p.listingType === "sale").length;
+  const forRent = all.filter((p) => p.listingType === "rent").length;
+  const suburbs = [...new Set(all.map((p) => p.suburb))].sort();
+  res.json({ totalListings: all.length, forSale, forRent, suburbs });
+});
+
+/* ─── GET /public/properties ───────────────────────────────────────────── */
+router.get("/public/properties", async (req, res): Promise<void> => {
+  const {
+    listingType, propertyType, suburb, city, q,
+    minPrice, maxPrice, minBeds, minBaths,
+    page = "1", limit = "12", sort = "newest",
+  } = req.query as Record<string, string>;
+
+  const conditions = [inArray(propertiesTable.status, PUBLIC_STATUSES)];
+  if (listingType) conditions.push(eq(propertiesTable.listingType, listingType));
+  if (propertyType) conditions.push(eq(propertiesTable.propertyType, propertyType));
+  if (suburb) conditions.push(ilike(propertiesTable.suburb, `%${suburb}%`));
+  if (city) conditions.push(ilike(propertiesTable.city, `%${city}%`));
+  if (minPrice) conditions.push(gte(propertiesTable.price, parseFloat(minPrice)));
+  if (maxPrice) conditions.push(lte(propertiesTable.price, parseFloat(maxPrice)));
+  if (minBeds) conditions.push(gte(propertiesTable.bedrooms, parseInt(minBeds)));
+  if (minBaths) conditions.push(gte(propertiesTable.bathrooms, parseInt(minBaths)));
+  if (q) {
+    const like = `%${q}%`;
+    conditions.push(
+      or(
+        ilike(propertiesTable.title, like),
+        ilike(propertiesTable.suburb, like),
+        ilike(propertiesTable.city, like),
+        ilike(propertiesTable.description, like),
+      )!
+    );
+  }
+
+  const pageNum = Math.max(1, parseInt(page));
+  const limitNum = Math.min(48, Math.max(1, parseInt(limit)));
+  const offset = (pageNum - 1) * limitNum;
+
+  const [{ count }] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(propertiesTable)
+    .where(and(...conditions));
+
+  let query = db.select().from(propertiesTable).where(and(...conditions));
+
+  // Apply ordering
+  let ordered;
+  if (sort === "price_asc") {
+    ordered = query.orderBy(propertiesTable.price);
+  } else if (sort === "price_desc") {
+    ordered = query.orderBy(sql`${propertiesTable.price} desc`);
+  } else {
+    ordered = query.orderBy(sql`${propertiesTable.publishedAt} desc nulls last`);
+  }
+
+  const rows = await ordered.limit(limitNum).offset(offset);
+  const properties = rows.map(stripPrivate);
+
+  res.json({
+    properties: jsonify(properties),
+    total: count,
+    page: pageNum,
+    limit: limitNum,
+  });
+});
+
+/* ─── GET /public/properties/:id ──────────────────────────────────────── */
+router.get("/public/properties/:id", async (req, res): Promise<void> => {
+  const id = parseInt(req.params.id ?? "", 10);
+  if (!id) { res.status(404).json({ error: "Not found" }); return; }
+
+  const [prop] = await db.select().from(propertiesTable).where(
+    and(eq(propertiesTable.id, id), inArray(propertiesTable.status, PUBLIC_STATUSES))
+  );
+  if (!prop) { res.status(404).json({ error: "Not found" }); return; }
+
+  // Increment views
+  await db.update(propertiesTable).set({ views: (prop.views ?? 0) + 1 }).where(eq(propertiesTable.id, id));
+
+  const agent = await agentWithBranch(prop.agentId);
+  res.json({ property: jsonify(stripPrivate(prop)), agent: jsonify(agent) });
+});
+
+/* ─── GET /public/agents ───────────────────────────────────────────────── */
+router.get("/public/agents", async (_req, res): Promise<void> => {
+  const agents = await db.select().from(usersTable).where(
+    and(
+      inArray(usersTable.role, ["agent", "senior_agent", "principal"]),
+      eq(usersTable.status, "active"),
+    )
+  );
+
+  const result = await Promise.all(
+    agents.map(async (agent) => {
+      let branchName: string | null = null;
+      if (agent.branchId) {
+        const [branch] = await db.select().from(branchesTable).where(eq(branchesTable.id, agent.branchId));
+        branchName = branch?.name ?? null;
+      }
+      const listings = await db.select({ id: propertiesTable.id }).from(propertiesTable).where(
+        and(eq(propertiesTable.agentId, agent.id), inArray(propertiesTable.status, PUBLIC_STATUSES))
+      );
+      return {
+        id: agent.id,
+        name: agent.name,
+        phone: agent.phone ?? null,
+        email: agent.email,
+        avatarUrl: agent.avatarUrl ?? null,
+        role: agent.role,
+        branchId: agent.branchId ?? null,
+        branchName,
+        activeListings: listings.length,
+      };
+    })
+  );
+
+  res.json(jsonify(result));
+});
+
+/* ─── GET /public/agents/:id ───────────────────────────────────────────── */
+router.get("/public/agents/:id", async (req, res): Promise<void> => {
+  const id = parseInt(req.params.id ?? "", 10);
+  if (!id) { res.status(404).json({ error: "Not found" }); return; }
+
+  const [agent] = await db.select().from(usersTable).where(
+    and(eq(usersTable.id, id), inArray(usersTable.role, ["agent", "senior_agent", "principal"]))
+  );
+  if (!agent) { res.status(404).json({ error: "Not found" }); return; }
+
+  let branchName: string | null = null;
+  if (agent.branchId) {
+    const [branch] = await db.select().from(branchesTable).where(eq(branchesTable.id, agent.branchId));
+    branchName = branch?.name ?? null;
+  }
+
+  const listings = await db.select().from(propertiesTable).where(
+    and(eq(propertiesTable.agentId, agent.id), inArray(propertiesTable.status, PUBLIC_STATUSES))
+  );
+
+  res.json(jsonify({
+    agent: {
+      id: agent.id,
+      name: agent.name,
+      phone: agent.phone ?? null,
+      email: agent.email,
+      avatarUrl: agent.avatarUrl ?? null,
+      role: agent.role,
+      branchId: agent.branchId ?? null,
+      branchName,
+      activeListings: listings.length,
+    },
+    listings: listings.map(stripPrivate),
+  }));
+});
+
+/* ─── POST /public/enquiries ───────────────────────────────────────────── */
+router.post("/public/enquiries", async (req, res): Promise<void> => {
+  const parsed = SubmitEnquiryBody.safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
+
+  const { name, email, phone, message, propertyId, agentId, enquiryType } = parsed.data;
+
+  // Create lead
+  const [lead] = await db
+    .insert(leadsTable)
+    .values({
+      name,
+      phone: phone ?? null,
+      email: email ?? null,
+      source: "website",
+      stage: "new",
+      propertyId: propertyId ?? null,
+      agentId: agentId ?? null,
+      notes: `Enquiry type: ${enquiryType ?? "general"}\n\n${message}`,
+    })
+    .returning();
+
+  // Increment enquiries on property
+  if (propertyId) {
+    const [prop] = await db.select().from(propertiesTable).where(eq(propertiesTable.id, propertyId));
+    if (prop) {
+      await db.update(propertiesTable).set({ enquiries: (prop.enquiries ?? 0) + 1 }).where(eq(propertiesTable.id, propertyId));
+    }
+  }
+
+  res.status(201).json({ leadId: lead.id, message: "Enquiry submitted successfully" });
+});
+
+/* ─── POST /public/auth/register ──────────────────────────────────────── */
+router.post("/public/auth/register", async (req, res): Promise<void> => {
+  const parsed = RegisterBuyerBody.safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
+
+  const { name, email, password, phone } = parsed.data;
+
+  const [existing] = await db.select().from(usersTable).where(eq(usersTable.email, email.toLowerCase().trim()));
+  if (existing) { res.status(409).json({ error: "Email already registered" }); return; }
+
+  const [user] = await db
+    .insert(usersTable)
+    .values({
+      name,
+      email: email.toLowerCase().trim(),
+      phone: phone ?? null,
+      password,
+      role: "buyer",
+      status: "active",
+    })
+    .returning();
+
+  res.cookie(BUYER_COOKIE, String(user.id), {
+    httpOnly: true,
+    sameSite: "lax",
+    maxAge: 30 * 24 * 3600 * 1000,
+  });
+
+  res.status(201).json({ id: user.id, name: user.name, email: user.email, phone: user.phone ?? null, role: user.role });
+});
+
+/* ─── POST /public/auth/login ─────────────────────────────────────────── */
+router.post("/public/auth/login", async (req, res): Promise<void> => {
+  const parsed = LoginBuyerBody.safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
+
+  const [user] = await db.select().from(usersTable).where(eq(usersTable.email, parsed.data.email.toLowerCase().trim()));
+  if (!user || user.password !== parsed.data.password || user.role !== "buyer" || user.status !== "active") {
+    res.status(401).json({ error: "Invalid credentials" });
+    return;
+  }
+
+  res.cookie(BUYER_COOKIE, String(user.id), {
+    httpOnly: true,
+    sameSite: "lax",
+    maxAge: 30 * 24 * 3600 * 1000,
+  });
+
+  res.json({ id: user.id, name: user.name, email: user.email, phone: user.phone ?? null, role: user.role });
+});
+
+/* ─── POST /public/auth/logout ────────────────────────────────────────── */
+router.post("/public/auth/logout", (_req, res): void => {
+  res.clearCookie(BUYER_COOKIE);
+  res.json({ ok: true });
+});
+
+/* ─── GET /public/auth/me ─────────────────────────────────────────────── */
+router.get("/public/auth/me", async (req, res): Promise<void> => {
+  const user = await currentBuyer(req);
+  if (!user) { res.status(401).json({ error: "Not logged in" }); return; }
+  res.json({ id: user.id, name: user.name, email: user.email, phone: user.phone ?? null, role: user.role });
+});
+
+/* ─── GET /public/saved ───────────────────────────────────────────────── */
+router.get("/public/saved", async (req, res): Promise<void> => {
+  const user = await currentBuyer(req);
+  if (!user) { res.status(401).json({ error: "Not logged in" }); return; }
+
+  const saved = await db
+    .select({ property: propertiesTable })
+    .from(savedPropertiesTable)
+    .innerJoin(propertiesTable, eq(savedPropertiesTable.propertyId, propertiesTable.id))
+    .where(eq(savedPropertiesTable.userId, user.id));
+
+  res.json(jsonify(saved.map((s) => stripPrivate(s.property))));
+});
+
+/* ─── POST /public/saved/:propertyId ─────────────────────────────────── */
+router.post("/public/saved/:propertyId", async (req, res): Promise<void> => {
+  const user = await currentBuyer(req);
+  if (!user) { res.status(401).json({ error: "Not logged in" }); return; }
+
+  const propertyId = parseInt(req.params.propertyId ?? "", 10);
+  if (!propertyId) { res.status(400).json({ error: "Invalid property" }); return; }
+
+  await db
+    .insert(savedPropertiesTable)
+    .values({ userId: user.id, propertyId })
+    .onConflictDoNothing();
+
+  res.status(201).json({ saved: true, propertyId });
+});
+
+/* ─── DELETE /public/saved/:propertyId ───────────────────────────────── */
+router.delete("/public/saved/:propertyId", async (req, res): Promise<void> => {
+  const user = await currentBuyer(req);
+  if (!user) { res.status(401).json({ error: "Not logged in" }); return; }
+
+  const propertyId = parseInt(req.params.propertyId ?? "", 10);
+  if (!propertyId) { res.status(400).json({ error: "Invalid property" }); return; }
+
+  await db
+    .delete(savedPropertiesTable)
+    .where(and(eq(savedPropertiesTable.userId, user.id), eq(savedPropertiesTable.propertyId, propertyId)));
+
+  res.status(204).send();
+});
+
+export default router;
