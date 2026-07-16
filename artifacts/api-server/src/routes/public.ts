@@ -8,6 +8,7 @@ import {
   LoginBuyerBody,
 } from "@workspace/api-zod";
 import { leadsTable } from "@workspace/db";
+import { ai } from "@workspace/integrations-gemini-ai";
 
 const router: IRouter = Router();
 
@@ -356,6 +357,62 @@ router.delete("/public/saved/:propertyId", async (req, res): Promise<void> => {
     .where(and(eq(savedPropertiesTable.userId, user.id), eq(savedPropertiesTable.propertyId, propertyId)));
 
   res.status(204).send();
+});
+
+/* ─── POST /public/nlp-search ─────────────────────────────────────────── */
+router.post("/public/nlp-search", async (req, res): Promise<void> => {
+  const query = typeof req.body?.query === "string" ? req.body.query.trim() : "";
+  if (!query) { res.status(400).json({ error: "query is required" }); return; }
+
+  const SYSTEM = `You are a property search parser for the Zimbabwe real estate market.
+Given a natural-language search query from a buyer, extract structured search parameters.
+Return ONLY a valid JSON object with these optional fields:
+- listingType: "sale" | "rent"
+- propertyType: "house" | "apartment" | "townhouse" | "stand" | "commercial"
+- suburb: string (suburb or neighbourhood name if mentioned)
+- city: string (city name if mentioned, e.g. Harare, Bulawayo, Mutare)
+- minPrice: number (USD, no commas)
+- maxPrice: number (USD, no commas)
+- minBeds: number (minimum bedrooms)
+- keywords: string (any remaining descriptive terms useful for a full-text search, e.g. "pool garden garage")
+
+Rules:
+- Only include fields that are clearly implied by the query.
+- If no listing type is mentioned assume "sale".
+- For price: "k" means thousands, "m" means millions.
+- Do not include any explanation or markdown — output raw JSON only.`;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: [{ role: "user", parts: [{ text: query }] }],
+      config: {
+        systemInstruction: SYSTEM,
+        responseMimeType: "application/json",
+        maxOutputTokens: 512,
+      },
+    });
+
+    const raw = response.text?.trim() ?? "{}";
+    let parsed: Record<string, unknown> = {};
+    try { parsed = JSON.parse(raw); } catch { parsed = {}; }
+
+    // Sanitise — only return known, safe fields
+    const result: Record<string, unknown> = {};
+    if (typeof parsed.listingType === "string") result.listingType = parsed.listingType;
+    if (typeof parsed.propertyType === "string") result.propertyType = parsed.propertyType;
+    if (typeof parsed.suburb === "string") result.suburb = parsed.suburb;
+    if (typeof parsed.city === "string") result.city = parsed.city;
+    if (typeof parsed.minPrice === "number") result.minPrice = parsed.minPrice;
+    if (typeof parsed.maxPrice === "number") result.maxPrice = parsed.maxPrice;
+    if (typeof parsed.minBeds === "number") result.minBeds = parsed.minBeds;
+    if (typeof parsed.keywords === "string") result.keywords = parsed.keywords;
+
+    res.json(result);
+  } catch (err) {
+    console.error("NLP search error:", err);
+    res.status(500).json({ error: "Search parsing failed" });
+  }
 });
 
 export default router;

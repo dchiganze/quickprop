@@ -1,7 +1,7 @@
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { useGetPublicMe, useLogoutBuyer } from "@workspace/api-client-react";
-import { Home, User, LogOut, Menu } from "lucide-react";
+import { Home, User, LogOut, Menu, Search } from "lucide-react";
 import { useState } from "react";
 import {
   DropdownMenu,
@@ -9,11 +9,13 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { QuickSearchDialog } from "@/components/QuickSearchDialog";
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const { data: user } = useGetPublicMe({ query: { retry: false } });
   const logout = useLogoutBuyer();
   const [, setLocation] = useLocation();
+  const [quickSearchOpen, setQuickSearchOpen] = useState(false);
 
   const handleLogout = () => {
     logout.mutate(undefined, {
@@ -26,6 +28,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-[100dvh] flex flex-col w-full bg-gray-50">
+      <QuickSearchDialog open={quickSearchOpen} onOpenChange={setQuickSearchOpen} />
       <header className="sticky top-0 z-50 w-full border-b bg-white">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2 font-bold text-xl tracking-tight text-primary">
@@ -47,6 +50,13 @@ export function Layout({ children }: { children: React.ReactNode }) {
           </nav>
 
           <div className="hidden md:flex items-center gap-4">
+            <button
+              onClick={() => setQuickSearchOpen(true)}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-gray-200 bg-gray-50 text-sm text-gray-500 hover:border-primary/40 hover:bg-emerald-50/60 hover:text-primary transition-all"
+            >
+              <Search className="h-4 w-4" />
+              Quick search
+            </button>
             {user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
