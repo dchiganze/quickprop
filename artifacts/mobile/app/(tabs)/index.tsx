@@ -1,11 +1,8 @@
 import React, { useState } from 'react';
 import {
-  View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, Linking,
+  View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform,
 } from 'react-native';
-
-const OFFICE_BASE = process.env.EXPO_PUBLIC_DOMAIN
-  ? `https://${process.env.EXPO_PUBLIC_DOMAIN}/office`
-  : 'https://quickprop.replit.app/office';
+import { CatalogueBrochureSheet } from '@/components/BrochureSheet';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -24,6 +21,7 @@ export default function DashboardScreen() {
   const { user } = useAuth();
   const { properties, leads, tasks } = useData();
   const [shareOpen, setShareOpen] = useState(false);
+  const [brochureOpen, setBrochureOpen] = useState(false);
 
   const activeListings = properties.filter(p => p.status === 'published').length;
   const draftListings = properties.filter(p => p.status === 'draft').length;
@@ -105,7 +103,7 @@ export default function DashboardScreen() {
         <QuickAction label="Share Catalogue" icon="share-outline" onPress={async () => { await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); setShareOpen(true); }} accent />
         <QuickAction label="Generate Brochure" icon="document-text-outline" onPress={async () => {
           await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-          Linking.openURL(`${OFFICE_BASE}/brochure-catalog?mode=my`);
+          setBrochureOpen(true);
         }} />
       </ScrollView>
 
@@ -152,6 +150,7 @@ export default function DashboardScreen() {
     </ScrollView>
 
     <QuickShareSheet visible={shareOpen} onClose={() => setShareOpen(false)} />
+    <CatalogueBrochureSheet visible={brochureOpen} onClose={() => setBrochureOpen(false)} />
     </>
   );
 }
