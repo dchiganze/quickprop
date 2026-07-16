@@ -1,11 +1,10 @@
 import React, { useState, useCallback } from 'react';
-import { Share2, MessageCircle, Facebook, Instagram, Check, Copy, ExternalLink, ChevronRight } from 'lucide-react';
+import { Share2, MessageCircle, Facebook, Instagram, Check, Copy, ExternalLink, ChevronRight, User, Building2 } from 'lucide-react';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -143,13 +142,48 @@ export function QuickShareDialog() {
           </DialogTitle>
         </DialogHeader>
 
-        {/* Mode toggle */}
-        <Tabs value={mode} onValueChange={v => setMode(v as CatalogMode)}>
-          <TabsList className="w-full">
-            <TabsTrigger value="agent" className="flex-1">My Catalog</TabsTrigger>
-            <TabsTrigger value="company" className="flex-1">Company Catalog</TabsTrigger>
-          </TabsList>
-        </Tabs>
+        {/* Mode selector — prominent cards */}
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            onClick={() => setMode('agent')}
+            className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${
+              mode === 'agent'
+                ? 'border-primary bg-primary/5'
+                : 'border-border hover:border-muted-foreground/30 hover:bg-muted/40'
+            }`}
+          >
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${mode === 'agent' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
+              <User className="w-5 h-5" />
+            </div>
+            <div className="text-center">
+              <p className="text-sm font-semibold text-foreground leading-tight">My Catalogue</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Your listings only</p>
+            </div>
+            {mode === 'agent' && (
+              <Badge variant="secondary" className="text-xs">{publicProps.length}</Badge>
+            )}
+          </button>
+
+          <button
+            onClick={() => setMode('company')}
+            className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${
+              mode === 'company'
+                ? 'border-primary bg-primary/5'
+                : 'border-border hover:border-muted-foreground/30 hover:bg-muted/40'
+            }`}
+          >
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${mode === 'company' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
+              <Building2 className="w-5 h-5" />
+            </div>
+            <div className="text-center">
+              <p className="text-sm font-semibold text-foreground leading-tight">Company Catalogue</p>
+              <p className="text-xs text-muted-foreground mt-0.5">All agency listings</p>
+            </div>
+            {mode === 'company' && (
+              <Badge variant="secondary" className="text-xs">{publicProps.length}</Badge>
+            )}
+          </button>
+        </div>
 
         {/* Catalog preview */}
         <div className="rounded-lg border bg-muted/40 p-4 space-y-3">

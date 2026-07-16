@@ -14,6 +14,7 @@ import Inventory from '@/pages/inventory';
 import Pipeline from '@/pages/pipeline';
 import PropertyDetail from '@/pages/property-detail';
 import PropertyBrochure from '@/pages/property-brochure';
+import BrochureCatalog from '@/pages/brochure-catalog';
 import Buyers from '@/pages/buyers';
 import BuyerRequests from '@/pages/buyer-requests';
 import Leads from '@/pages/leads';
@@ -83,6 +84,7 @@ function AppRouter() {
       <ProtectedRoute path="/" component={Dashboard} />
       <ProtectedRoute path="/inventory" component={Inventory} />
       <ProtectedRoute path="/inventory/pipeline" component={Pipeline} />
+      <ProtectedBarePage path="/brochure-catalog" component={BrochureCatalog} />
       <ProtectedBarePage path="/property/:id/brochure" component={PropertyBrochure} />
       <ProtectedRoute path="/property/:id" component={PropertyDetail} />
       <ProtectedRoute path="/buyers" component={Buyers} />

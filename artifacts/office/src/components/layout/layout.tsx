@@ -7,6 +7,7 @@ import {
   ShieldAlert, UserCircle, Bell, Search, LogOut, Loader2
 } from 'lucide-react';
 import { QuickShareDialog } from '@/components/QuickShareDialog';
+import { BrochureCatalogDialog } from '@/components/BrochureCatalogDialog';
 
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -200,6 +201,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
           </div>
           
           <div className="flex items-center gap-2">
+            <BrochureCatalogDialog />
             <QuickShareDialog />
             <NotificationsDropdown />
           </div>
