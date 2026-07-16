@@ -126,9 +126,9 @@ export function QuickShareDialog() {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button
-          variant="ghost"
+          variant="outline"
           size="sm"
-          className="flex items-center gap-2 text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/50 font-medium"
+          className="flex items-center gap-2 border-primary/40 text-primary hover:bg-primary/5 hover:text-primary font-semibold"
         >
           <Share2 className="w-4 h-4" />
           QuickShare

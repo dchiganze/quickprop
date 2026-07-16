@@ -22,7 +22,7 @@ import { format } from 'date-fns';
 
 export default function PropertyDetail({ params }: { params: { id: string } }) {
   const propertyId = parseInt(params.id, 10);
-  const [, setLocation] = useLocation();
+  const [, navigate] = useLocation();
   const { toast } = useToast();
 
   const { data: property, isLoading } = useGetProperty(propertyId);
@@ -59,12 +59,7 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
   };
 
   const handleGenerateBrochure = () => {
-    generateBrochure.mutate({ id: propertyId }, {
-      onSuccess: (res) => {
-        toast({ title: 'Brochure generated', description: 'The brochure is ready to download.' });
-        if (res.url) window.open(res.url, '_blank');
-      }
-    });
+    window.open(`${window.location.pathname.replace(/\/property\/\d+.*/, '')}/property/${propertyId}/brochure`, '_blank');
   };
 
   const handleShare = () => {

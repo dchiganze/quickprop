@@ -13,6 +13,7 @@ import Dashboard from '@/pages/dashboard';
 import Inventory from '@/pages/inventory';
 import Pipeline from '@/pages/pipeline';
 import PropertyDetail from '@/pages/property-detail';
+import PropertyBrochure from '@/pages/property-brochure';
 import Buyers from '@/pages/buyers';
 import BuyerRequests from '@/pages/buyer-requests';
 import Leads from '@/pages/leads';
@@ -56,6 +57,25 @@ function ProtectedRoute({ component: Component, path }: { component: React.Compo
   );
 }
 
+/** Layout-free protected route — used for print pages like brochures */
+function ProtectedBarePage({ component: Component, path }: { component: React.ComponentType<any>, path: string }) {
+  const { data: user, isLoading, error } = useGetCurrentUser();
+
+  if (isLoading) {
+    return <div className="min-h-screen flex items-center justify-center bg-white"><div className="w-8 h-8 rounded-full border-4 border-emerald-600 border-t-transparent animate-spin" /></div>;
+  }
+
+  if (error || !user) {
+    return <Redirect to="/login" />;
+  }
+
+  return (
+    <Route path={path}>
+      {(params) => <Component params={params} />}
+    </Route>
+  );
+}
+
 function AppRouter() {
   return (
     <Switch>
@@ -63,6 +83,7 @@ function AppRouter() {
       <ProtectedRoute path="/" component={Dashboard} />
       <ProtectedRoute path="/inventory" component={Inventory} />
       <ProtectedRoute path="/inventory/pipeline" component={Pipeline} />
+      <ProtectedBarePage path="/property/:id/brochure" component={PropertyBrochure} />
       <ProtectedRoute path="/property/:id" component={PropertyDetail} />
       <ProtectedRoute path="/buyers" component={Buyers} />
       <ProtectedRoute path="/buyer-requests" component={BuyerRequests} />
