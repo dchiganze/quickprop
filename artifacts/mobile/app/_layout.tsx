@@ -8,7 +8,7 @@ import {
   Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold,
   useFonts,
 } from '@expo-google-fonts/inter';
-import { Redirect, Stack } from 'expo-router';
+import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { DataProvider } from '@/contexts/DataContext';
@@ -30,21 +30,21 @@ function RootLayoutNav() {
     );
   }
 
-  if (!user) {
-    return <Redirect href="/login" />;
-  }
-
   return (
     <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="(tabs)" />
-      <Stack.Screen name="login" options={{ headerShown: false }} />
-      <Stack.Screen
-        name="new-listing"
-        options={{ headerShown: false, presentation: 'modal', animation: 'slide_from_bottom' }}
-      />
-      <Stack.Screen name="listing/[id]" options={{ headerShown: false }} />
-      <Stack.Screen name="lead/[id]" options={{ headerShown: false }} />
-      <Stack.Screen name="settings" options={{ headerShown: false }} />
+      <Stack.Protected guard={!!user}>
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen
+          name="new-listing"
+          options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
+        />
+        <Stack.Screen name="listing/[id]" />
+        <Stack.Screen name="lead/[id]" />
+        <Stack.Screen name="settings" />
+      </Stack.Protected>
+      <Stack.Protected guard={!user}>
+        <Stack.Screen name="login" />
+      </Stack.Protected>
     </Stack>
   );
 }
