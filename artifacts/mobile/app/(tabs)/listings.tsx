@@ -13,6 +13,7 @@ import { PropertyCard } from '@/components/PropertyCard';
 import { SearchBar } from '@/components/SearchBar';
 import { EmptyState } from '@/components/EmptyState';
 import { Property } from '@/types';
+import { QuickShareSheet } from '@/components/QuickShareSheet';
 
 type Filter = 'all' | 'my' | 'agency' | 'draft' | 'pending' | 'sold' | 'rented' | 'archived';
 
@@ -33,6 +34,7 @@ export default function ListingsScreen() {
   const { properties } = useData();
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<Filter>('all');
+  const [shareOpen, setShareOpen] = useState(false);
 
   const filtered = useMemo(() => {
     let list = [...properties];
@@ -64,7 +66,15 @@ export default function ListingsScreen() {
       <View style={[styles.header, { paddingTop: insets.top + (Platform.OS === 'web' ? 67 : 16), backgroundColor: colors.background }]}>
         <View style={styles.titleRow}>
           <Text style={[styles.title, { color: colors.foreground }]}>Listings</Text>
-          <Text style={[styles.count, { color: colors.mutedForeground }]}>{filtered.length} properties</Text>
+          <View style={styles.titleActions}>
+            <Text style={[styles.count, { color: colors.mutedForeground }]}>{filtered.length} properties</Text>
+            <TouchableOpacity
+              style={[styles.shareIconBtn, { backgroundColor: colors.primary + '15', borderColor: colors.primary + '30' }]}
+              onPress={async () => { await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); setShareOpen(true); }}
+            >
+              <Ionicons name="share-social-outline" size={18} color={colors.primary} />
+            </TouchableOpacity>
+          </View>
         </View>
         <SearchBar value={query} onChangeText={setQuery} placeholder="Search by address, suburb, price, agent..." />
         <FlatList
@@ -120,6 +130,8 @@ export default function ListingsScreen() {
       >
         <Ionicons name="add" size={28} color="#FFF" />
       </TouchableOpacity>
+
+      <QuickShareSheet visible={shareOpen} onClose={() => setShareOpen(false)} />
     </View>
   );
 }
@@ -128,8 +140,10 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   header: { paddingHorizontal: 16, gap: 12, paddingBottom: 12, zIndex: 10 },
   titleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' },
+  titleActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   title: { fontSize: 28, fontWeight: '800', letterSpacing: -0.5 },
   count: { fontSize: 14, fontWeight: '500', marginBottom: 2 },
+  shareIconBtn: { width: 34, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
   filterList: { marginHorizontal: -16 },
   filterContent: { paddingHorizontal: 16, gap: 8 },
   filterBtn: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, borderWidth: 1 },

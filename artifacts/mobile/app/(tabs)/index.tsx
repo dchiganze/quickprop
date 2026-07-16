@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform,
 } from 'react-native';
@@ -12,12 +12,14 @@ import { useData } from '@/contexts/DataContext';
 import { StatCard } from '@/components/StatCard';
 import { QuickAction } from '@/components/QuickAction';
 import { PropertyCard } from '@/components/PropertyCard';
+import { QuickShareSheet } from '@/components/QuickShareSheet';
 
 export default function DashboardScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const { properties, leads, tasks } = useData();
+  const [shareOpen, setShareOpen] = useState(false);
 
   const activeListings = properties.filter(p => p.status === 'published').length;
   const draftListings = properties.filter(p => p.status === 'draft').length;
@@ -47,6 +49,7 @@ export default function DashboardScreen() {
   };
 
   return (
+    <>
     <ScrollView
       style={[styles.flex, { backgroundColor: colors.background }]}
       contentContainerStyle={[
@@ -95,7 +98,7 @@ export default function DashboardScreen() {
         <QuickAction label="Search Inventory" icon="search-outline" onPress={() => handleQuickAction('listings')} />
         <QuickAction label="Buyer Requests" icon="people-outline" onPress={() => handleQuickAction('matches')} />
         <QuickAction label="My Leads" icon="person-outline" onPress={() => handleQuickAction('leads')} />
-        <QuickAction label="Share Catalogue" icon="share-outline" onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)} />
+        <QuickAction label="Share Catalogue" icon="share-outline" onPress={async () => { await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); setShareOpen(true); }} accent />
         <QuickAction label="Generate Brochure" icon="document-text-outline" onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)} />
       </ScrollView>
 
@@ -140,6 +143,9 @@ export default function DashboardScreen() {
         <PropertyCard key={p.id} property={p} onPress={() => router.push(`/listing/${p.id}`)} />
       ))}
     </ScrollView>
+
+    <QuickShareSheet visible={shareOpen} onClose={() => setShareOpen(false)} />
+    </>
   );
 }
 
