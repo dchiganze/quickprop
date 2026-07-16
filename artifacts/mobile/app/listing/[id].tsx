@@ -1,7 +1,11 @@
 import React, { useState } from 'react';
 import {
-  View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, Alert, Share,
+  View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, Alert, Share, Linking,
 } from 'react-native';
+
+const OFFICE_BASE = process.env.EXPO_PUBLIC_DOMAIN
+  ? `https://${process.env.EXPO_PUBLIC_DOMAIN}/office`
+  : 'https://quickprop.replit.app/office';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -248,7 +252,10 @@ export default function ListingDetailScreen() {
           <Ionicons name="share-outline" size={18} color={colors.primary} />
           <Text style={[styles.bottomBtnText, { color: colors.primary }]}>Share</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={[styles.bottomBtn, { backgroundColor: colors.secondary }]} onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}>
+        <TouchableOpacity style={[styles.bottomBtn, { backgroundColor: colors.secondary }]} onPress={async () => {
+          await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          Linking.openURL(`${OFFICE_BASE}/property/${property.id}/brochure`);
+        }}>
           <Ionicons name="document-text-outline" size={18} color={colors.primary} />
           <Text style={[styles.bottomBtnText, { color: colors.primary }]}>Brochure</Text>
         </TouchableOpacity>

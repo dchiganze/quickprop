@@ -1,7 +1,11 @@
 import React from 'react';
 import {
-  View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, Alert,
+  View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, Alert, Linking,
 } from 'react-native';
+
+const OFFICE_BASE = process.env.EXPO_PUBLIC_DOMAIN
+  ? `https://${process.env.EXPO_PUBLIC_DOMAIN}/office`
+  : 'https://quickprop.replit.app/office';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -132,7 +136,10 @@ export default function ProfileScreen() {
       <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>CATALOGUE</Text>
       <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border }]}>
         <Row icon="share-outline" label="Share My Catalogue" onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)} />
-        <Row icon="document-text-outline" label="Generate PDF Brochure" onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)} />
+        <Row icon="document-text-outline" label="Generate PDF Brochure" onPress={async () => {
+          await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          Linking.openURL(`${OFFICE_BASE}/brochure-catalog?mode=my`);
+        }} />
         <Row icon="qr-code-outline" label="My QR Code" onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)} />
       </View>
 

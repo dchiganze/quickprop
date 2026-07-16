@@ -1,7 +1,11 @@
 import React, { useState } from 'react';
 import {
-  View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform,
+  View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, Linking,
 } from 'react-native';
+
+const OFFICE_BASE = process.env.EXPO_PUBLIC_DOMAIN
+  ? `https://${process.env.EXPO_PUBLIC_DOMAIN}/office`
+  : 'https://quickprop.replit.app/office';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -99,7 +103,10 @@ export default function DashboardScreen() {
         <QuickAction label="Buyer Requests" icon="people-outline" onPress={() => handleQuickAction('matches')} />
         <QuickAction label="My Leads" icon="person-outline" onPress={() => handleQuickAction('leads')} />
         <QuickAction label="Share Catalogue" icon="share-outline" onPress={async () => { await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); setShareOpen(true); }} accent />
-        <QuickAction label="Generate Brochure" icon="document-text-outline" onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)} />
+        <QuickAction label="Generate Brochure" icon="document-text-outline" onPress={async () => {
+          await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          Linking.openURL(`${OFFICE_BASE}/brochure-catalog?mode=my`);
+        }} />
       </ScrollView>
 
       {/* Today's Tasks */}
