@@ -1,0 +1,973 @@
+QUICKPROP OFFICE (CRM LITE)
+
+Project Overview
+
+Build a production-ready web application called QuickProp Office.
+
+QuickProp Office is a lightweight property agency operating system.
+
+It is NOT an enterprise CRM.
+
+Its purpose is to help agencies:
+
+• Manage every property mandate
+
+• Search their entire inventory instantly
+
+• Track buyers
+
+• Track leads
+
+• Collaborate between agents
+
+• Generate brochures
+
+• Market properties
+
+• Publish inventory to QuickProp
+
+The system must be modern, fast and incredibly simple.
+
+The design philosophy is:
+
+Every mandate belongs in the system.
+
+Whether or not it is publicly advertised.
+
+________________________________________
+
+Technology Stack
+
+Build using:
+
+Next.js
+
+React
+
+TypeScript
+
+TailwindCSS
+
+ShadCN UI
+
+React Query
+
+NestJS Backend
+
+PostgreSQL
+
+Prisma ORM
+
+Redis
+
+JWT Authentication
+
+Cloudflare R2 (images)
+
+Meilisearch
+
+Chart.js
+
+React Hook Form
+
+Zod
+
+________________________________________
+
+USER ROLES
+
+QuickProp Administrator
+
+Agency Principal
+
+Agency Administrator
+
+Senior Agent
+
+Agent
+
+Receptionist
+
+Marketing Assistant
+
+Viewer (Read Only)
+
+Every permission must be configurable.
+
+________________________________________
+
+DASHBOARD
+
+Upon login show
+
+Good Morning John.
+
+Today's Activity
+
+Cards
+
+Active Mandates
+
+Public Listings
+
+Draft Listings
+
+Properties Sold
+
+Properties Rented
+
+New Leads
+
+Buyer Requests
+
+Viewings Today
+
+Offers
+
+Tasks
+
+Recent Activity
+
+Charts
+
+New Listings
+
+Lead Sources
+
+Properties by Suburb
+
+Sales This Month
+
+Top Agents
+
+Quick Actions
+
+New Listing
+
+New Buyer
+
+Search Inventory
+
+Generate Brochure
+
+Share Catalogue
+
+Buyer Requests
+
+________________________________________
+
+LEFT SIDEBAR
+
+Dashboard
+
+Inventory
+
+Buyer Requests
+
+Leads
+
+Tasks
+
+Calendar
+
+Documents
+
+Marketing
+
+Analytics
+
+Users
+
+Reports
+
+Settings
+
+________________________________________
+
+INVENTORY
+
+The heart of the platform.
+
+Every property mandate is stored.
+
+NOT just advertised properties.
+
+Properties have statuses.
+
+Draft
+
+Internal Only
+
+Public
+
+Under Offer
+
+Sold
+
+Rented
+
+Archived
+
+Withdrawn
+
+Coming Soon
+
+Private Listing
+
+Search
+
+Instant.
+
+Search entire inventory using
+
+Address
+
+Seller Name
+
+Buyer Name
+
+Reference
+
+Price
+
+Keyword
+
+Suburb
+
+Natural language
+
+Examples
+
+Borrowdale under 300k
+
+Commercial CBD
+
+Solar Highlands
+
+Stands Ruwa
+
+________________________________________
+
+PROPERTY RECORD
+
+Every property has
+
+Photos
+
+Video
+
+Description
+
+Price History
+
+Seller Information
+
+Private Notes
+
+Documents
+
+Viewing History
+
+Buyer Enquiries
+
+Activity Timeline
+
+Marketing Assets
+
+Brochures
+
+Status
+
+Publishing Status
+
+Public URL
+
+QR Code
+
+Agent
+
+Branch
+
+Agency
+
+Audit History
+
+________________________________________
+
+PROPERTY PIPELINE
+
+Visual Kanban
+
+Draft
+
+Awaiting Photos
+
+Ready
+
+Published
+
+Under Offer
+
+Sold
+
+Archived
+
+Drag and drop supported.
+
+________________________________________
+
+SELLER MANAGEMENT
+
+Private.
+
+Never public.
+
+Seller
+
+ID Number
+
+Phone
+
+Email
+
+Postal Address
+
+Mandate Type
+
+Mandate Start
+
+Mandate Expiry
+
+Commission %
+
+Notes
+
+Communication History
+
+________________________________________
+
+BUYER DATABASE
+
+Store buyers.
+
+Budget
+
+Preferred Areas
+
+Property Type
+
+Bedrooms
+
+Bathrooms
+
+Features
+
+Cash
+
+Mortgage
+
+Diaspora
+
+Urgency
+
+Automatically match buyers with inventory.
+
+________________________________________
+
+BUYER REQUESTS
+
+Buyer submits
+
+"I'm looking for..."
+
+System stores request.
+
+Automatically matches against inventory.
+
+Shows
+
+Match %
+
+Reasons
+
+Agent
+
+Respond
+
+Track status
+
+________________________________________
+
+LEADS
+
+Every enquiry creates a lead.
+
+Pipeline
+
+New
+
+Attempted Contact
+
+Viewing Booked
+
+Offer Received
+
+Negotiation
+
+Completed
+
+Lost
+
+Each lead has
+
+Timeline
+
+Notes
+
+Calls
+
+Emails
+
+Meetings
+
+Viewing history
+
+Tasks
+
+________________________________________
+
+TASK MANAGEMENT
+
+Create tasks
+
+Assign
+
+Due Date
+
+Priority
+
+Reminders
+
+Recurring tasks
+
+Examples
+
+Renew Mandate
+
+Take Photos
+
+Follow Up
+
+Price Review
+
+Viewing
+
+Call Seller
+
+________________________________________
+
+VIEWING MANAGEMENT
+
+Schedule
+
+Property
+
+Buyer
+
+Agent
+
+Date
+
+Outcome
+
+Notes
+
+GPS directions
+
+Calendar sync
+
+Google Calendar
+
+Outlook
+
+________________________________________
+
+DOCUMENTS
+
+Store
+
+Mandates
+
+Title Deeds
+
+IDs
+
+Contracts
+
+Photos
+
+Videos
+
+Inspection Reports
+
+Valuation Reports
+
+Searchable
+
+Version controlled
+
+________________________________________
+
+MARKETING HUB
+
+One-click marketing.
+
+Generate
+
+Brochure
+
+Catalogue
+
+Status Card
+
+Instagram
+
+Facebook
+
+LinkedIn
+
+Email Flyer
+
+QR Code
+
+Short Link
+
+Landing Page
+
+________________________________________
+
+CATALOGUE GENERATOR
+
+Generate
+
+Agency Catalogue
+
+Agent Catalogue
+
+Luxury Catalogue
+
+Commercial Catalogue
+
+Rentals
+
+Sales
+
+Latest Listings
+
+Custom Catalogue
+
+Output
+
+PDF
+
+Flipbook
+
+Website
+
+QR Code
+
+________________________________________
+
+SHARE CENTRE
+
+Generate
+
+Property Link
+
+Catalogue Link
+
+QR Code
+
+Brochure
+
+Social Pack
+
+Native Share
+
+Copy Link
+
+WhatsApp
+
+Facebook
+
+Email
+
+SMS
+
+________________________________________
+
+ANALYTICS
+
+Agency Dashboard
+
+Inventory Growth
+
+Lead Conversion
+
+Average Days on Market
+
+Top Performing Agents
+
+Suburb Heatmaps
+
+Property Types
+
+Views
+
+Enquiries
+
+Brochure Downloads
+
+Catalogue Views
+
+WhatsApp Shares
+
+________________________________________
+
+REPORTS
+
+Sales
+
+Rentals
+
+Inventory
+
+Expired Mandates
+
+Lead Sources
+
+Agent Performance
+
+Commission
+
+Buyer Activity
+
+CSV
+
+Excel
+
+PDF Export
+
+________________________________________
+
+OFFICE SEARCH
+
+Core feature.
+
+Natural Language Search.
+
+Examples
+
+All Borrowdale listings
+
+Properties over 500k
+
+Commercial CBD
+
+Solar under 250k
+
+Buyer John Smith
+
+Seller Brown
+
+Must return results instantly.
+
+________________________________________
+
+USER MANAGEMENT
+
+Create users
+
+Suspend
+
+Deactivate
+
+Reset Password
+
+Assign Branch
+
+Assign Team
+
+Assign Permissions
+
+________________________________________
+
+BRANCH MANAGEMENT
+
+Support agencies with multiple offices.
+
+Separate inventory
+
+Shared inventory
+
+Branch analytics
+
+Branch users
+
+________________________________________
+
+NOTIFICATIONS
+
+Browser
+
+Email
+
+Push
+
+Examples
+
+Mandate Expiring
+
+New Buyer Match
+
+Offer Received
+
+Task Due
+
+Viewing Reminder
+
+________________________________________
+
+AUDIT LOG
+
+Track
+
+Created
+
+Edited
+
+Deleted
+
+Published
+
+Price Changes
+
+Photo Uploads
+
+Status Changes
+
+User Login
+
+Every action logged.
+
+________________________________________
+
+SETTINGS
+
+Agency Branding
+
+Logo
+
+Colours
+
+Email Signature
+
+Watermark
+
+Brochure Branding
+
+QR Style
+
+Short Domain
+
+Notification Preferences
+
+________________________________________
+
+ADMIN PANEL
+
+QuickProp Staff
+
+Approve agencies
+
+Verify agents
+
+Moderate listings
+
+Feature flags
+
+Manage subscriptions
+
+Analytics
+
+Support tickets
+
+Audit logs
+
+________________________________________
+
+PERFORMANCE
+
+100,000+
+
+Listings
+
+Sub-second search
+
+Lazy loading
+
+Pagination
+
+Autosave
+
+Background processing
+
+Caching
+
+________________________________________
+
+SECURITY
+
+HTTPS
+
+JWT
+
+RBAC
+
+Encrypted storage
+
+Secure uploads
+
+Rate limiting
+
+Audit logging
+
+No private seller information exposed publicly.
+
+________________________________________
+
+UI DESIGN
+
+Premium.
+
+Modern.
+
+Minimal.
+
+Inspired by
+
+Notion
+
+Linear
+
+Airbnb Host
+
+Stripe Dashboard
+
+Large cards
+
+Clean typography
+
+Rounded corners
+
+Soft shadows
+
+Minimal colours
+
+________________________________________
+
+DEVELOPMENT STANDARDS
+
+Reusable components
+
+Modular architecture
+
+Service layer
+
+Repository pattern
+
+Unit tests
+
+Integration tests
+
+No duplicated logic
+
+Document APIs
+
+Lint before commit
+
+________________________________________
+
+SUCCESS CRITERIA
+
+The platform should allow an agency to:
+
+• Store every property mandate regardless of whether it is advertised.
+
+• Instantly search thousands of properties.
+
+• Track every buyer and seller.
+
+• Manage leads efficiently.
+
+• Generate professional marketing material in one click.
+
+• Publish or unpublish listings with a single action.
+
+• Collaborate across multiple branches.
+
+• Scale from a 2-person agency to a 500-user enterprise.
+
+________________________________________
+
+FUTURE-READY ARCHITECTURE
+
+Design the system with extension points for:
+
+•	CRM integrations with third-party systems (via REST APIs and webhooks) 
+
+•	MLS/property feed imports and exports 
+
+•	Mortgage broker integrations 
+
+•	Conveyancer workflows 
+
+•	Electronic document signing 
+
+•	Digital identity verification 
+
+•	Comparable sales database 
+
+•	Property valuation tools 
+
+•	AI-powered market insights 
+
+•	Multi-country support (currencies, tax settings, address formats) 
+
+________________________________________
+
+Build the CRM around an "Inventory Command Centre" instead of just a list of properties.
+
+The first screen an agency principal should sees each morning:
+
+•	487 Active Mandates 
+
+•	12 Awaiting Photos 
+
+•	18 Mandates Expiring in 30 Days 
+
+•	43 Buyer Requests With No Match 
+
+•	27 Listings Missing Brochures 
+
+•	15 New Leads Awaiting Response 
+
+•	9 Price Reductions Recommended 
+
+•	21 Properties Not Shared in the Last 14 Days 
+
+Instead of simply storing information, the system actively tells the agency what needs attention next.
+
+That shifts QuickProp Office from being a passive database into an operational tool that helps agencies market their full inventory more effectively and respond faster to buyers—a direction that aligns well with the overall strategy you've been developing.
+
+This syncs seamlessly with quickprop agent and shares the same backend
