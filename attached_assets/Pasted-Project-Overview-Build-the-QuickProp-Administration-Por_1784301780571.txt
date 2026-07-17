@@ -1,0 +1,390 @@
+Project Overview
+Build the QuickProp Administration Portal, the operational control centre for the QuickProp ecosystem.
+QuickProp consists of four applications that MUST share a single backend:
+1.	Public Website
+o	Property search
+o	Buyer enquiries
+o	Property discovery
+2.	Agent Mobile App
+o	Upload property mandates
+o	Manage listings
+o	Receive and manage leads
+o	Generate WhatsApp catalogues
+3.	Agency CRM
+o	Agency inventory management
+o	Lead management
+o	Team management
+4.	QuickProp Administration Portal
+o	Marketplace oversight
+o	Vendor management
+o	Property moderation
+o	Lead intelligence
+o	Platform analytics
+________________________________________
+CRITICAL ARCHITECTURE REQUIREMENT
+This is NOT a separate application.
+The Admin Portal MUST use:
+•	The same PostgreSQL database
+•	The same backend
+•	The same REST API
+•	The same authentication service
+•	The same notification system
+•	The same storage system
+•	The same image repository
+There must only ever be one source of truth.
+All four products must remain synchronised in real time.
+Example:
+Agent uploads property in App
+↓
+Database updates
+↓
+Website listing appears instantly
+↓
+Agency CRM inventory updates
+↓
+Admin Portal statistics update automatically
+No duplicated databases.
+No duplicated APIs.
+No duplicated authentication.
+No duplicated business logic.
+________________________________________
+Technology Stack
+Frontend
+•	React
+•	Next.js
+•	TypeScript
+•	Tailwind CSS
+•	Mobile responsive
+Backend (Shared)
+•	Node.js
+•	Express
+•	PostgreSQL
+•	Prisma ORM
+•	REST API
+•	WebSockets for live updates
+Storage
+•	Cloud image storage
+Authentication
+JWT
+Role-based permissions
+________________________________________
+User Roles
+Super Administrator
+Full system access.
+Can manage:
+•	Users
+•	Agencies
+•	Agents
+•	Listings
+•	Leads
+•	Platform settings
+•	Reports
+________________________________________
+Operations Administrator
+Can:
+Approve agencies
+Approve agents
+Moderate listings
+Monitor activity
+Manage enquiries
+________________________________________
+Customer Support
+Can:
+View users
+Assist customers
+View leads
+Reset accounts
+Cannot change platform settings.
+________________________________________
+Dashboard
+Landing page should immediately answer:
+"How is the marketplace performing?"
+Display KPI cards:
+Active Properties
+Properties Added Today
+Properties Sold/Rented
+Registered Buyers
+Registered Agencies
+Registered Agents
+Weekly Active Agents
+Weekly Active Buyers
+New Leads Today
+Open Leads
+Average Response Time
+Marketplace Coverage
+________________________________________
+Charts
+Property uploads
+Leads generated
+Buyer registrations
+Agency registrations
+Property searches
+Daily activity
+________________________________________
+Marketplace Coverage Dashboard
+This is the core QuickProp metric.
+Track:
+Estimated market mandates
+QuickProp mandates
+Coverage percentage
+Coverage by:
+City
+Suburb
+Agency
+Property type
+Purpose:
+Buy
+Rent
+Display visual progress.
+Example:
+Harare
+72%
+Bulawayo
+41%
+Borrowdale
+91%
+Avondale
+83%
+________________________________________
+Property Management
+Admin can search properties using:
+Property ID
+Address
+Suburb
+City
+Agent
+Agency
+Listing type
+Status
+Price
+Purpose
+Display:
+Photos
+Description
+Price history
+Created date
+Last updated
+Status
+Agent
+Agency
+________________________________________
+Actions
+Approve listing
+Hide listing
+Delete listing
+Flag duplicate
+Mark expired
+Edit listing
+View audit history
+________________________________________
+Freshness Dashboard
+Critical feature.
+Track:
+Listings not updated:
+30 days
+60 days
+90 days
+Actions:
+Send reminder
+Hide listing
+Extend listing
+Bulk actions supported.
+________________________________________
+Agency Management
+Directory of all agencies.
+Display:
+Logo
+Agency name
+Contact
+Subscription
+Active listings
+Active agents
+Leads received
+Average response time
+Status
+Actions:
+Approve
+Suspend
+Edit
+View profile
+________________________________________
+Agent Management
+Display:
+Photo
+Name
+Agency
+Phone
+Email
+Verification
+Listings
+Leads
+Response time
+Last login
+Catalogue shares
+Actions:
+Approve
+Suspend
+Reset password
+View activity
+________________________________________
+Buyer Management
+Display:
+Buyer details
+Saved searches
+Saved properties
+Enquiries
+Recent activity
+Actions:
+Disable account
+View activity
+Contact history
+________________________________________
+Lead Intelligence
+Every enquiry from:
+Website
+App
+CRM
+Must appear here automatically.
+Lead statuses:
+New
+Assigned
+Contacted
+Viewing Booked
+Negotiating
+Closed
+Lost
+Display:
+Buyer
+Agent
+Agency
+Property
+Timeline
+Response time
+Outcome
+________________________________________
+Search Intelligence
+Track marketplace demand.
+Display:
+Most searched suburbs
+Most searched cities
+Most searched property types
+Most searched rental locations
+Most searched price ranges
+Most searched bedroom counts
+Zero-result searches
+Trending searches
+This data should help QuickProp understand unmet demand.
+________________________________________
+Platform Activity
+Live monitoring.
+Track:
+Current online users
+Current active agents
+Properties uploaded today
+Catalogue shares
+Buyer registrations
+Searches
+Website traffic
+App sessions
+CRM logins
+________________________________________
+Notifications
+Admins can send:
+Platform announcements
+Maintenance notices
+Listing reminders
+Agency notices
+Agent notices
+Push notifications
+Email
+In-app notifications
+________________________________________
+Reports
+Generate downloadable reports.
+Marketplace Summary
+Agency Performance
+Agent Performance
+Property Inventory
+Lead Performance
+Buyer Activity
+Exports:
+CSV
+Excel
+PDF
+________________________________________
+Audit Log
+Every action performed in the ecosystem should be logged.
+Examples:
+Property edited
+Price changed
+Agency approved
+Agent suspended
+Buyer account disabled
+Listing deleted
+Admin login
+Display:
+Timestamp
+User
+Action
+Object affected
+Old value
+New value
+________________________________________
+System Settings
+Manage:
+Property types
+Cities
+Suburbs
+Listing statuses
+User roles
+Permissions
+Notification templates
+Homepage banners
+Featured agencies
+Featured developments
+________________________________________
+Security
+Role-based permissions.
+Two-factor authentication ready.
+Encrypted passwords.
+Rate limiting.
+Session timeout.
+Activity logging.
+________________________________________
+Performance
+The portal must support:
+Thousands of simultaneous users
+Hundreds of thousands of listings
+Fast searching
+Fast filtering
+Instant updates
+Optimise:
+Database indexes
+Lazy loading
+Pagination
+Caching
+________________________________________
+Design
+Modern SaaS dashboard.
+Inspired by:
+Stripe Dashboard
+HubSpot
+Notion
+Linear
+Simple.
+Professional.
+Fast.
+No clutter.
+________________________________________
+Core Philosophy
+This is not simply an admin CRUD panel.
+It is the operational control centre for the entire QuickProp marketplace.
+Every screen should help answer one of these questions:
+1.	Are we increasing property mandate coverage?
+2.	Are buyers finding suitable properties quickly?
+3.	Are agents responding to enquiries efficiently?
+4.	Is marketplace activity growing?
+5.	Is the quality and freshness of listings improving?
+The system should provide administrators with complete visibility across the Website, Agent App, Agency CRM and Marketplace, while maintaining a single shared backend, single database, and real-time synchronisation across all QuickProp products.
+Organise the backend as a modular monolith rather than microservices. At the MVP stage, one well-structured codebase with modules such as Auth, Users, Agencies, Properties, Leads, Notifications, Analytics, and Admin is far easier to build, test and maintain. All four front ends (Website, Agent App, Agency CRM and Admin Portal) would consume the same APIs. If QuickProp eventually scales to millions of users or expands into other countries, individual modules can later be extracted into microservices without rewriting the entire platform. This architecture gives the fastest path to a robust MVP while leaving plenty of room to grow.
+
