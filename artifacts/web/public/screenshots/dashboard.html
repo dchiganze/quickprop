@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=414, initial-scale=1.0">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { width: 414px; height: 896px; background: #F5F7FB; font-family: -apple-system, 'Inter', sans-serif; overflow: hidden; display: flex; flex-direction: column; }
+
+.status-bar { height: 44px; background: #1A3C6E; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; }
+.status-time { color: white; font-size: 15px; font-weight: 600; }
+.status-icons { display: flex; gap: 6px; align-items: center; color: white; font-size: 12px; }
+
+.header { background: #1A3C6E; padding: 8px 20px 20px; display: flex; align-items: flex-start; justify-content: space-between; }
+.header-left h2 { color: white; font-size: 22px; font-weight: 700; }
+.header-left p { color: rgba(255,255,255,0.65); font-size: 13px; margin-top: 2px; }
+.notif-btn { width: 38px; height: 38px; background: rgba(255,255,255,0.15); border-radius: 10px; display: flex; align-items: center; justify-content: center; position: relative; }
+.notif-dot { position: absolute; top: 6px; right: 6px; width: 8px; height: 8px; background: #EF4444; border-radius: 50%; border: 1.5px solid #1A3C6E; }
+
+.scroll { flex: 1; overflow: hidden; padding: 16px; display: flex; flex-direction: column; gap: 16px; }
+
+.stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.stat-card { background: white; border-radius: 14px; padding: 16px; box-shadow: 0 1px 4px rgba(0,0,0,0.07); }
+.stat-label { font-size: 12px; color: #6B7280; font-weight: 500; margin-bottom: 6px; }
+.stat-val { font-size: 28px; font-weight: 700; color: #1A3C6E; }
+.stat-change { font-size: 11px; color: #10B981; margin-top: 2px; }
+.stat-change.down { color: #EF4444; }
+
+.section-title { font-size: 15px; font-weight: 700; color: #1A3C6E; margin-bottom: 10px; }
+
+.quick-actions { display: flex; gap: 10px; overflow: hidden; }
+.qa-btn { background: white; border-radius: 12px; padding: 12px 14px; display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 72px; box-shadow: 0 1px 4px rgba(0,0,0,0.07); }
+.qa-icon { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+.qa-label { font-size: 10px; color: #374151; font-weight: 500; text-align: center; line-height: 1.2; }
+
+.property-card { background: white; border-radius: 14px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.07); display: flex; height: 88px; }
+.prop-img { width: 88px; background: linear-gradient(135deg, #1A3C6E 0%, #10B981 100%); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 28px; }
+.prop-info { padding: 12px 14px; flex: 1; display: flex; flex-direction: column; justify-content: space-between; }
+.prop-title { font-size: 13px; font-weight: 600; color: #111827; }
+.prop-loc { font-size: 11px; color: #6B7280; }
+.prop-price { font-size: 14px; font-weight: 700; color: #10B981; }
+.prop-badge { font-size: 10px; background: #D1FAE5; color: #059669; padding: 2px 7px; border-radius: 5px; font-weight: 600; }
+
+.home-indicator { height: 34px; display: flex; align-items: center; justify-content: center; }
+.home-bar { width: 134px; height: 5px; background: #1A3C6E; border-radius: 3px; opacity: 0.2; }
+
+.tab-bar { height: 56px; background: white; border-top: 1px solid #F3F4F6; display: flex; align-items: center; justify-content: space-around; padding: 0 8px; }
+.tab-item { display: flex; flex-direction: column; align-items: center; gap: 3px; flex: 1; }
+.tab-icon { font-size: 20px; }
+.tab-label { font-size: 10px; color: #9CA3AF; font-weight: 500; }
+.tab-item.active .tab-label { color: #10B981; }
+.tab-dot { width: 20px; height: 3px; background: #10B981; border-radius: 2px; margin-bottom: -2px; }
+</style>
+</head>
+<body>
+<div class="status-bar">
+  <span class="status-time">9:41</span>
+  <div class="status-icons"><span>●●●</span><span>WiFi</span><span>■</span></div>
+</div>
+
+<div class="header">
+  <div class="header-left">
+    <h2>Good morning, David 👋</h2>
+    <p>Thursday, 17 July 2025</p>
+  </div>
+  <div class="notif-btn">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg>
+    <div class="notif-dot"></div>
+  </div>
+</div>
+
+<div class="scroll">
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-label">Active Listings</div>
+      <div class="stat-val">12</div>
+      <div class="stat-change">↑ 2 this week</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Active Leads</div>
+      <div class="stat-val">28</div>
+      <div class="stat-change">↑ 5 new today</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Viewings Today</div>
+      <div class="stat-val">4</div>
+      <div class="stat-change">Next at 10:30am</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Tasks Due</div>
+      <div class="stat-val">7</div>
+      <div class="stat-change down">3 overdue</div>
+    </div>
+  </div>
+
+  <div>
+    <div class="section-title">Quick Actions</div>
+    <div class="quick-actions">
+      <div class="qa-btn"><div class="qa-icon" style="background:#EFF6FF">➕</div><div class="qa-label">New Listing</div></div>
+      <div class="qa-btn"><div class="qa-icon" style="background:#F0FDF4">🔍</div><div class="qa-label">Search</div></div>
+      <div class="qa-btn"><div class="qa-icon" style="background:#FFF7ED">👥</div><div class="qa-label">My Leads</div></div>
+      <div class="qa-btn"><div class="qa-icon" style="background:#FDF4FF">📤</div><div class="qa-label">Share</div></div>
+    </div>
+  </div>
+
+  <div>
+    <div class="section-title">Recent Listings</div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <div class="property-card">
+        <div class="prop-img">🏠</div>
+        <div class="prop-info">
+          <div><div class="prop-title">4 Bed House — Borrowdale</div><div class="prop-loc">📍 Harare, Zimbabwe</div></div>
+          <div style="display:flex;align-items:center;justify-content:space-between"><div class="prop-price">$245,000</div><div class="prop-badge">FOR SALE</div></div>
+        </div>
+      </div>
+      <div class="property-card">
+        <div class="prop-img">🏢</div>
+        <div class="prop-info">
+          <div><div class="prop-title">3 Bed Apartment — Avondale</div><div class="prop-loc">📍 Harare, Zimbabwe</div></div>
+          <div style="display:flex;align-items:center;justify-content:space-between"><div class="prop-price">$1,800/mo</div><div class="prop-badge" style="background:#DBEAFE;color:#1D4ED8">TO RENT</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="tab-bar">
+  <div class="tab-item active"><div class="tab-dot"></div><div class="tab-icon">🏠</div><div class="tab-label" style="color:#10B981">Dashboard</div></div>
+  <div class="tab-item"><div class="tab-icon">👥</div><div class="tab-label">Leads</div></div>
+  <div class="tab-item"><div class="tab-icon">🏘️</div><div class="tab-label">Listings</div></div>
+  <div class="tab-item"><div class="tab-icon">✓</div><div class="tab-label">Matches</div></div>
+  <div class="tab-item"><div class="tab-icon">👤</div><div class="tab-label">Profile</div></div>
+</div>
+<div class="home-indicator"><div class="home-bar"></div></div>
+</body>
+</html>

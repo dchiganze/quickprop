@@ -1,0 +1,26 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "rVE1no3kr9g-2Vrxg_ZWy"
+uri = "file://screenshots/login.jpg"
+type = "image"
+title = "Screenshot 1 — Login"
+
+[[outputs]]
+id = "UVMip2qy2-oZRFqN6YcVe"
+uri = "file://screenshots/dashboard.jpg"
+type = "image"
+title = "Screenshot 2 — Dashboard"
+
+[[outputs]]
+id = "tkG2jWZRUPUaGOtJmBihn"
+uri = "file://screenshots/listings.jpg"
+type = "image"
+title = "Screenshot 3 — Listings"
+
+[[outputs]]
+id = "22frgkBzawyqvDBjAjPdX"
+uri = "file://screenshots/leads.jpg"
+type = "image"
+title = "Screenshot 4 — Leads"

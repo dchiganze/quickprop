@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=414, initial-scale=1.0">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { width: 414px; height: 896px; background: #F5F7FB; font-family: -apple-system, 'Inter', sans-serif; overflow: hidden; display: flex; flex-direction: column; }
+.status-bar { height: 44px; background: #1A3C6E; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; }
+.status-time { color: white; font-size: 15px; font-weight: 600; }
+.status-icons { display: flex; gap: 6px; align-items: center; color: white; font-size: 12px; }
+.header { background: #1A3C6E; padding: 8px 20px 16px; display: flex; align-items: center; justify-content: space-between; }
+.header-left { display: flex; align-items: center; gap: 10px; }
+.header h2 { color: white; font-size: 22px; font-weight: 700; }
+.new-badge { background: #EF4444; color: white; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 10px; }
+.search-bar { margin: 14px 16px 0; background: white; border-radius: 12px; padding: 0 14px; height: 44px; display: flex; align-items: center; gap: 10px; box-shadow: 0 1px 4px rgba(0,0,0,0.07); }
+.search-bar span { color: #9CA3AF; font-size: 14px; }
+.filters { display: flex; gap: 8px; padding: 12px 16px; overflow: hidden; }
+.filter-chip { padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+.filter-chip.active { background: #1A3C6E; color: white; }
+.filter-chip:not(.active) { background: white; color: #6B7280; }
+.list { flex: 1; padding: 0 16px; display: flex; flex-direction: column; gap: 10px; overflow: hidden; }
+.lead-card { background: white; border-radius: 14px; padding: 14px; box-shadow: 0 1px 4px rgba(0,0,0,0.07); display: flex; align-items: center; gap: 14px; }
+.avatar { width: 46px; height: 46px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 700; color: white; flex-shrink: 0; }
+.lead-info { flex: 1; min-width: 0; }
+.lead-name { font-size: 14px; font-weight: 700; color: #111827; }
+.lead-interest { font-size: 12px; color: #6B7280; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lead-meta { display: flex; align-items: center; gap: 6px; margin-top: 6px; }
+.stage-badge { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 6px; }
+.lead-time { font-size: 11px; color: #9CA3AF; margin-left: auto; }
+.lead-right { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex-shrink: 0; }
+.unread-dot { width: 8px; height: 8px; background: #10B981; border-radius: 50%; }
+.tab-bar { height: 56px; background: white; border-top: 1px solid #F3F4F6; display: flex; align-items: center; justify-content: space-around; }
+.tab-item { display: flex; flex-direction: column; align-items: center; gap: 3px; flex: 1; }
+.tab-icon { font-size: 20px; }
+.tab-label { font-size: 10px; color: #9CA3AF; font-weight: 500; }
+.tab-dot { width: 20px; height: 3px; background: #10B981; border-radius: 2px; margin-bottom: -2px; }
+.home-indicator { height: 34px; display: flex; align-items: center; justify-content: center; }
+.home-bar { width: 134px; height: 5px; background: #1A3C6E; border-radius: 3px; opacity: 0.2; }
+</style>
+</head>
+<body>
+<div class="status-bar">
+  <span class="status-time">9:41</span>
+  <div class="status-icons"><span>●●●</span><span>WiFi</span><span>■</span></div>
+</div>
+<div class="header">
+  <div class="header-left">
+    <h2>Leads</h2>
+    <div class="new-badge">5 new</div>
+  </div>
+</div>
+<div class="search-bar">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="#9CA3AF"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+  <span>Search leads...</span>
+</div>
+<div class="filters">
+  <div class="filter-chip active">All (28)</div>
+  <div class="filter-chip">New</div>
+  <div class="filter-chip">Viewing</div>
+  <div class="filter-chip">Offer</div>
+  <div class="filter-chip">Closed</div>
+</div>
+<div class="list">
+  <div class="lead-card">
+    <div class="avatar" style="background:#1A3C6E">TM</div>
+    <div class="lead-info">
+      <div class="lead-name">Tatenda Moyo</div>
+      <div class="lead-interest">Looking for 4-bed in Borrowdale, $200k–$280k</div>
+      <div class="lead-meta">
+        <div class="stage-badge" style="background:#D1FAE5;color:#059669">VIEWING</div>
+      </div>
+    </div>
+    <div class="lead-right"><div class="lead-time">2m ago</div><div class="unread-dot"></div></div>
+  </div>
+  <div class="lead-card">
+    <div class="avatar" style="background:#10B981">CN</div>
+    <div class="lead-info">
+      <div class="lead-name">Chiedza Ndlovu</div>
+      <div class="lead-interest">3-bed rental in Avondale, budget $1,500/mo</div>
+      <div class="lead-meta">
+        <div class="stage-badge" style="background:#DBEAFE;color:#1D4ED8">CONTACTED</div>
+      </div>
+    </div>
+    <div class="lead-right"><div class="lead-time">15m ago</div></div>
+  </div>
+  <div class="lead-card">
+    <div class="avatar" style="background:#7C3AED">SM</div>
+    <div class="lead-info">
+      <div class="lead-name">Simba Mutasa</div>
+      <div class="lead-interest">Commercial office space, CBD, 5+ rooms</div>
+      <div class="lead-meta">
+        <div class="stage-badge" style="background:#FEF3C7;color:#D97706">OFFER</div>
+      </div>
+    </div>
+    <div class="lead-right"><div class="lead-time">1h ago</div></div>
+  </div>
+  <div class="lead-card">
+    <div class="avatar" style="background:#EF4444">RZ</div>
+    <div class="lead-info">
+      <div class="lead-name">Rudo Zimuto</div>
+      <div class="lead-interest">Stand in Ruwa, 2000sqm, under $50k</div>
+      <div class="lead-meta">
+        <div class="stage-badge" style="background:#FEE2E2;color:#DC2626">NEW</div>
+      </div>
+    </div>
+    <div class="lead-right"><div class="lead-time">2h ago</div><div class="unread-dot"></div></div>
+  </div>
+  <div class="lead-card">
+    <div class="avatar" style="background:#059669">KD</div>
+    <div class="lead-info">
+      <div class="lead-name">Kudzi Dube</div>
+      <div class="lead-interest">Townhouse in Highlands, 3-bed, $150k–$200k</div>
+      <div class="lead-meta">
+        <div class="stage-badge" style="background:#D1FAE5;color:#059669">VIEWING</div>
+      </div>
+    </div>
+    <div class="lead-right"><div class="lead-time">3h ago</div></div>
+  </div>
+</div>
+<div class="tab-bar">
+  <div class="tab-item"><div class="tab-icon">🏠</div><div class="tab-label">Dashboard</div></div>
+  <div class="tab-item active"><div class="tab-dot"></div><div class="tab-icon">👥</div><div class="tab-label" style="color:#10B981">Leads</div></div>
+  <div class="tab-item"><div class="tab-icon">🏘️</div><div class="tab-label">Listings</div></div>
+  <div class="tab-item"><div class="tab-icon">✓</div><div class="tab-label">Matches</div></div>
+  <div class="tab-item"><div class="tab-icon">👤</div><div class="tab-label">Profile</div></div>
+</div>
+<div class="home-indicator"><div class="home-bar"></div></div>
+</body>
+</html>
