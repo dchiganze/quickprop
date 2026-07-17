@@ -22,7 +22,7 @@ export default function Home() {
 
           {/* Search card with skyline photo as background */}
           <div
-            className="max-w-4xl mx-auto rounded-2xl overflow-hidden shadow-xl relative"
+            className="max-w-5xl mx-auto rounded-2xl overflow-hidden shadow-xl relative"
             style={{
               backgroundImage: `url(${import.meta.env.BASE_URL}harare-skyline.png)`,
               backgroundSize: "cover",
