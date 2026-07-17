@@ -159,7 +159,7 @@ export function SearchBar({ compact = false }: SearchBarProps) {
               value={q}
               onChange={(e) => setQ(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Search suburb, postcode or area"
+              placeholder="Search suburb or area"
               className="flex-1 text-sm text-gray-800 placeholder:text-gray-400 outline-none bg-transparent"
             />
           </div>
