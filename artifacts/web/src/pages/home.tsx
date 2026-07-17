@@ -59,24 +59,24 @@ export default function Home() {
       </section>
 
       {/* Trust Signals */}
-      <section className="py-12 bg-white border-b">
+      <section className="pt-4 pb-12 bg-white border-b">
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center max-w-5xl mx-auto">
-            <div className="flex flex-col items-center">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center max-w-5xl mx-auto">
+            <div className="flex flex-col items-center border border-gray-200 rounded-xl p-6">
               <div className="w-12 h-12 bg-emerald-50 text-primary rounded-full flex items-center justify-center mb-4">
                 <ShieldCheck className="h-6 w-6" />
               </div>
               <h3 className="text-lg font-bold text-gray-900 mb-2">Verified Agents Only</h3>
               <p className="text-gray-500 text-sm">Every listing on QuickProp comes from a registered, verified estate agent.</p>
             </div>
-            <div className="flex flex-col items-center">
+            <div className="flex flex-col items-center border border-gray-200 rounded-xl p-6">
               <div className="w-12 h-12 bg-emerald-50 text-primary rounded-full flex items-center justify-center mb-4">
                 <TrendingUp className="h-6 w-6" />
               </div>
               <h3 className="text-lg font-bold text-gray-900 mb-2">Real-Time Updates</h3>
               <p className="text-gray-500 text-sm">Market moves fast. We update listings the moment agents publish them.</p>
             </div>
-            <div className="flex flex-col items-center">
+            <div className="flex flex-col items-center border border-gray-200 rounded-xl p-6">
               <div className="w-12 h-12 bg-emerald-50 text-primary rounded-full flex items-center justify-center mb-4">
                 <Users className="h-6 w-6" />
               </div>
