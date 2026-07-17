@@ -14,44 +14,48 @@ export default function Home() {
   return (
     <Layout>
       {/* Hero Section */}
-      <section className="relative bg-primary pt-20 pb-16 md:pt-28 overflow-hidden">
-        {/* Background decorative elements */}
-        <div className="absolute inset-0 opacity-10 pointer-events-none">
-          <div className="absolute -top-24 -right-24 w-96 h-96 rounded-full bg-white blur-3xl" />
-          <div className="absolute top-1/2 -left-24 w-64 h-64 rounded-full bg-white blur-3xl" />
-        </div>
+      <section
+        className="relative pt-20 pb-16 md:pt-28 overflow-hidden"
+        style={{
+          backgroundImage: `url(${import.meta.env.BASE_URL}harare-skyline.png)`,
+          backgroundSize: "cover",
+          backgroundPosition: "center 40%",
+        }}
+      >
+        {/* Dark overlay for readability */}
+        <div className="absolute inset-0 bg-black/40 pointer-events-none" />
 
         <div className="container mx-auto px-4 relative z-10">
           <div className="max-w-3xl mx-auto text-center text-white mb-8">
-            <h1 className="text-4xl md:text-6xl font-bold tracking-tight mb-4 leading-tight">
-              Find your next home in <span className="text-emerald-200">Zimbabwe</span>
+            <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-3 leading-tight drop-shadow-md">
+              Properties to call home
             </h1>
-            <p className="text-lg md:text-xl text-primary-foreground/80 font-medium">
-              The most trusted property marketplace. Verified agents, real listings.
+            <p className="text-base md:text-lg text-white/80 font-medium drop-shadow">
+              Zimbabwe's most trusted property marketplace. Verified agents, real listings.
             </p>
           </div>
 
           {stats && (
             <div className="mb-8 flex flex-wrap justify-center gap-6 md:gap-12 text-white/90">
               <div className="text-center">
-                <p className="text-3xl font-bold">{stats.totalListings.toLocaleString()}</p>
+                <p className="text-3xl font-bold drop-shadow">{stats.totalListings.toLocaleString()}</p>
                 <p className="text-sm font-medium opacity-80 uppercase tracking-wider">Active Listings</p>
               </div>
               <div className="text-center">
-                <p className="text-3xl font-bold">{stats.forSale.toLocaleString()}</p>
+                <p className="text-3xl font-bold drop-shadow">{stats.forSale.toLocaleString()}</p>
                 <p className="text-sm font-medium opacity-80 uppercase tracking-wider">For Sale</p>
               </div>
               <div className="text-center">
-                <p className="text-3xl font-bold">{stats.forRent.toLocaleString()}</p>
+                <p className="text-3xl font-bold drop-shadow">{stats.forRent.toLocaleString()}</p>
                 <p className="text-sm font-medium opacity-80 uppercase tracking-wider">To Rent</p>
               </div>
             </div>
           )}
         </div>
 
-        {/* Search bar sits at bottom of hero on a white card */}
+        {/* Search bar floats on the photo */}
         <div className="container mx-auto px-4 relative z-10">
-          <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-2xl px-6 pt-2 pb-0 mt-16">
+          <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-2xl px-6 pt-2 pb-0 mt-8">
             <SearchBar />
           </div>
         </div>
