@@ -14,9 +14,15 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": false
+      "supportsTablet": false,
+      "bundleIdentifier": "com.dchiganze.mobile",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
-    "android": {},
+    "android": {
+      "package": "com.dchiganze.mobile"
+    },
     "web": {
       "favicon": "./assets/images/icon.png"
     },
@@ -33,6 +39,11 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "401996cd-cac1-4197-ba22-dfca22b2cff8"
+      }
     }
   }
 }
