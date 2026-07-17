@@ -14,50 +14,47 @@ export default function Home() {
   return (
     <Layout>
       {/* Hero Section */}
-      <section
-        className="relative pt-20 pb-16 md:pt-28 overflow-hidden"
-        style={{
-          backgroundImage: `url(${import.meta.env.BASE_URL}harare-skyline.png)`,
-          backgroundSize: "cover",
-          backgroundPosition: "center 40%",
-        }}
-      >
-        {/* Dark overlay for readability */}
-        <div className="absolute inset-0 bg-black/40 pointer-events-none" />
+      <section className="bg-white pt-12 pb-16">
+        <div className="container mx-auto px-4">
+          <h1 className="text-3xl md:text-4xl font-bold text-center text-gray-900 mb-8">
+            Properties to call home
+          </h1>
 
-        <div className="container mx-auto px-4 relative z-10">
-          <div className="max-w-3xl mx-auto text-center text-white mb-8">
-            <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-3 leading-tight drop-shadow-md">
-              Properties to call home
-            </h1>
-            <p className="text-base md:text-lg text-white/80 font-medium drop-shadow">
-              Zimbabwe's most trusted property marketplace. Verified agents, real listings.
-            </p>
+          {/* Search card with skyline photo as background */}
+          <div
+            className="max-w-4xl mx-auto rounded-2xl overflow-hidden shadow-xl relative"
+            style={{
+              backgroundImage: `url(${import.meta.env.BASE_URL}harare-skyline.png)`,
+              backgroundSize: "cover",
+              backgroundPosition: "center 40%",
+              minHeight: "180px",
+            }}
+          >
+            {/* Subtle overlay so the white card pops */}
+            <div className="absolute inset-0 bg-black/20 pointer-events-none" />
+            <div className="relative z-10 px-6 pt-2 pb-4">
+              <div className="bg-white rounded-xl shadow-lg">
+                <SearchBar />
+              </div>
+            </div>
           </div>
 
           {stats && (
-            <div className="mb-8 flex flex-wrap justify-center gap-6 md:gap-12 text-white/90">
+            <div className="mt-8 flex flex-wrap justify-center gap-6 md:gap-12 text-gray-700">
               <div className="text-center">
-                <p className="text-3xl font-bold drop-shadow">{stats.totalListings.toLocaleString()}</p>
-                <p className="text-sm font-medium opacity-80 uppercase tracking-wider">Active Listings</p>
+                <p className="text-2xl font-bold text-primary">{stats.totalListings.toLocaleString()}</p>
+                <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Active Listings</p>
               </div>
               <div className="text-center">
-                <p className="text-3xl font-bold drop-shadow">{stats.forSale.toLocaleString()}</p>
-                <p className="text-sm font-medium opacity-80 uppercase tracking-wider">For Sale</p>
+                <p className="text-2xl font-bold text-primary">{stats.forSale.toLocaleString()}</p>
+                <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">For Sale</p>
               </div>
               <div className="text-center">
-                <p className="text-3xl font-bold drop-shadow">{stats.forRent.toLocaleString()}</p>
-                <p className="text-sm font-medium opacity-80 uppercase tracking-wider">To Rent</p>
+                <p className="text-2xl font-bold text-primary">{stats.forRent.toLocaleString()}</p>
+                <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">To Rent</p>
               </div>
             </div>
           )}
-        </div>
-
-        {/* Search bar floats on the photo */}
-        <div className="container mx-auto px-4 relative z-10">
-          <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-2xl px-6 pt-2 pb-0 mt-8">
-            <SearchBar />
-          </div>
         </div>
       </section>
 
