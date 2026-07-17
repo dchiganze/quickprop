@@ -27,7 +27,7 @@ export default function Home() {
               backgroundImage: `url(${import.meta.env.BASE_URL}harare-skyline.png)`,
               backgroundSize: "cover",
               backgroundPosition: "center 40%",
-              minHeight: "180px",
+              minHeight: "300px",
             }}
           >
             {/* Subtle overlay so the white card pops */}
