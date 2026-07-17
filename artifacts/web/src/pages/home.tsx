@@ -51,7 +51,7 @@ export default function Home() {
 
         {/* Search bar sits at bottom of hero on a white card */}
         <div className="container mx-auto px-4 relative z-10">
-          <div className="max-w-4xl mx-auto bg-white rounded-t-2xl shadow-2xl px-6 pt-2 pb-0">
+          <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-2xl px-6 pt-2 pb-0 mt-8">
             <SearchBar />
           </div>
         </div>
