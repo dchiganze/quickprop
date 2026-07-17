@@ -14,7 +14,7 @@ export default function Home() {
   return (
     <Layout>
       {/* Hero Section */}
-      <section className="relative bg-primary pt-20 pb-0 md:pt-28 overflow-hidden">
+      <section className="relative bg-primary pt-20 pb-16 md:pt-28 overflow-hidden">
         {/* Background decorative elements */}
         <div className="absolute inset-0 opacity-10 pointer-events-none">
           <div className="absolute -top-24 -right-24 w-96 h-96 rounded-full bg-white blur-3xl" />
