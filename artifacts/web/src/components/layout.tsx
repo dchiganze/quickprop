@@ -1,7 +1,7 @@
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { useGetPublicMe, useLogoutBuyer } from "@workspace/api-client-react";
-import { Home, User, LogOut, Menu, Search } from "lucide-react";
+import { User, LogOut, Menu, Search } from "lucide-react";
 import { useState } from "react";
 import {
   DropdownMenu,
@@ -31,9 +31,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
       <QuickSearchDialog open={quickSearchOpen} onOpenChange={setQuickSearchOpen} />
       <header className="sticky top-0 z-50 w-full border-b bg-white">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2 font-bold text-xl tracking-tight text-primary">
-            <Home className="h-6 w-6" />
-            QuickProp
+          <Link href="/" className="flex items-center">
+            <img src={`${import.meta.env.BASE_URL}logo.png`} alt="QuickProp" className="h-8 w-auto" />
           </Link>
 
           {/* Desktop Nav */}
@@ -125,9 +124,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div className="space-y-4">
-              <Link href="/" className="flex items-center gap-2 font-bold text-xl tracking-tight text-primary">
-                <Home className="h-6 w-6" />
-                QuickProp
+              <Link href="/" className="flex items-center">
+                <img src={`${import.meta.env.BASE_URL}logo.png`} alt="QuickProp" className="h-8 w-auto" />
               </Link>
               <p className="text-sm text-gray-500 max-w-xs">
                 Zimbabwe's trusted property marketplace. Find your next home or connect with verified real estate agents.
