@@ -59,7 +59,7 @@ export default function Home() {
       </section>
 
       {/* Trust Signals */}
-      <section className="pt-4 pb-12 bg-white border-b">
+      <section className="-mt-4 pt-0 pb-12 bg-white border-b">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center max-w-5xl mx-auto">
             <div className="flex flex-col items-center border border-gray-200 rounded-xl p-6">
