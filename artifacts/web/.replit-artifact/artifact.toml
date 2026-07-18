@@ -1,5 +1,5 @@
 kind = "web"
-previewPath = "/web/"
+previewPath = "/"
 title = "QuickProp — Property Marketplace"
 version = "1.0.0"
 id = "artifacts/web"
@@ -7,7 +7,7 @@ router = "path"
 
 [[services]]
 name = "web"
-paths = [ "/web/" ]
+paths = [ "/" ]
 localPort = 22333
 
 [services.development]
@@ -24,4 +24,4 @@ to = "/index.html"
 
 [services.env]
 PORT = "22333"
-BASE_PATH = "/web/"
+BASE_PATH = "/"
