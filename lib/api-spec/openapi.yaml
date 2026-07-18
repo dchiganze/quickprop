@@ -995,6 +995,97 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/MarketplaceStats" }
+  /admin/platform-stats:
+    get:
+      operationId: getAdminPlatformStats
+      tags: [admin-portal]
+      summary: Platform-wide KPI statistics
+      responses:
+        "200":
+          description: Platform stats
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminPlatformStats" }
+  /admin/platform-charts:
+    get:
+      operationId: getAdminPlatformCharts
+      tags: [admin-portal]
+      summary: Chart data for admin dashboard
+      responses:
+        "200":
+          description: Chart series data
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminPlatformCharts" }
+  /admin/coverage:
+    get:
+      operationId: getAdminCoverage
+      tags: [admin-portal]
+      summary: Marketplace coverage by city and suburb
+      responses:
+        "200":
+          description: Coverage stats
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminCoverage" }
+  /admin/freshness:
+    get:
+      operationId: getAdminFreshness
+      tags: [admin-portal]
+      summary: Listings not updated in 30/60/90+ days
+      responses:
+        "200":
+          description: Freshness report
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminFreshness" }
+  /admin/agents:
+    get:
+      operationId: getAdminAgents
+      tags: [admin-portal]
+      summary: All agents with listing and lead counts
+      responses:
+        "200":
+          description: Agent list
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/AdminAgent" }
+  /admin/agencies:
+    get:
+      operationId: getAdminAgencies
+      tags: [admin-portal]
+      summary: All agencies (branches) with stats
+      responses:
+        "200":
+          description: Agency list
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/AdminAgency" }
+  /admin/properties/{id}/moderate:
+    patch:
+      operationId: moderateProperty
+      tags: [admin-portal]
+      summary: Approve / hide / flag / expire / restore a listing
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PropertyModerationInput" }
+      responses:
+        "200":
+          description: Updated property or ok signal
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
 components:
   schemas:
     HealthStatus:
@@ -1738,3 +1829,120 @@ components:
         suburbs:
           type: array
           items: { type: string }
+    AdminPlatformStats:
+      type: object
+      required: [activeProperties, totalProperties, propertiesToday, propertiesSold, propertiesRented, registeredBuyers, registeredAgencies, registeredAgents, weeklyActiveAgents, newLeadsToday, openLeads, avgResponseTimeHours, marketplaceCoveragePercent]
+      properties:
+        activeProperties: { type: integer }
+        totalProperties: { type: integer }
+        propertiesToday: { type: integer }
+        propertiesSold: { type: integer }
+        propertiesRented: { type: integer }
+        registeredBuyers: { type: integer }
+        registeredAgencies: { type: integer }
+        registeredAgents: { type: integer }
+        weeklyActiveAgents: { type: integer }
+        newLeadsToday: { type: integer }
+        openLeads: { type: integer }
+        avgResponseTimeHours: { type: number }
+        marketplaceCoveragePercent: { type: integer }
+    AdminPlatformCharts:
+      type: object
+      required: [uploadsPerMonth, leadsPerMonth, buyerRegistrations, leadsByStage, propertiesByType]
+      properties:
+        uploadsPerMonth:
+          type: array
+          items: { $ref: "#/components/schemas/ChartPoint" }
+        leadsPerMonth:
+          type: array
+          items: { $ref: "#/components/schemas/ChartPoint" }
+        buyerRegistrations:
+          type: array
+          items: { $ref: "#/components/schemas/ChartPoint" }
+        leadsByStage:
+          type: array
+          items: { $ref: "#/components/schemas/ChartPoint" }
+        propertiesByType:
+          type: array
+          items: { $ref: "#/components/schemas/ChartPoint" }
+    CoverageEntry:
+      type: object
+      required: [city, estimated, actual, percent]
+      properties:
+        city: { type: string }
+        suburb: { type: string }
+        estimated: { type: integer }
+        actual: { type: integer }
+        percent: { type: integer }
+    AdminCoverage:
+      type: object
+      required: [cities, suburbs]
+      properties:
+        cities:
+          type: array
+          items: { $ref: "#/components/schemas/CoverageEntry" }
+        suburbs:
+          type: array
+          items: { $ref: "#/components/schemas/CoverageEntry" }
+    FreshnessEntry:
+      type: object
+      required: [id, reference, title, suburb, city, status, daysStale, updatedAt]
+      properties:
+        id: { type: integer }
+        reference: { type: string }
+        title: { type: string }
+        suburb: { type: string }
+        city: { type: string }
+        agentId: { type: ["integer", "null"] }
+        status: { type: string }
+        daysStale: { type: integer }
+        updatedAt: { type: string }
+    AdminFreshness:
+      type: object
+      required: [stale30, stale60, stale90]
+      properties:
+        stale30:
+          type: array
+          items: { $ref: "#/components/schemas/FreshnessEntry" }
+        stale60:
+          type: array
+          items: { $ref: "#/components/schemas/FreshnessEntry" }
+        stale90:
+          type: array
+          items: { $ref: "#/components/schemas/FreshnessEntry" }
+    AdminAgent:
+      type: object
+      required: [id, name, email, role, status, activeListings, totalListings, totalLeads, openLeads]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        email: { type: string }
+        phone: { type: ["string", "null"] }
+        role: { type: string }
+        status: { type: string }
+        branchId: { type: ["integer", "null"] }
+        branchName: { type: ["string", "null"] }
+        avatarUrl: { type: ["string", "null"] }
+        activeListings: { type: integer }
+        totalListings: { type: integer }
+        totalLeads: { type: integer }
+        openLeads: { type: integer }
+    AdminAgency:
+      type: object
+      required: [id, name, agentCount, activeListings, totalListings, totalLeads]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        address: { type: ["string", "null"] }
+        phone: { type: ["string", "null"] }
+        status: { type: string }
+        agentCount: { type: integer }
+        activeListings: { type: integer }
+        totalListings: { type: integer }
+        totalLeads: { type: integer }
+    PropertyModerationInput:
+      type: object
+      required: [action]
+      properties:
+        action: { type: string, description: "approve | hide | flag | expire | restore" }
+        reason: { type: string }

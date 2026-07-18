@@ -765,6 +765,102 @@ export interface MarketplaceStats {
   suburbs: string[];
 }
 
+export interface AdminPlatformStats {
+  activeProperties: number;
+  totalProperties: number;
+  propertiesToday: number;
+  propertiesSold: number;
+  propertiesRented: number;
+  registeredBuyers: number;
+  registeredAgencies: number;
+  registeredAgents: number;
+  weeklyActiveAgents: number;
+  newLeadsToday: number;
+  openLeads: number;
+  avgResponseTimeHours: number;
+  marketplaceCoveragePercent: number;
+}
+
+export interface AdminPlatformCharts {
+  uploadsPerMonth: ChartPoint[];
+  leadsPerMonth: ChartPoint[];
+  buyerRegistrations: ChartPoint[];
+  leadsByStage: ChartPoint[];
+  propertiesByType: ChartPoint[];
+}
+
+export interface CoverageEntry {
+  city: string;
+  suburb?: string;
+  estimated: number;
+  actual: number;
+  percent: number;
+}
+
+export interface AdminCoverage {
+  cities: CoverageEntry[];
+  suburbs: CoverageEntry[];
+}
+
+export interface FreshnessEntry {
+  id: number;
+  reference: string;
+  title: string;
+  suburb: string;
+  city: string;
+  /** @nullable */
+  agentId?: number | null;
+  status: string;
+  daysStale: number;
+  updatedAt: string;
+}
+
+export interface AdminFreshness {
+  stale30: FreshnessEntry[];
+  stale60: FreshnessEntry[];
+  stale90: FreshnessEntry[];
+}
+
+export interface AdminAgent {
+  id: number;
+  name: string;
+  email: string;
+  /** @nullable */
+  phone?: string | null;
+  role: string;
+  status: string;
+  /** @nullable */
+  branchId?: number | null;
+  /** @nullable */
+  branchName?: string | null;
+  /** @nullable */
+  avatarUrl?: string | null;
+  activeListings: number;
+  totalListings: number;
+  totalLeads: number;
+  openLeads: number;
+}
+
+export interface AdminAgency {
+  id: number;
+  name: string;
+  /** @nullable */
+  address?: string | null;
+  /** @nullable */
+  phone?: string | null;
+  status?: string;
+  agentCount: number;
+  activeListings: number;
+  totalListings: number;
+  totalLeads: number;
+}
+
+export interface PropertyModerationInput {
+  /** approve | hide | flag | expire | restore */
+  action: string;
+  reason?: string;
+}
+
 export type ListPropertiesParams = {
 status?: string;
 pipelineStage?: string;
@@ -833,5 +929,9 @@ q?: string;
 page?: number;
 limit?: number;
 sort?: string;
+};
+
+export type ModerateProperty200 = {
+  ok?: boolean;
 };
 

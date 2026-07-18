@@ -1,3 +1,4 @@
 - [QuickProp Agent Architecture](quickprop-agent.md) — expo mobile app for estate agents; AsyncStorage-only persistence, mock Zimbabwe real estate data, deep blue/emerald theme.
 - [QuickProp Office CRM](quickprop-office.md) — web CRM lessons: jsonify DB rows before zod parse, wouter param-passing in protected routes, seed esbuild bundling, orval queryKey quirk.
 - [QuickProp Public Website](quickprop-web.md) — public marketplace at artifacts/web (/web/); public routes on API server, buyer cookie (qp_buyer), saved_properties table, Zod schema naming gotcha.
+- [QuickProp Admin Portal](quickprop-admin.md) — deep navy/blue theme; new admin-portal routes; codegen duplicate-schema pitfall; BuyerUpdate lacks status; seeded admin users.

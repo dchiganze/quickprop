@@ -21,6 +21,12 @@ import type {
 
 import type {
   ActivityEntry,
+  AdminAgency,
+  AdminAgent,
+  AdminCoverage,
+  AdminFreshness,
+  AdminPlatformCharts,
+  AdminPlatformStats,
   AnalyticsSummary,
   AttentionItem,
   AuditEntry,
@@ -56,6 +62,7 @@ import type {
   ListViewingsParams,
   LoginInput,
   MarketplaceStats,
+  ModerateProperty200,
   Notification,
   OfficeSearchParams,
   PipelineColumn,
@@ -63,6 +70,7 @@ import type {
   Property,
   PropertyInput,
   PropertyMatch,
+  PropertyModerationInput,
   PropertyUpdate,
   PublicAgent,
   PublicAgentProfile,
@@ -5071,4 +5079,538 @@ export function useGetMarketplaceStats<TData = Awaited<ReturnType<typeof getMark
 
 
 
+
+export const getGetAdminPlatformStatsUrl = () => {
+
+
+
+
+  return `/api/admin/platform-stats`
+}
+
+/**
+ * @summary Platform-wide KPI statistics
+ */
+export const getAdminPlatformStats = async ( options?: RequestInit): Promise<AdminPlatformStats> => {
+
+  return customFetch<AdminPlatformStats>(getGetAdminPlatformStatsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminPlatformStatsQueryKey = () => {
+    return [
+    `/api/admin/platform-stats`
+    ] as const;
+    }
+
+
+export const getGetAdminPlatformStatsQueryOptions = <TData = Awaited<ReturnType<typeof getAdminPlatformStats>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminPlatformStats>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminPlatformStatsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminPlatformStats>>> = ({ signal }) => getAdminPlatformStats({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminPlatformStats>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAdminPlatformStatsQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminPlatformStats>>>
+export type GetAdminPlatformStatsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Platform-wide KPI statistics
+ */
+
+export function useGetAdminPlatformStats<TData = Awaited<ReturnType<typeof getAdminPlatformStats>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminPlatformStats>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAdminPlatformStatsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetAdminPlatformChartsUrl = () => {
+
+
+
+
+  return `/api/admin/platform-charts`
+}
+
+/**
+ * @summary Chart data for admin dashboard
+ */
+export const getAdminPlatformCharts = async ( options?: RequestInit): Promise<AdminPlatformCharts> => {
+
+  return customFetch<AdminPlatformCharts>(getGetAdminPlatformChartsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminPlatformChartsQueryKey = () => {
+    return [
+    `/api/admin/platform-charts`
+    ] as const;
+    }
+
+
+export const getGetAdminPlatformChartsQueryOptions = <TData = Awaited<ReturnType<typeof getAdminPlatformCharts>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminPlatformCharts>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminPlatformChartsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminPlatformCharts>>> = ({ signal }) => getAdminPlatformCharts({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminPlatformCharts>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAdminPlatformChartsQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminPlatformCharts>>>
+export type GetAdminPlatformChartsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Chart data for admin dashboard
+ */
+
+export function useGetAdminPlatformCharts<TData = Awaited<ReturnType<typeof getAdminPlatformCharts>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminPlatformCharts>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAdminPlatformChartsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetAdminCoverageUrl = () => {
+
+
+
+
+  return `/api/admin/coverage`
+}
+
+/**
+ * @summary Marketplace coverage by city and suburb
+ */
+export const getAdminCoverage = async ( options?: RequestInit): Promise<AdminCoverage> => {
+
+  return customFetch<AdminCoverage>(getGetAdminCoverageUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminCoverageQueryKey = () => {
+    return [
+    `/api/admin/coverage`
+    ] as const;
+    }
+
+
+export const getGetAdminCoverageQueryOptions = <TData = Awaited<ReturnType<typeof getAdminCoverage>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminCoverage>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminCoverageQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminCoverage>>> = ({ signal }) => getAdminCoverage({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminCoverage>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAdminCoverageQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminCoverage>>>
+export type GetAdminCoverageQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Marketplace coverage by city and suburb
+ */
+
+export function useGetAdminCoverage<TData = Awaited<ReturnType<typeof getAdminCoverage>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminCoverage>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAdminCoverageQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetAdminFreshnessUrl = () => {
+
+
+
+
+  return `/api/admin/freshness`
+}
+
+/**
+ * @summary Listings not updated in 30/60/90+ days
+ */
+export const getAdminFreshness = async ( options?: RequestInit): Promise<AdminFreshness> => {
+
+  return customFetch<AdminFreshness>(getGetAdminFreshnessUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminFreshnessQueryKey = () => {
+    return [
+    `/api/admin/freshness`
+    ] as const;
+    }
+
+
+export const getGetAdminFreshnessQueryOptions = <TData = Awaited<ReturnType<typeof getAdminFreshness>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminFreshness>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminFreshnessQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminFreshness>>> = ({ signal }) => getAdminFreshness({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminFreshness>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAdminFreshnessQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminFreshness>>>
+export type GetAdminFreshnessQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Listings not updated in 30/60/90+ days
+ */
+
+export function useGetAdminFreshness<TData = Awaited<ReturnType<typeof getAdminFreshness>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminFreshness>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAdminFreshnessQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetAdminAgentsUrl = () => {
+
+
+
+
+  return `/api/admin/agents`
+}
+
+/**
+ * @summary All agents with listing and lead counts
+ */
+export const getAdminAgents = async ( options?: RequestInit): Promise<AdminAgent[]> => {
+
+  return customFetch<AdminAgent[]>(getGetAdminAgentsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminAgentsQueryKey = () => {
+    return [
+    `/api/admin/agents`
+    ] as const;
+    }
+
+
+export const getGetAdminAgentsQueryOptions = <TData = Awaited<ReturnType<typeof getAdminAgents>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminAgents>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminAgentsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminAgents>>> = ({ signal }) => getAdminAgents({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminAgents>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAdminAgentsQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminAgents>>>
+export type GetAdminAgentsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary All agents with listing and lead counts
+ */
+
+export function useGetAdminAgents<TData = Awaited<ReturnType<typeof getAdminAgents>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminAgents>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAdminAgentsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetAdminAgenciesUrl = () => {
+
+
+
+
+  return `/api/admin/agencies`
+}
+
+/**
+ * @summary All agencies (branches) with stats
+ */
+export const getAdminAgencies = async ( options?: RequestInit): Promise<AdminAgency[]> => {
+
+  return customFetch<AdminAgency[]>(getGetAdminAgenciesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminAgenciesQueryKey = () => {
+    return [
+    `/api/admin/agencies`
+    ] as const;
+    }
+
+
+export const getGetAdminAgenciesQueryOptions = <TData = Awaited<ReturnType<typeof getAdminAgencies>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminAgencies>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminAgenciesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminAgencies>>> = ({ signal }) => getAdminAgencies({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminAgencies>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAdminAgenciesQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminAgencies>>>
+export type GetAdminAgenciesQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary All agencies (branches) with stats
+ */
+
+export function useGetAdminAgencies<TData = Awaited<ReturnType<typeof getAdminAgencies>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminAgencies>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAdminAgenciesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getModeratePropertyUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/properties/${id}/moderate`
+}
+
+/**
+ * @summary Approve / hide / flag / expire / restore a listing
+ */
+export const moderateProperty = async (id: number,
+    propertyModerationInput: PropertyModerationInput, options?: RequestInit): Promise<ModerateProperty200> => {
+
+  return customFetch<ModerateProperty200>(getModeratePropertyUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(propertyModerationInput)
+  }
+);}
+
+
+
+
+
+export const getModeratePropertyMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof moderateProperty>>, TError,{id: number;data: BodyType<PropertyModerationInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof moderateProperty>>, TError,{id: number;data: BodyType<PropertyModerationInput>}, TContext> => {
+
+const mutationKey = ['moderateProperty'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof moderateProperty>>, {id: number;data: BodyType<PropertyModerationInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  moderateProperty(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ModeratePropertyMutationResult = NonNullable<Awaited<ReturnType<typeof moderateProperty>>>
+    export type ModeratePropertyMutationBody = BodyType<PropertyModerationInput>
+    export type ModeratePropertyMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Approve / hide / flag / expire / restore a listing
+ */
+export const useModerateProperty = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof moderateProperty>>, TError,{id: number;data: BodyType<PropertyModerationInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof moderateProperty>>,
+        TError,
+        {id: number;data: BodyType<PropertyModerationInput>},
+        TContext
+      > => {
+      return useMutation(getModeratePropertyMutationOptions(options));
+    }
 

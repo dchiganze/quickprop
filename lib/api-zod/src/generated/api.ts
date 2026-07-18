@@ -1720,3 +1720,166 @@ export const GetMarketplaceStatsResponse = zod.object({
 })
 
 
+/**
+ * @summary Platform-wide KPI statistics
+ */
+export const GetAdminPlatformStatsResponse = zod.object({
+  "activeProperties": zod.number(),
+  "totalProperties": zod.number(),
+  "propertiesToday": zod.number(),
+  "propertiesSold": zod.number(),
+  "propertiesRented": zod.number(),
+  "registeredBuyers": zod.number(),
+  "registeredAgencies": zod.number(),
+  "registeredAgents": zod.number(),
+  "weeklyActiveAgents": zod.number(),
+  "newLeadsToday": zod.number(),
+  "openLeads": zod.number(),
+  "avgResponseTimeHours": zod.number(),
+  "marketplaceCoveragePercent": zod.number()
+})
+
+
+/**
+ * @summary Chart data for admin dashboard
+ */
+export const GetAdminPlatformChartsResponse = zod.object({
+  "uploadsPerMonth": zod.array(zod.object({
+  "label": zod.string(),
+  "value": zod.number()
+})),
+  "leadsPerMonth": zod.array(zod.object({
+  "label": zod.string(),
+  "value": zod.number()
+})),
+  "buyerRegistrations": zod.array(zod.object({
+  "label": zod.string(),
+  "value": zod.number()
+})),
+  "leadsByStage": zod.array(zod.object({
+  "label": zod.string(),
+  "value": zod.number()
+})),
+  "propertiesByType": zod.array(zod.object({
+  "label": zod.string(),
+  "value": zod.number()
+}))
+})
+
+
+/**
+ * @summary Marketplace coverage by city and suburb
+ */
+export const GetAdminCoverageResponse = zod.object({
+  "cities": zod.array(zod.object({
+  "city": zod.string(),
+  "suburb": zod.string().optional(),
+  "estimated": zod.number(),
+  "actual": zod.number(),
+  "percent": zod.number()
+})),
+  "suburbs": zod.array(zod.object({
+  "city": zod.string(),
+  "suburb": zod.string().optional(),
+  "estimated": zod.number(),
+  "actual": zod.number(),
+  "percent": zod.number()
+}))
+})
+
+
+/**
+ * @summary Listings not updated in 30/60/90+ days
+ */
+export const GetAdminFreshnessResponse = zod.object({
+  "stale30": zod.array(zod.object({
+  "id": zod.number(),
+  "reference": zod.string(),
+  "title": zod.string(),
+  "suburb": zod.string(),
+  "city": zod.string(),
+  "agentId": zod.number().nullish(),
+  "status": zod.string(),
+  "daysStale": zod.number(),
+  "updatedAt": zod.string()
+})),
+  "stale60": zod.array(zod.object({
+  "id": zod.number(),
+  "reference": zod.string(),
+  "title": zod.string(),
+  "suburb": zod.string(),
+  "city": zod.string(),
+  "agentId": zod.number().nullish(),
+  "status": zod.string(),
+  "daysStale": zod.number(),
+  "updatedAt": zod.string()
+})),
+  "stale90": zod.array(zod.object({
+  "id": zod.number(),
+  "reference": zod.string(),
+  "title": zod.string(),
+  "suburb": zod.string(),
+  "city": zod.string(),
+  "agentId": zod.number().nullish(),
+  "status": zod.string(),
+  "daysStale": zod.number(),
+  "updatedAt": zod.string()
+}))
+})
+
+
+/**
+ * @summary All agents with listing and lead counts
+ */
+export const GetAdminAgentsResponseItem = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "email": zod.string(),
+  "phone": zod.string().nullish(),
+  "role": zod.string(),
+  "status": zod.string(),
+  "branchId": zod.number().nullish(),
+  "branchName": zod.string().nullish(),
+  "avatarUrl": zod.string().nullish(),
+  "activeListings": zod.number(),
+  "totalListings": zod.number(),
+  "totalLeads": zod.number(),
+  "openLeads": zod.number()
+})
+export const GetAdminAgentsResponse = zod.array(GetAdminAgentsResponseItem)
+
+
+/**
+ * @summary All agencies (branches) with stats
+ */
+export const GetAdminAgenciesResponseItem = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "address": zod.string().nullish(),
+  "phone": zod.string().nullish(),
+  "status": zod.string().optional(),
+  "agentCount": zod.number(),
+  "activeListings": zod.number(),
+  "totalListings": zod.number(),
+  "totalLeads": zod.number()
+})
+export const GetAdminAgenciesResponse = zod.array(GetAdminAgenciesResponseItem)
+
+
+/**
+ * @summary Approve / hide / flag / expire / restore a listing
+ */
+export const ModeratePropertyParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const ModeratePropertyBody = zod.object({
+  "action": zod.string().describe('approve | hide | flag | expire | restore'),
+  "reason": zod.string().optional()
+})
+
+export const ModeratePropertyResponse = zod.object({
+  "ok": zod.boolean().optional()
+})
+
+

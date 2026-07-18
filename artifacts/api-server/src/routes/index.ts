@@ -7,6 +7,7 @@ import peopleRouter from "./people";
 import leadsRouter from "./leads";
 import opsRouter from "./ops";
 import adminRouter from "./admin";
+import adminPortalRouter from "./admin-portal";
 import dashboardRouter from "./dashboard";
 
 const router: IRouter = Router();
@@ -22,6 +23,7 @@ router.use(peopleRouter);
 router.use(leadsRouter);
 router.use(opsRouter);
 router.use(adminRouter);
+router.use(adminPortalRouter);
 router.use(dashboardRouter);
 
 export default router;
