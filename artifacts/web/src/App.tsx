@@ -11,6 +11,10 @@ import AgentProfile from '@/pages/agent-profile';
 import Login from '@/pages/login';
 import Register from '@/pages/register';
 import Account from '@/pages/account';
+import Support from '@/pages/support';
+import MobileMarketing from '@/pages/mobile-marketing';
+import Privacy from '@/pages/privacy';
+import Terms from '@/pages/terms';
 import NotFound from '@/pages/not-found';
 
 const queryClient = new QueryClient();
@@ -26,6 +30,10 @@ function Router() {
       <Route path="/login" component={Login} />
       <Route path="/register" component={Register} />
       <Route path="/account" component={Account} />
+      <Route path="/support" component={Support} />
+      <Route path="/app" component={MobileMarketing} />
+      <Route path="/privacy" component={Privacy} />
+      <Route path="/terms" component={Terms} />
       <Route component={NotFound} />
     </Switch>
   );
