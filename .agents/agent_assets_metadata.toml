@@ -24,3 +24,63 @@ id = "22frgkBzawyqvDBjAjPdX"
 uri = "file://screenshots/leads.jpg"
 type = "image"
 title = "Screenshot 4 — Leads"
+
+[[outputs]]
+id = "GL-9p9wre_EV_FhSz04ER"
+uri = "file://attached_assets/resized/IMG_3018.PNG"
+type = "image"
+title = "IMG_3018.PNG"
+
+[[outputs]]
+id = "5VQE3j41p4i7ZmURAbaU8"
+uri = "file://attached_assets/resized/IMG_3019.PNG"
+type = "image"
+title = "IMG_3019.PNG"
+
+[[outputs]]
+id = "I7DEov2fLOgM9EHPaQAm8"
+uri = "file://attached_assets/resized/IMG_3020.PNG"
+type = "image"
+title = "IMG_3020.PNG"
+
+[[outputs]]
+id = "yA0HA5lHcFdHuJXkv2pKT"
+uri = "file://attached_assets/resized/IMG_3021.PNG"
+type = "image"
+title = "IMG_3021.PNG"
+
+[[outputs]]
+id = "ZMEP4evsS6hiFbTt6ivQd"
+uri = "file://attached_assets/resized/IMG_3022.PNG"
+type = "image"
+title = "IMG_3022.PNG"
+
+[[outputs]]
+id = "VyGtucoZxxFZCv8eNqGIN"
+uri = "file://attached_assets/resized/IMG_3023.PNG"
+type = "image"
+title = "IMG_3023.PNG"
+
+[[outputs]]
+id = "it8_0JzRQXAKod1YELEGV"
+uri = "file://attached_assets/resized/IMG_3024.PNG"
+type = "image"
+title = "IMG_3024.PNG"
+
+[[outputs]]
+id = "MLqyWkY_CzSa9kBPl_WOq"
+uri = "file://attached_assets/resized/IMG_3025.PNG"
+type = "image"
+title = "IMG_3025.PNG"
+
+[[outputs]]
+id = "6OXtB4drzH9fKBTOYsEGA"
+uri = "file://attached_assets/resized/IMG_3026.PNG"
+type = "image"
+title = "IMG_3026.PNG"
+
+[[outputs]]
+id = "_6hEg2TektNK_HfY_pWPC"
+uri = "file://attached_assets/resized/IMG_3027.PNG"
+type = "image"
+title = "IMG_3027.PNG"
