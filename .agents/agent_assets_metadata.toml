@@ -84,3 +84,9 @@ id = "_6hEg2TektNK_HfY_pWPC"
 uri = "file://attached_assets/resized/IMG_3027.PNG"
 type = "image"
 title = "IMG_3027.PNG"
+
+[[outputs]]
+id = "xTBjMccf0G9VMhokFo8O4"
+uri = "file://attached_assets/quickprop-icon-512.png"
+type = "image"
+title = "QuickProp Icon 512×512"
