@@ -96,3 +96,21 @@ id = "VAxoMldowxCqICUUYayeo"
 uri = "file://attached_assets/quickprop-icon-512-sharp.png"
 type = "image"
 title = "QuickProp Icon 512×512"
+
+[[outputs]]
+id = "C2s48Hak_DxtqLvzpSKk7"
+uri = "file://artifacts/mobile/assets/images/icon.png"
+type = "image"
+title = "icon.png (1024×1024)"
+
+[[outputs]]
+id = "HZ8hsP4bfJ5U49wSYXp4p"
+uri = "file://artifacts/mobile/assets/images/icon_2.png"
+type = "image"
+title = "icon_2.png (1024×1024)"
+
+[[outputs]]
+id = "7wPw1ypM4408To6wL2eCr"
+uri = "file://artifacts/mobile/my-app/assets/images/logo-glow.png"
+type = "image"
+title = "logo-glow.png (604×604)"
