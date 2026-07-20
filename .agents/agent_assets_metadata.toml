@@ -120,3 +120,9 @@ id = "oYhEJqXfLOjZdEjGgEO8M"
 uri = "file://attached_assets/quickprop-agent-512.png"
 type = "image"
 title = "QuickProp Agent 512×512"
+
+[[outputs]]
+id = "1yiieYLTxBknZbPCswbvO"
+uri = "file://attached_assets/quickprop-agent-icon-512.png"
+type = "image"
+title = "QuickProp Agent 512×512"
