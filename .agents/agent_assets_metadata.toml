@@ -90,3 +90,9 @@ id = "xTBjMccf0G9VMhokFo8O4"
 uri = "file://attached_assets/quickprop-icon-512.png"
 type = "image"
 title = "QuickProp Icon 512×512"
+
+[[outputs]]
+id = "VAxoMldowxCqICUUYayeo"
+uri = "file://attached_assets/quickprop-icon-512-sharp.png"
+type = "image"
+title = "QuickProp Icon 512×512 (sharp)"
