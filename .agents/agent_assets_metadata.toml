@@ -114,3 +114,9 @@ id = "7wPw1ypM4408To6wL2eCr"
 uri = "file://artifacts/mobile/my-app/assets/images/logo-glow.png"
 type = "image"
 title = "logo-glow.png (604×604)"
+
+[[outputs]]
+id = "oYhEJqXfLOjZdEjGgEO8M"
+uri = "file://attached_assets/quickprop-agent-512.png"
+type = "image"
+title = "QuickProp Agent 512×512"
