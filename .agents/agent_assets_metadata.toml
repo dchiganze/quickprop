@@ -132,3 +132,63 @@ id = "rV_VmnrvBrCpMrh1D8aQ5"
 uri = "file://attached_assets/quickprop-feature-graphic.png"
 type = "image"
 title = "QuickProp Agent — Feature Graphic 1024×500"
+
+[[outputs]]
+id = "METnE465WGx-xwpHVaFhs"
+uri = "file://attached_assets/16x9/f1086011-036a-42c6-969c-04e2286ef1f4_1784535991227.png"
+type = "image"
+title = "Screenshot 1 (1260×2240 — 9:16)"
+
+[[outputs]]
+id = "ZnxhDmJsUZutvxw7g8obf"
+uri = "file://attached_assets/16x9/ce3e4173-1f11-4e26-99fb-3f5b1f1397e4_1784535998771.png"
+type = "image"
+title = "Screenshot 2 (1260×2240 — 9:16)"
+
+[[outputs]]
+id = "wAdaZJbWHdgD_E9LZYJCh"
+uri = "file://attached_assets/16x9/f12bde69-d03c-42d7-97b5-837796174f15_1784536005897.png"
+type = "image"
+title = "Screenshot 3 (1260×2240 — 9:16)"
+
+[[outputs]]
+id = "V6Rc4o7XDuKW3FPrGrzRU"
+uri = "file://attached_assets/16x9/9094f442-6c36-4bad-8c0f-4d677a6e56ff_1784536009837.png"
+type = "image"
+title = "Screenshot 4 (1260×2240 — 9:16)"
+
+[[outputs]]
+id = "sbbCzT4qBOVMUVJ_hzamH"
+uri = "file://attached_assets/16x9/05dfbe50-0fef-4f71-9489-2fe8c7b35902_1784536012884.png"
+type = "image"
+title = "Screenshot 5 (1260×2240 — 9:16)"
+
+[[outputs]]
+id = "hJjJP5XWMfcJwBOJIsTsv"
+uri = "file://attached_assets/16x9/16071cf6-ad6e-4f5a-b627-afc6a6ab111a_1784536016094.png"
+type = "image"
+title = "Screenshot 6 (1260×2240 — 9:16)"
+
+[[outputs]]
+id = "wWegIoWHHj4r5w41xk1BE"
+uri = "file://attached_assets/16x9/fff147ee-7f7b-46e3-90b3-d46eb75a0ae6_1784536019461.png"
+type = "image"
+title = "Screenshot 7 (1260×2240 — 9:16)"
+
+[[outputs]]
+id = "NGoXj1UPO5HvPccaCnxPK"
+uri = "file://attached_assets/16x9/f0754d08-4b11-4d65-af64-cf4cf62e9df2_1784536023329.png"
+type = "image"
+title = "Screenshot 8 (1260×2240 — 9:16)"
+
+[[outputs]]
+id = "JYugVuUR6g884wRmA-L5A"
+uri = "file://attached_assets/16x9/82d8d908-75a1-4141-b1ed-8f01fa2d3f4c_1784536026761.png"
+type = "image"
+title = "Screenshot 9 (1260×2240 — 9:16)"
+
+[[outputs]]
+id = "HbmbflWIO7Ob82-BTyk0e"
+uri = "file://attached_assets/16x9/f912e7df-70c0-4f1a-aefd-935575115b6f_1784536029805.png"
+type = "image"
+title = "Screenshot 10 (1260×2240 — 9:16)"
