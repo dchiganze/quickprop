@@ -31,7 +31,7 @@
       }
     },
     "android": {
-      "package": "com.quickprop.agent",
+      "package": "zw.co.melios.quickprop.agent",
       "versionCode": 1,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
