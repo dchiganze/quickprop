@@ -32,6 +32,25 @@ jobs:
       - name: Install EAS CLI
         run: npm install -g eas-cli
 
+      - name: Decode keystore
+        run: |
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > artifacts/mobile/android-keystore.jks
+
+      - name: Create credentials.json
+        run: |
+          cat > artifacts/mobile/credentials.json << 'EOF'
+          {
+            "android": {
+              "keystore": {
+                "keystorePath": "./android-keystore.jks",
+                "keystorePassword": "${{ secrets.ANDROID_KEYSTORE_PASSWORD }}",
+                "keyAlias": "${{ secrets.ANDROID_KEY_ALIAS }}",
+                "keyPassword": "${{ secrets.ANDROID_KEY_PASSWORD }}"
+              }
+            }
+          }
+          EOF
+
       - name: Build Android (local)
         working-directory: artifacts/mobile
         env:
