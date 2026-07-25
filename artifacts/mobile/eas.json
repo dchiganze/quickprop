@@ -16,13 +16,13 @@
     },
     "production": {
       "autoIncrement": true,
-      "credentialsSource": "remote",
+      "credentialsSource": "local",
       "ios": {
         "resourceClass": "m-medium"
       },
       "android": {
         "buildType": "app-bundle",
-        "credentialsSource": "remote"
+        "credentialsSource": "local"
       }
     }
   },
