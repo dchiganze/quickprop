@@ -16,9 +16,9 @@
     },
     "production": {
       "autoIncrement": true,
-      "credentialsSource": "local",
       "ios": {
-        "resourceClass": "m-medium"
+        "resourceClass": "m-medium",
+        "credentialsSource": "remote"
       },
       "android": {
         "buildType": "app-bundle",
