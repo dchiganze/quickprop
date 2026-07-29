@@ -11,6 +11,7 @@
     "scheme": "quickpropagent",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": false,
+    "jsEngine": "jsc",
     "splash": {
       "image": "./assets/images/splash.png",
       "resizeMode": "contain",
@@ -18,7 +19,6 @@
     },
     "ios": {
       "supportsTablet": false,
-      "jsEngine": "jsc",
       "bundleIdentifier": "com.quickprop.agent",
       "buildNumber": "1",
       "infoPlist": {
