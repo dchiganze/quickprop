@@ -1,0 +1,62 @@
+name: Build iOS IPA
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Install EAS CLI
+        run: npm install -g eas-cli
+
+      - name: Decode distribution certificate
+        run: |
+          echo "${{ secrets.IOS_DIST_CERT_BASE64 }}" | base64 --decode > artifacts/mobile/ios-dist.p12
+
+      - name: Decode provisioning profile
+        run: |
+          echo "${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}" | base64 --decode > artifacts/mobile/ios.mobileprovision
+
+      - name: Create credentials.json
+        run: |
+          cat > artifacts/mobile/credentials.json << 'EOF'
+          {
+            "ios": {
+              "provisioningProfilePath": "./ios.mobileprovision",
+              "distributionCertificate": {
+                "path": "./ios-dist.p12",
+                "password": "${{ secrets.IOS_DIST_CERT_PASSWORD }}"
+              }
+            }
+          }
+          EOF
+
+      - name: Build iOS (local)
+        working-directory: artifacts/mobile
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: eas build --platform ios --profile production --local --non-interactive --output build.ipa
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: quickprop-agent-ios
+          path: artifacts/mobile/build.ipa
+          retention-days: 7
