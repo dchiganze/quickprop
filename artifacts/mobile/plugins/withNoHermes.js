@@ -8,12 +8,11 @@ const path = require('path');
  * 1. Hermes disabled — replaces :hermes_enabled => <any> with false so the
  *    app runs on JavaScriptCore instead of Hermes (which crashes on iOS 26).
  *
- * 2. fmt consteval fix — injects FMT_USE_NONTYPE_TEMPLATE_ARGS=0 via
- *    GCC_PREPROCESSOR_DEFINITIONS on the `fmt` pod target specifically.
- *    Injected at the END of the existing post_install block (after the last
- *    non-`end` line) so Expo's react_native_post_install cannot overwrite it.
- *    Uses GCC_PREPROCESSOR_DEFINITIONS rather than OTHER_CPLUSPLUSFLAGS
- *    because Expo's post_install loop does not touch preprocessor defs.
+ * 2. fmt consteval fix — directly patches the fmt header source file
+ *    (Pods/fmt/include/fmt/core.h or base.h) by prepending
+ *    #define FMT_USE_NONTYPE_TEMPLATE_ARGS 0
+ *    This is done in post_install AFTER pods are fetched, making it
+ *    immune to any Xcode build-settings override.
  */
 const withNoHermes = (config) => {
   return withDangerousMod(config, [
@@ -38,35 +37,33 @@ const withNoHermes = (config) => {
         console.log('[withNoHermes] Patched Podfile: :hermes_enabled => false');
       }
 
-      // Fix 2: inject fmt GCC_PREPROCESSOR_DEFINITIONS fix.
+      // Fix 2: inject a source-level patch for the fmt consteval issue.
       //
-      // Strategy: find the post_install block's closing `end` by locating
-      // the line that is EXACTLY "end" (with optional surrounding whitespace)
-      // after the post_install opening. We inject our code on the line just
-      // before that closing `end`.
+      // Build-settings approaches (OTHER_CPLUSPLUSFLAGS, GCC_PREPROCESSOR_DEFINITIONS)
+      // are unreliable on Xcode 26.5 because Expo's react_native_post_install
+      // loop may reset them. Instead we directly prepend the #define to the
+      // fmt header file after pods are fetched, before any compilation occurs.
       //
-      // We target only the `fmt` pod so there is zero risk of touching other
-      // targets. GCC_PREPROCESSOR_DEFINITIONS is not modified by Expo's
-      // react_native_post_install helper, making this safe even when injected
-      // before it runs.
+      // The fmt header checks:  #ifndef FMT_USE_NONTYPE_TEMPLATE_ARGS
+      // so prepending our define causes the auto-detection block to be skipped.
       const fmtInjection = [
         '',
-        '  # Fix: fmt consteval errors with Xcode 16+ / Apple Clang 16+',
-        '  # GCC_PREPROCESSOR_DEFINITIONS is used (not OTHER_CPLUSPLUSFLAGS)',
-        '  # because Expo post_install does not reset preprocessor definitions.',
-        '  installer.pods_project.targets.each do |target|',
-        '    next unless target.name == \'fmt\'',
-        '    target.build_configurations.each do |build_config|',
-        '      defs = build_config.build_settings[\'GCC_PREPROCESSOR_DEFINITIONS\'] || \'$(inherited)\'',
-        '      unless defs.include?(\'FMT_USE_NONTYPE_TEMPLATE_ARGS\')',
-        '        build_config.build_settings[\'GCC_PREPROCESSOR_DEFINITIONS\'] = defs + \' FMT_USE_NONTYPE_TEMPLATE_ARGS=0\'',
-        '      end',
+        '  # Fix: fmt consteval errors with Xcode 26 / Apple Clang 16+',
+        '  # Patch the fmt header source directly — more reliable than build settings.',
+        '  fmt_headers = Dir.glob("#{installer.sandbox.root}/fmt/include/fmt/{core,base}.h")',
+        '  fmt_headers.each do |header|',
+        '    content = File.read(header)',
+        '    unless content.include?(\'FMT_USE_NONTYPE_TEMPLATE_ARGS 0\')',
+        '      File.write(header, "// Patched by withNoHermes: disable consteval fmt strings\\n#define FMT_USE_NONTYPE_TEMPLATE_ARGS 0\\n" + content)',
+        '      puts "[withNoHermes] Patched fmt header: #{header}"',
         '    end',
+        '  end',
+        '  if fmt_headers.empty?',
+        '    puts "[withNoHermes] WARNING: fmt header not found — consteval fix NOT applied"',
         '  end',
       ].join('\n');
 
-      // Find the post_install block and inject just before its closing `end`.
-      // We look for the last bare `end` line after the post_install opening.
+      // Find the post_install block and inject just before its closing `end`
       const postInstallOpen = /post_install do \|[^|]+\|/;
 
       if (!postInstallOpen.test(noHermes)) {
@@ -75,23 +72,19 @@ const withNoHermes = (config) => {
         return config;
       }
 
-      // Split into lines and find the post_install block boundaries
       const lines = noHermes.split('\n');
       const openIdx = lines.findIndex(l => postInstallOpen.test(l));
 
-      // Walk forward from openIdx to find the matching closing `end`
-      // by tracking Ruby block depth
+      // Walk forward tracking Ruby block depth to find the matching `end`
       let depth = 0;
       let closeIdx = -1;
       for (let i = openIdx; i < lines.length; i++) {
         const stripped = lines[i].trim();
-        // Count block-opening keywords
-        if (/\b(do\b|if\b|unless\b|while\b|until\b|for\b|begin\b|def\b|class\b|module\b|case\b)/.test(stripped) && !/^\s*#/.test(lines[i])) {
-          // Only count `do` blocks and structure openers that end with `end`
+        if (!/^\s*#/.test(lines[i])) {
           if (/\bdo\b/.test(stripped)) depth++;
           else if (/^(if|unless|while|until|for|begin|def|class|module|case)\b/.test(stripped)) depth++;
         }
-        if (stripped === 'end' || stripped.match(/^end\s*$/)) {
+        if (/^end\s*$/.test(stripped)) {
           depth--;
           if (depth <= 0) {
             closeIdx = i;
@@ -102,12 +95,10 @@ const withNoHermes = (config) => {
 
       let patched;
       if (closeIdx !== -1) {
-        // Insert our code just before the closing `end` line
         lines.splice(closeIdx, 0, fmtInjection);
         patched = lines.join('\n');
-        console.log('[withNoHermes] Injected fmt GCC_PREPROCESSOR_DEFINITIONS fix before post_install closing end');
+        console.log('[withNoHermes] Injected fmt source-level fix before post_install closing end');
       } else {
-        // Fallback: inject right after opening line
         console.warn('[withNoHermes] Warning: could not find closing end; injecting after opening line');
         patched = noHermes.replace(
           /(post_install do \|[^|]+\|\n)/,
