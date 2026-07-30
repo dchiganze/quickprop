@@ -48,6 +48,16 @@ jobs:
           }
           EOF
 
+      - name: Prebuild iOS (generate Podfile)
+        working-directory: artifacts/mobile
+        run: npx expo prebuild --platform ios --no-install
+        
+      - name: Verify withNoHermes injection
+        working-directory: artifacts/mobile
+        run: |
+          echo "=== post_install section of Podfile ==="
+          grep -n "withNoHermes\|fmt\|FMT_USE\|format\.cc\|post_install" ios/Podfile || echo "Nothing found"
+
       - name: Build iOS (local)
         working-directory: artifacts/mobile
         env:
