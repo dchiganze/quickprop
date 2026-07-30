@@ -51,6 +51,7 @@
       "favicon": "./assets/images/icon.png"
     },
     "plugins": [
+      "./plugins/withNoHermes",
       [
         "expo-router",
         {
