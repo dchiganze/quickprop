@@ -8,11 +8,13 @@ const path = require('path');
  * 1. Hermes disabled — replaces :hermes_enabled => <any> with false so the
  *    app runs on JavaScriptCore instead of Hermes (which crashes on iOS 26).
  *
- * 2. fmt consteval fix — directly patches the fmt header source file
- *    (Pods/fmt/include/fmt/core.h or base.h) by prepending
- *    #define FMT_USE_NONTYPE_TEMPLATE_ARGS 0
- *    This is done in post_install AFTER pods are fetched, making it
- *    immune to any Xcode build-settings override.
+ * 2. fmt consteval fix — patches Pods/fmt/src/format.cc (the exact file
+ *    the compiler errors on) by prepending #define FMT_USE_NONTYPE_TEMPLATE_ARGS 0
+ *    inside the existing post_install block.
+ *
+ *    Injection strategy: find the LAST bare "end" line in the Podfile
+ *    (which is the post_install block closer) and insert the Ruby patch
+ *    code just before it. This avoids fragile depth-tracking.
  */
 const withNoHermes = (config) => {
   return withDangerousMod(config, [
@@ -37,73 +39,63 @@ const withNoHermes = (config) => {
         console.log('[withNoHermes] Patched Podfile: :hermes_enabled => false');
       }
 
-      // Fix 2: inject a source-level patch for the fmt consteval issue.
+      // Fix 2: inject fmt source patch into post_install.
       //
-      // Build-settings approaches (OTHER_CPLUSPLUSFLAGS, GCC_PREPROCESSOR_DEFINITIONS)
-      // are unreliable on Xcode 26.5 because Expo's react_native_post_install
-      // loop may reset them. Instead we directly prepend the #define to the
-      // fmt header file after pods are fetched, before any compilation occurs.
+      // We patch Pods/fmt/src/format.cc directly — this is the exact
+      // translation unit the compiler reports the error on. Prepending
+      // the #define before any #include guarantees it takes effect.
       //
-      // The fmt header checks:  #ifndef FMT_USE_NONTYPE_TEMPLATE_ARGS
-      // so prepending our define causes the auto-detection block to be skipped.
-      const fmtInjection = [
-        '',
-        '  # Fix: fmt consteval errors with Xcode 26 / Apple Clang 16+',
-        '  # Patch the fmt header source directly — more reliable than build settings.',
-        '  fmt_headers = Dir.glob("#{installer.sandbox.root}/fmt/include/fmt/{core,base}.h")',
-        '  fmt_headers.each do |header|',
-        '    content = File.read(header)',
-        '    unless content.include?(\'FMT_USE_NONTYPE_TEMPLATE_ARGS 0\')',
-        '      File.write(header, "// Patched by withNoHermes: disable consteval fmt strings\\n#define FMT_USE_NONTYPE_TEMPLATE_ARGS 0\\n" + content)',
-        '      puts "[withNoHermes] Patched fmt header: #{header}"',
-        '    end',
-        '  end',
-        '  if fmt_headers.empty?',
-        '    puts "[withNoHermes] WARNING: fmt header not found — consteval fix NOT applied"',
-        '  end',
-      ].join('\n');
-
-      // Find the post_install block and inject just before its closing `end`
-      const postInstallOpen = /post_install do \|[^|]+\|/;
-
-      if (!postInstallOpen.test(noHermes)) {
-        console.warn('[withNoHermes] Warning: post_install block not found; fmt fix NOT applied');
-        fs.writeFileSync(podfilePath, noHermes);
-        return config;
-      }
+      // Injection: find the last bare "end" line in the file
+      // (the post_install block closer) and insert our code before it.
+      const fmtRuby = `
+  # ---- withNoHermes: fmt consteval fix for Xcode 26 / Apple Clang 16+ ----
+  # Patch format.cc directly so the #define is the first thing the compiler sees.
+  begin
+    fmt_src = File.join(installer.sandbox.root.to_s, 'fmt', 'src', 'format.cc')
+    if File.exist?(fmt_src)
+      src_content = File.read(fmt_src)
+      unless src_content.include?('FMT_USE_NONTYPE_TEMPLATE_ARGS 0')
+        File.write(fmt_src, "#define FMT_USE_NONTYPE_TEMPLATE_ARGS 0\\n" + src_content)
+        puts "[withNoHermes] Patched fmt/src/format.cc — consteval fix applied"
+      else
+        puts "[withNoHermes] fmt/src/format.cc already patched"
+      end
+    else
+      puts "[withNoHermes] WARNING: fmt/src/format.cc not found at #{fmt_src}"
+    end
+    # Also patch all fmt headers as belt-and-suspenders
+    Dir.glob(File.join(installer.sandbox.root.to_s, 'fmt', 'include', 'fmt', '*.h')).each do |h|
+      hc = File.read(h)
+      if hc.include?('FMT_USE_NONTYPE_TEMPLATE_ARGS') && !hc.include?('FMT_USE_NONTYPE_TEMPLATE_ARGS 0')
+        File.write(h, "#define FMT_USE_NONTYPE_TEMPLATE_ARGS 0\\n" + hc)
+        puts "[withNoHermes] Patched header: #{h}"
+      end
+    end
+  rescue => e
+    puts "[withNoHermes] ERROR during fmt patch: #{e.message}"
+  end
+  # ---- end withNoHermes fmt fix ----
+`;
 
       const lines = noHermes.split('\n');
-      const openIdx = lines.findIndex(l => postInstallOpen.test(l));
 
-      // Walk forward tracking Ruby block depth to find the matching `end`
-      let depth = 0;
-      let closeIdx = -1;
-      for (let i = openIdx; i < lines.length; i++) {
-        const stripped = lines[i].trim();
-        if (!/^\s*#/.test(lines[i])) {
-          if (/\bdo\b/.test(stripped)) depth++;
-          else if (/^(if|unless|while|until|for|begin|def|class|module|case)\b/.test(stripped)) depth++;
-        }
-        if (/^end\s*$/.test(stripped)) {
-          depth--;
-          if (depth <= 0) {
-            closeIdx = i;
-            break;
-          }
+      // Find the last line that is exactly "end" (the post_install closer)
+      let lastEndIdx = -1;
+      for (let i = lines.length - 1; i >= 0; i--) {
+        if (/^end\s*$/.test(lines[i])) {
+          lastEndIdx = i;
+          break;
         }
       }
 
       let patched;
-      if (closeIdx !== -1) {
-        lines.splice(closeIdx, 0, fmtInjection);
+      if (lastEndIdx !== -1) {
+        lines.splice(lastEndIdx, 0, fmtRuby);
         patched = lines.join('\n');
-        console.log('[withNoHermes] Injected fmt source-level fix before post_install closing end');
+        console.log('[withNoHermes] Injected fmt fix before last `end` in Podfile');
       } else {
-        console.warn('[withNoHermes] Warning: could not find closing end; injecting after opening line');
-        patched = noHermes.replace(
-          /(post_install do \|[^|]+\|\n)/,
-          `$1${fmtInjection}\n`
-        );
+        console.warn('[withNoHermes] WARNING: could not find closing end — appending post_install block');
+        patched = noHermes + `\npost_install do |installer|\n${fmtRuby}\nend\n`;
       }
 
       fs.writeFileSync(podfilePath, patched);
