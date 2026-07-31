@@ -38,6 +38,15 @@ jobs:
           security set-keychain-settings -t 3600 -u build.keychain
 
           echo "$IOS_DIST_CERT_BASE64" | openssl base64 -d -A -out /tmp/dist.p12
+          - name: Debug - verify secrets match
+  run: |
+    echo "P12 file MD5:"
+    md5 -q /tmp/dist.p12
+    echo "Password MD5 (to compare, not the password itself):"
+    printf '%s' "$IOS_DIST_CERT_PASSWORD" | md5
+  env:
+    IOS_DIST_CERT_BASE64: ${{ secrets.IOS_DIST_CERT_BASE64 }}
+    IOS_DIST_CERT_PASSWORD: ${{ secrets.IOS_DIST_CERT_PASSWORD }}
           security import /tmp/dist.p12 \
             -k build.keychain \
             -P "$IOS_DIST_CERT_PASSWORD" \
