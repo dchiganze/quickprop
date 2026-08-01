@@ -20,7 +20,7 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.quickprop.agent",
-      "buildNumber": "1",
+      "buildNumber": "24",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSCameraUsageDescription": "QuickProp Agent uses the camera to capture property photos for listings.",
@@ -67,6 +67,9 @@
     "extra": {
       "eas": {
         "projectId": "401996cd-cac1-4197-ba22-dfca22b2cff8"
+      },
+      "router": {
+        "origin": "https://replit.com/"
       }
     }
   }
