@@ -78,20 +78,33 @@ jobs:
       - name: Pod install
         working-directory: artifacts/mobile/ios
         run: pod install
-      - name: Patch fmt for Xcode 26 (Apple Clang 16+ consteval fix)
+      - name: Patch fmt for Xcode 26 (consteval -> constexpr)
         run: |
-          FMT_CC="artifacts/mobile/ios/Pods/fmt/src/format.cc"
-          if [ -f "$FMT_CC" ]; then
-            if ! head -1 "$FMT_CC" | grep -q "FMT_USE_NONTYPE_TEMPLATE_ARGS"; then
-              printf '#define FMT_USE_NONTYPE_TEMPLATE_ARGS 0\n' | cat - "$FMT_CC" > /tmp/fmt_patched.cc
-              mv /tmp/fmt_patched.cc "$FMT_CC"
-              echo "Patched $FMT_CC"
-            else
-              echo "Already patched"
-            fi
-          else
-            echo "ERROR: $FMT_CC not found" && exit 1
-          fi
+          python3 - <<'PYEOF'
+import os, sys
+
+fmt_dir = 'artifacts/mobile/ios/Pods/fmt'
+if not os.path.isdir(fmt_dir):
+    print(f'ERROR: {fmt_dir} not found', file=sys.stderr)
+    sys.exit(1)
+
+patched = []
+for root, _, files in os.walk(fmt_dir):
+    for fname in files:
+        if not fname.endswith(('.h', '.cc')):
+            continue
+        fpath = os.path.join(root, fname)
+        content = open(fpath, errors='replace').read()
+        if 'consteval' in content:
+            open(fpath, 'w').write(content.replace('consteval', 'constexpr'))
+            patched.append(fpath)
+            print(f'  patched: {fpath}')
+
+print(f'Done -- {len(patched)} file(s) patched.')
+if not patched:
+    print('WARNING: no occurrences of consteval found -- fmt may not be present yet.')
+    sys.exit(1)
+PYEOF
       - name: Detect Xcode workspace and scheme
         working-directory: artifacts/mobile/ios
         run: |
