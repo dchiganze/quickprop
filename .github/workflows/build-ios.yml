@@ -81,7 +81,7 @@ jobs:
       - name: Patch fmt for Xcode 26 (consteval -> constexpr)
         shell: python3 {0}
         run: |
-          import os, sys
+          import os, sys, stat
           fmt_dir = 'artifacts/mobile/ios/Pods/fmt'
           if not os.path.isdir(fmt_dir):
               print('ERROR: ' + fmt_dir + ' not found', file=sys.stderr)
@@ -94,6 +94,7 @@ jobs:
                   fpath = os.path.join(root, fname)
                   content = open(fpath, errors='replace').read()
                   if 'consteval' in content:
+                      os.chmod(fpath, stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IROTH)
                       open(fpath, 'w').write(content.replace('consteval', 'constexpr'))
                       patched.append(fpath)
                       print('  patched: ' + fpath)
