@@ -1,5 +1,8 @@
 {
   "expo": {
+    "ios": {
+      "buildNumber": "24"
+    },
     "extra": {
       "eas": {
         "projectId": "6c166071-67f0-487d-a552-97ae0b32f126"
