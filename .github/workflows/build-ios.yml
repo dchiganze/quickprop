@@ -79,7 +79,7 @@ jobs:
         working-directory: artifacts/mobile/ios
         run: pod install
       - name: Patch fmt for Xcode 26 (consteval -> constexpr)
-        run: |
+        shell: python3 {0}
           python3 - <<'PYEOF'
 import os, sys
 
