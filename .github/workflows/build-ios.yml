@@ -20,53 +20,43 @@ jobs:
         with:
           version: 9
 
-      # Install from the monorepo root so workspace:* deps resolve correctly.
-      # EAS local build can never do this — it extracts to a temp dir.
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
-      # ── Signing setup ──────────────────────────────────────────────────────
       - name: Import distribution certificate into keychain
         env:
           IOS_DIST_CERT_BASE64: ${{ secrets.IOS_DIST_CERT_BASE64 }}
           IOS_DIST_CERT_PASSWORD: ${{ secrets.IOS_DIST_CERT_PASSWORD }}
         run: |
-          set -e
-
-          echo "Password length: ${#IOS_DIST_CERT_PASSWORD}"
-
           KEYCHAIN_PASS=$(openssl rand -base64 32)
-
           security create-keychain -p "$KEYCHAIN_PASS" build.keychain
           security default-keychain -s build.keychain
           security unlock-keychain -p "$KEYCHAIN_PASS" build.keychain
           security set-keychain-settings -t 3600 -u build.keychain
 
-          echo "$IOS_DIST_CERT_BASE64" | openssl base64 -d -A -out /tmp/dist.p12
+          # Decode the EAS-generated p12 (PBES2/SHA-256 format)
+          echo "$IOS_DIST_CERT_BASE64" | openssl base64 -d -A -out /tmp/dist-orig.p12
 
-          echo "P12 MD5:"
-          md5 -q /tmp/dist.p12
-
-          echo "Testing password with OpenSSL..."
-
+          # macOS security import cannot handle PBES2 p12 files.
+          # Re-export via OpenSSL using legacy PBE-SHA1-3DES that macOS accepts.
           openssl pkcs12 \
-            -info \
-            -in /tmp/dist.p12 \
-            -passin pass:"$IOS_DIST_CERT_PASSWORD" \
-            -noout
-
-          echo "OpenSSL password test PASSED."
+            -in /tmp/dist-orig.p12 \
+            -passin "pass:$IOS_DIST_CERT_PASSWORD" \
+            -nodes \
+            | openssl pkcs12 \
+              -export \
+              -passout "pass:$IOS_DIST_CERT_PASSWORD" \
+              -out /tmp/dist.p12
+          rm /tmp/dist-orig.p12
 
           security import /tmp/dist.p12 \
             -k build.keychain \
             -P "$IOS_DIST_CERT_PASSWORD" \
             -T /usr/bin/codesign \
             -T /usr/bin/xcodebuild
-
           security set-key-partition-list \
             -S apple-tool:,apple:,codesign: \
             -s -k "$KEYCHAIN_PASS" build.keychain
-
           rm /tmp/dist.p12
 
       - name: Install provisioning profile
@@ -82,7 +72,6 @@ jobs:
           rm /tmp/profile.mobileprovision
           echo "Installed profile: ${UUID}"
 
-      # ── iOS prebuild ───────────────────────────────────────────────────────
       - name: Expo prebuild (generates ios/ with our plugins applied)
         working-directory: artifacts/mobile
         run: npx expo prebuild --platform ios --no-install
@@ -94,18 +83,17 @@ jobs:
           grep -n "hermes_enabled\|FMT_USE\|format\.cc\|post_install\|withNoHermes" ios/Podfile \
             || echo "(nothing matched)"
 
-      # ── CocoaPods ──────────────────────────────────────────────────────────
       - name: Pod install
         working-directory: artifacts/mobile/ios
         run: pod install
 
-      # ── xcodebuild ────────────────────────────────────────────────────────
       - name: Detect Xcode workspace and scheme
         working-directory: artifacts/mobile/ios
         run: |
           WORKSPACE=$(ls *.xcworkspace 2>/dev/null | head -1)
           echo "XCODE_WORKSPACE=${WORKSPACE}" >> $GITHUB_ENV
           echo "Found workspace: ${WORKSPACE}"
+
           SCHEME=$(xcodebuild -workspace "$WORKSPACE" -list 2>/dev/null \
             | awk '/Schemes:/{found=1; next} found && /^[[:space:]]/{print; exit}' \
             | xargs)
