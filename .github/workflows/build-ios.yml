@@ -36,9 +36,6 @@ jobs:
 
           echo "$IOS_DIST_CERT_BASE64" | openssl base64 -d -A -out /tmp/dist-orig.p12
 
-          # Import cert and private key as separate PEM files — avoids the
-          # PKCS12 MAC verification that macOS security import rejects on
-          # modern EAS-generated p12 files.
           openssl pkcs12 \
             -in /tmp/dist-orig.p12 \
             -passin "pass:$IOS_DIST_CERT_PASSWORD" \
@@ -113,6 +110,7 @@ jobs:
       - name: Archive
         working-directory: artifacts/mobile/ios
         run: |
+          set -o pipefail
           xcodebuild archive \
             -workspace "$XCODE_WORKSPACE" \
             -scheme "$XCODE_SCHEME" \
@@ -121,12 +119,13 @@ jobs:
             CODE_SIGN_STYLE=Manual \
             "PROVISIONING_PROFILE[sdk=iphoneos*]=$PROFILE_UUID" \
             CODE_SIGN_IDENTITY="iPhone Distribution" \
-            DEVELOPMENT_TEAM=R7FGJAAUQF \
-            | xcpretty
+            DEVELOPMENT_TEAM=R7FGJAAUQF
+          echo "Archive created:"
+          ls -la "$RUNNER_TEMP/QuickPropAgent.xcarchive"
 
       - name: Write export options plist
         run: |
-          cat > "$RUNNER_TEMP/ExportOptions.plist" <<EOF
+          cat > "$RUNNER_TEMP/ExportOptions.plist" << 'EOF'
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
           <plist version="1.0">
@@ -140,19 +139,22 @@ jobs:
               <key>provisioningProfiles</key>
               <dict>
                   <key>com.quickprop.agent</key>
-                  <string>$PROFILE_UUID</string>
+                  <string>PROFILE_UUID_PLACEHOLDER</string>
               </dict>
           </dict>
           </plist>
           EOF
+          sed -i '' "s/PROFILE_UUID_PLACEHOLDER/$PROFILE_UUID/" "$RUNNER_TEMP/ExportOptions.plist"
 
       - name: Export IPA
         run: |
+          set -o pipefail
           xcodebuild -exportArchive \
             -archivePath "$RUNNER_TEMP/QuickPropAgent.xcarchive" \
             -exportPath "$RUNNER_TEMP/ipa" \
-            -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" \
-            | xcpretty
+            -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist"
+          echo "IPA contents:"
+          ls -la "$RUNNER_TEMP/ipa/"
 
       - name: Upload IPA artifact
         uses: actions/upload-artifact@v4
