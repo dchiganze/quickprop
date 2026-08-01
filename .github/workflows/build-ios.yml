@@ -74,38 +74,33 @@ jobs:
         run: |
           echo "=== Relevant Podfile lines ==="
           grep -n "hermes_enabled\|FMT_USE\|format\.cc\|post_install\|withNoHermes" ios/Podfile \
-                 || echo "(nothing matched)"
+            || echo "(nothing matched)"
       - name: Pod install
         working-directory: artifacts/mobile/ios
         run: pod install
-      - name: Patch fmt for Xcode 26 (consteval → constexpr)
       - name: Patch fmt for Xcode 26 (consteval -> constexpr)
         shell: python3 {0}
         run: |
-          python3 - <<'PYEOF'
-import os, sys
-fmt_dir = 'artifacts/mobile/ios/Pods/fmt'
-if not os.path.isdir(fmt_dir):
-    print(f'ERROR: {fmt_dir} not found', file=sys.stderr)
-    sys.exit(1)
-
-patched = []
-for root, _, files in os.walk(fmt_dir):
-    for fname in files:
-        if not fname.endswith(('.h', '.cc')):
-            continue
-        fpath = os.path.join(root, fname)
-        content = open(fpath, errors='replace').read()
-        if 'consteval' in content:
-            open(fpath, 'w').write(content.replace('consteval', 'constexpr'))
-            patched.append(fpath)
-            print(f'  patched: {fpath}')
-
-print(f'Done -- {len(patched)} file(s) patched.')
-if not patched:
-    print('WARNING: no occurrences of consteval found -- fmt may not be present yet.')
-    sys.exit(1)
-PYEOF
+          import os, sys
+          fmt_dir = 'artifacts/mobile/ios/Pods/fmt'
+          if not os.path.isdir(fmt_dir):
+              print('ERROR: ' + fmt_dir + ' not found', file=sys.stderr)
+              sys.exit(1)
+          patched = []
+          for root, _, files in os.walk(fmt_dir):
+              for fname in files:
+                  if not fname.endswith(('.h', '.cc')):
+                      continue
+                  fpath = os.path.join(root, fname)
+                  content = open(fpath, errors='replace').read()
+                  if 'consteval' in content:
+                      open(fpath, 'w').write(content.replace('consteval', 'constexpr'))
+                      patched.append(fpath)
+                      print('  patched: ' + fpath)
+          print('Done -- ' + str(len(patched)) + ' file(s) patched.')
+          if not patched:
+              print('WARNING: no occurrences of consteval found.')
+              sys.exit(1)
       - name: Detect Xcode workspace and scheme
         working-directory: artifacts/mobile/ios
         run: |
