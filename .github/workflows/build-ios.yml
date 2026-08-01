@@ -74,15 +74,16 @@ jobs:
         run: |
           echo "=== Relevant Podfile lines ==="
           grep -n "hermes_enabled\|FMT_USE\|format\.cc\|post_install\|withNoHermes" ios/Podfile \
-            || echo "(nothing matched)"
+                 || echo "(nothing matched)"
       - name: Pod install
         working-directory: artifacts/mobile/ios
         run: pod install
+      - name: Patch fmt for Xcode 26 (consteval → constexpr)
       - name: Patch fmt for Xcode 26 (consteval -> constexpr)
         shell: python3 {0}
+        run: |
           python3 - <<'PYEOF'
 import os, sys
-
 fmt_dir = 'artifacts/mobile/ios/Pods/fmt'
 if not os.path.isdir(fmt_dir):
     print(f'ERROR: {fmt_dir} not found', file=sys.stderr)
