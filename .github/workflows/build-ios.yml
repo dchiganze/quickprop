@@ -1,28 +1,22 @@
 name: Build iOS IPA
-
 on:
   workflow_dispatch:
-
 jobs:
   build:
     runs-on: macos-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-
       - name: Set up pnpm
         uses: pnpm/action-setup@v4
         with:
           version: 9
-
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
-
       - name: Import distribution certificate into keychain
         env:
           IOS_DIST_CERT_BASE64: ${{ secrets.IOS_DIST_CERT_BASE64 }}
@@ -33,22 +27,18 @@ jobs:
           security default-keychain -s build.keychain
           security unlock-keychain -p "$KEYCHAIN_PASS" build.keychain
           security set-keychain-settings -t 3600 -u build.keychain
-
-          # Decode the EAS-generated p12 (PBES2/SHA-256 format)
           echo "$IOS_DIST_CERT_BASE64" | openssl base64 -d -A -out /tmp/dist-orig.p12
-
-          # macOS security import cannot handle PBES2 p12 files.
-          # Re-export via OpenSSL using legacy PBE-SHA1-3DES that macOS accepts.
           openssl pkcs12 \
             -in /tmp/dist-orig.p12 \
             -passin "pass:$IOS_DIST_CERT_PASSWORD" \
             -nodes \
-            | openssl pkcs12 \
-              -export \
-              -passout "pass:$IOS_DIST_CERT_PASSWORD" \
-              -out /tmp/dist.p12
-          rm /tmp/dist-orig.p12
-
+            -out /tmp/dist-pem.pem
+          openssl pkcs12 \
+            -export \
+            -in /tmp/dist-pem.pem \
+            -passout "pass:$IOS_DIST_CERT_PASSWORD" \
+            -out /tmp/dist.p12
+          rm /tmp/dist-orig.p12 /tmp/dist-pem.pem
           security import /tmp/dist.p12 \
             -k build.keychain \
             -P "$IOS_DIST_CERT_PASSWORD" \
@@ -58,7 +48,6 @@ jobs:
             -S apple-tool:,apple:,codesign: \
             -s -k "$KEYCHAIN_PASS" build.keychain
           rm /tmp/dist.p12
-
       - name: Install provisioning profile
         env:
           IOS_PROVISIONING_PROFILE_BASE64: ${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}
@@ -71,35 +60,29 @@ jobs:
             ~/Library/MobileDevice/Provisioning\ Profiles/${UUID}.mobileprovision
           rm /tmp/profile.mobileprovision
           echo "Installed profile: ${UUID}"
-
       - name: Expo prebuild (generates ios/ with our plugins applied)
         working-directory: artifacts/mobile
         run: npx expo prebuild --platform ios --no-install
-
       - name: Verify withNoHermes + fmt injection in Podfile
         working-directory: artifacts/mobile
         run: |
           echo "=== Relevant Podfile lines ==="
           grep -n "hermes_enabled\|FMT_USE\|format\.cc\|post_install\|withNoHermes" ios/Podfile \
             || echo "(nothing matched)"
-
       - name: Pod install
         working-directory: artifacts/mobile/ios
         run: pod install
-
       - name: Detect Xcode workspace and scheme
         working-directory: artifacts/mobile/ios
         run: |
           WORKSPACE=$(ls *.xcworkspace 2>/dev/null | head -1)
           echo "XCODE_WORKSPACE=${WORKSPACE}" >> $GITHUB_ENV
           echo "Found workspace: ${WORKSPACE}"
-
           SCHEME=$(xcodebuild -workspace "$WORKSPACE" -list 2>/dev/null \
             | awk '/Schemes:/{found=1; next} found && /^[[:space:]]/{print; exit}' \
             | xargs)
           echo "XCODE_SCHEME=${SCHEME}" >> $GITHUB_ENV
           echo "Found scheme: ${SCHEME}"
-
       - name: Archive
         working-directory: artifacts/mobile/ios
         run: |
@@ -113,7 +96,6 @@ jobs:
             CODE_SIGN_IDENTITY="iPhone Distribution" \
             DEVELOPMENT_TEAM=R7FGJAAUQF \
             | xcpretty
-
       - name: Write export options plist
         run: |
           cat > "$RUNNER_TEMP/ExportOptions.plist" <<EOF
@@ -135,7 +117,6 @@ jobs:
           </dict>
           </plist>
           EOF
-
       - name: Export IPA
         run: |
           xcodebuild -exportArchive \
@@ -143,7 +124,6 @@ jobs:
             -exportPath "$RUNNER_TEMP/ipa" \
             -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" \
             | xcpretty
-
       - name: Upload IPA artifact
         uses: actions/upload-artifact@v4
         with:
