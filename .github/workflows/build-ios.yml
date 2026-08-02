@@ -89,8 +89,6 @@ jobs:
           fpath = matches[0]
           print(f'Patching: {fpath}')
           src = open(fpath).read()
-          # FileSystemUtilities.isReadableFile does not exist in expo-modules-core@3.x.
-          # Replace with the equivalent permissions check that is available.
           old = 'FileSystemUtilities.isReadableFile(appContext, url)'
           new = 'FileSystemUtilities.permissions(appContext, for: url).contains(.read)'
           if old not in src:
@@ -101,7 +99,6 @@ jobs:
           for i, line in enumerate(patched.splitlines(), 1):
             if 'isReadableFile' in line or 'permissions' in line:
               print(f'  {i}: {line}')
-
       - name: Pod install
         working-directory: artifacts/mobile/ios
         run: pod install
@@ -147,7 +144,7 @@ jobs:
             const b = app.ios.buildNumber;
             console.log('SENTRY_RELEASE=' + v + '+' + b);
           " >> $GITHUB_ENV
-          npx react-native bundle \
+          npx expo export:embed \
             --platform ios \
             --dev false \
             --entry-file node_modules/expo/AppEntry.js \
@@ -233,15 +230,12 @@ jobs:
           name: quickprop-agent-ios
           path: ${{ runner.temp }}/ipa/*.ipa
           retention-days: 7
-
-      # ── TestFlight submission ──────────────────────────────────────────────
       - name: Resolve IPA path
         id: ipa
         run: |
           IPA_PATH=$(ls "$RUNNER_TEMP/ipa/"*.ipa | head -1)
           echo "path=$IPA_PATH" >> $GITHUB_OUTPUT
           echo "Resolved IPA: $IPA_PATH"
-
       - name: Upload to TestFlight
         uses: apple-actions/upload-testflight-build@v3
         with:
