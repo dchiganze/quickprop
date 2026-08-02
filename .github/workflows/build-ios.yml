@@ -147,6 +147,7 @@ jobs:
           npx expo export:embed \
             --platform ios \
             --dev false \
+            --project-root . \
             --entry-file index.js \
             --bundle-output "$RUNNER_TEMP/main.jsbundle" \
             --sourcemap-output "$RUNNER_TEMP/main.jsbundle.map" \
