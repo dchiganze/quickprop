@@ -75,6 +75,33 @@ jobs:
           echo "=== Relevant Podfile lines ==="
           grep -n "hermes_enabled\|FMT_USE\|format\.cc\|post_install\|withNoHermes" ios/Podfile \
             || echo "(nothing matched)"
+      - name: Patch expo-sharing SharingModule.swift (isReadableFile missing in expo-modules-core@3.x)
+        shell: python3 {0}
+        run: |
+          import glob, sys
+          matches = glob.glob(
+            'node_modules/.pnpm/expo-sharing*/node_modules/expo-sharing/ios/SharingModule.swift',
+            recursive=False
+          )
+          if not matches:
+            print('ERROR: SharingModule.swift not found', file=sys.stderr)
+            sys.exit(1)
+          fpath = matches[0]
+          print(f'Patching: {fpath}')
+          src = open(fpath).read()
+          # FileSystemUtilities.isReadableFile does not exist in expo-modules-core@3.x.
+          # Replace with the equivalent permissions check that is available.
+          old = 'FileSystemUtilities.isReadableFile(appContext, url)'
+          new = 'FileSystemUtilities.permissions(appContext, for: url).contains(.read)'
+          if old not in src:
+            print('WARNING: pattern not found — already patched or source changed')
+          patched = src.replace(old, new)
+          open(fpath, 'w').write(patched)
+          print('Done. Verify:')
+          for i, line in enumerate(patched.splitlines(), 1):
+            if 'isReadableFile' in line or 'permissions' in line:
+              print(f'  {i}: {line}')
+
       - name: Pod install
         working-directory: artifacts/mobile/ios
         run: pod install
@@ -111,6 +138,24 @@ jobs:
           SCHEME="${WORKSPACE%.xcworkspace}"
           echo "XCODE_SCHEME=${SCHEME}" >> $GITHUB_ENV
           echo "Found scheme: ${SCHEME}"
+      - name: Export JS bundle + source map
+        working-directory: artifacts/mobile
+        run: |
+          node -e "
+            const app = require('./app.json').expo;
+            const v = app.version;
+            const b = app.ios.buildNumber;
+            console.log('SENTRY_RELEASE=' + v + '+' + b);
+          " >> $GITHUB_ENV
+          npx react-native bundle \
+            --platform ios \
+            --dev false \
+            --entry-file node_modules/expo/AppEntry.js \
+            --bundle-output "$RUNNER_TEMP/main.jsbundle" \
+            --sourcemap-output "$RUNNER_TEMP/main.jsbundle.map" \
+            --assets-dest "$RUNNER_TEMP/assets"
+          echo "Bundle + source map exported."
+          ls -lh "$RUNNER_TEMP/main.jsbundle" "$RUNNER_TEMP/main.jsbundle.map"
       - name: Archive
         working-directory: artifacts/mobile/ios
         run: |
@@ -126,6 +171,32 @@ jobs:
             DEVELOPMENT_TEAM=R7FGJAAUQF
           echo "Archive created:"
           ls -la "$RUNNER_TEMP/QuickPropAgent.xcarchive"
+      - name: Upload dSYMs to Sentry
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+        run: |
+          npm install -g @sentry/cli
+          sentry-cli debug-files upload \
+            --org melios-technologies-pvt-ltd \
+            --project react-native \
+            "$RUNNER_TEMP/QuickPropAgent.xcarchive/dSYMs"
+      - name: Upload source maps to Sentry
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+        run: |
+          sentry-cli releases new "$SENTRY_RELEASE" \
+            --org melios-technologies-pvt-ltd \
+            --project react-native
+          sentry-cli sourcemaps upload \
+            --org melios-technologies-pvt-ltd \
+            --project react-native \
+            --release "$SENTRY_RELEASE" \
+            "$RUNNER_TEMP/main.jsbundle" \
+            "$RUNNER_TEMP/main.jsbundle.map"
+          sentry-cli releases finalize "$SENTRY_RELEASE" \
+            --org melios-technologies-pvt-ltd \
+            --project react-native
+          echo "Sentry release $SENTRY_RELEASE finalised."
       - name: Write export options plist
         run: |
           cat > "$RUNNER_TEMP/ExportOptions.plist" << 'EOF'
@@ -162,3 +233,19 @@ jobs:
           name: quickprop-agent-ios
           path: ${{ runner.temp }}/ipa/*.ipa
           retention-days: 7
+
+      # ── TestFlight submission ──────────────────────────────────────────────
+      - name: Resolve IPA path
+        id: ipa
+        run: |
+          IPA_PATH=$(ls "$RUNNER_TEMP/ipa/"*.ipa | head -1)
+          echo "path=$IPA_PATH" >> $GITHUB_OUTPUT
+          echo "Resolved IPA: $IPA_PATH"
+
+      - name: Upload to TestFlight
+        uses: apple-actions/upload-testflight-build@v3
+        with:
+          app-path: ${{ steps.ipa.outputs.path }}
+          api-key-id: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+          issuer-id: ${{ secrets.APP_STORE_CONNECT_API_ISSUER_ID }}
+          api-private-key: ${{ secrets.APP_STORE_CONNECT_API_KEY_P8 }}
