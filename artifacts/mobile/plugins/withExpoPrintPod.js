@@ -14,14 +14,15 @@ module.exports = function withExpoPrintPod(config) {
         return config;
       }
 
+      // Point at the package root — that's where EXPrint.podspec lives.
       const candidates = [
-        path.resolve(config.modRequest.projectRoot, 'node_modules', 'expo-print', 'ios'),
-        path.resolve(config.modRequest.projectRoot, '..', '..', 'node_modules', 'expo-print', 'ios'),
+        path.resolve(config.modRequest.projectRoot, 'node_modules', 'expo-print'),
+        path.resolve(config.modRequest.projectRoot, '..', '..', 'node_modules', 'expo-print'),
       ];
 
       const found = candidates.find((p) => fs.existsSync(p));
       if (!found) {
-        throw new Error('[withExpoPrintPod] Could not locate expo-print/ios. Make sure expo-print is installed.');
+        throw new Error('[withExpoPrintPod] Could not locate expo-print. Make sure expo-print is installed.');
       }
 
       const realFound = fs.realpathSync(found);
