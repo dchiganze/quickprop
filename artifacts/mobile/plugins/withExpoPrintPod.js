@@ -9,8 +9,18 @@ module.exports = function withExpoPrintPod(config) {
       const podfilePath = path.join(config.modRequest.platformProjectRoot, 'Podfile');
       let podfile = fs.readFileSync(podfilePath, 'utf8');
 
+      // Step 1: force deployment target to 16.4 directly in the Podfile
+      const platformBefore = podfile.match(/^platform :ios,.+$/m)?.[0] ?? '(not found)';
+      podfile = podfile.replace(
+        /^platform :ios,\s*.+$/m,
+        "platform :ios, '16.4'"
+      );
+      console.log(`[withExpoPrintPod] platform: "${platformBefore}" → "platform :ios, '16.4'"`);
+
+      // Step 2: inject ExpoPrint pod
       if (podfile.includes('ExpoPrint')) {
-        console.log('[withExpoPrintPod] ExpoPrint already present — skipping.');
+        console.log('[withExpoPrintPod] ExpoPrint already present — skipping pod injection.');
+        fs.writeFileSync(podfilePath, podfile);
         return config;
       }
 
@@ -28,7 +38,7 @@ module.exports = function withExpoPrintPod(config) {
       const realIosDir = path.join(realPackageRoot, 'ios');
 
       if (!fs.existsSync(realIosDir)) {
-        throw new Error(`[withExpoPrintPod] ios/ directory not found at ${realIosDir}`);
+        throw new Error(`[withExpoPrintPod] ios/ not found at ${realIosDir}`);
       }
 
       const relPath = path.relative(config.modRequest.platformProjectRoot, realIosDir);
