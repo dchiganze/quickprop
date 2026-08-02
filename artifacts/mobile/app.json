@@ -20,7 +20,7 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.quickprop.agent",
-      "buildNumber": "26",
+      "buildNumber": "27",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSCameraUsageDescription": "QuickProp Agent uses the camera to capture property photos for listings.",
@@ -52,6 +52,7 @@
     },
     "plugins": [
       "./plugins/withNoHermes",
+      "./plugins/withExpoPrintPod",
       [
         "expo-router",
         {
