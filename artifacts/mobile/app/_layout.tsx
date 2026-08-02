@@ -10,6 +10,13 @@ import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { DataProvider } from '@/contexts/DataContext';
 import { useColors } from '@/hooks/useColors';
 import { SplashScreenView } from '@/components/SplashScreenView';
+import * as Sentry from '@sentry/react-native';
+
+Sentry.init({
+  dsn: 'https://1fc020ce60fd94baa36191fe6da10811@o4511161660669952.ingest.de.sentry.io/4511839292358736',
+  tracesSampleRate: 1.0,
+  enableNative: true,
+});
 
 SplashScreen.preventAutoHideAsync();
 
@@ -42,7 +49,7 @@ function RootLayoutNav() {
   );
 }
 
-export default function RootLayout() {
+function RootLayout() {
   useEffect(() => {
     SplashScreen.hideAsync();
   }, []);
@@ -64,3 +71,5 @@ export default function RootLayout() {
     </SafeAreaProvider>
   );
 }
+
+export default Sentry.wrap(RootLayout);
