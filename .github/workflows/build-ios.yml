@@ -16,7 +16,7 @@ jobs:
         with:
           version: 9
       - name: Install dependencies
-        run: pnpm install --no-frozen-lockfile
+        run: pnpm install --no-frozen-lockfile --shamefully-hoist
       - name: Import distribution certificate into keychain
         env:
           IOS_DIST_CERT_BASE64: ${{ secrets.IOS_DIST_CERT_BASE64 }}
