@@ -148,7 +148,7 @@ jobs:
           npx expo export:embed \
             --platform ios \
             --dev false \
-            --entry-file index.js \
+            --entry-file "$PWD/index.js" \
             --bundle-output "$RUNNER_TEMP/main.jsbundle" \
             --sourcemap-output "$RUNNER_TEMP/main.jsbundle.map" \
             --assets-dest "$RUNNER_TEMP/assets"
