@@ -239,33 +239,34 @@ jobs:
           echo "path=$IPA_PATH" >> $GITHUB_OUTPUT
           echo "Resolved IPA: $IPA_PATH"
 
+      - name: Write App Store Connect API key
+        env:
+          API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+          API_KEY_P8: ${{ secrets.APP_STORE_CONNECT_API_KEY_P8 }}
+        shell: python3 {0}
+        run: |
+          import os
+          key = os.environ['API_KEY_P8']
+          # Handle secrets pasted as a single line with literal \n
+          if '\n' not in key and '\\n' in key:
+              key = key.replace('\\n', '\n')
+          if not key.endswith('\n'):
+              key += '\n'
+          os.makedirs(os.path.expanduser('~/.appstoreconnect/private_keys'), exist_ok=True)
+          path = os.path.expanduser(
+              '~/.appstoreconnect/private_keys/AuthKey_' + os.environ['API_KEY_ID'] + '.p8'
+          )
+          with open(path, 'w') as f:
+              f.write(key)
+          print('Key written. Lines:', key.count('\n'))
+          print('First line:', key.splitlines()[0])
+          print('Last line:', key.splitlines()[-1])
+
       - name: Upload to TestFlight
         env:
           API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
           API_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_ISSUER_ID }}
-          API_KEY_P8: ${{ secrets.APP_STORE_CONNECT_API_KEY_P8 }}
         run: |
-          mkdir -p ~/.appstoreconnect/private_keys
-
-          # Write key via Python so literal \n sequences are converted to real
-          # newlines regardless of how the secret was pasted into GitHub.
-          python3 - <<'PYEOF'
-import os
-key = os.environ['API_KEY_P8']
-if '\n' not in key and '\\n' in key:
-    key = key.replace('\\n', '\n')
-if not key.endswith('\n'):
-    key += '\n'
-path = os.path.expanduser(
-    '~/.appstoreconnect/private_keys/AuthKey_' + os.environ['API_KEY_ID'] + '.p8'
-)
-with open(path, 'w') as f:
-    f.write(key)
-print('Key written. Lines:', key.count('\n'))
-print('First line:', key.splitlines()[0])
-print('Last line:', key.splitlines()[-1])
-PYEOF
-
           xcrun altool --upload-app \
             --type ios \
             --file "${{ steps.ipa.outputs.path }}" \
