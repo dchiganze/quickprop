@@ -246,17 +246,25 @@ jobs:
           API_KEY_P8: ${{ secrets.APP_STORE_CONNECT_API_KEY_P8 }}
         run: |
           mkdir -p ~/.appstoreconnect/private_keys
-          KEY_FILE=~/.appstoreconnect/private_keys/AuthKey_${API_KEY_ID}.p8
-          printf '%s\n' "$API_KEY_P8" > "$KEY_FILE"
 
-          # Verify key file looks correct before uploading (no private content exposed)
-          echo "--- Key diagnostics ---"
-          echo "Key ID : $API_KEY_ID"
-          echo "Issuer : $API_ISSUER_ID"
-          echo "Lines  : $(wc -l < "$KEY_FILE")"
-          echo "First  : $(head -1 "$KEY_FILE")"
-          echo "Last   : $(tail -1 "$KEY_FILE")"
-          echo "-----------------------"
+          # Write key via Python so literal \n sequences are converted to real
+          # newlines regardless of how the secret was pasted into GitHub.
+          python3 - <<'PYEOF'
+import os
+key = os.environ['API_KEY_P8']
+if '\n' not in key and '\\n' in key:
+    key = key.replace('\\n', '\n')
+if not key.endswith('\n'):
+    key += '\n'
+path = os.path.expanduser(
+    '~/.appstoreconnect/private_keys/AuthKey_' + os.environ['API_KEY_ID'] + '.p8'
+)
+with open(path, 'w') as f:
+    f.write(key)
+print('Key written. Lines:', key.count('\n'))
+print('First line:', key.splitlines()[0])
+print('Last line:', key.splitlines()[-1])
+PYEOF
 
           xcrun altool --upload-app \
             --type ios \
