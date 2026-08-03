@@ -20,7 +20,7 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.quickprop.agent",
-      "buildNumber": "30",
+      "buildNumber": "31",
       "deploymentTarget": "16.4",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
@@ -53,6 +53,7 @@
     },
     "plugins": [
       "./plugins/withNoHermes",
+      "./plugins/withDeploymentTarget",
       "./plugins/withExpoPrintPod",
       [
         "expo-router",
