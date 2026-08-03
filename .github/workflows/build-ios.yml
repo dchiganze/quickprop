@@ -246,12 +246,20 @@ jobs:
           API_KEY_P8: ${{ secrets.APP_STORE_CONNECT_API_KEY_P8 }}
         shell: python3 {0}
         run: |
-          import os, json
-          key = os.environ['API_KEY_P8']
-          if '\n' not in key and '\\n' in key:
-              key = key.replace('\\n', '\n')
-          if not key.endswith('\n'):
-              key += '\n'
+          import os, json, re, textwrap
+          raw = os.environ['API_KEY_P8']
+          # Normalize literal \n sequences (from some paste methods)
+          raw = raw.replace('\\n', '\n')
+          # Strip PEM headers/footers and ALL whitespace to get pure base64
+          b64 = re.sub(r'-----[^-]+-----', '', raw)
+          b64 = re.sub(r'\s+', '', b64)
+          # Reconstruct a properly formatted PEM (64-char lines)
+          body = '\n'.join(textwrap.wrap(b64, 64))
+          key = f'-----BEGIN PRIVATE KEY-----\n{body}\n-----END PRIVATE KEY-----\n'
+          print('Reconstructed PEM key.')
+          print('Lines:', key.count('\n'))
+          print('First:', key.splitlines()[0])
+          print('Last:', key.splitlines()[-1])
           asc = {
               "key_id": os.environ['API_KEY_ID'],
               "issuer_id": os.environ['API_ISSUER_ID'],
@@ -261,12 +269,8 @@ jobs:
           }
           with open('/tmp/asc_key.json', 'w') as f:
               json.dump(asc, f)
-          print('ASC key JSON written.')
           print('key_id:', asc['key_id'])
           print('issuer_id:', asc['issuer_id'])
-          print('key lines:', key.count('\n'))
-          print('key first line:', key.splitlines()[0])
-          print('key last line:', key.splitlines()[-1])
 
       - name: Upload to TestFlight via Fastlane Pilot
         run: |
