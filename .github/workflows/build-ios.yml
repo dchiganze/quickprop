@@ -148,7 +148,6 @@ jobs:
           npx expo export:embed \
             --platform ios \
             --dev false \
-            --project-root . \
             --entry-file index.js \
             --bundle-output "$RUNNER_TEMP/main.jsbundle" \
             --sourcemap-output "$RUNNER_TEMP/main.jsbundle.map" \
@@ -233,12 +232,6 @@ jobs:
           path: ${{ runner.temp }}/ipa/*.ipa
           retention-days: 7
 
-      # ── TestFlight submission ──────────────────────────────────────────────
-      # Required GitHub secrets:
-      #   APP_STORE_CONNECT_API_KEY_ID     – Key ID from App Store Connect
-      #   APP_STORE_CONNECT_API_ISSUER_ID  – Issuer UUID from App Store Connect
-      #   APP_STORE_CONNECT_API_KEY_P8     – Full contents of the .p8 private key file
-      # ──────────────────────────────────────────────────────────────────────
       - name: Resolve IPA path
         id: ipa
         run: |
@@ -252,9 +245,6 @@ jobs:
           API_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_ISSUER_ID }}
           API_KEY_P8: ${{ secrets.APP_STORE_CONNECT_API_KEY_P8 }}
         run: |
-          # Write the .p8 key to the canonical path altool expects.
-          # Doing this ourselves avoids newline-stripping that third-party
-          # actions can introduce when the secret is a multi-line PEM block.
           mkdir -p ~/.appstoreconnect/private_keys
           printf '%s' "$API_KEY_P8" > ~/.appstoreconnect/private_keys/AuthKey_${API_KEY_ID}.p8
 
