@@ -239,38 +239,39 @@ jobs:
           echo "path=$IPA_PATH" >> $GITHUB_OUTPUT
           echo "Resolved IPA: $IPA_PATH"
 
-      - name: Write App Store Connect API key
+      - name: Write App Store Connect API key JSON for Fastlane
         env:
           API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+          API_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_ISSUER_ID }}
           API_KEY_P8: ${{ secrets.APP_STORE_CONNECT_API_KEY_P8 }}
         shell: python3 {0}
         run: |
-          import os
+          import os, json
           key = os.environ['API_KEY_P8']
-          # Handle secrets pasted as a single line with literal \n
           if '\n' not in key and '\\n' in key:
               key = key.replace('\\n', '\n')
           if not key.endswith('\n'):
               key += '\n'
-          os.makedirs(os.path.expanduser('~/.appstoreconnect/private_keys'), exist_ok=True)
-          path = os.path.expanduser(
-              '~/.appstoreconnect/private_keys/AuthKey_' + os.environ['API_KEY_ID'] + '.p8'
-          )
-          with open(path, 'w') as f:
-              f.write(key)
-          print('Key written. Lines:', key.count('\n'))
-          print('First line:', key.splitlines()[0])
-          print('Last line:', key.splitlines()[-1])
+          asc = {
+              "key_id": os.environ['API_KEY_ID'],
+              "issuer_id": os.environ['API_ISSUER_ID'],
+              "key": key,
+              "duration": 1200,
+              "in_house": False
+          }
+          with open('/tmp/asc_key.json', 'w') as f:
+              json.dump(asc, f)
+          print('ASC key JSON written.')
+          print('key_id:', asc['key_id'])
+          print('issuer_id:', asc['issuer_id'])
+          print('key lines:', key.count('\n'))
+          print('key first line:', key.splitlines()[0])
+          print('key last line:', key.splitlines()[-1])
 
-      - name: Upload to TestFlight
-        env:
-          API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
-          API_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_ISSUER_ID }}
+      - name: Upload to TestFlight via Fastlane Pilot
         run: |
-          xcrun altool --upload-app \
-            --type ios \
-            --file "${{ steps.ipa.outputs.path }}" \
-            --apiKey "$API_KEY_ID" \
-            --apiIssuer "$API_ISSUER_ID" \
-            --output-format xml \
-            --verbose
+          gem install fastlane --no-document 2>&1 | tail -5
+          fastlane pilot upload \
+            --ipa "${{ steps.ipa.outputs.path }}" \
+            --api_key_path /tmp/asc_key.json \
+            --skip_waiting_for_build_processing true
