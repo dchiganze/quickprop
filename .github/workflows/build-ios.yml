@@ -99,6 +99,7 @@ jobs:
           for i, line in enumerate(patched.splitlines(), 1):
             if 'isReadableFile' in line or 'permissions' in line:
               print(f'  {i}: {line}')
+
       - name: Pod install
         working-directory: artifacts/mobile/ios
         run: pod install
@@ -147,7 +148,8 @@ jobs:
           npx expo export:embed \
             --platform ios \
             --dev false \
-            --entry-file "$PWD/index.js" \
+            --project-root . \
+            --entry-file index.js \
             --bundle-output "$RUNNER_TEMP/main.jsbundle" \
             --sourcemap-output "$RUNNER_TEMP/main.jsbundle.map" \
             --assets-dest "$RUNNER_TEMP/assets"
@@ -230,16 +232,36 @@ jobs:
           name: quickprop-agent-ios
           path: ${{ runner.temp }}/ipa/*.ipa
           retention-days: 7
+
+      # ── TestFlight submission ──────────────────────────────────────────────
+      # Required GitHub secrets:
+      #   APP_STORE_CONNECT_API_KEY_ID     – Key ID from App Store Connect
+      #   APP_STORE_CONNECT_API_ISSUER_ID  – Issuer UUID from App Store Connect
+      #   APP_STORE_CONNECT_API_KEY_P8     – Full contents of the .p8 private key file
+      # ──────────────────────────────────────────────────────────────────────
       - name: Resolve IPA path
         id: ipa
         run: |
           IPA_PATH=$(ls "$RUNNER_TEMP/ipa/"*.ipa | head -1)
           echo "path=$IPA_PATH" >> $GITHUB_OUTPUT
           echo "Resolved IPA: $IPA_PATH"
+
       - name: Upload to TestFlight
-        uses: apple-actions/upload-testflight-build@v3
-        with:
-          app-path: ${{ steps.ipa.outputs.path }}
-          api-key-id: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
-          issuer-id: ${{ secrets.APP_STORE_CONNECT_API_ISSUER_ID }}
-          api-private-key: ${{ secrets.APP_STORE_CONNECT_API_KEY_P8 }}
+        env:
+          API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+          API_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_ISSUER_ID }}
+          API_KEY_P8: ${{ secrets.APP_STORE_CONNECT_API_KEY_P8 }}
+        run: |
+          # Write the .p8 key to the canonical path altool expects.
+          # Doing this ourselves avoids newline-stripping that third-party
+          # actions can introduce when the secret is a multi-line PEM block.
+          mkdir -p ~/.appstoreconnect/private_keys
+          printf '%s' "$API_KEY_P8" > ~/.appstoreconnect/private_keys/AuthKey_${API_KEY_ID}.p8
+
+          xcrun altool --upload-app \
+            --type ios \
+            --file "${{ steps.ipa.outputs.path }}" \
+            --apiKey "$API_KEY_ID" \
+            --apiIssuer "$API_ISSUER_ID" \
+            --output-format xml \
+            --verbose
