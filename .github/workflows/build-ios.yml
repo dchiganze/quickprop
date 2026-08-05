@@ -17,6 +17,30 @@ jobs:
           version: 9
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile --shamefully-hoist
+
+      - name: Set iOS build number
+        run: |
+          APP_JSON="artifacts/mobile/app.json"
+          CURRENT=$(node -e "process.stdout.write(require('./$APP_JSON').expo.ios.buildNumber)")
+          NEW_BUILD=$((CURRENT + 1))
+          echo "Current build: $CURRENT  →  New build: $NEW_BUILD"
+          node -e "
+            const fs = require('fs');
+            const p = './$APP_JSON';
+            const a = JSON.parse(fs.readFileSync(p, 'utf8'));
+            a.expo.ios.buildNumber = String($NEW_BUILD);
+            fs.writeFileSync(p, JSON.stringify(a, null, 2) + '\n');
+            console.log('Wrote buildNumber:', a.expo.ios.buildNumber);
+          "
+          echo "IOS_BUILD_NUMBER=$NEW_BUILD" >> $GITHUB_ENV
+
+      - name: Confirm build number after bump
+        run: |
+          echo "=== app.json ios.buildNumber ==="
+          node -e "const a=require('./artifacts/mobile/app.json'); console.log(a.expo.ios.buildNumber);"
+          echo "=== IOS_BUILD_NUMBER env ==="
+          echo "$IOS_BUILD_NUMBER"
+
       - name: Import distribution certificate into keychain
         env:
           IOS_DIST_CERT_BASE64: ${{ secrets.IOS_DIST_CERT_BASE64 }}
@@ -69,6 +93,15 @@ jobs:
       - name: Expo prebuild (generates ios/ with our plugins applied)
         working-directory: artifacts/mobile
         run: npx expo prebuild --platform ios --no-install
+      - name: Force-patch CFBundleVersion in Info.plist
+        run: |
+          PLIST=$(find artifacts/mobile/ios -name "Info.plist" \
+            ! -path "*/Pods/*" ! -path "*Tests*" | head -1)
+          echo "Patching: $PLIST"
+          echo "Before: $(/usr/libexec/PlistBuddy -c 'Print CFBundleVersion' "$PLIST")"
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $IOS_BUILD_NUMBER" "$PLIST"
+          echo "After:  $(/usr/libexec/PlistBuddy -c 'Print CFBundleVersion' "$PLIST")"
+
       - name: Verify withNoHermes + fmt injection in Podfile
         working-directory: artifacts/mobile
         run: |
@@ -166,9 +199,18 @@ jobs:
             CODE_SIGN_STYLE=Manual \
             PROVISIONING_PROFILE="$PROFILE_UUID" \
             CODE_SIGN_IDENTITY="iPhone Distribution" \
-            DEVELOPMENT_TEAM=R7FGJAAUQF
+            DEVELOPMENT_TEAM=R7FGJAAUQF \
+            CURRENT_PROJECT_VERSION="$IOS_BUILD_NUMBER" \
+            MARKETING_VERSION="1.0.0"
           echo "Archive created:"
           ls -la "$RUNNER_TEMP/QuickPropAgent.xcarchive"
+      - name: Diagnose signing identity used
+        run: |
+          APP="$RUNNER_TEMP/QuickPropAgent.xcarchive/Products/Applications/QuickPropAgent.app"
+          echo "=== codesign authority ==="
+          codesign -dvvv "$APP" 2>&1 | grep -E "Authority|TeamIdentifier|Identifier"
+          echo "=== security find-identity (valid only) ==="
+          security find-identity -v -p codesigning build.keychain
       - name: Upload dSYMs to Sentry
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
@@ -248,12 +290,9 @@ jobs:
         run: |
           import os, json, re, textwrap
           raw = os.environ['API_KEY_P8']
-          # Normalize literal \n sequences (from some paste methods)
           raw = raw.replace('\\n', '\n')
-          # Strip PEM headers/footers and ALL whitespace to get pure base64
           b64 = re.sub(r'-----[^-]+-----', '', raw)
           b64 = re.sub(r'\s+', '', b64)
-          # Reconstruct a properly formatted PEM (64-char lines)
           body = '\n'.join(textwrap.wrap(b64, 64))
           key = f'-----BEGIN PRIVATE KEY-----\n{body}\n-----END PRIVATE KEY-----\n'
           print('Reconstructed PEM key.')
