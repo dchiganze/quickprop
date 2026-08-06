@@ -62,6 +62,32 @@ jobs:
         working-directory: artifacts/mobile
         run: npx expo prebuild --platform android --no-install
 
+      - name: Create expo-secure-store res/xml files (library resources missing from cp install)
+        run: |
+          mkdir -p artifacts/mobile/android/app/src/main/res/xml
+          cat > artifacts/mobile/android/app/src/main/res/xml/secure_store_backup_rules.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <!--  Auto Backup configuration for Android 11 and lower -->
+          <full-backup-content>
+            <include domain="sharedpref" path="."/>
+            <exclude domain="sharedpref" path="SecureStore"/>
+          </full-backup-content>
+          EOF
+          cat > artifacts/mobile/android/app/src/main/res/xml/secure_store_data_extraction_rules.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <!--  Auto Backup configuration for Android 12 and higher -->
+          <data-extraction-rules>
+            <cloud-backup>
+              <include domain="sharedpref" path="."/>
+              <exclude domain="sharedpref" path="SecureStore"/>
+            </cloud-backup>
+            <device-transfer>
+              <include domain="sharedpref" path="."/>
+              <exclude domain="sharedpref" path="SecureStore"/>
+            </device-transfer>
+          </data-extraction-rules>
+          EOF
+
       - name: Decode keystore
         run: |
           echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > artifacts/mobile/android-keystore.jks
