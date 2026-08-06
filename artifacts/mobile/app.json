@@ -38,7 +38,7 @@
     },
     "android": {
       "package": "zw.co.melios.quickprop.agent",
-      "versionCode": 4,
+      "versionCode": 7,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
