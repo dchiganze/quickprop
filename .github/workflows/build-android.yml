@@ -44,14 +44,16 @@ jobs:
 
       - name: Install runtime deps pnpm missed into mobile node_modules
         run: |
-          npm install \
-            --prefix artifacts/mobile \
-            --no-save \
-            --no-package-lock \
-            --legacy-peer-deps \
+          TMPDIR=$(mktemp -d)
+          echo '{}' > "$TMPDIR/package.json"
+          npm install --prefix "$TMPDIR" --no-save --no-package-lock --legacy-peer-deps \
             expo-secure-store@15.0.8 \
             expo-local-authentication@17.0.8 \
             expo-apple-authentication@8.0.8
+          mkdir -p artifacts/mobile/node_modules
+          cp -r "$TMPDIR/node_modules/expo-secure-store"         artifacts/mobile/node_modules/
+          cp -r "$TMPDIR/node_modules/expo-local-authentication"  artifacts/mobile/node_modules/
+          cp -r "$TMPDIR/node_modules/expo-apple-authentication"  artifacts/mobile/node_modules/
 
       - name: Link mobile dependencies into artifacts/mobile/node_modules
         run: node .github/scripts/link-mobile-deps.js
