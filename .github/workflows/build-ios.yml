@@ -122,8 +122,6 @@ jobs:
           fpath = matches[0]
           print(f'Patching: {fpath}')
           src = open(fpath).read()
-          # FileSystemUtilities.isReadableFile does not exist in expo-modules-core@3.x.
-          # Replace with the equivalent permissions check that is available.
           old = 'FileSystemUtilities.isReadableFile(appContext, url)'
           new = 'FileSystemUtilities.permissions(appContext, for: url).contains(.read)'
           if old not in src:
@@ -276,15 +274,6 @@ jobs:
           path: ${{ runner.temp }}/ipa/*.ipa
           retention-days: 7
 
-      # ── TestFlight submission ──────────────────────────────────────────────
-      # Required GitHub secrets:
-      #   APP_STORE_CONNECT_API_KEY_ID     – Key ID from App Store Connect
-      #                                      (e.g. "ABCD1234EF")
-      #   APP_STORE_CONNECT_API_ISSUER_ID  – Issuer UUID from App Store Connect
-      #                                      (e.g. "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx")
-      #   APP_STORE_CONNECT_API_KEY_P8     – Full contents of the .p8 private key
-      #                                      file, including the BEGIN/END header lines
-      # ──────────────────────────────────────────────────────────────────────
       - name: Resolve IPA path
         id: ipa
         run: |
@@ -301,12 +290,9 @@ jobs:
         run: |
           import os, json, re, textwrap
           raw = os.environ['API_KEY_P8']
-          # Normalize literal \n sequences (from some paste methods)
           raw = raw.replace('\\n', '\n')
-          # Strip PEM headers/footers and ALL whitespace to get pure base64
           b64 = re.sub(r'-----[^-]+-----', '', raw)
           b64 = re.sub(r'\s+', '', b64)
-          # Reconstruct a properly formatted PEM (64-char lines)
           body = '\n'.join(textwrap.wrap(b64, 64))
           key = f'-----BEGIN PRIVATE KEY-----\n{body}\n-----END PRIVATE KEY-----\n'
           print('Reconstructed PEM key.')
