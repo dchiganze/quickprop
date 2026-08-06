@@ -42,38 +42,55 @@ jobs:
           console.log('android.versionCode bumped: ' + current + ' -> ' + next);
           "
 
-      - name: Install EAS CLI
-        run: npm install -g eas-cli
+      - name: Link Expo plugin packages into mobile node_modules
+        run: |
+          node - << 'EOF'
+          const fs = require('fs'), path = require('path');
+          const { plugins = [] } = JSON.parse(fs.readFileSync('artifacts/mobile/app.json')).expo;
+          const nm = 'artifacts/mobile/node_modules';
+          fs.mkdirSync(nm, { recursive: true });
+          for (const p of plugins) {
+            const name = Array.isArray(p) ? p[0] : p;
+            if (name.startsWith('.') || name.startsWith('/')) continue;
+            const src = path.resolve('node_modules/' + name);
+            const dst = path.resolve(nm + '/' + name);
+            if (fs.existsSync(src) && !fs.existsSync(dst)) {
+              fs.symlinkSync(src, dst, 'dir');
+              console.log('linked:', name);
+            }
+          }
+          EOF
+
+      - name: Expo prebuild (Android)
+        working-directory: artifacts/mobile
+        run: npx expo prebuild --platform android --no-install
 
       - name: Decode keystore
         run: |
           echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > artifacts/mobile/android-keystore.jks
 
-      - name: Create credentials.json
-        run: |
-          cat > artifacts/mobile/credentials.json << 'EOF'
-          {
-            "android": {
-              "keystore": {
-                "keystorePath": "./android-keystore.jks",
-                "keystorePassword": "${{ secrets.ANDROID_KEYSTORE_PASSWORD }}",
-                "keyAlias": "${{ secrets.ANDROID_KEY_ALIAS }}",
-                "keyPassword": "${{ secrets.ANDROID_KEY_PASSWORD }}"
-              }
-            }
-          }
-          EOF
-
-      - name: Build Android (local)
-        working-directory: artifacts/mobile
+      - name: Build Android AAB with Gradle
+        working-directory: artifacts/mobile/android
         env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
           ANDROID_HOME: /usr/local/lib/android/sdk
-        run: eas build --platform android --profile production --local --non-interactive --output build.aab
+        run: |
+          chmod +x gradlew
+          ./gradlew bundleRelease \
+            -Pandroid.injected.signing.store.file="$(pwd)/../android-keystore.jks" \
+            -Pandroid.injected.signing.store.password="${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" \
+            -Pandroid.injected.signing.key.alias="${{ secrets.ANDROID_KEY_ALIAS }}" \
+            -Pandroid.injected.signing.key.password="${{ secrets.ANDROID_KEY_PASSWORD }}"
+
+      - name: Locate AAB
+        id: aab
+        run: |
+          AAB=$(find artifacts/mobile/android -name "*.aab" | head -1)
+          echo "path=$AAB" >> $GITHUB_OUTPUT
+          echo "Found AAB: $AAB"
 
       - name: Upload AAB artifact
         uses: actions/upload-artifact@v4
         with:
           name: quickprop-agent-android
-          path: artifacts/mobile/build.aab
+          path: ${{ steps.aab.outputs.path }}
           retention-days: 7

@@ -90,6 +90,26 @@ jobs:
             ~/Library/MobileDevice/Provisioning\ Profiles/${UUID}.mobileprovision
           rm /tmp/profile.mobileprovision
           echo "Installed profile: ${UUID}"
+
+      - name: Link Expo plugin packages into mobile node_modules
+        run: |
+          node - << 'EOF'
+          const fs = require('fs'), path = require('path');
+          const { plugins = [] } = JSON.parse(fs.readFileSync('artifacts/mobile/app.json')).expo;
+          const nm = 'artifacts/mobile/node_modules';
+          fs.mkdirSync(nm, { recursive: true });
+          for (const p of plugins) {
+            const name = Array.isArray(p) ? p[0] : p;
+            if (name.startsWith('.') || name.startsWith('/')) continue;
+            const src = path.resolve('node_modules/' + name);
+            const dst = path.resolve(nm + '/' + name);
+            if (fs.existsSync(src) && !fs.existsSync(dst)) {
+              fs.symlinkSync(src, dst, 'dir');
+              console.log('linked:', name);
+            }
+          }
+          EOF
+
       - name: Expo prebuild (generates ios/ with our plugins applied)
         working-directory: artifacts/mobile
         run: npx expo prebuild --platform ios --no-install
