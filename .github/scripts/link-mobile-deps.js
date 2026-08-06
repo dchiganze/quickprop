@@ -47,7 +47,7 @@ for (const pkgName of wanted) {
 
   // 1. Try direct (works if shamefully-hoist actually hoisted it)
   const direct = path.resolve('node_modules', pkgName);
-  if (fs.existsSync(direct)) {
+  if (fs.existsSync(dst)) { skipped++; continue; }
     fs.mkdirSync(dstDir, { recursive: true });
     fs.symlinkSync(direct, dst, 'dir');
     console.log(`  linked (direct):  ${pkgName}`);
