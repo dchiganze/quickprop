@@ -12,8 +12,13 @@ import { useColors } from '@/hooks/useColors';
 import { SplashScreenView } from '@/components/SplashScreenView';
 import * as Sentry from '@sentry/react-native';
 
+import appJson from '../app.json';
+
+const { version, ios } = appJson.expo;
+
 Sentry.init({
   dsn: 'https://1fc020ce60fd94baa36191fe6da10811@o4511161660669952.ingest.de.sentry.io/4511839292358736',
+  release: `${version}+${ios.buildNumber}`,
   tracesSampleRate: 1.0,
   enableNative: true,
 });
@@ -40,10 +45,12 @@ function RootLayoutNav() {
         />
         <Stack.Screen name="listing/[id]" />
         <Stack.Screen name="lead/[id]" />
+        <Stack.Screen name="tasks" />
         <Stack.Screen name="settings" />
       </Stack.Protected>
       <Stack.Protected guard={!user}>
         <Stack.Screen name="login" />
+        <Stack.Screen name="invite" />
       </Stack.Protected>
     </Stack>
   );
