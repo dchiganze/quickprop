@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {
-  View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform,
+  View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, Pressable,
 } from 'react-native';
 import { CatalogueBrochureSheet } from '@/components/BrochureSheet';
 import { Ionicons } from '@expo/vector-icons';
@@ -36,8 +36,8 @@ export default function DashboardScreen() {
   const firstName = user?.name.split(' ')[0] ?? 'Agent';
   const dateStr = new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
 
-  const handleQuickAction = async (action: string) => {
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  const handleQuickAction = (action: string) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
     if (action === 'new') router.push('/new-listing');
     else if (action === 'listings') router.push('/(tabs)/listings');
     else if (action === 'leads') router.push('/(tabs)/leads');
@@ -62,6 +62,7 @@ export default function DashboardScreen() {
         },
       ]}
       showsVerticalScrollIndicator={false}
+      delaysContentTouches={false}
     >
       {/* Header */}
       <View style={styles.header}>
@@ -71,7 +72,7 @@ export default function DashboardScreen() {
         </View>
         <TouchableOpacity
           style={[styles.notifBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
-          onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
+          onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}); router.push('/(tabs)/leads'); }}
         >
           <Ionicons name="notifications-outline" size={22} color={colors.foreground} />
           {newLeads > 0 && (
@@ -85,12 +86,12 @@ export default function DashboardScreen() {
       {/* Stats */}
       <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Today's Overview</Text>
       <View style={styles.statsRow}>
-        <StatCard label="Active Listings" value={activeListings} icon="business-outline" color={colors.primary} subtitle={draftListings > 0 ? `${draftListings} drafts` : undefined} />
-        <StatCard label="Active Leads" value={activeLeads} icon="people-outline" color="#8B5CF6" subtitle={newLeads > 0 ? `${newLeads} new` : undefined} />
+        <StatCard label="Active Listings" value={activeListings} icon="business-outline" color={colors.primary} subtitle={draftListings > 0 ? `${draftListings} drafts` : undefined} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}); router.push('/(tabs)/listings'); }} />
+        <StatCard label="Active Leads" value={activeLeads} icon="people-outline" color="#8B5CF6" subtitle={newLeads > 0 ? `${newLeads} new` : undefined} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}); router.push('/(tabs)/leads'); }} />
       </View>
       <View style={[styles.statsRow, { marginTop: 10 }]}>
-        <StatCard label="Viewings Today" value={viewingsToday} icon="eye-outline" color={colors.accent} />
-        <StatCard label="Tasks Due" value={overdueTasks} icon="time-outline" color={overdueTasks > 0 ? colors.destructive : colors.mutedForeground} subtitle={overdueTasks > 0 ? 'Overdue' : 'On track'} />
+        <StatCard label="Viewings Today" value={viewingsToday} icon="eye-outline" color={colors.accent} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}); router.push({ pathname: '/tasks', params: { filter: 'viewing' } }); }} />
+        <StatCard label="Tasks Due" value={overdueTasks} icon="time-outline" color={overdueTasks > 0 ? colors.destructive : colors.mutedForeground} subtitle={overdueTasks > 0 ? 'Overdue' : 'On track'} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}); router.push('/tasks'); }} />
       </View>
 
       {/* Quick Actions */}
@@ -100,9 +101,9 @@ export default function DashboardScreen() {
         <QuickAction label="Search Inventory" icon="search-outline" onPress={() => handleQuickAction('listings')} />
         <QuickAction label="Buyer Requests" icon="people-outline" onPress={() => handleQuickAction('matches')} />
         <QuickAction label="My Leads" icon="person-outline" onPress={() => handleQuickAction('leads')} />
-        <QuickAction label="Share Catalogue" icon="share-outline" onPress={async () => { await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); setShareOpen(true); }} accent />
-        <QuickAction label="Generate Brochure" icon="document-text-outline" onPress={async () => {
-          await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        <QuickAction label="Share Catalogue" icon="share-outline" onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {}); setShareOpen(true); }} accent />
+        <QuickAction label="Generate Brochure" icon="document-text-outline" onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
           setBrochureOpen(true);
         }} />
       </ScrollView>
@@ -119,7 +120,7 @@ export default function DashboardScreen() {
               <TouchableOpacity
                 key={task.id}
                 style={[styles.taskRow, i < todayTasks.length - 1 && { borderBottomWidth: 1, borderBottomColor: colors.border }]}
-                onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
+                onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}); if (task.propertyId) router.push(`/listing/${task.propertyId}`); else router.push('/(tabs)/leads'); }}
               >
                 <View style={[styles.taskIcon, { backgroundColor: colors.secondary }]}>
                   <Ionicons name={TASK_ICONS[task.type] || 'checkbox-outline'} size={16} color={colors.primary} />

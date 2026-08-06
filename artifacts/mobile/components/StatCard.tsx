@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, Platform } from 'react-native';
+import { View, Text, StyleSheet, Platform, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useColors } from '@/hooks/useColors';
 
@@ -9,21 +9,29 @@ interface Props {
   icon: keyof typeof Ionicons.glyphMap;
   color?: string;
   subtitle?: string;
+  onPress?: () => void;
 }
 
-export function StatCard({ label, value, icon, color, subtitle }: Props) {
+export function StatCard({ label, value, icon, color, subtitle, onPress }: Props) {
   const colors = useColors();
   const iconColor = color || colors.primary;
 
   return (
-    <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border, shadowColor: colors.foreground }]}>
+    <Pressable
+      style={({ pressed }) => [
+        styles.card,
+        { backgroundColor: colors.card, borderColor: colors.border, shadowColor: colors.foreground },
+        pressed && onPress ? { opacity: 0.7 } : undefined,
+      ]}
+      onPress={onPress}
+    >
       <View style={[styles.iconWrap, { backgroundColor: iconColor + '15' }]}>
         <Ionicons name={icon} size={22} color={iconColor} />
       </View>
       <Text style={[styles.value, { color: colors.foreground }]}>{value}</Text>
       <Text style={[styles.label, { color: colors.mutedForeground }]}>{label}</Text>
       {subtitle && <Text style={[styles.subtitle, { color: iconColor }]}>{subtitle}</Text>}
-    </View>
+    </Pressable>
   );
 }
 
