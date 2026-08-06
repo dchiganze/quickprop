@@ -3,16 +3,11 @@
  * Symlinks every dependency of artifacts/mobile into
  * artifacts/mobile/node_modules so Expo's plugin resolver (which uses
  * require.resolve relative to that directory) can find them.
- *
- * pnpm's virtual store puts packages at:
- *   node_modules/.pnpm/<escaped-name>@<version>_<peers>/node_modules/<name>
- *
- * Even with --shamefully-hoist, workspace-member-only packages are NOT
- * hoisted to the root node_modules, so we must search .pnpm directly.
  */
 
-const fs   = require('fs');
-const path = require('path');
+const fs    = require('fs');
+const path  = require('path');
+const { execSync } = require('child_process');
 
 const appJson = JSON.parse(fs.readFileSync('artifacts/mobile/app.json', 'utf8'));
 const pkgJson = JSON.parse(fs.readFileSync('artifacts/mobile/package.json', 'utf8'));
@@ -30,68 +25,70 @@ for (const p of (appJson.expo.plugins || [])) {
 }
 
 const mobileNm = path.resolve('artifacts/mobile/node_modules');
+const repoRoot = process.cwd();
 fs.mkdirSync(mobileNm, { recursive: true });
 
-const pnpmDir     = path.resolve('node_modules/.pnpm');
-const pnpmEntries = fs.readdirSync(pnpmDir);
+/**
+ * Find a package directory using multiple strategies.
+ * Returns absolute path to the package root, or null.
+ */
+function findPkg(pkgName) {
+  // 1. require.resolve from repo root
+  try {
+    var r = require.resolve(pkgName + '/package.json', { paths: [repoRoot] });
+    return path.dirname(r);
+  } catch (_) {}
 
-// DEBUG: show first few entries so we can verify the naming format
-console.log('Sample .pnpm entries (first 5):');
-pnpmEntries.slice(0, 5).forEach(function(e) { console.log('  ' + e); });
+  // 2. require.resolve the main entry and walk up to package root
+  try {
+    var r2 = require.resolve(pkgName, { paths: [repoRoot] });
+    var dir = path.dirname(r2);
+    while (dir !== path.dirname(dir)) {
+      var pjPath = path.join(dir, 'package.json');
+      if (fs.existsSync(pjPath)) {
+        try {
+          var pj = JSON.parse(fs.readFileSync(pjPath, 'utf8'));
+          if (pj.name === pkgName) return dir;
+        } catch (_) {}
+      }
+      dir = path.dirname(dir);
+    }
+  } catch (_) {}
+
+  // 3. find command across all of node_modules (handles hashed pnpm dirs)
+  try {
+    var result = execSync(
+      'find node_modules -name "package.json" -not -path "*/node_modules/*/node_modules/*" 2>/dev/null | xargs grep -l \'"name": "' + pkgName + '"\' 2>/dev/null | head -1',
+      { encoding: 'utf8', timeout: 30000 }
+    ).trim();
+    if (result) return path.dirname(result);
+  } catch (_) {}
+
+  return null;
+}
 
 let linked = 0, skipped = 0, missing = 0;
 
 for (const pkgName of wanted) {
-  // Scoped packages: @scope/name → dst dir needs @scope/ sub-dir
-  const isScoped   = pkgName.startsWith('@');
-  const parts      = pkgName.split('/');
-  const scope      = isScoped ? parts[0] : null;
-  const shortName  = isScoped ? parts[1] : pkgName;
-  const dstDir     = isScoped ? path.join(mobileNm, scope) : mobileNm;
-  const dst        = path.join(dstDir, shortName);
+  const isScoped  = pkgName.startsWith('@');
+  const parts     = pkgName.split('/');
+  const scope     = isScoped ? parts[0] : null;
+  const shortName = isScoped ? parts[1] : pkgName;
+  const dstDir    = isScoped ? path.join(mobileNm, scope) : mobileNm;
+  const dst       = path.join(dstDir, shortName);
 
   if (fs.existsSync(dst)) {
     skipped++;
   } else {
-    // Strategy 1: direct (in case shamefully-hoist put it at root)
-    const direct = path.resolve('node_modules', pkgName);
-    if (fs.existsSync(direct)) {
+    var pkgDir = findPkg(pkgName);
+    if (pkgDir) {
       fs.mkdirSync(dstDir, { recursive: true });
-      fs.symlinkSync(direct, dst, 'dir');
-      console.log('  linked (direct):  ' + pkgName);
+      fs.symlinkSync(pkgDir, dst, 'dir');
+      console.log('  linked: ' + pkgName);
       linked++;
     } else {
-      // Strategy 2: search pnpm virtual store
-      // pnpm escapes / in scoped names: @scope/name → @scope+name
-      const pnpmKey = pkgName.replace('/', '+');
-      const matches = pnpmEntries.filter(function(e) {
-        return e.startsWith(pnpmKey + '@');
-      });
-
-      var foundSrc = null;
-      for (var i = 0; i < matches.length; i++) {
-        var candidate = path.join(pnpmDir, matches[i], 'node_modules', pkgName);
-        if (fs.existsSync(candidate)) {
-          foundSrc = candidate;
-          break;
-        } else {
-          console.log('  DEBUG ' + pkgName + ': matched "' + matches[i] + '" but inner path missing: ' + candidate);
-        }
-      }
-
-      if (foundSrc) {
-        fs.mkdirSync(dstDir, { recursive: true });
-        fs.symlinkSync(foundSrc, dst, 'dir');
-        console.log('  linked (pnpm):    ' + pkgName);
-        linked++;
-      } else {
-        // DEBUG: show any fuzzy matches that contain the short name
-        var fuzzy = pnpmEntries.filter(function(e) {
-          return e.indexOf(shortName) !== -1;
-        });
-        console.warn('  WARN not found:   ' + pkgName + '  (fuzzy: ' + (fuzzy.slice(0, 3).join(', ') || 'none') + ')');
-        missing++;
-      }
+      console.warn('  WARN not found: ' + pkgName);
+      missing++;
     }
   }
 }
