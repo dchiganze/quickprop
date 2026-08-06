@@ -1,299 +1,224 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import {
-  View, Text, ScrollView, StyleSheet, Platform, Pressable,
+  View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useColors } from '@/hooks/useColors';
 import { useData } from '@/contexts/DataContext';
-
-type NotifKind = 'new_lead' | 'viewing' | 'overdue' | 'due_today' | 'mandate';
-
-interface Notification {
-  id: string;
-  kind: NotifKind;
-  title: string;
-  subtitle: string;
-  icon: keyof typeof Ionicons.glyphMap;
-  color: string;
-  route: string | null;
-}
-
-const KIND_META: Record<NotifKind, { icon: keyof typeof Ionicons.glyphMap; color: string }> = {
-  new_lead:  { icon: 'person-add-outline',   color: '#8B5CF6' },
-  viewing:   { icon: 'eye-outline',           color: '#06B6D4' },
-  overdue:   { icon: 'alert-circle-outline',  color: '#EF4444' },
-  due_today: { icon: 'time-outline',          color: '#F59E0B' },
-  mandate:   { icon: 'refresh-outline',       color: '#10B981' },
-};
 
 export default function NotificationsScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { leads, tasks } = useData();
 
-  const notifications = useMemo<Notification[]>(() => {
-    const now = new Date();
-    const todayStr = now.toDateString();
-    const items: Notification[] = [];
+  const todayStr = new Date().toDateString();
+  const now = new Date();
 
-    // New leads
-    leads
-      .filter(l => l.stage === 'new')
-      .forEach(l => {
-        items.push({
-          id: `lead-new-${l.id}`,
-          kind: 'new_lead',
-          title: 'New lead',
-          subtitle: `${l.name} is interested in ${l.propertyType} — ${l.budget}`,
-          icon: KIND_META.new_lead.icon,
-          color: KIND_META.new_lead.color,
-          route: `/lead/${l.id}`,
-        });
-      });
+  // Action Required
+  const newLeads = leads.filter(l => l.stage === 'new');
+  const overdueTasks = tasks.filter(t => !t.completed && new Date(t.dueDate) < now && new Date(t.dueDate).toDateString() !== todayStr);
 
-    // Today's viewings
-    tasks
-      .filter(t => t.type === 'viewing' && !t.completed && new Date(t.dueDate).toDateString() === todayStr)
-      .forEach(t => {
-        items.push({
-          id: `viewing-${t.id}`,
-          kind: 'viewing',
-          title: 'Viewing today',
-          subtitle: t.propertyAddress ? `${t.title} — ${t.propertyAddress}` : t.title,
-          icon: KIND_META.viewing.icon,
-          color: KIND_META.viewing.color,
-          route: t.propertyId ? `/listing/${t.propertyId}` : null,
-        });
-      });
+  // Today
+  const viewingsToday = tasks.filter(t => t.type === 'viewing' && !t.completed && new Date(t.dueDate).toDateString() === todayStr);
+  const tasksDueToday = tasks.filter(t => t.type !== 'viewing' && !t.completed && new Date(t.dueDate).toDateString() === todayStr);
 
-    // Overdue tasks (not viewings — those are shown above when today)
-    tasks
-      .filter(t => !t.completed && new Date(t.dueDate) < now && new Date(t.dueDate).toDateString() !== todayStr)
-      .forEach(t => {
-        const daysAgo = Math.floor((now.getTime() - new Date(t.dueDate).getTime()) / 86400000);
-        items.push({
-          id: `overdue-${t.id}`,
-          kind: 'overdue',
-          title: `Overdue${daysAgo > 1 ? ` · ${daysAgo} days` : ''}`,
-          subtitle: t.propertyAddress ? `${t.title} — ${t.propertyAddress}` : t.title,
-          icon: KIND_META.overdue.icon,
-          color: KIND_META.overdue.color,
-          route: t.propertyId ? `/listing/${t.propertyId}` : null,
-        });
-      });
+  // Upcoming — mandate renewals due in the next 14 days
+  const in14 = new Date(); in14.setDate(in14.getDate() + 14);
+  const mandateRenewals = tasks.filter(t =>
+    t.type === 'renew_mandate' && !t.completed &&
+    new Date(t.dueDate) > now && new Date(t.dueDate) <= in14
+  );
 
-    // Tasks due today (non-viewing)
-    tasks
-      .filter(t => t.type !== 'viewing' && !t.completed && new Date(t.dueDate).toDateString() === todayStr)
-      .forEach(t => {
-        items.push({
-          id: `due-${t.id}`,
-          kind: 'due_today',
-          title: 'Due today',
-          subtitle: t.propertyAddress ? `${t.title} — ${t.propertyAddress}` : t.title,
-          icon: KIND_META.due_today.icon,
-          color: KIND_META.due_today.color,
-          route: t.propertyId ? `/listing/${t.propertyId}` : null,
-        });
-      });
+  const hasAny =
+    newLeads.length + overdueTasks.length +
+    viewingsToday.length + tasksDueToday.length +
+    mandateRenewals.length > 0;
 
-    // Mandate renewals
-    tasks
-      .filter(t => t.type === 'renew_mandate' && !t.completed)
-      .forEach(t => {
-        items.push({
-          id: `mandate-${t.id}`,
-          kind: 'mandate',
-          title: 'Mandate renewal',
-          subtitle: t.propertyAddress ? `${t.title} — ${t.propertyAddress}` : t.title,
-          icon: KIND_META.mandate.icon,
-          color: KIND_META.mandate.color,
-          route: t.propertyId ? `/listing/${t.propertyId}` : null,
-        });
-      });
+  const TASK_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
+    call_seller: 'call-outline', viewing: 'eye-outline',
+    price_update: 'trending-down-outline', renew_mandate: 'refresh-outline',
+    take_photos: 'camera-outline', other: 'checkbox-outline',
+  };
 
-    return items;
-  }, [leads, tasks]);
-
-  const handlePress = (n: Notification) => {
+  const handlePress = (destination: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-    if (n.route) router.push(n.route as any);
+    router.push(destination as any);
   };
 
   return (
-    <View style={[styles.flex, { backgroundColor: colors.background }]}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + (Platform.OS === 'web' ? 67 : 16), backgroundColor: colors.background, borderBottomColor: colors.border }]}>
-        <Pressable
+        <TouchableOpacity
+          style={[styles.backBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
           onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}); router.back(); }}
-          style={({ pressed }) => [styles.backBtn, { backgroundColor: colors.card, borderColor: colors.border, opacity: pressed ? 0.7 : 1 }]}
         >
           <Ionicons name="chevron-back" size={20} color={colors.foreground} />
-        </Pressable>
-        <Text style={[styles.headerTitle, { color: colors.foreground }]}>Notifications</Text>
-        {notifications.length > 0 && (
-          <View style={[styles.countBadge, { backgroundColor: colors.primary + '18' }]}>
-            <Text style={[styles.countText, { color: colors.primary }]}>{notifications.length}</Text>
-          </View>
-        )}
+        </TouchableOpacity>
+        <Text style={[styles.title, { color: colors.foreground }]}>Notifications</Text>
+        <View style={{ width: 40 }} />
       </View>
 
       <ScrollView
-        style={styles.flex}
-        contentContainerStyle={[
-          styles.content,
-          { paddingBottom: insets.bottom + 32 },
-          notifications.length === 0 && styles.centeredContent,
-        ]}
+        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 100 }]}
         showsVerticalScrollIndicator={false}
-        delaysContentTouches={false}
       >
-        {notifications.length === 0 ? (
-          <View style={styles.empty}>
-            <View style={[styles.emptyIcon, { backgroundColor: colors.muted }]}>
-              <Ionicons name="notifications-off-outline" size={32} color={colors.mutedForeground} />
-            </View>
-            <Text style={[styles.emptyTitle, { color: colors.foreground }]}>You're all caught up</Text>
-            <Text style={[styles.emptySubtitle, { color: colors.mutedForeground }]}>No new leads, overdue tasks, or upcoming viewings.</Text>
+        {!hasAny && (
+          <View style={styles.emptyWrap}>
+            <Ionicons name="checkmark-circle-outline" size={56} color={colors.mutedForeground} />
+            <Text style={[styles.emptyTitle, { color: colors.foreground }]}>All caught up</Text>
+            <Text style={[styles.emptySub, { color: colors.mutedForeground }]}>No notifications right now.</Text>
           </View>
-        ) : (
-          <>
-            {/* Group: Action Required */}
-            {notifications.filter(n => ['new_lead', 'overdue'].includes(n.kind)).length > 0 && (
-              <>
-                <Text style={[styles.groupLabel, { color: colors.mutedForeground }]}>ACTION REQUIRED</Text>
-                <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
-                  {notifications
-                    .filter(n => ['new_lead', 'overdue'].includes(n.kind))
-                    .map((n, i, arr) => (
-                      <Pressable
-                        key={n.id}
-                        style={({ pressed }) => [
-                          styles.row,
-                          i < arr.length - 1 && { borderBottomWidth: 1, borderBottomColor: colors.border },
-                          pressed && n.route ? { opacity: 0.7 } : undefined,
-                        ]}
-                        onPress={() => handlePress(n)}
-                      >
-                        <View style={[styles.iconWrap, { backgroundColor: n.color + '18' }]}>
-                          <Ionicons name={n.icon} size={18} color={n.color} />
-                        </View>
-                        <View style={styles.rowText}>
-                          <Text style={[styles.rowTitle, { color: n.color }]}>{n.title}</Text>
-                          <Text style={[styles.rowSub, { color: colors.foreground }]} numberOfLines={2}>{n.subtitle}</Text>
-                        </View>
-                        {n.route && <Ionicons name="chevron-forward" size={16} color={colors.mutedForeground} />}
-                      </Pressable>
-                    ))}
-                </View>
-              </>
-            )}
+        )}
 
-            {/* Group: Today */}
-            {notifications.filter(n => ['viewing', 'due_today'].includes(n.kind)).length > 0 && (
-              <>
-                <Text style={[styles.groupLabel, { color: colors.mutedForeground }]}>TODAY</Text>
-                <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
-                  {notifications
-                    .filter(n => ['viewing', 'due_today'].includes(n.kind))
-                    .map((n, i, arr) => (
-                      <Pressable
-                        key={n.id}
-                        style={({ pressed }) => [
-                          styles.row,
-                          i < arr.length - 1 && { borderBottomWidth: 1, borderBottomColor: colors.border },
-                          pressed && n.route ? { opacity: 0.7 } : undefined,
-                        ]}
-                        onPress={() => handlePress(n)}
-                      >
-                        <View style={[styles.iconWrap, { backgroundColor: n.color + '18' }]}>
-                          <Ionicons name={n.icon} size={18} color={n.color} />
-                        </View>
-                        <View style={styles.rowText}>
-                          <Text style={[styles.rowTitle, { color: n.color }]}>{n.title}</Text>
-                          <Text style={[styles.rowSub, { color: colors.foreground }]} numberOfLines={2}>{n.subtitle}</Text>
-                        </View>
-                        {n.route && <Ionicons name="chevron-forward" size={16} color={colors.mutedForeground} />}
-                      </Pressable>
-                    ))}
-                </View>
-              </>
-            )}
+        {/* Action Required */}
+        {(newLeads.length > 0 || overdueTasks.length > 0) && (
+          <Section title="Action Required" color="#EF4444" icon="alert-circle-outline" colors={colors}>
+            {newLeads.map(lead => (
+              <NotifRow
+                key={lead.id}
+                icon="person-add-outline"
+                iconColor="#8B5CF6"
+                title="New lead assigned"
+                subtitle={lead.buyerName + (lead.propertyAddress ? ` · ${lead.propertyAddress}` : '')}
+                onPress={() => handlePress(`/lead/${lead.id}`)}
+                colors={colors}
+              />
+            ))}
+            {overdueTasks.map(task => (
+              <NotifRow
+                key={task.id}
+                icon={TASK_ICONS[task.type] || 'checkbox-outline'}
+                iconColor="#EF4444"
+                title={task.title}
+                subtitle={task.propertyAddress ? task.propertyAddress : 'Overdue task'}
+                onPress={() => task.propertyId ? handlePress(`/listing/${task.propertyId}`) : handlePress('/tasks')}
+                colors={colors}
+              />
+            ))}
+          </Section>
+        )}
 
-            {/* Group: Upcoming */}
-            {notifications.filter(n => n.kind === 'mandate').length > 0 && (
-              <>
-                <Text style={[styles.groupLabel, { color: colors.mutedForeground }]}>UPCOMING</Text>
-                <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
-                  {notifications
-                    .filter(n => n.kind === 'mandate')
-                    .map((n, i, arr) => (
-                      <Pressable
-                        key={n.id}
-                        style={({ pressed }) => [
-                          styles.row,
-                          i < arr.length - 1 && { borderBottomWidth: 1, borderBottomColor: colors.border },
-                          pressed && n.route ? { opacity: 0.7 } : undefined,
-                        ]}
-                        onPress={() => handlePress(n)}
-                      >
-                        <View style={[styles.iconWrap, { backgroundColor: n.color + '18' }]}>
-                          <Ionicons name={n.icon} size={18} color={n.color} />
-                        </View>
-                        <View style={styles.rowText}>
-                          <Text style={[styles.rowTitle, { color: n.color }]}>{n.title}</Text>
-                          <Text style={[styles.rowSub, { color: colors.foreground }]} numberOfLines={2}>{n.subtitle}</Text>
-                        </View>
-                        {n.route && <Ionicons name="chevron-forward" size={16} color={colors.mutedForeground} />}
-                      </Pressable>
-                    ))}
-                </View>
-              </>
-            )}
-          </>
+        {/* Today */}
+        {(viewingsToday.length > 0 || tasksDueToday.length > 0) && (
+          <Section title="Today" color={colors.accent} icon="today-outline" colors={colors}>
+            {viewingsToday.map(task => (
+              <NotifRow
+                key={task.id}
+                icon="eye-outline"
+                iconColor={colors.accent}
+                title={task.title}
+                subtitle={task.propertyAddress ?? 'Viewing today'}
+                onPress={() => task.propertyId ? handlePress(`/listing/${task.propertyId}`) : handlePress('/tasks')}
+                colors={colors}
+              />
+            ))}
+            {tasksDueToday.map(task => (
+              <NotifRow
+                key={task.id}
+                icon={TASK_ICONS[task.type] || 'checkbox-outline'}
+                iconColor={colors.primary}
+                title={task.title}
+                subtitle={task.propertyAddress ?? 'Due today'}
+                onPress={() => task.propertyId ? handlePress(`/listing/${task.propertyId}`) : handlePress('/tasks')}
+                colors={colors}
+              />
+            ))}
+          </Section>
+        )}
+
+        {/* Upcoming */}
+        {mandateRenewals.length > 0 && (
+          <Section title="Upcoming" color={colors.primary} icon="calendar-outline" colors={colors}>
+            {mandateRenewals.map(task => (
+              <NotifRow
+                key={task.id}
+                icon="refresh-outline"
+                iconColor={colors.primary}
+                title={task.title}
+                subtitle={task.propertyAddress ? `${task.propertyAddress} · due ${new Date(task.dueDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}` : 'Mandate renewal coming up'}
+                onPress={() => task.propertyId ? handlePress(`/listing/${task.propertyId}`) : handlePress('/tasks')}
+                colors={colors}
+              />
+            ))}
+          </Section>
         )}
       </ScrollView>
     </View>
   );
 }
 
+// ─── Sub-components ───────────────────────────────────────────────────────────
+
+function Section({ title, color, icon, colors, children }: {
+  title: string; color: string; icon: keyof typeof Ionicons.glyphMap; colors: any; children: React.ReactNode;
+}) {
+  return (
+    <View style={styles.section}>
+      <View style={styles.sectionHeader}>
+        <Ionicons name={icon} size={15} color={color} />
+        <Text style={[styles.sectionTitle, { color }]}>{title}</Text>
+      </View>
+      <View style={[styles.sectionCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        {children}
+      </View>
+    </View>
+  );
+}
+
+function NotifRow({ icon, iconColor, title, subtitle, onPress, colors }: {
+  icon: keyof typeof Ionicons.glyphMap; iconColor: string; title: string; subtitle: string; onPress: () => void; colors: any;
+}) {
+  return (
+    <TouchableOpacity
+      style={[styles.row, { borderBottomColor: colors.border }]}
+      onPress={onPress}
+      activeOpacity={0.7}
+    >
+      <View style={[styles.iconWrap, { backgroundColor: iconColor + '18' }]}>
+        <Ionicons name={icon} size={18} color={iconColor} />
+      </View>
+      <View style={styles.rowText}>
+        <Text style={[styles.rowTitle, { color: colors.foreground }]} numberOfLines={1}>{title}</Text>
+        <Text style={[styles.rowSub, { color: colors.mutedForeground }]} numberOfLines={1}>{subtitle}</Text>
+      </View>
+      <Ionicons name="chevron-forward" size={15} color={colors.mutedForeground} />
+    </TouchableOpacity>
+  );
+}
+
+// ─── Styles ───────────────────────────────────────────────────────────────────
+
 const styles = StyleSheet.create({
-  flex: { flex: 1 },
+  container: { flex: 1 },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingHorizontal: 16,
-    paddingBottom: 14,
-    borderBottomWidth: 1,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 16, paddingBottom: 14, borderBottomWidth: 1,
   },
   backBtn: {
-    width: 36, height: 36, borderRadius: 10,
-    alignItems: 'center', justifyContent: 'center', borderWidth: 1,
+    width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center', borderWidth: 1,
   },
-  headerTitle: { fontSize: 20, fontWeight: '700', flex: 1, letterSpacing: -0.3 },
-  countBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
-  countText: { fontSize: 13, fontWeight: '700' },
-  content: { padding: 16, gap: 6 },
-  centeredContent: { flex: 1, justifyContent: 'center' },
-  groupLabel: { fontSize: 11, fontWeight: '700', letterSpacing: 0.8, marginTop: 14, marginBottom: 6, marginLeft: 4 },
-  card: {
-    borderRadius: 16, borderWidth: 1, overflow: 'hidden',
-    ...Platform.select({
-      ios: { shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 6 },
-      android: { elevation: 2 },
-    }),
-  },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14 },
-  iconWrap: { width: 38, height: 38, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  rowText: { flex: 1 },
-  rowTitle: { fontSize: 12, fontWeight: '700', marginBottom: 2, textTransform: 'uppercase', letterSpacing: 0.3 },
-  rowSub: { fontSize: 14, fontWeight: '500', lineHeight: 18 },
-  empty: { alignItems: 'center', gap: 12 },
-  emptyIcon: { width: 64, height: 64, borderRadius: 20, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
+  title: { fontSize: 17, fontWeight: '700' },
+  content: { paddingHorizontal: 16, paddingTop: 20, gap: 24 },
+  emptyWrap: { alignItems: 'center', paddingTop: 80, gap: 10 },
   emptyTitle: { fontSize: 18, fontWeight: '700' },
-  emptySubtitle: { fontSize: 14, textAlign: 'center', lineHeight: 20, maxWidth: 260 },
+  emptySub: { fontSize: 14 },
+  section: { gap: 8 },
+  sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingLeft: 2 },
+  sectionTitle: { fontSize: 13, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 },
+  sectionCard: {
+    borderRadius: 16, borderWidth: 1, overflow: 'hidden',
+    ...Platform.select({ ios: { shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 6 }, android: { elevation: 2 } }),
+  },
+  row: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    paddingHorizontal: 14, paddingVertical: 13, borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  iconWrap: { width: 38, height: 38, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
+  rowText: { flex: 1 },
+  rowTitle: { fontSize: 14, fontWeight: '600', marginBottom: 2 },
+  rowSub: { fontSize: 12 },
 });

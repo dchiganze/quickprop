@@ -8,7 +8,7 @@
     "copyright": "© 2026 QuickProp (Pvt) Ltd",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "quickpropagent",
+    "scheme": ["quickpropagent", "com.googleusercontent.apps.740581594471-n74kaec4b4nti7uokbo5srgje86l1kgp"],
     "userInterfaceStyle": "automatic",
     "newArchEnabled": false,
     "jsEngine": "jsc",
@@ -29,7 +29,11 @@
         "NSLocationWhenInUseUsageDescription": "QuickProp Agent uses your location to show nearby properties and leads.",
         "NSLocationAlwaysUsageDescription": "QuickProp Agent uses your location to show nearby properties and leads.",
         "NSContactsUsageDescription": "QuickProp Agent accesses contacts to help you manage client leads.",
-        "NSMicrophoneUsageDescription": "QuickProp Agent uses the microphone for voice notes on property listings."
+        "NSMicrophoneUsageDescription": "QuickProp Agent uses the microphone for voice notes on property listings.",
+        "NSFaceIDUsageDescription": "QuickProp Agent uses Face ID to securely sign you in."
+      },
+      "entitlements": {
+        "com.apple.developer.applesignin": ["Default"]
       }
     },
     "android": {
@@ -62,7 +66,10 @@
         }
       ],
       "expo-font",
-      "expo-web-browser"
+      "expo-web-browser",
+      "expo-secure-store",
+      "expo-local-authentication",
+      "expo-apple-authentication"
     ],
     "experiments": {
       "typedRoutes": true

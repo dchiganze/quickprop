@@ -5,8 +5,10 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import * as Print from 'expo-print';
-import * as Sharing from 'expo-sharing';
+// expo-print and expo-sharing are loaded dynamically to prevent a native-module
+// crash on Android at startup if the module is not yet linked in the build.
+type PrintModule = typeof import('expo-print');
+type SharingModule = typeof import('expo-sharing');
 import { useColors } from '@/hooks/useColors';
 import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
@@ -29,9 +31,10 @@ export function PropertyBrochureSheet({ visible, onClose, property }: PropertyBr
   const [loading, setLoading] = useState(false);
 
   const handlePrint = async () => {
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
     setLoading(true);
     try {
+      const Print: PrintModule = await import('expo-print');
       const html = singlePropertyBrochureHtml(property, user);
       await Print.printAsync({ html });
     } catch (e: any) {
@@ -45,9 +48,11 @@ export function PropertyBrochureSheet({ visible, onClose, property }: PropertyBr
   };
 
   const handleShare = async () => {
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
     setLoading(true);
     try {
+      const Print: PrintModule = await import('expo-print');
+      const Sharing: SharingModule = await import('expo-sharing');
       const html = singlePropertyBrochureHtml(property, user);
       const { uri } = await Print.printToFileAsync({ html });
       await Sharing.shareAsync(uri, { mimeType: 'application/pdf', dialogTitle: 'Share Property Brochure' });
@@ -136,13 +141,15 @@ export function CatalogueBrochureSheet({ visible, onClose }: CatalogueBrochureSh
   const activeProps = mode === 'my' ? myProps : companyProps;
 
   const generate = async (action: 'print' | 'share') => {
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
     setLoading(true);
     try {
+      const Print: PrintModule = await import('expo-print');
       const html = catalogueBrochureHtml(activeProps, user, mode);
       if (action === 'print') {
         await Print.printAsync({ html });
       } else {
+        const Sharing: SharingModule = await import('expo-sharing');
         const { uri } = await Print.printToFileAsync({ html });
         await Sharing.shareAsync(uri, { mimeType: 'application/pdf', dialogTitle: 'Share Property Catalogue' });
       }
