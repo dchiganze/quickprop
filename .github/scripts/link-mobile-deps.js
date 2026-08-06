@@ -19,12 +19,14 @@ const pkgJson = JSON.parse(fs.readFileSync('artifacts/mobile/package.json', 'utf
 
 // Collect every package that mobile needs
 const wanted = new Set([
-  ...Object.keys(pkgJson.dependencies  || {}),
+  ...Object.keys(pkgJson.dependencies   || {}),
   ...Object.keys(pkgJson.devDependencies || {}),
 ]);
 for (const p of (appJson.expo.plugins || [])) {
   const name = Array.isArray(p) ? p[0] : p;
-  if (!name.startsWith('.') && !name.startsWith('/')) wanted.add(name);
+  if (!name.startsWith('.') && !name.startsWith('/')) {
+    wanted.add(name);
+  }
 }
 
 const mobileNm = path.resolve('artifacts/mobile/node_modules');
@@ -33,45 +35,68 @@ fs.mkdirSync(mobileNm, { recursive: true });
 const pnpmDir     = path.resolve('node_modules/.pnpm');
 const pnpmEntries = fs.readdirSync(pnpmDir);
 
+// DEBUG: show first few entries so we can verify the naming format
+console.log('Sample .pnpm entries (first 5):');
+pnpmEntries.slice(0, 5).forEach(function(e) { console.log('  ' + e); });
+
 let linked = 0, skipped = 0, missing = 0;
 
 for (const pkgName of wanted) {
   // Scoped packages: @scope/name → dst dir needs @scope/ sub-dir
-  const isScoped = pkgName.startsWith('@');
-  const [scope, shortName] = isScoped ? pkgName.split('/') : [null, pkgName];
-  const dstDir  = isScoped ? path.join(mobileNm, scope) : mobileNm;
-  const dstName = isScoped ? shortName : pkgName;
-  const dst     = path.join(dstDir, dstName);
+  const isScoped   = pkgName.startsWith('@');
+  const parts      = pkgName.split('/');
+  const scope      = isScoped ? parts[0] : null;
+  const shortName  = isScoped ? parts[1] : pkgName;
+  const dstDir     = isScoped ? path.join(mobileNm, scope) : mobileNm;
+  const dst        = path.join(dstDir, shortName);
 
-  if (fs.existsSync(dst)) { skipped++; continue; }
-
-  // 1. Try direct (works if shamefully-hoist actually hoisted it)
-  const direct = path.resolve('node_modules', pkgName);
-  if (fs.existsSync(dst)) { skipped++; continue; }
-    fs.mkdirSync(dstDir, { recursive: true });
-    fs.symlinkSync(direct, dst, 'dir');
-    console.log(`  linked (direct):  ${pkgName}`);
-    linked++; continue;
-  }
-
-  // 2. Search pnpm virtual store
-  // pnpm escapes scope separator: @scope/name → @scope+name@version...
-  const pnpmKey = pkgName.replace('/', '+');
-  const match   = pnpmEntries.find(e => e.startsWith(pnpmKey + '@'));
-
-  if (match) {
-    const src = path.join(pnpmDir, match, 'node_modules', pkgName);
-    if (fs.existsSync(src)) {
+  if (fs.existsSync(dst)) {
+    skipped++;
+  } else {
+    // Strategy 1: direct (in case shamefully-hoist put it at root)
+    const direct = path.resolve('node_modules', pkgName);
+    if (fs.existsSync(direct)) {
       fs.mkdirSync(dstDir, { recursive: true });
-      fs.symlinkSync(src, dst, 'dir');
-      console.log(`  linked (pnpm):    ${pkgName}  ←  ${match}`);
-      linked++; continue;
+      fs.symlinkSync(direct, dst, 'dir');
+      console.log('  linked (direct):  ' + pkgName);
+      linked++;
+    } else {
+      // Strategy 2: search pnpm virtual store
+      // pnpm escapes / in scoped names: @scope/name → @scope+name
+      const pnpmKey = pkgName.replace('/', '+');
+      const matches = pnpmEntries.filter(function(e) {
+        return e.startsWith(pnpmKey + '@');
+      });
+
+      var foundSrc = null;
+      for (var i = 0; i < matches.length; i++) {
+        var candidate = path.join(pnpmDir, matches[i], 'node_modules', pkgName);
+        if (fs.existsSync(candidate)) {
+          foundSrc = candidate;
+          break;
+        } else {
+          console.log('  DEBUG ' + pkgName + ': matched "' + matches[i] + '" but inner path missing: ' + candidate);
+        }
+      }
+
+      if (foundSrc) {
+        fs.mkdirSync(dstDir, { recursive: true });
+        fs.symlinkSync(foundSrc, dst, 'dir');
+        console.log('  linked (pnpm):    ' + pkgName);
+        linked++;
+      } else {
+        // DEBUG: show any fuzzy matches that contain the short name
+        var fuzzy = pnpmEntries.filter(function(e) {
+          return e.indexOf(shortName) !== -1;
+        });
+        console.warn('  WARN not found:   ' + pkgName + '  (fuzzy: ' + (fuzzy.slice(0, 3).join(', ') || 'none') + ')');
+        missing++;
+      }
     }
   }
-
-  console.warn(`  WARN: not found:  ${pkgName}`);
-  missing++;
 }
 
-console.log(`\nDone. linked=${linked}  skipped=${skipped}  missing=${missing}`);
-if (missing > 0) process.exit(1);
+console.log('\nDone. linked=' + linked + '  skipped=' + skipped + '  missing=' + missing);
+if (missing > 0) {
+  process.exit(1);
+}
