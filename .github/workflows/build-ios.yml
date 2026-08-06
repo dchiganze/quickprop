@@ -78,6 +78,7 @@ jobs:
             -s -t private \
             -k "$KEYCHAIN_PASS" build.keychain || true
           rm /tmp/dist-cert.pem /tmp/dist-key.pem
+
       - name: Install provisioning profile
         env:
           IOS_PROVISIONING_PROFILE_BASE64: ${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}
@@ -91,28 +92,13 @@ jobs:
           rm /tmp/profile.mobileprovision
           echo "Installed profile: ${UUID}"
 
-      - name: Link Expo plugin packages into mobile node_modules
-        run: |
-          node - << 'EOF'
-          const fs = require('fs'), path = require('path');
-          const { plugins = [] } = JSON.parse(fs.readFileSync('artifacts/mobile/app.json')).expo;
-          const nm = 'artifacts/mobile/node_modules';
-          fs.mkdirSync(nm, { recursive: true });
-          for (const p of plugins) {
-            const name = Array.isArray(p) ? p[0] : p;
-            if (name.startsWith('.') || name.startsWith('/')) continue;
-            const src = path.resolve('node_modules/' + name);
-            const dst = path.resolve(nm + '/' + name);
-            if (fs.existsSync(src) && !fs.existsSync(dst)) {
-              fs.symlinkSync(src, dst, 'dir');
-              console.log('linked:', name);
-            }
-          }
-          EOF
+      - name: Link mobile dependencies into artifacts/mobile/node_modules
+        run: node .github/scripts/link-mobile-deps.js
 
       - name: Expo prebuild (generates ios/ with our plugins applied)
         working-directory: artifacts/mobile
         run: npx expo prebuild --platform ios --no-install
+
       - name: Force-patch CFBundleVersion in Info.plist
         run: |
           PLIST=$(find artifacts/mobile/ios -name "Info.plist" \
@@ -128,6 +114,7 @@ jobs:
           echo "=== Relevant Podfile lines ==="
           grep -n "hermes_enabled\|FMT_USE\|format\.cc\|post_install\|withNoHermes" ios/Podfile \
             || echo "(nothing matched)"
+
       - name: Patch expo-sharing SharingModule.swift (isReadableFile missing in expo-modules-core@3.x)
         shell: python3 {0}
         run: |
@@ -156,6 +143,7 @@ jobs:
       - name: Pod install
         working-directory: artifacts/mobile/ios
         run: pod install
+
       - name: Patch fmt for Xcode 26 (consteval -> constexpr)
         shell: python3 {0}
         run: |
@@ -180,6 +168,7 @@ jobs:
           if not patched:
               print('WARNING: no occurrences of consteval found.')
               sys.exit(1)
+
       - name: Detect Xcode workspace and scheme
         working-directory: artifacts/mobile/ios
         run: |
@@ -189,6 +178,7 @@ jobs:
           SCHEME="${WORKSPACE%.xcworkspace}"
           echo "XCODE_SCHEME=${SCHEME}" >> $GITHUB_ENV
           echo "Found scheme: ${SCHEME}"
+
       - name: Export JS bundle + source map
         working-directory: artifacts/mobile
         run: |
@@ -207,6 +197,7 @@ jobs:
             --assets-dest "$RUNNER_TEMP/assets"
           echo "Bundle + source map exported."
           ls -lh "$RUNNER_TEMP/main.jsbundle" "$RUNNER_TEMP/main.jsbundle.map"
+
       - name: Archive
         working-directory: artifacts/mobile/ios
         run: |
@@ -224,6 +215,7 @@ jobs:
             MARKETING_VERSION="1.0.0"
           echo "Archive created:"
           ls -la "$RUNNER_TEMP/QuickPropAgent.xcarchive"
+
       - name: Diagnose signing identity used
         run: |
           APP="$RUNNER_TEMP/QuickPropAgent.xcarchive/Products/Applications/QuickPropAgent.app"
@@ -231,6 +223,7 @@ jobs:
           codesign -dvvv "$APP" 2>&1 | grep -E "Authority|TeamIdentifier|Identifier"
           echo "=== security find-identity (valid only) ==="
           security find-identity -v -p codesigning build.keychain
+
       - name: Upload dSYMs to Sentry
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
@@ -240,6 +233,7 @@ jobs:
             --org melios-technologies-pvt-ltd \
             --project react-native \
             "$RUNNER_TEMP/QuickPropAgent.xcarchive/dSYMs"
+
       - name: Upload source maps to Sentry
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
@@ -257,6 +251,7 @@ jobs:
             --org melios-technologies-pvt-ltd \
             --project react-native
           echo "Sentry release $SENTRY_RELEASE finalised."
+
       - name: Write export options plist
         run: |
           cat > "$RUNNER_TEMP/ExportOptions.plist" << 'EOF'
@@ -279,6 +274,7 @@ jobs:
           </plist>
           EOF
           sed -i '' "s/PROFILE_UUID_PLACEHOLDER/$PROFILE_UUID/" "$RUNNER_TEMP/ExportOptions.plist"
+
       - name: Export IPA
         run: |
           xcodebuild -exportArchive \
@@ -287,6 +283,7 @@ jobs:
             -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist"
           echo "IPA contents:"
           ls -la "$RUNNER_TEMP/ipa/"
+
       - name: Upload IPA artifact
         uses: actions/upload-artifact@v4
         with:
