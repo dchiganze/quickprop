@@ -27,7 +27,160 @@ jobs:
           version: 9
 
       - name: Install dependencies
-        run: pnpm install --no-frozen-lockfile
+        run: pnpm install --no-frozen-lockfile --shamefully-hoist
+
+      - name: Query Google Play for latest versionCode
+        id: play_version
+        env:
+          PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          PACKAGE_NAME: zw.co.melios.quickprop.agent
+        run: |
+          node << 'EOF'
+          const https = require('https');
+          const crypto = require('crypto');
+          const fs = require('fs');
+
+          async function httpsPost(hostname, path, headers, body) {
+            return new Promise((resolve, reject) => {
+              const req = https.request(
+                { hostname, path, method: 'POST', headers },
+                (res) => {
+                  let data = '';
+                  res.on('data', (chunk) => (data += chunk));
+                  res.on('end', () => {
+                    try { resolve({ status: res.statusCode, body: JSON.parse(data) }); }
+                    catch (e) { reject(new Error(`Failed to parse response: ${data}`)); }
+                  });
+                }
+              );
+              req.on('error', reject);
+              req.write(body);
+              req.end();
+            });
+          }
+
+          async function httpsGet(hostname, path, headers) {
+            return new Promise((resolve, reject) => {
+              const req = https.request(
+                { hostname, path, method: 'GET', headers },
+                (res) => {
+                  let data = '';
+                  res.on('data', (chunk) => (data += chunk));
+                  res.on('end', () => {
+                    try { resolve({ status: res.statusCode, body: JSON.parse(data) }); }
+                    catch (e) { reject(new Error(`Failed to parse response: ${data}`)); }
+                  });
+                }
+              );
+              req.on('error', reject);
+              req.end();
+            });
+          }
+
+          async function main() {
+            const saJson = process.env.PLAY_SERVICE_ACCOUNT_JSON;
+            if (!saJson) {
+              console.error('ERROR: PLAY_SERVICE_ACCOUNT_JSON secret is not set.');
+              process.exit(1);
+            }
+
+            let sa;
+            try {
+              sa = JSON.parse(saJson);
+            } catch (e) {
+              console.error('ERROR: PLAY_SERVICE_ACCOUNT_JSON is not valid JSON.');
+              process.exit(1);
+            }
+
+            // Build a signed JWT for the Google OAuth2 token endpoint
+            const now = Math.floor(Date.now() / 1000);
+            const header = Buffer.from(JSON.stringify({ alg: 'RS256', typ: 'JWT' })).toString('base64url');
+            const payload = Buffer.from(JSON.stringify({
+              iss: sa.client_email,
+              scope: 'https://www.googleapis.com/auth/androidpublisher',
+              aud: 'https://oauth2.googleapis.com/token',
+              exp: now + 3600,
+              iat: now,
+            })).toString('base64url');
+
+            const sigInput = `${header}.${payload}`;
+            const sign = crypto.createSign('RSA-SHA256');
+            sign.update(sigInput);
+            const sig = sign.sign(sa.private_key, 'base64url');
+            const jwt = `${sigInput}.${sig}`;
+
+            // Exchange the JWT for an OAuth2 access token
+            console.log('Requesting Google OAuth2 access token...');
+            const tokenBody = `grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Ajwt-bearer&assertion=${jwt}`;
+            const tokenRes = await httpsPost(
+              'oauth2.googleapis.com',
+              '/token',
+              {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'Content-Length': Buffer.byteLength(tokenBody),
+              },
+              tokenBody
+            );
+
+            if (tokenRes.status !== 200 || !tokenRes.body.access_token) {
+              console.error(`ERROR: Failed to obtain access token (HTTP ${tokenRes.status}):`);
+              console.error(JSON.stringify(tokenRes.body, null, 2));
+              process.exit(1);
+            }
+
+            const accessToken = tokenRes.body.access_token;
+            console.log('Access token obtained successfully.');
+
+            // Query all tracks to find the highest published versionCode
+            const packageName = process.env.PACKAGE_NAME;
+            console.log(`Querying Google Play tracks for package: ${packageName}`);
+            const tracksRes = await httpsGet(
+              'androidpublisher.googleapis.com',
+              `/androidpublisher/v3/applications/${packageName}/tracks`,
+              { Authorization: `Bearer ${accessToken}` }
+            );
+
+            if (tracksRes.status !== 200) {
+              console.error(`ERROR: Google Play API returned HTTP ${tracksRes.status}:`);
+              console.error(JSON.stringify(tracksRes.body, null, 2));
+              process.exit(1);
+            }
+
+            let maxVersionCode = 0;
+            const tracks = tracksRes.body.tracks || [];
+            for (const track of tracks) {
+              for (const release of track.releases || []) {
+                for (const vc of release.versionCodes || []) {
+                  const n = Number(vc);
+                  if (n > maxVersionCode) maxVersionCode = n;
+                }
+              }
+            }
+
+            const nextVersionCode = maxVersionCode + 1;
+            console.log(`Highest versionCode on Google Play: ${maxVersionCode}`);
+            console.log(`Next versionCode to use: ${nextVersionCode}`);
+
+            fs.appendFileSync(process.env.GITHUB_OUTPUT, `next_version_code=${nextVersionCode}\n`);
+          }
+
+          main().catch((err) => {
+            console.error('ERROR:', err.message || err);
+            process.exit(1);
+          });
+          EOF
+
+      - name: Bump versionCode in app.json
+        run: |
+          node -e "
+          const fs = require('fs');
+          const path = 'artifacts/mobile/app.json';
+          const app = JSON.parse(fs.readFileSync(path, 'utf8'));
+          const next = ${{ steps.play_version.outputs.next_version_code }};
+          app.expo.android.versionCode = next;
+          fs.writeFileSync(path, JSON.stringify(app, null, 2) + '\n');
+          console.log('android.versionCode set to ' + next);
+          "
 
       - name: Install EAS CLI
         run: npm install -g eas-cli
