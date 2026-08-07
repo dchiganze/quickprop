@@ -136,6 +136,13 @@ jobs:
       - name: Set up gcloud CLI
         uses: google-github-actions/setup-gcloud@v2
 
+      - name: Enable required Google Cloud APIs
+        run: |
+          gcloud services enable \
+            toolresults.googleapis.com \
+            testing.googleapis.com \
+            --project quickprop-c365c
+
       - name: Run Firebase Test Lab (Robo test)
         run: |
           APK=$(find artifacts/mobile/android -name "app-debug.apk" | head -1)
@@ -145,4 +152,5 @@ jobs:
             --app "$APK" \
             --device model=oriole,version=33,locale=en,orientation=portrait \
             --timeout 3m \
+            --no-prompt \
             --project quickprop-c365c
