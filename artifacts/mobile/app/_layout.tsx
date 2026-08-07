@@ -1,5 +1,4 @@
 import React, { useEffect } from 'react';
-import { View } from 'react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -8,7 +7,6 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { DataProvider } from '@/contexts/DataContext';
-import { useColors } from '@/hooks/useColors';
 import { SplashScreenView } from '@/components/SplashScreenView';
 import * as Sentry from '@sentry/react-native';
 
@@ -29,7 +27,6 @@ const queryClient = new QueryClient();
 
 function RootLayoutNav() {
   const { user, loading } = useAuth();
-  const colors = useColors();
 
   if (loading) {
     return <SplashScreenView />;
@@ -45,7 +42,6 @@ function RootLayoutNav() {
         />
         <Stack.Screen name="listing/[id]" />
         <Stack.Screen name="lead/[id]" />
-        <Stack.Screen name="notifications" />
         <Stack.Screen name="settings" />
       </Stack>
     );
@@ -63,7 +59,6 @@ function RootLayout() {
   useEffect(() => {
     SplashScreen.hideAsync();
   }, []);
-
 
   return (
     <SafeAreaProvider>
