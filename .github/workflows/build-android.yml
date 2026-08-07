@@ -6,6 +6,9 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -51,9 +54,9 @@ jobs:
             expo-local-authentication@17.0.8 \
             expo-apple-authentication@8.0.8
           mkdir -p artifacts/mobile/node_modules
-          cp -r "$TMPDIR/node_modules/expo-secure-store"         artifacts/mobile/node_modules/
-          cp -r "$TMPDIR/node_modules/expo-local-authentication"  artifacts/mobile/node_modules/
-          cp -r "$TMPDIR/node_modules/expo-apple-authentication"  artifacts/mobile/node_modules/
+          cp -r "$TMPDIR/node_modules/expo-secure-store"        artifacts/mobile/node_modules/
+          cp -r "$TMPDIR/node_modules/expo-local-authentication" artifacts/mobile/node_modules/
+          cp -r "$TMPDIR/node_modules/expo-apple-authentication" artifacts/mobile/node_modules/
 
       - name: Link mobile dependencies into artifacts/mobile/node_modules
         run: node .github/scripts/link-mobile-deps.js
@@ -118,18 +121,21 @@ jobs:
           path: ${{ steps.aab.outputs.path }}
           retention-days: 7
 
-           - name: Build debug APK for Firebase Test Lab
+      - name: Build debug APK for Firebase Test Lab
         working-directory: artifacts/mobile/android
         env:
           ANDROID_HOME: /usr/local/lib/android/sdk
         run: ./gradlew assembleDebug
+
       - name: Authenticate with Google Cloud (Workload Identity Federation)
         uses: google-github-actions/auth@v2
         with:
           workload_identity_provider: projects/383899217108/locations/global/workloadIdentityPools/github-actions/providers/github
           service_account: firebase-test-lab@quickprop-c365c.iam.gserviceaccount.com
+
       - name: Set up gcloud CLI
         uses: google-github-actions/setup-gcloud@v2
+
       - name: Run Firebase Test Lab (Robo test)
         run: |
           APK=$(find artifacts/mobile/android -name "app-debug.apk" | head -1)
