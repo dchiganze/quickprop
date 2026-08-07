@@ -152,5 +152,4 @@ jobs:
             --app "$APK" \
             --device model=oriole,version=33,locale=en,orientation=portrait \
             --timeout 3m \
-            --no-prompt \
             --project quickprop-c365c
