@@ -35,9 +35,9 @@ function RootLayoutNav() {
     return <SplashScreenView />;
   }
 
-  return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Protected guard={!!user}>
+  if (user) {
+    return (
+      <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen
           name="new-listing"
@@ -48,11 +48,13 @@ function RootLayoutNav() {
         <Stack.Screen name="tasks" />
         <Stack.Screen name="notifications" />
         <Stack.Screen name="settings" />
-      </Stack.Protected>
-      <Stack.Protected guard={!user}>
-        <Stack.Screen name="login" />
-        <Stack.Screen name="invite" />
-      </Stack.Protected>
+      </Stack>
+    );
+  }
+  return (
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="login" />
+      <Stack.Screen name="invite" />
     </Stack>
   );
 }
