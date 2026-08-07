@@ -34,7 +34,7 @@ function RootLayoutNav() {
 
   if (user) {
     return (
-      <Stack screenOptions={{ headerShown: false }}>
+        <Stack initialRouteName="(tabs)" screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen
           name="new-listing"
