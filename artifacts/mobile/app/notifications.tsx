@@ -17,15 +17,12 @@ export default function NotificationsScreen() {
   const todayStr = new Date().toDateString();
   const now = new Date();
 
-  // Action Required
   const newLeads = leads.filter(l => l.stage === 'new');
   const overdueTasks = tasks.filter(t => !t.completed && new Date(t.dueDate) < now && new Date(t.dueDate).toDateString() !== todayStr);
 
-  // Today
   const viewingsToday = tasks.filter(t => t.type === 'viewing' && !t.completed && new Date(t.dueDate).toDateString() === todayStr);
   const tasksDueToday = tasks.filter(t => t.type !== 'viewing' && !t.completed && new Date(t.dueDate).toDateString() === todayStr);
 
-  // Upcoming — mandate renewals due in the next 14 days
   const in14 = new Date(); in14.setDate(in14.getDate() + 14);
   const mandateRenewals = tasks.filter(t =>
     t.type === 'renew_mandate' && !t.completed &&
@@ -50,7 +47,6 @@ export default function NotificationsScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + (Platform.OS === 'web' ? 67 : 16), backgroundColor: colors.background, borderBottomColor: colors.border }]}>
         <TouchableOpacity
           style={[styles.backBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
@@ -74,7 +70,6 @@ export default function NotificationsScreen() {
           </View>
         )}
 
-        {/* Action Required */}
         {(newLeads.length > 0 || overdueTasks.length > 0) && (
           <Section title="Action Required" color="#EF4444" icon="alert-circle-outline" colors={colors}>
             {newLeads.map(lead => (
@@ -102,7 +97,6 @@ export default function NotificationsScreen() {
           </Section>
         )}
 
-        {/* Today */}
         {(viewingsToday.length > 0 || tasksDueToday.length > 0) && (
           <Section title="Today" color={colors.accent} icon="today-outline" colors={colors}>
             {viewingsToday.map(task => (
@@ -130,7 +124,6 @@ export default function NotificationsScreen() {
           </Section>
         )}
 
-        {/* Upcoming */}
         {mandateRenewals.length > 0 && (
           <Section title="Upcoming" color={colors.primary} icon="calendar-outline" colors={colors}>
             {mandateRenewals.map(task => (
@@ -150,8 +143,6 @@ export default function NotificationsScreen() {
     </View>
   );
 }
-
-// ─── Sub-components ───────────────────────────────────────────────────────────
 
 function Section({ title, color, icon, colors, children }: {
   title: string; color: string; icon: keyof typeof Ionicons.glyphMap; colors: any; children: React.ReactNode;
@@ -189,8 +180,6 @@ function NotifRow({ icon, iconColor, title, subtitle, onPress, colors }: {
     </TouchableOpacity>
   );
 }
-
-// ─── Styles ───────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
   container: { flex: 1 },

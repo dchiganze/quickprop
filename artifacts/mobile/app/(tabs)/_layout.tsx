@@ -73,7 +73,6 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen name="tasks" options={{ href: null }} />
-      <Tabs.Screen name="notifications" options={{ href: null }} />
     </Tabs>
   );
 }

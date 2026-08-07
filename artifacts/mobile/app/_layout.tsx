@@ -42,6 +42,7 @@ function RootLayoutNav() {
         />
         <Stack.Screen name="listing/[id]" />
         <Stack.Screen name="lead/[id]" />
+        <Stack.Screen name="notifications" />
         <Stack.Screen name="settings" />
       </Stack>
     );
