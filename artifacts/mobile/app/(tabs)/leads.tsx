@@ -52,6 +52,9 @@ export default function LeadsScreen() {
     <View style={[styles.flex, { backgroundColor: colors.background }]}>
       <View style={[styles.header, { paddingTop: insets.top + (Platform.OS === 'web' ? 67 : 16), backgroundColor: colors.background }]}>
         <View style={styles.titleRow}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+            <Ionicons name="chevron-back" size={24} color={colors.foreground} />
+          </TouchableOpacity>
           <Text style={[styles.title, { color: colors.foreground }]}>Leads</Text>
           {newCount > 0 && (
             <View style={[styles.newBadge, { backgroundColor: colors.accent }]}>
@@ -73,7 +76,7 @@ export default function LeadsScreen() {
             return (
               <TouchableOpacity
                 style={[styles.filterBtn, { backgroundColor: active ? stageColor : colors.muted, borderColor: active ? stageColor : colors.border }]}
-                onPress={async () => { await Haptics.selectionAsync(); setFilter(item.key); }}
+                onPress={() => { Haptics.selectionAsync().catch(() => {}); setFilter(item.key); }}
               >
                 <Text style={[styles.filterText, { color: active ? '#FFF' : colors.mutedForeground }]}>{item.label}</Text>
               </TouchableOpacity>
@@ -110,6 +113,7 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   header: { paddingHorizontal: 16, gap: 12, paddingBottom: 12, zIndex: 10 },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  backBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
   title: { fontSize: 28, fontWeight: '800', letterSpacing: -0.5 },
   newBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
   newBadgeText: { color: '#FFF', fontSize: 12, fontWeight: '700' },

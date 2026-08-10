@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import * as Haptics from 'expo-haptics';
+import { NavigationFlags } from '@/utils/navigationFlags';
 import { useColors } from '@/hooks/useColors';
 import { useData } from '@/contexts/DataContext';
 
@@ -39,8 +40,12 @@ export default function TasksScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { tasks } = useData();
-  const { filter: initialFilter } = useLocalSearchParams<{ filter?: string }>();
-  const [activeFilter, setActiveFilter] = useState(initialFilter || 'all');
+  const [activeFilter, setActiveFilter] = useState('all');
+
+  useFocusEffect(useCallback(() => {
+    setActiveFilter(NavigationFlags.tasksFilter || 'all');
+    NavigationFlags.tasksFilter = 'all';
+  }, []));
 
   const now = new Date();
   const pending = tasks.filter(t => !t.completed);
@@ -100,7 +105,6 @@ export default function TasksScreen() {
       contentContainerStyle={[styles.content, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 100 }]}
       showsVerticalScrollIndicator={false}
     >
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Ionicons name="chevron-back" size={24} color={colors.foreground} />
@@ -109,7 +113,6 @@ export default function TasksScreen() {
         <View style={styles.backBtn} />
       </View>
 
-      {/* Summary */}
       <View style={[styles.summaryRow]}>
         <View style={[styles.summaryCard, { backgroundColor: colors.destructive + '12', borderColor: colors.destructive + '30' }]}>
           <Text style={[styles.summaryNum, { color: colors.destructive }]}>{overdue.length}</Text>
@@ -121,7 +124,6 @@ export default function TasksScreen() {
         </View>
       </View>
 
-      {/* Filter pills */}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll} contentContainerStyle={styles.filterContent}>
         {FILTERS.map(f => (
           <TouchableOpacity
@@ -134,7 +136,6 @@ export default function TasksScreen() {
         ))}
       </ScrollView>
 
-      {/* Overdue */}
       {overdue.length > 0 && (
         <>
           <Text style={[styles.sectionLabel, { color: colors.destructive }]}>Overdue</Text>
@@ -142,7 +143,6 @@ export default function TasksScreen() {
         </>
       )}
 
-      {/* Upcoming */}
       {upcoming.length > 0 && (
         <>
           <Text style={[styles.sectionLabel, { color: colors.foreground }]}>Upcoming</Text>
