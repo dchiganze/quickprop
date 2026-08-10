@@ -1,10 +1,9 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { Stack, useNavigationContainerRef } from 'expo-router';
-import { CommonActions } from '@react-navigation/native';
+import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { DataProvider } from '@/contexts/DataContext';
@@ -30,27 +29,6 @@ const queryClient = new QueryClient();
 function RootLayoutNav() {
   const { user, loading } = useAuth();
   const colors = useColors();
-  const navRef = useNavigationContainerRef();
-  const didReset = useRef(false);
-
-  useEffect(() => {
-    if (loading || !user || didReset.current) return;
-    didReset.current = true;
-    // Wait one tick for the navigator to mount and restore any persisted state,
-    // then hard-reset the stack to just (tabs). This prevents any previously
-    // open screen (e.g. notifications) from being restored on cold launch.
-    const t = setTimeout(() => {
-      if (navRef.isReady()) {
-        navRef.dispatch(
-          CommonActions.reset({
-            index: 0,
-            routes: [{ name: '(tabs)' }],
-          })
-        );
-      }
-    }, 0);
-    return () => clearTimeout(t);
-  }, [loading, user]);
 
   if (loading) {
     return <SplashScreenView />;

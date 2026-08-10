@@ -1,27 +1,37 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { router, useNavigation } from 'expo-router';
+import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useColors } from '@/hooks/useColors';
 import { useData } from '@/contexts/DataContext';
+import { NavigationFlags } from '@/utils/navigationFlags';
 
 export default function NotificationsScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const navigation = useNavigation();
   const { leads, tasks } = useData();
 
-  // If notifications was restored as the root screen from persisted nav state
-  // (i.e. the app was closed while on this screen), redirect to the dashboard.
+  // On cold launch, NavigationFlags.notificationsFromDashboard is false
+  // (fresh JS context). If the user intentionally tapped the bell, the
+  // dashboard sets it to true before navigating here.
+  // If it's false on mount, this screen was restored from persisted nav
+  // state — bounce back to the dashboard immediately.
+  const [ready, setReady] = useState(false);
+
   useEffect(() => {
-    if (!navigation.canGoBack()) {
-      router.replace('/');
+    if (!NavigationFlags.notificationsFromDashboard) {
+      router.back();
+      return;
     }
+    NavigationFlags.notificationsFromDashboard = false;
+    setReady(true);
   }, []);
+
+  if (!ready) return <View style={{ flex: 1 }} />;
 
   const todayStr = new Date().toDateString();
   const now = new Date();
@@ -160,8 +170,6 @@ export default function NotificationsScreen() {
   );
 }
 
-// ─── Sub-components ───────────────────────────────────────────────────────────
-
 function Section({ title, color, icon, colors, children }: {
   title: string; color: string; icon: keyof typeof Ionicons.glyphMap; colors: any; children: React.ReactNode;
 }) {
@@ -198,8 +206,6 @@ function NotifRow({ icon, iconColor, title, subtitle, onPress, colors }: {
     </TouchableOpacity>
   );
 }
-
-// ─── Styles ───────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
