@@ -121,7 +121,7 @@ jobs:
           path: ${{ steps.aab.outputs.path }}
           retention-days: 7
 
-- name: Build debug APK for Test Lab
+      - name: Build debug APK for Test Lab
         run: |
           cd artifacts/mobile/android
           export ANDROID_HOME=/usr/local/lib/android/sdk
