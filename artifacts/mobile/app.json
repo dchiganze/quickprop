@@ -8,7 +8,10 @@
     "copyright": "© 2026 QuickProp (Pvt) Ltd",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": ["quickpropagent", "com.googleusercontent.apps.740581594471-n74kaec4b4nti7uokbo5srgje86l1kgp"],
+    "scheme": [
+      "quickpropagent",
+      "com.googleusercontent.apps.740581594471-n74kaec4b4nti7uokbo5srgje86l1kgp"
+    ],
     "userInterfaceStyle": "automatic",
     "newArchEnabled": false,
     "jsEngine": "jsc",
@@ -20,7 +23,7 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.quickprop.agent",
-      "buildNumber": "45",
+      "buildNumber": "47",
       "deploymentTarget": "16.4",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
@@ -33,7 +36,9 @@
         "NSFaceIDUsageDescription": "QuickProp Agent uses Face ID to securely sign you in."
       },
       "entitlements": {
-        "com.apple.developer.applesignin": ["Default"]
+        "com.apple.developer.applesignin": [
+          "Default"
+        ]
       }
     },
     "android": {
