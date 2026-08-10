@@ -121,11 +121,11 @@ jobs:
           path: ${{ steps.aab.outputs.path }}
           retention-days: 7
 
-      - name: Build debug APK for Test Lab
-        working-directory: artifacts/mobile/android
-        env:
-          ANDROID_HOME: /usr/local/lib/android/sdk
-        run: ./gradlew assembleDebug
+- name: Build debug APK for Test Lab
+        run: |
+          cd artifacts/mobile/android
+          export ANDROID_HOME=/usr/local/lib/android/sdk
+          ./gradlew assembleDebug
 
       - name: Upload debug APK artifact
         uses: actions/upload-artifact@v4
