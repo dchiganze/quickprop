@@ -68,17 +68,15 @@ jobs:
       - name: Create expo-secure-store res/xml files (library resources missing from cp install)
         run: |
           mkdir -p artifacts/mobile/android/app/src/main/res/xml
-          cat > artifacts/mobile/android/app/src/main/res/xml/secure_store_backup_rules.xml << 'EOF'
+          cat > artifacts/mobile/android/app/src/main/res/xml/secure_store_backup_rules.xml << 'XMLEOF'
           <?xml version="1.0" encoding="utf-8"?>
-          <!--  Auto Backup configuration for Android 11 and lower -->
           <full-backup-content>
             <include domain="sharedpref" path="."/>
             <exclude domain="sharedpref" path="SecureStore"/>
           </full-backup-content>
-          EOF
-          cat > artifacts/mobile/android/app/src/main/res/xml/secure_store_data_extraction_rules.xml << 'EOF'
+          XMLEOF
+          cat > artifacts/mobile/android/app/src/main/res/xml/secure_store_data_extraction_rules.xml << 'XMLEOF'
           <?xml version="1.0" encoding="utf-8"?>
-          <!--  Auto Backup configuration for Android 12 and higher -->
           <data-extraction-rules>
             <cloud-backup>
               <include domain="sharedpref" path="."/>
@@ -89,7 +87,7 @@ jobs:
               <exclude domain="sharedpref" path="SecureStore"/>
             </device-transfer>
           </data-extraction-rules>
-          EOF
+          XMLEOF
 
       - name: Decode keystore
         run: |
@@ -143,13 +141,24 @@ jobs:
       - name: Set up gcloud CLI
         uses: google-github-actions/setup-gcloud@v2
 
-      - name: Run Firebase Test Lab (Robo)
+      - name: Stage APK in project GCS bucket
         run: |
           APK=$(find artifacts/mobile/android -name "app-debug.apk" | head -1)
-          echo "Running Robo test on: $APK"
+          BUCKET="gs://quickprop-c365c-ci-artifacts"
+          gcloud storage buckets create "$BUCKET" \
+            --project quickprop-c365c \
+            --location us-central1 \
+            --uniform-bucket-level-access 2>/dev/null || true
+          gcloud storage cp "$APK" "$BUCKET/app-debug.apk"
+          echo "APK_GCS_URI=$BUCKET/app-debug.apk" >> "$GITHUB_ENV"
+          echo "Staged to: $BUCKET/app-debug.apk"
+
+      - name: Run Firebase Test Lab (Robo)
+        run: |
+          echo "Running Robo test on: $APK_GCS_URI"
           gcloud firebase test android run \
             --project quickprop-c365c \
             --type robo \
-            --app "$APK" \
+            --app "$APK_GCS_URI" \
             --device model=oriole,version=31,locale=en,orientation=portrait \
             --timeout 90s
