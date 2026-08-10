@@ -65,7 +65,12 @@ export default function ListingsScreen() {
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + (Platform.OS === 'web' ? 67 : 16), backgroundColor: colors.background }]}>
         <View style={styles.titleRow}>
-          <Text style={[styles.title, { color: colors.foreground }]}>Listings</Text>
+                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+            <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+              <Ionicons name="chevron-back" size={24} color={colors.foreground} />
+            </TouchableOpacity>
+            <Text style={[styles.title, { color: colors.foreground }]}>Listings</Text>
+          </View>
           <View style={styles.titleActions}>
             <Text style={[styles.count, { color: colors.mutedForeground }]}>{filtered.length} properties</Text>
             <TouchableOpacity
@@ -139,7 +144,8 @@ export default function ListingsScreen() {
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   header: { paddingHorizontal: 16, gap: 12, paddingBottom: 12, zIndex: 10 },
-  titleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' },
+  titleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  backBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
   titleActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   title: { fontSize: 28, fontWeight: '800', letterSpacing: -0.5 },
   count: { fontSize: 14, fontWeight: '500', marginBottom: 2 },
