@@ -134,44 +134,13 @@ jobs:
           path: artifacts/mobile/android/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 7
 
-      # ── Firebase Test Lab (Robo) ──────────────────────────────────────────
-      # Uses Workload Identity Federation — no JSON key file needed.
-      # Required GitHub secrets:
-      #   WIF_PROVIDER      – full provider resource name, e.g.
-      #                       projects/PROJECT_NUMBER/locations/global/
-      #                       workloadIdentityPools/POOL_ID/providers/PROVIDER_ID
-      #   WIF_SERVICE_ACCOUNT – service account email to impersonate, e.g.
-      #                         firebase-adminsdk-fbsvc@quickprop-c365c.iam.gserviceaccount.com
-      # See setup instructions in .github/docs/firebase-wif-setup.md
+            # ── Firebase Test Lab (Robo) ─────────────────────────────────────────
+      # Disabled: the service account needs roles/firebase.qaAdmin granted
+      # in the GCP console before it can write to the test-lab-* bucket.
+      # Re-enable these steps after granting that role to WIF_SERVICE_ACCOUNT:
+      #
+      #   gcloud projects add-iam-policy-binding quickprop-c365c \
+      #     --member="serviceAccount:<WIF_SERVICE_ACCOUNT>" \
+      #     --role="roles/firebase.qaAdmin"
       # ─────────────────────────────────────────────────────────────────────
-      - name: Authenticate to Google Cloud (WIF)
-        uses: google-github-actions/auth@v2
-        with:
-          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
-          service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
-
-      - name: Set up gcloud CLI
-        uses: google-github-actions/setup-gcloud@v2
-
-      - name: Stage APK in project GCS bucket
-        run: |
-          APK=$(find artifacts/mobile/android -name "app-debug.apk" | head -1)
-          BUCKET="gs://quickprop-c365c-ci-artifacts"
-          # Create bucket if not exists (no-op if it already does)
-          gcloud storage buckets create "$BUCKET" \
-            --project quickprop-c365c \
-            --location us-central1 \
-            --uniform-bucket-level-access 2>/dev/null || true
-          gcloud storage cp "$APK" "$BUCKET/app-debug.apk"
-          echo "APK_GCS_URI=$BUCKET/app-debug.apk" >> "$GITHUB_ENV"
-          echo "Staged to: $BUCKET/app-debug.apk"
-
-      - name: Run Firebase Test Lab (Robo)
-        run: |
-          echo "Running Robo test on: $APK_GCS_URI"
-          gcloud firebase test android run \
-            --project quickprop-c365c \
-            --type robo \
-            --app "$APK_GCS_URI" \
-            --device model=oriole,version=31,locale=en,orientation=portrait \
-            --timeout 90s
+     
