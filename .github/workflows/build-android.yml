@@ -166,14 +166,6 @@ jobs:
           echo "APK_GCS_URI=$BUCKET/app-debug.apk" >> "$GITHUB_ENV"
           echo "Staged to: $BUCKET/app-debug.apk"
 
-      - name: Grant service account write access to Test Lab bucket
-        run: |
-          gcloud storage buckets add-iam-policy-binding \
-            gs://test-lab-nfr7k0qbph35k-ip3sv4vkuxzy6 \
-            --member="serviceAccount:${{ secrets.WIF_SERVICE_ACCOUNT }}" \
-            --role="roles/storage.objectCreator" \
-            --project quickprop-c365c
-
       - name: Run Firebase Test Lab (Robo)
         run: |
           echo "Running Robo test on: $APK_GCS_URI"
