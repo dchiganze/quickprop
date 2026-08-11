@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import {
-  View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, Alert, Share,
+  View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, Alert, Share, Linking,
 } from 'react-native';
-import MapView, { Circle } from 'react-native-maps';
 import { PropertyBrochureSheet } from '@/components/BrochureSheet';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -127,34 +126,33 @@ export default function ListingDetailScreen() {
 
           {/* 500 m privacy map */}
           {property.coordinates && (
-            <View style={[styles.mapWrap, { borderColor: colors.border }]}>
-              <MapView
-                style={styles.map}
-                initialRegion={{
-                  latitude: property.coordinates.lat,
-                  longitude: property.coordinates.lng,
-                  latitudeDelta: 0.014,
-                  longitudeDelta: 0.014,
-                }}
-                scrollEnabled={false}
-                zoomEnabled={false}
-                pitchEnabled={false}
-                rotateEnabled={false}
-                pointerEvents="none"
-              >
-                <Circle
-                  center={{ latitude: property.coordinates.lat, longitude: property.coordinates.lng }}
-                  radius={500}
-                  fillColor="rgba(16, 185, 129, 0.15)"
-                  strokeColor="rgba(16, 185, 129, 0.65)"
-                  strokeWidth={2}
-                />
-              </MapView>
-              <View style={styles.mapBadge}>
-                <Ionicons name="navigate-circle-outline" size={12} color="#10B981" />
-                <Text style={styles.mapBadgeText}>Approximate area · 500 m radius</Text>
+            <TouchableOpacity
+              style={[styles.mapWrap, styles.mapButton, { borderColor: colors.border, backgroundColor: colors.card }]}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+                const { lat, lng } = property.coordinates!;
+                const url = Platform.OS === 'ios'
+                  ? `maps://?ll=${lat},${lng}&z=14`
+                  : `geo:${lat},${lng}?z=14`;
+                Linking.openURL(url).catch(() =>
+                  Linking.openURL(`https://maps.google.com/?q=${lat},${lng}`)
+                );
+              }}
+              activeOpacity={0.75}
+            >
+              <View style={styles.mapButtonInner}>
+                <View style={[styles.mapIconWrap, { backgroundColor: '#10B98120' }]}>
+                  <Ionicons name="navigate-circle-outline" size={28} color="#10B981" />
+                </View>
+                <View style={styles.mapTextWrap}>
+                  <Text style={[styles.mapButtonTitle, { color: colors.foreground }]}>View on Map</Text>
+                  <Text style={[styles.mapBadgeText, { color: colors.mutedForeground }]}>
+                    Approximate area · 500 m radius
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color={colors.mutedForeground} />
               </View>
-            </View>
+            </TouchableOpacity>
           )}
 
           {/* Key stats */}
@@ -348,10 +346,13 @@ const styles = StyleSheet.create({
   suburb: { fontSize: 14 },
   visibilityBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: 20, borderWidth: 1, paddingHorizontal: 8, paddingVertical: 3 },
   visibilityText: { fontSize: 11, fontWeight: '600' },
-  mapWrap: { borderRadius: 14, overflow: 'hidden', borderWidth: 1, marginBottom: 16 },
-  map: { height: 190 },
-  mapBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, position: 'absolute', bottom: 8, left: 10, backgroundColor: 'rgba(255,255,255,0.88)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 20 },
-  mapBadgeText: { fontSize: 11, fontWeight: '600', color: '#374151' },
+  mapWrap: { borderRadius: 14, borderWidth: 1, marginBottom: 16 },
+  mapButton: { overflow: 'hidden' },
+  mapButtonInner: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 16 },
+  mapIconWrap: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
+  mapTextWrap: { flex: 1 },
+  mapButtonTitle: { fontSize: 15, fontWeight: '700', marginBottom: 2 },
+  mapBadgeText: { fontSize: 12, fontWeight: '500' },
   statsRow: { flexDirection: 'row', borderRadius: 14, padding: 14, gap: 16, borderWidth: 1, marginBottom: 20, flexWrap: 'wrap' },
   statItem: { alignItems: 'center', gap: 4, minWidth: 50 },
   statValue: { fontSize: 17, fontWeight: '800' },
