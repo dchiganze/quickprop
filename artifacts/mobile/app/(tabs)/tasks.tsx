@@ -1,12 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { router, useNavigation } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import * as Haptics from 'expo-haptics';
-import { NavigationFlags } from '@/utils/navigationFlags';
 import { useColors } from '@/hooks/useColors';
 import { useData } from '@/contexts/DataContext';
 
@@ -40,24 +39,21 @@ export default function TasksScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { tasks } = useData();
-  const navigation = useNavigation();
 
-  // Lazy initializer: read the flag on fresh mount (handles stack-push navigation)
-  const [activeFilter, setActiveFilter] = useState(() => {
-    return NavigationFlags.tasksFilter || 'all';
-  });
-
+// Read filter from route params (set by dashboard stat cards).
+  // _t is a timestamp that changes on every tap so useEffect fires even when
+  // the filter value itself hasn't changed.
+  const { filter: paramFilter, _t } = useLocalSearchParams<{ filter?: string; _t?: string }>();
+  const [activeFilter, setActiveFilter] = useState(paramFilter || 'all');
+  const lastAppliedT = useRef<string | undefined>();
+  
   useEffect(() => {
-    // Reset flag — was already consumed by the useState initializer above
-    NavigationFlags.tasksFilter = 'all';
-    // Listen for subsequent focus events (re-navigation to this screen)
-    const unsubscribe = navigation.addListener('focus', () => {
-      const f = NavigationFlags.tasksFilter || 'all';
-      setActiveFilter(f);
-      NavigationFlags.tasksFilter = 'all';
-    });
-    return unsubscribe;
-  }, [navigation]);
+  // Only apply when _t is new (i.e. a fresh navigation, not a local filter-pill tap)
+    if (_t !== undefined && _t !== lastAppliedT.current) {
+      lastAppliedT.current = _t;
+      setActiveFilter(paramFilter || 'all');
+    }
+  }, [paramFilter, _t]);  
 
   const now = new Date();
   const pending = tasks.filter(t => !t.completed);
