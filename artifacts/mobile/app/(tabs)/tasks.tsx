@@ -1,10 +1,10 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { router, useFocusEffect } from 'expo-router';
+import { router, useNavigation } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { NavigationFlags } from '@/utils/navigationFlags';
 import { useColors } from '@/hooks/useColors';
@@ -40,12 +40,24 @@ export default function TasksScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { tasks } = useData();
-  const [activeFilter, setActiveFilter] = useState('all');
+  const navigation = useNavigation();
 
-  useFocusEffect(useCallback(() => {
-    setActiveFilter(NavigationFlags.tasksFilter || 'all');
+  // Lazy initializer: read the flag on fresh mount (handles stack-push navigation)
+  const [activeFilter, setActiveFilter] = useState(() => {
+    return NavigationFlags.tasksFilter || 'all';
+  });
+
+  useEffect(() => {
+    // Reset flag — was already consumed by the useState initializer above
     NavigationFlags.tasksFilter = 'all';
-  }, []));
+    // Listen for subsequent focus events (re-navigation to this screen)
+    const unsubscribe = navigation.addListener('focus', () => {
+      const f = NavigationFlags.tasksFilter || 'all';
+      setActiveFilter(f);
+      NavigationFlags.tasksFilter = 'all';
+    });
+    return unsubscribe;
+  }, [navigation]);
 
   const now = new Date();
   const pending = tasks.filter(t => !t.completed);
@@ -105,6 +117,7 @@ export default function TasksScreen() {
       contentContainerStyle={[styles.content, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 100 }]}
       showsVerticalScrollIndicator={false}
     >
+      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Ionicons name="chevron-back" size={24} color={colors.foreground} />
@@ -113,6 +126,7 @@ export default function TasksScreen() {
         <View style={styles.backBtn} />
       </View>
 
+      {/* Summary */}
       <View style={[styles.summaryRow]}>
         <View style={[styles.summaryCard, { backgroundColor: colors.destructive + '12', borderColor: colors.destructive + '30' }]}>
           <Text style={[styles.summaryNum, { color: colors.destructive }]}>{overdue.length}</Text>
@@ -124,6 +138,7 @@ export default function TasksScreen() {
         </View>
       </View>
 
+      {/* Filter pills */}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll} contentContainerStyle={styles.filterContent}>
         {FILTERS.map(f => (
           <TouchableOpacity
@@ -136,6 +151,7 @@ export default function TasksScreen() {
         ))}
       </ScrollView>
 
+      {/* Overdue */}
       {overdue.length > 0 && (
         <>
           <Text style={[styles.sectionLabel, { color: colors.destructive }]}>Overdue</Text>
@@ -143,6 +159,7 @@ export default function TasksScreen() {
         </>
       )}
 
+      {/* Upcoming */}
       {upcoming.length > 0 && (
         <>
           <Text style={[styles.sectionLabel, { color: colors.foreground }]}>Upcoming</Text>
