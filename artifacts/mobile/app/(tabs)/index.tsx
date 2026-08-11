@@ -92,8 +92,9 @@ export default function DashboardScreen() {
         <StatCard label="Active Leads" value={activeLeads} icon="people-outline" color="#8B5CF6" subtitle={newLeads > 0 ? `${newLeads} new` : undefined} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}); router.push('/(tabs)/leads'); }} />
       </View>
       <View style={[styles.statsRow, { marginTop: 10 }]}>
-               <StatCard label="Viewings Scheduled" value={viewingsToday} icon="eye-outline" color={colors.accent} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}); router.navigate({ pathname: '/(tabs)/tasks', params: { filter: 'viewing', title: 'Viewings Scheduled', _t: String(Date.now()) } }); }} />
+        <StatCard label="Viewings Scheduled" value={viewingsToday} icon="eye-outline" color={colors.accent} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}); router.navigate({ pathname: '/(tabs)/tasks', params: { filter: 'viewing', title: 'Viewings Scheduled', _t: String(Date.now()) } }); }} />
         <StatCard label="Tasks Due" value={overdueTasks} icon="time-outline" color={overdueTasks > 0 ? colors.destructive : colors.mutedForeground} subtitle={overdueTasks > 0 ? 'Overdue' : 'On track'} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}); router.navigate({ pathname: '/(tabs)/tasks', params: { filter: 'all', title: 'Tasks', _t: String(Date.now()) } }); }} />
+      </View>
 
       {/* Quick Actions */}
       <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Quick Actions</Text>
