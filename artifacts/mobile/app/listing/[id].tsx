@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, Alert, Share,
 } from 'react-native';
+import MapView, { Circle } from 'react-native-maps';
 import { PropertyBrochureSheet } from '@/components/BrochureSheet';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -48,8 +49,8 @@ export default function ListingDetailScreen() {
   const handleShare = async () => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     Share.share({
-      title: `${property.referenceNumber} — ${property.address}`,
-      message: `${property.address}, ${property.suburb}\n${property.currency} ${property.price.toLocaleString()}\n${property.bedrooms} bed • ${property.bathrooms} bath\n\nRef: ${property.referenceNumber}`,
+      title: `${property.referenceNumber} — ${property.suburb}`,
+      message: `${property.suburb}\n${property.currency} ${property.price.toLocaleString()}\n${property.bedrooms} bed • ${property.bathrooms} bath\n\nRef: ${property.referenceNumber}`,
     });
   };
 
@@ -106,8 +107,55 @@ export default function ListingDetailScreen() {
             <Text style={[styles.price, { color: colors.primary }]}>{priceDisplay}</Text>
             {property.negotiable && <View style={[styles.negBadge, { backgroundColor: colors.accent + '20' }]}><Text style={[styles.negText, { color: colors.accent }]}>Negotiable</Text></View>}
           </View>
-          <Text style={[styles.address, { color: colors.foreground }]}>{property.address}</Text>
-          <Text style={[styles.suburb, { color: colors.mutedForeground }]}>{property.suburb}</Text>
+                    <Text style={[styles.address, { color: colors.foreground }]}>{property.address}</Text>
+          <View style={styles.suburbRow}>
+            <Text style={[styles.suburb, { color: colors.mutedForeground }]}>{property.suburb}</Text>
+            <View style={[styles.visibilityBadge, {
+              backgroundColor: property.showAddress ? colors.accent + '18' : colors.muted,
+              borderColor:     property.showAddress ? colors.accent        : colors.border,
+            }]}>
+              <Ionicons
+                name={property.showAddress ? 'eye-outline' : 'eye-off-outline'}
+                size={11}
+                color={property.showAddress ? colors.accent : colors.mutedForeground}
+              />
+              <Text style={[styles.visibilityText, { color: property.showAddress ? colors.accent : colors.mutedForeground }]}>
+                {property.showAddress ? 'Address public' : 'Address hidden'}
+              </Text>
+            </View>
+          </View>
+
+          {/* 500 m privacy map */}
+          {property.coordinates && (
+            <View style={[styles.mapWrap, { borderColor: colors.border }]}>
+              <MapView
+                style={styles.map}
+                initialRegion={{
+                  latitude: property.coordinates.lat,
+                  longitude: property.coordinates.lng,
+                  latitudeDelta: 0.014,
+                  longitudeDelta: 0.014,
+                }}
+                scrollEnabled={false}
+                zoomEnabled={false}
+                pitchEnabled={false}
+                rotateEnabled={false}
+                pointerEvents="none"
+              >
+                <Circle
+                  center={{ latitude: property.coordinates.lat, longitude: property.coordinates.lng }}
+                  radius={500}
+                  fillColor="rgba(16, 185, 129, 0.15)"
+                  strokeColor="rgba(16, 185, 129, 0.65)"
+                  strokeWidth={2}
+                />
+              </MapView>
+              <View style={styles.mapBadge}>
+                <Ionicons name="navigate-circle-outline" size={12} color="#10B981" />
+                <Text style={styles.mapBadgeText}>Approximate area · 500 m radius</Text>
+              </View>
+            </View>
+          )}
 
           {/* Key stats */}
           {(property.bedrooms !== undefined || property.bathrooms !== undefined || property.garages !== undefined) && (
@@ -295,8 +343,15 @@ const styles = StyleSheet.create({
   price: { fontSize: 28, fontWeight: '900', letterSpacing: -0.5 },
   negBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
   negText: { fontSize: 12, fontWeight: '700' },
-  address: { fontSize: 18, fontWeight: '700', marginBottom: 2 },
-  suburb: { fontSize: 14, marginBottom: 16 },
+  address: { fontSize: 18, fontWeight: '700', marginBottom: 4 },
+  suburbRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
+  suburb: { fontSize: 14 },
+  visibilityBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: 20, borderWidth: 1, paddingHorizontal: 8, paddingVertical: 3 },
+  visibilityText: { fontSize: 11, fontWeight: '600' },
+  mapWrap: { borderRadius: 14, overflow: 'hidden', borderWidth: 1, marginBottom: 16 },
+  map: { height: 190 },
+  mapBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, position: 'absolute', bottom: 8, left: 10, backgroundColor: 'rgba(255,255,255,0.88)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 20 },
+  mapBadgeText: { fontSize: 11, fontWeight: '600', color: '#374151' },
   statsRow: { flexDirection: 'row', borderRadius: 14, padding: 14, gap: 16, borderWidth: 1, marginBottom: 20, flexWrap: 'wrap' },
   statItem: { alignItems: 'center', gap: 4, minWidth: 50 },
   statValue: { fontSize: 17, fontWeight: '800' },

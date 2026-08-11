@@ -43,7 +43,7 @@ export default function TasksScreen() {
 // Read filter from route params (set by dashboard stat cards).
   // _t is a timestamp that changes on every tap so useEffect fires even when
   // the filter value itself hasn't changed.
-  const { filter: paramFilter, _t } = useLocalSearchParams<{ filter?: string; _t?: string }>();
+  const { filter: paramFilter, _t, title: paramTitle } = useLocalSearchParams<{ filter?: string; _t?: string; title?: string }>();
   const [activeFilter, setActiveFilter] = useState(paramFilter || 'all');
   const lastAppliedT = useRef<string | undefined>();
   
@@ -55,6 +55,8 @@ export default function TasksScreen() {
     }
   }, [paramFilter, _t]);  
 
+  const screenTitle = paramTitle || 'Tasks';
+
   const now = new Date();
   const pending = tasks.filter(t => !t.completed);
 
@@ -62,11 +64,12 @@ export default function TasksScreen() {
     ? pending
     : pending.filter(t => t.type === activeFilter);
 
-  const overdue = filtered.filter(t => new Date(t.dueDate) < now);
-  const upcoming = filtered.filter(t => new Date(t.dueDate) >= now);
-
-  const formatDate = (iso: string) => {
-    const d = new Date(iso);
+  // Sort each section descending by date (most recent first)
+  const desc = (a: any, b: any) => new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime();
+  const overdue  = filtered.filter(t => new Date(t.dueDate) < now).sort(desc);
+  const upcoming = filtered.filter(t => new Date(t.dueDate) >= now).sort(desc);
+    
+  const d = new Date(iso);
     const today = new Date();
     const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1);
     if (d.toDateString() === today.toDateString()) return 'Today';
@@ -81,7 +84,8 @@ export default function TasksScreen() {
         style={[styles.taskCard, { backgroundColor: colors.card, borderColor: isOverdue ? colors.destructive + '40' : colors.border }]}
         onPress={() => {
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-          if (task.propertyId) router.push(`/listing/${task.propertyId}`);
+          
+          router.push(`/task/${task.id}`);
         }}
         activeOpacity={0.7}
       >
@@ -100,10 +104,8 @@ export default function TasksScreen() {
             </Text>
           </View>
         </View>
-        {task.propertyId && (
-          <Ionicons name="chevron-forward" size={16} color={colors.mutedForeground} />
-        )}
-      </TouchableOpacity>
+        <Ionicons name="chevron-forward" size={16} color={colors.mutedForeground} />
+        </TouchableOpacity>
     );
   };
 
@@ -118,7 +120,7 @@ export default function TasksScreen() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Ionicons name="chevron-back" size={24} color={colors.foreground} />
         </TouchableOpacity>
-        <Text style={[styles.title, { color: colors.foreground }]}>Tasks</Text>
+                <Text style={[styles.title, { color: colors.foreground }]}>{screenTitle}</Text>
         <View style={styles.backBtn} />
       </View>
 

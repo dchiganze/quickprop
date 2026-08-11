@@ -16,6 +16,7 @@ export interface Property {
   type: 'sale' | 'rent' | 'commercial' | 'stand' | 'farm' | 'mine';
   status: 'published' | 'draft' | 'archived' | 'sold' | 'rented' | 'pending';
   address: string;
+  showAddress?: boolean;
   suburb: string;
   price: number;
   currency: string;
