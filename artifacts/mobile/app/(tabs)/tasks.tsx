@@ -68,8 +68,9 @@ export default function TasksScreen() {
   const desc = (a: any, b: any) => new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime();
   const overdue  = filtered.filter(t => new Date(t.dueDate) < now).sort(desc);
   const upcoming = filtered.filter(t => new Date(t.dueDate) >= now).sort(desc);
-    
-  const d = new Date(iso);
+
+  const formatDate = (iso: string) => {
+    const d = new Date(iso);
     const today = new Date();
     const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1);
     if (d.toDateString() === today.toDateString()) return 'Today';
