@@ -68,15 +68,17 @@ jobs:
       - name: Create expo-secure-store res/xml files (library resources missing from cp install)
         run: |
           mkdir -p artifacts/mobile/android/app/src/main/res/xml
-          cat > artifacts/mobile/android/app/src/main/res/xml/secure_store_backup_rules.xml << 'XMLEOF'
+          cat > artifacts/mobile/android/app/src/main/res/xml/secure_store_backup_rules.xml << 'EOF'
           <?xml version="1.0" encoding="utf-8"?>
+          <!--  Auto Backup configuration for Android 11 and lower -->
           <full-backup-content>
             <include domain="sharedpref" path="."/>
             <exclude domain="sharedpref" path="SecureStore"/>
           </full-backup-content>
-          XMLEOF
-          cat > artifacts/mobile/android/app/src/main/res/xml/secure_store_data_extraction_rules.xml << 'XMLEOF'
+          EOF
+          cat > artifacts/mobile/android/app/src/main/res/xml/secure_store_data_extraction_rules.xml << 'EOF'
           <?xml version="1.0" encoding="utf-8"?>
+          <!--  Auto Backup configuration for Android 12 and higher -->
           <data-extraction-rules>
             <cloud-backup>
               <include domain="sharedpref" path="."/>
@@ -87,7 +89,7 @@ jobs:
               <exclude domain="sharedpref" path="SecureStore"/>
             </device-transfer>
           </data-extraction-rules>
-          XMLEOF
+          EOF
 
       - name: Decode keystore
         run: |
@@ -132,6 +134,16 @@ jobs:
           path: artifacts/mobile/android/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 7
 
+      # ── Firebase Test Lab (Robo) ──────────────────────────────────────────
+      # Uses Workload Identity Federation — no JSON key file needed.
+      # Required GitHub secrets:
+      #   WIF_PROVIDER      – full provider resource name, e.g.
+      #                       projects/PROJECT_NUMBER/locations/global/
+      #                       workloadIdentityPools/POOL_ID/providers/PROVIDER_ID
+      #   WIF_SERVICE_ACCOUNT – service account email to impersonate, e.g.
+      #                         firebase-adminsdk-fbsvc@quickprop-c365c.iam.gserviceaccount.com
+      # See setup instructions in .github/docs/firebase-wif-setup.md
+      # ─────────────────────────────────────────────────────────────────────
       - name: Authenticate to Google Cloud (WIF)
         uses: google-github-actions/auth@v2
         with:
@@ -145,6 +157,7 @@ jobs:
         run: |
           APK=$(find artifacts/mobile/android -name "app-debug.apk" | head -1)
           BUCKET="gs://quickprop-c365c-ci-artifacts"
+          # Create bucket if not exists (no-op if it already does)
           gcloud storage buckets create "$BUCKET" \
             --project quickprop-c365c \
             --location us-central1 \
@@ -152,6 +165,14 @@ jobs:
           gcloud storage cp "$APK" "$BUCKET/app-debug.apk"
           echo "APK_GCS_URI=$BUCKET/app-debug.apk" >> "$GITHUB_ENV"
           echo "Staged to: $BUCKET/app-debug.apk"
+
+      - name: Grant service account write access to Test Lab bucket
+        run: |
+          gcloud storage buckets add-iam-policy-binding \
+            gs://test-lab-nfr7k0qbph35k-ip3sv4vkuxzy6 \
+            --member="serviceAccount:${{ secrets.WIF_SERVICE_ACCOUNT }}" \
+            --role="roles/storage.objectCreator" \
+            --project quickprop-c365c
 
       - name: Run Firebase Test Lab (Robo)
         run: |
