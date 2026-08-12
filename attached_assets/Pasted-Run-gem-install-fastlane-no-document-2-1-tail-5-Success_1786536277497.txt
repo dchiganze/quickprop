@@ -1,0 +1,94 @@
+Run gem install fastlane --no-document 2>&1 | tail -5
+Successfully installed fastlane-2.237.0
+1 gem installed
+[12:02:40]: Get started using a Gemfile for fastlane https://docs.fastlane.tools/getting-started/ios/setup/#use-a-gemfile
+[12:02:41]: Sending anonymous analytics information
+[12:02:41]: Learn more at https://docs.fastlane.tools/#metrics
+[12:02:41]: No personal or sensitive data is sent.
+[12:02:41]: You can disable this by adding `opt_out_usage` at the top of your Fastfile
+[12:02:41]: Creating authorization token for App Store Connect API
+[12:02:41]: Ready to upload new build to TestFlight (App: 6791984702)...
+[12:02:42]: Going to upload updated app to App Store Connect
+[12:02:42]: This might take a few minutes. Please don't interrupt the script.
+[12:02:46]: [altool] Running altool at path '/Applications/Xcode_26.6.app/Contents/SharedFrameworks/ContentDelivery.framework/Resources/altool'...
+
+[12:02:46]: [altool] 
+
+[12:02:46]: [altool] 2026-08-12 12:02:46.504 ERROR: [ContentDelivery.Uploader.ABCC30640] The provided entity includes an attribute with a value that has already been used (-19232) The bundle version must be higher than the previously uploaded version: ‘65’. (ID: f337aa9a-a68d-44f4-9d59-15c5edd428af)
+
+[12:02:46]: [altool]    NSUnderlyingError : The provided entity includes an attribute with a value that has already been used (-19241) The bundle version must be higher than the previously uploaded version.
+
+[12:02:46]: [altool]       status : 409
+
+[12:02:46]: [altool]       detail : The bundle version must be higher than the previously uploaded version.
+
+[12:02:46]: [altool]       source : 
+
+[12:02:46]: [altool]          pointer : /data/attributes/cfBundleVersion
+
+[12:02:46]: [altool]       id : f337aa9a-a68d-44f4-9d59-15c5edd428af
+
+[12:02:46]: [altool]       code : ENTITY_ERROR.ATTRIBUTE.INVALID.DUPLICATE
+
+[12:02:46]: [altool]       title : The provided entity includes an attribute with a value that has already been used
+
+[12:02:46]: [altool]       meta : 
+
+[12:02:46]: [altool]          previousBundleVersion : 65
+
+[12:02:46]: [altool]    previousBundleVersion : 65
+
+[12:02:46]: [altool]    iris-code : ENTITY_ERROR.ATTRIBUTE.INVALID.DUPLICATE
+
+[12:02:46]: [altool] 2026-08-12 12:02:46.505 ERROR: [altool.ABCC30640] Failed to upload package.
+
+[12:02:46]: [altool] Failed to upload archive at '/var/folders/df/djsxfhc17x95674wsm_g8s980000gn/T/9f87f172-bcb9-4b6d-953e-a087356f8684.ipa'.
+
+[12:02:46]: [altool] 2026-08-12 12:02:46.506 ERROR: [altool.ABCC30640] The provided entity includes an attribute with a value that has already been used (-19232) The bundle version must be higher than the previously uploaded version: ‘65’. (ID: f337aa9a-a68d-44f4-9d59-15c5edd428af)
+
+[12:02:46]: [altool]    NSUnderlyingError : The provided entity includes an attribute with a value that has already been used (-19241) The bundle version must be higher than the previously uploaded version.
+
+[!] Error uploading ipa file: 
+ [Application Loader Error Output]: [ContentDelivery.Uploader.ABCC30640] The provided entity includes an attribute with a value that has already been used (-19232) The bundle version must be higher than the previously uploaded version: ‘65’. (ID: f337aa9a-a68d-44f4-9d59-15c5edd428af)
+[Application Loader Error Output]: [altool.ABCC30640] Failed to upload package.
+[Application Loader Error Output]: [altool.ABCC30640] The provided entity includes an attribute with a value that has already been used (-19232) The bundle version must be higher than the previously uploaded version: ‘65’. (ID: f337aa9a-a68d-44f4-9d59-15c5edd428af)
+[Application Loader Error Output]: [altool.1013EAE70] ExitFailure (31)
+[Application Loader Error Output]: The call to the altool completed with a non-zero exit status: 1. This indicates a failure.
+
+[12:02:46]: [altool]       status : 409
+
+[12:02:46]: [altool]       detail : The bundle version must be higher than the previously uploaded version.
+
+[12:02:46]: [altool]       source : 
+
+[12:02:46]: [altool]          pointer : /data/attributes/cfBundleVersion
+
+[12:02:46]: [altool]       id : f337aa9a-a68d-44f4-9d59-15c5edd428af
+
+[12:02:46]: [altool]       code : ENTITY_ERROR.ATTRIBUTE.INVALID.DUPLICATE
+
+[12:02:46]: [altool]       title : The provided entity includes an attribute with a value that has already been used
+
+[12:02:46]: [altool]       meta : 
+
+[12:02:46]: [altool]          previousBundleVersion : 65
+
+[12:02:46]: [altool]    previousBundleVersion : 65
+
+[12:02:46]: [altool]    iris-code : ENTITY_ERROR.ATTRIBUTE.INVALID.DUPLICATE
+
+[12:02:46]: [altool] 
+
+[12:02:46]: [altool] 2026-08-12 12:02:46.507 ERROR: [altool.1013EAE70] ExitFailure (31)
+
+[12:02:46]: Application Loader output above ^
+[12:02:46]: [ContentDelivery.Uploader.ABCC30640] The provided entity includes an attribute with a value that has already been used (-19232) The bundle version must be higher than the previously uploaded version: ‘65’. (ID: f337aa9a-a68d-44f4-9d59-15c5edd428af)
+
+[12:02:46]: [altool.ABCC30640] Failed to upload package.
+
+[12:02:46]: [altool.ABCC30640] The provided entity includes an attribute with a value that has already been used (-19232) The bundle version must be higher than the previously uploaded version: ‘65’. (ID: f337aa9a-a68d-44f4-9d59-15c5edd428af)
+
+[12:02:46]: [altool.1013EAE70] ExitFailure (31)
+
+[12:02:46]: The call to the altool completed with a non-zero exit status: 1. This indicates a failure.
+[12:02:46]: Could not download/upload from App Store Connect!
