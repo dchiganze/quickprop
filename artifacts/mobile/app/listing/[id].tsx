@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import {
-  View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, Alert, Share, Linking,
+  View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, Alert, Share, Linking, Image,
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { PropertyBrochureSheet } from '@/components/BrochureSheet';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -132,6 +133,48 @@ export default function ListingDetailScreen() {
     );
   };
 
+  const handleAddPhotos = () => {
+    Alert.alert('Add Photos', 'Choose a source', [
+      {
+        text: 'Take Photo',
+        onPress: async () => {
+          try {
+            const perm = await ImagePicker.requestCameraPermissionsAsync();
+            if (!perm.granted) { Alert.alert('Permission Required', 'Enable camera access in Settings.'); return; }
+            const result = await ImagePicker.launchCameraAsync({ mediaTypes: 'images', quality: 0.8 });
+            if (!result.canceled && result.assets?.[0]) {
+              updateProperty(property.id, { photos: [...property.photos, result.assets[0].uri] });
+            }
+          } catch (e: any) { Alert.alert('Camera Error', e?.message ?? 'Could not open camera.'); }
+        },
+      },
+      {
+        text: 'Choose from Library',
+        onPress: async () => {
+          try {
+            const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+            if (!perm.granted) { Alert.alert('Permission Required', 'Enable photo library access in Settings.'); return; }
+            const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: 'images', allowsMultipleSelection: true, quality: 0.8 });
+            if (!result.canceled && result.assets?.length) {
+              updateProperty(property.id, { photos: [...property.photos, ...result.assets.map(a => a.uri)] });
+            }
+          } catch (e: any) { Alert.alert('Library Error', e?.message ?? 'Could not open library.'); }
+        },
+      },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
+  };
+
+  const handleRemovePhoto = (index: number) => {
+    Alert.alert('Remove Photo', 'Remove this photo from the listing?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Remove', style: 'destructive',
+        onPress: () => updateProperty(property.id, { photos: property.photos.filter((_, i) => i !== index) }),
+      },
+    ]);
+  };
+
   const handleMarkSold = () => {
     Alert.alert('Mark as Sold', 'Are you sure you want to mark this property as sold?', [
       { text: 'Cancel', style: 'cancel' },
@@ -170,14 +213,47 @@ export default function ListingDetailScreen() {
       </View>
 
       <ScrollView style={styles.flex} contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 120 }]} showsVerticalScrollIndicator={false}>
-        {/* Gallery placeholder */}
-        <View style={[styles.gallery, { backgroundColor: colors.muted }]}>
-          <Ionicons name="images-outline" size={48} color={colors.mutedForeground} />
-          <Text style={[styles.galleryHint, { color: colors.mutedForeground }]}>No photos added</Text>
-          <View style={[styles.statusBadge, { backgroundColor: STATUS_COLORS[property.status] }]}>
-            <Text style={styles.statusText}>{property.status.charAt(0).toUpperCase() + property.status.slice(1)}</Text>
+        {/* Gallery */}
+        {property.photos.length > 0 ? (
+          <View style={[styles.gallery, { backgroundColor: colors.card }]}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.galleryScroll}>
+              {property.photos.map((uri, index) => (
+                <View key={index} style={styles.photoThumb}>
+                  <Image source={{ uri }} style={styles.photoImg} resizeMode="cover" />
+                  <TouchableOpacity style={styles.photoDelete} onPress={() => handleRemovePhoto(index)}>
+                    <Ionicons name="close-circle" size={24} color="#FFF" />
+                  </TouchableOpacity>
+                </View>
+              ))}
+              <TouchableOpacity
+                style={[styles.addPhotoTile, { backgroundColor: colors.muted, borderColor: colors.border }]}
+                onPress={handleAddPhotos}
+              >
+                <Ionicons name="add" size={28} color={colors.primary} />
+                <Text style={[styles.addPhotoLabel, { color: colors.primary }]}>Add</Text>
+              </TouchableOpacity>
+            </ScrollView>
+            <View style={[styles.statusBadge, { backgroundColor: STATUS_COLORS[property.status] }]}>
+              <Text style={styles.statusText}>{property.status.charAt(0).toUpperCase() + property.status.slice(1)}</Text>
+            </View>
+            <View style={[styles.photoCountBadge, { backgroundColor: '#00000066' }]}>
+              <Ionicons name="images-outline" size={12} color="#FFF" />
+              <Text style={styles.photoCountText}>{property.photos.length}</Text>
+            </View>
           </View>
-        </View>
+        ) : (
+          <TouchableOpacity
+            style={[styles.gallery, { backgroundColor: colors.muted }]}
+            onPress={handleAddPhotos}
+            activeOpacity={0.75}
+          >
+            <Ionicons name="camera-outline" size={48} color={colors.mutedForeground} />
+            <Text style={[styles.galleryHint, { color: colors.mutedForeground }]}>Tap to add photos</Text>
+            <View style={[styles.statusBadge, { backgroundColor: STATUS_COLORS[property.status] }]}>
+              <Text style={styles.statusText}>{property.status.charAt(0).toUpperCase() + property.status.slice(1)}</Text>
+            </View>
+          </TouchableOpacity>
+        )}
 
         <View style={styles.body}>
           {/* Price & Address */}
@@ -411,7 +487,15 @@ const styles = StyleSheet.create({
   topActions: { flexDirection: 'row', gap: 8 },
   iconBtn: { width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
   content: { paddingBottom: 40 },
-  gallery: { height: 240, alignItems: 'center', justifyContent: 'center', gap: 8 },
+  gallery: { height: 240, alignItems: 'center', justifyContent: 'center', gap: 8, overflow: 'hidden' },
+  galleryScroll: { paddingHorizontal: 12, paddingVertical: 12, gap: 10, alignItems: 'center', flexDirection: 'row' },
+  photoThumb: { width: 200, height: 216, borderRadius: 12, overflow: 'hidden', position: 'relative' },
+  photoImg: { width: '100%', height: '100%' },
+  photoDelete: { position: 'absolute', top: 6, right: 6, backgroundColor: '#00000066', borderRadius: 12 },
+  addPhotoTile: { width: 80, height: 80, borderRadius: 14, borderWidth: 1.5, borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center', gap: 4 },
+  addPhotoLabel: { fontSize: 11, fontWeight: '700' },
+  photoCountBadge: { position: 'absolute', bottom: 12, right: 12, flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12 },
+  photoCountText: { color: '#FFF', fontSize: 11, fontWeight: '700' },
   galleryHint: { fontSize: 14 },
   statusBadge: { position: 'absolute', top: 12, left: 12, paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20 },
   statusText: { color: '#FFF', fontSize: 12, fontWeight: '700' },
