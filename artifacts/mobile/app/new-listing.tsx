@@ -127,26 +127,45 @@ export default function NewListingScreen() {
   };
 
   const handleRecordVideo = async () => {
-    const camPerm = await ImagePicker.requestCameraPermissionsAsync();
-    if (!camPerm.granted) { Alert.alert('Camera', 'Camera permission is required to record a video.'); return; }
-    const micPerm = await ImagePicker.requestMicrophonePermissionsAsync();
-    if (!micPerm.granted) { Alert.alert('Microphone', 'Microphone permission is required to record video with audio.'); return; }
-    const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: 'videos',
-      videoMaxDuration: 60,
-      allowsEditing: false,
-      videoQuality: ImagePicker.UIImagePickerControllerQualityType.Medium,
-    });
-    if (!result.canceled) { set('videoUri', result.assets[0].uri); }
+    try {
+      const camPerm = await ImagePicker.requestCameraPermissionsAsync();
+      if (!camPerm.granted) {
+        Alert.alert('Camera Permission Required', 'Please enable camera access in Settings to record property videos.');
+        return;
+      }
+      const micPerm = await ImagePicker.requestMicrophonePermissionsAsync();
+      if (!micPerm.granted) {
+        Alert.alert('Microphone Permission Required', 'Please enable microphone access in Settings to record video with audio.');
+        return;
+      }
+      // Note: videoQuality / UIImagePickerControllerQualityType was removed in
+      // expo-image-picker v15+. Omit it so iOS uses its default medium quality.
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: 'videos',
+        videoMaxDuration: 60,
+        allowsEditing: false,
+      });
+      if (!result.canceled && result.assets?.[0]) {
+        set('videoUri', result.assets[0].uri);
+      }
+    } catch (e: any) {
+      Alert.alert('Camera Error', e?.message ?? 'Could not open camera. Please try again.');
+    }
   };
 
   const handlePickVideo = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: 'videos',
-      videoMaxDuration: 60,
-      allowsEditing: false,
-    });
-    if (!result.canceled) { set('videoUri', result.assets[0].uri); }
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: 'videos',
+        videoMaxDuration: 60,
+        allowsEditing: false,
+      });
+      if (!result.canceled && result.assets?.[0]) {
+        set('videoUri', result.assets[0].uri);
+      }
+    } catch (e: any) {
+      Alert.alert('Library Error', e?.message ?? 'Could not open photo library. Please try again.');
+    }
   };
 
   const handlePickPhotos = async () => {
