@@ -1,0 +1,29 @@
+08-12 02:12:16.255 1986 2505 I AppsFilter: interaction: PackageSetting{f34572b zw.co.melios.quickprop.agent/10364} -> PackageSetting{3814c2c androidx.test.tools.crawler/10365} BLOCKED
+08-12 02:12:16.318 1986 4354 D SurfaceComposerClient: setCornerRadius ## 2c23433 zw.co.melios.quickprop.agent/zw.co.melios.quickprop.agent.MainActivity#487 cornerRadius=0.000000
+08-12 02:12:16.320 1986 4354 D SurfaceComposerClient: setCornerRadius ## 2c23433 zw.co.melios.quickprop.agent/zw.co.melios.quickprop.agent.MainActivity#487 cornerRadius=0.000000
+08-12 02:12:16.538 1986 2505 I AppsFilter: interaction: PackageSetting{f34572b zw.co.melios.quickprop.agent/10364} -> PackageSetting{9d37e9b androidx.test.tools.crawler.stubapp/10360} BLOCKED
+08-12 02:12:17.844 1986 4118 D NetdEventListenerService: DNS Requested by 100, 10364(zw.co.melios.quickprop.agent), SUCCESS, 3ms
+08-12 02:12:18.062 1986 6687 D SGM:GameManager: identifyForegroundApp. zw.co.melios.quickprop.agent, mCurrentUserId: 0, callerUserId: 0
+08-12 02:12:18.097 1986 4356 D SGM:GameManager: identifyForegroundApp. zw.co.melios.quickprop.agent, mCurrentUserId: 0, callerUserId: 0
+08-12 02:12:18.234 1986 4354 D SGM:GameManager: identifyForegroundApp. zw.co.melios.quickprop.agent, mCurrentUserId: 0, callerUserId: 0
+08-12 02:12:18.234 1986 4353 D SGM:GameManager: identifyForegroundApp. zw.co.melios.quickprop.agent, mCurrentUserId: 0, callerUserId: 0
+08-12 02:12:18.255 4686 13712 I HoneySpace.SuggestAppDecor: getInstaller: zw.co.melios.quickprop.agent [null]
+08-12 02:12:18.361 1986 5426 D FreecessHandler: freeze zw.co.melios.quickprop.agent(10364) result : 12
+08-12 02:12:19.848 1986 4118 D NetdEventListenerService: DNS Requested by 100, 10364(zw.co.melios.quickprop.agent), SUCCESS, 0ms
+08-12 02:12:21.044 4686 30108 I HoneySpace.SuggestAppDecor: getInstaller: zw.co.melios.quickprop.agent [null]
+08-12 02:12:21.188 1986 4358 D SGM:GameManager: identifyForegroundApp. zw.co.melios.quickprop.agent, mCurrentUserId: 0, callerUserId: 0
+08-12 02:12:21.860 1986 4118 D NetdEventListenerService: DNS Requested by 100, 10364(zw.co.melios.quickprop.agent), SUCCESS, 0ms
+08-12 02:12:23.900 1986 4118 D NetdEventListenerService: DNS Requested by 100, 10364(zw.co.melios.quickprop.agent), SUCCESS, 0ms
+08-12 02:12:24.380 1986 5426 D FreecessHandler: freeze zw.co.melios.quickprop.agent(10364) result : 12
+08-12 02:12:25.955 1986 4118 D NetdEventListenerService: DNS Requested by 100, 10364(zw.co.melios.quickprop.agent), SUCCESS, 0ms
+08-12 02:12:27.216 1986 4312 D SGM:GameManager: identifyForegroundApp. zw.co.melios.quickprop.agent, mCurrentUserId: 0, callerUserId: 0
+08-12 02:12:27.995 1986 4118 D NetdEventListenerService: DNS Requested by 100, 10364(zw.co.melios.quickprop.agent), SUCCESS, 0ms
+08-12 02:12:30.040 1986 4118 D NetdEventListenerService: DNS Requested by 100, 10364(zw.co.melios.quickprop.agent), SUCCESS, 0ms
+08-12 02:12:30.388 1986 5426 D FreecessHandler: freeze zw.co.melios.quickprop.agent(10364) result : 12
+08-12 02:12:31.331 1986 4362 D SGM:GameManager: identifyForegroundApp. zw.co.melios.quickprop.agent, mCurrentUserId: 0, callerUserId: 0
+08-12 02:12:32.074 1986 4118 D NetdEventListenerService: DNS Requested by 100, 10364(zw.co.melios.quickprop.agent), SUCCESS, 0ms
+08-12 02:12:33.536 4686 13713 I HoneySpace.SuggestAppDecor: getInstaller: zw.co.melios.quickprop.agent [null]
+08-12 02:12:34.083 1986 4118 D NetdEventListenerService: DNS Requested by 100, 10364(zw.co.melios.quickprop.agent), SUCCESS, 0ms
+08-12 02:12:34.440 1986 4350 D SGM:GameManager: identifyForegroundApp. zw.co.melios.quickprop.agent, mCurrentUserId: 0, callerUserId: 0
+08-12 02:12:36.125 1986 4118 D NetdEventListenerService: DNS Requested by 100, 10364(zw.co.melios.quickprop.agent), SUCCESS, 0ms
+08-12 02:12:36.393 1986 5426 D FreecessHandler: freeze zw.co.melios.quickprop.agent(10364) result : 12
