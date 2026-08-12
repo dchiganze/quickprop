@@ -3,6 +3,7 @@ import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, Alert, Share, Linking, Image,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import * as Sharing from 'expo-sharing';
 import { PropertyBrochureSheet } from '@/components/BrochureSheet';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -195,11 +196,18 @@ export default function ListingDetailScreen() {
     ]);
   };
 
-  const handlePlayVideo = () => {
+  const handlePlayVideo = async () => {
     if (!property.videoUrl) return;
-    Linking.openURL(property.videoUrl).catch(() =>
-      Alert.alert('Cannot Play Video', 'No compatible video player found on this device.')
-    );
+    try {
+      const available = await Sharing.isAvailableAsync();
+      if (available) {
+        await Sharing.shareAsync(property.videoUrl, { mimeType: 'video/mp4', UTI: 'public.movie' });
+      } else {
+        Alert.alert('Cannot Play Video', 'No video player available on this device.');
+      }
+    } catch (e: any) {
+      Alert.alert('Cannot Play Video', e?.message ?? 'Could not open the video.');
+    }
   };
 
   const handleMarkSold = () => {
