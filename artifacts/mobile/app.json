@@ -23,11 +23,11 @@
       "supportsTablet": false,
       "jsEngine": "jsc",
       "bundleIdentifier": "com.quickprop.agent",
-      "buildNumber": "68",
+      "buildNumber": "69",
       "deploymentTarget": "16.4",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
-        "NSCameraUsageDescription": "QuickProp Agent uses the camera to capture property photos and videos for listings.",
+                "NSCameraUsageDescription": "QuickProp Agent uses the camera to capture property photos and videos for listings.",
         "NSPhotoLibraryUsageDescription": "QuickProp Agent accesses your photo library to attach property images to listings.",
         "NSLocationWhenInUseUsageDescription": "QuickProp Agent uses your location to show nearby properties and leads.",
         "NSLocationAlwaysUsageDescription": "QuickProp Agent uses your location to show nearby properties and leads.",
@@ -43,7 +43,7 @@
     },
     "android": {
       "package": "zw.co.melios.quickprop.agent",
-      "versionCode": 10,
+      "versionCode": 11,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
