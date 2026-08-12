@@ -30,6 +30,7 @@ interface FormData {
   videoUri: string;
   address: string;
   suburb: string;
+  showAddress: boolean;
   type: Property['type'];
   price: string;
   currency: string;
@@ -53,7 +54,7 @@ interface FormData {
 }
 
 const defaultForm: FormData = {
-  photos: [], videoUri: '', address: '', suburb: '',
+  photos: [], videoUri: '', address: '', suburb: '', showAddress: false,
   type: 'sale', price: '', currency: 'USD', negotiable: false,
   bedrooms: 3, bathrooms: 2, garages: 1, landSize: '', floorArea: '',
   levies: '', rates: '', referenceNumber: `QP-${Date.now().toString().slice(-6)}`,
@@ -125,6 +126,29 @@ export default function NewListingScreen() {
     }
   };
 
+  const handleRecordVideo = async () => {
+    const camPerm = await ImagePicker.requestCameraPermissionsAsync();
+    if (!camPerm.granted) { Alert.alert('Camera', 'Camera permission is required to record a video.'); return; }
+    const micPerm = await ImagePicker.requestMicrophonePermissionsAsync();
+    if (!micPerm.granted) { Alert.alert('Microphone', 'Microphone permission is required to record video with audio.'); return; }
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: 'videos',
+      videoMaxDuration: 60,
+      allowsEditing: false,
+      videoQuality: ImagePicker.UIImagePickerControllerQualityType.Medium,
+    });
+    if (!result.canceled) { set('videoUri', result.assets[0].uri); }
+  };
+
+  const handlePickVideo = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: 'videos',
+      videoMaxDuration: 60,
+      allowsEditing: false,
+    });
+    if (!result.canceled) { set('videoUri', result.assets[0].uri); }
+  };
+
   const handlePickPhotos = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: 'images',
@@ -157,6 +181,7 @@ export default function NewListingScreen() {
       type: form.type,
       status,
       address: form.address,
+      showAddress: form.showAddress,
       suburb: form.suburb,
       price: parseFloat(form.price) || 0,
       currency: form.currency,
@@ -228,11 +253,32 @@ export default function NewListingScreen() {
         <View style={styles.stepContent}>
           <Text style={[styles.stepHeading, { color: colors.foreground }]}>Property Video</Text>
           <Text style={[styles.stepSub, { color: colors.mutedForeground }]}>Optional — max 60 seconds. Compresses automatically.</Text>
-          <TouchableOpacity style={[styles.videoBtn, { backgroundColor: colors.muted, borderColor: colors.border }]}>
-            <Ionicons name="videocam-outline" size={36} color={colors.primary} />
-            <Text style={[styles.videoBtnTitle, { color: colors.foreground }]}>Record or Upload Video</Text>
-            <Text style={[styles.videoBtnSub, { color: colors.mutedForeground }]}>Max 60 seconds</Text>
-          </TouchableOpacity>
+          {form.videoUri ? (
+            <View style={[styles.videoCount, { backgroundColor: colors.accent + '15', borderColor: colors.accent }]}>
+              <Ionicons name="checkmark-circle" size={18} color={colors.accent} />
+              <Text style={[styles.videoCountText, { color: colors.accent }]}>Video selected</Text>
+              <TouchableOpacity onPress={() => set('videoUri', '')} style={styles.videoRemove}>
+                <Ionicons name="close-circle" size={18} color={colors.mutedForeground} />
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={styles.videoButtons}>
+              <TouchableOpacity
+                style={[styles.videoBtn, { backgroundColor: colors.primary }]}
+                onPress={handleRecordVideo}
+              >
+                <Ionicons name="videocam" size={24} color="#FFF" />
+                <Text style={styles.videoBtnText}>Record Video</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.videoBtn, { backgroundColor: colors.secondary, borderWidth: 1, borderColor: colors.border }]}
+                onPress={handlePickVideo}
+              >
+                <Ionicons name="folder-open-outline" size={24} color={colors.primary} />
+                <Text style={[styles.videoBtnText, { color: colors.primary }]}>Upload Video</Text>
+              </TouchableOpacity>
+            </View>
+          )}
           <View style={[styles.skipInfo, { backgroundColor: colors.secondary, borderColor: colors.border }]}>
             <Ionicons name="information-circle-outline" size={16} color={colors.primary} />
             <Text style={[styles.skipInfoText, { color: colors.mutedForeground }]}>This step is optional. Tap Next to continue.</Text>
@@ -254,6 +300,25 @@ export default function NewListingScreen() {
             <Ionicons name="navigate" size={18} color={colors.accent} />
             <Text style={[styles.gpsBtnText, { color: colors.accent }]}>Use Current GPS Location</Text>
           </TouchableOpacity>
+          <View style={[styles.disclosureCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <View style={styles.disclosureTop}>
+              <Ionicons name="eye-outline" size={18} color={colors.primary} />
+              <View style={styles.disclosureText}>
+                <Text style={[styles.disclosureTitle, { color: colors.foreground }]}>Show exact address publicly</Text>
+                <Text style={[styles.disclosureSub, { color: colors.mutedForeground }]}>
+                  {form.showAddress
+                    ? 'Full street address will appear on the website.'
+                    : 'Only the suburb and approximate area will be shown publicly.'}
+                </Text>
+              </View>
+              <Switch
+                value={form.showAddress}
+                onValueChange={v => { Haptics.selectionAsync(); set('showAddress', v); }}
+                trackColor={{ false: colors.border, true: colors.accent }}
+                thumbColor="#FFF"
+              />
+            </View>
+          </View>
         </View>
       );
 
@@ -427,6 +492,7 @@ export default function NewListingScreen() {
               { label: 'Reference', value: form.referenceNumber },
               { label: 'Type', value: `${form.type.charAt(0).toUpperCase() + form.type.slice(1)}` },
               { label: 'Address', value: `${form.address}, ${form.suburb}` },
+              { label: 'Address visibility', value: form.showAddress ? 'Public (exact address shown)' : 'Private (suburb only)' },
               { label: 'Price', value: `${form.currency} ${form.price}${form.negotiable ? ' (Neg)' : ''}` },
               { label: 'Beds / Baths', value: `${form.bedrooms} bed / ${form.bathrooms} bath` },
               { label: 'Photos', value: `${form.photos.length} added` },
@@ -544,13 +610,21 @@ const styles = StyleSheet.create({
   photoCountText: { fontSize: 14, fontWeight: '700' },
   photoEmpty: { height: 140, alignItems: 'center', justifyContent: 'center', borderRadius: 16, borderWidth: 1, gap: 8 },
   photoEmptyText: { fontSize: 13 },
-  videoBtn: { alignItems: 'center', gap: 10, borderRadius: 16, padding: 32, borderWidth: 1.5, borderStyle: 'dashed' },
-  videoBtnTitle: { fontSize: 16, fontWeight: '700' },
-  videoBtnSub: { fontSize: 13 },
+  videoButtons: { flexDirection: 'row', gap: 12 },
+  videoBtn: { flex: 1, flexDirection: 'column', alignItems: 'center', gap: 8, borderRadius: 16, paddingVertical: 20 },
+  videoBtnText: { color: '#FFF', fontSize: 13, fontWeight: '700' },
+  videoCount: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 14, borderRadius: 12, borderWidth: 1 },
+  videoCountText: { fontSize: 14, fontWeight: '700', flex: 1 },
+  videoRemove: { padding: 2 },
   skipInfo: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 12, borderRadius: 10, borderWidth: 1 },
   skipInfoText: { fontSize: 13, flex: 1 },
   gpsBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 14, borderRadius: 12, borderWidth: 1 },
   gpsBtnText: { fontSize: 14, fontWeight: '700' },
+  disclosureCard: { borderRadius: 14, borderWidth: 1, padding: 14 },
+  disclosureTop: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  disclosureText: { flex: 1, gap: 3 },
+  disclosureTitle: { fontSize: 14, fontWeight: '700' },
+  disclosureSub: { fontSize: 12, lineHeight: 17 },
   input: { borderRadius: 12, borderWidth: 1, paddingHorizontal: 14, paddingVertical: 12, fontSize: 15 },
   textArea: { paddingVertical: 12, minHeight: 100 },
   typeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
