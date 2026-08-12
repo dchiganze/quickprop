@@ -175,6 +175,55 @@ export default function ListingDetailScreen() {
     ]);
   };
 
+  const handleAddVideo = () => {
+    Alert.alert('Add Video', 'Choose a source', [
+      {
+        text: 'Record Video',
+        onPress: async () => {
+          try {
+            const perm = await ImagePicker.requestCameraPermissionsAsync();
+            if (!perm.granted) { Alert.alert('Permission Required', 'Enable camera access in Settings.'); return; }
+            const result = await ImagePicker.launchCameraAsync({ mediaTypes: 'videos', videoMaxDuration: 60, allowsEditing: false });
+            if (!result.canceled && result.assets?.[0]) {
+              updateProperty(property.id, { videoUrl: result.assets[0].uri });
+            }
+          } catch (e: any) { Alert.alert('Camera Error', e?.message ?? 'Could not open camera.'); }
+        },
+      },
+      {
+        text: 'Choose from Library',
+        onPress: async () => {
+          try {
+            const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+            if (!perm.granted) { Alert.alert('Permission Required', 'Enable photo library access in Settings.'); return; }
+            const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: 'videos', videoMaxDuration: 60, allowsEditing: false });
+            if (!result.canceled && result.assets?.[0]) {
+              updateProperty(property.id, { videoUrl: result.assets[0].uri });
+            }
+          } catch (e: any) { Alert.alert('Library Error', e?.message ?? 'Could not open library.'); }
+        },
+      },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
+  };
+
+  const handleRemoveVideo = () => {
+    Alert.alert('Remove Video', 'Remove this video from the listing?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Remove', style: 'destructive',
+        onPress: () => updateProperty(property.id, { videoUrl: undefined }),
+      },
+    ]);
+  };
+
+  const handlePlayVideo = () => {
+    if (!property.videoUrl) return;
+    Linking.openURL(property.videoUrl).catch(() =>
+      Alert.alert('Cannot Play Video', 'No compatible video player found on this device.')
+    );
+  };
+
   const handleMarkSold = () => {
     Alert.alert('Mark as Sold', 'Are you sure you want to mark this property as sold?', [
       { text: 'Cancel', style: 'cancel' },
@@ -252,6 +301,36 @@ export default function ListingDetailScreen() {
             <View style={[styles.statusBadge, { backgroundColor: STATUS_COLORS[property.status] }]}>
               <Text style={styles.statusText}>{property.status.charAt(0).toUpperCase() + property.status.slice(1)}</Text>
             </View>
+          </TouchableOpacity>
+        )}
+
+        {/* Video section */}
+        {property.videoUrl ? (
+          <TouchableOpacity
+            style={[styles.videoCard, { backgroundColor: colors.card, borderColor: colors.border }]}
+            onPress={handlePlayVideo}
+            activeOpacity={0.8}
+          >
+            <View style={[styles.videoThumb, { backgroundColor: '#0A1628' }]}>
+              <Ionicons name="play-circle" size={40} color="#FFF" />
+            </View>
+            <View style={styles.videoInfo}>
+              <Text style={[styles.videoTitle, { color: colors.foreground }]}>Property Video</Text>
+              <Text style={[styles.videoSub, { color: colors.mutedForeground }]}>Tap to play</Text>
+            </View>
+            <TouchableOpacity style={styles.videoRemove} onPress={handleRemoveVideo} hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}>
+              <Ionicons name="close-circle" size={22} color={colors.mutedForeground} />
+            </TouchableOpacity>
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity
+            style={[styles.videoCardEmpty, { borderColor: colors.border, backgroundColor: colors.muted }]}
+            onPress={handleAddVideo}
+            activeOpacity={0.75}
+          >
+            <Ionicons name="videocam-outline" size={22} color={colors.mutedForeground} />
+            <Text style={[styles.videoEmptyText, { color: colors.mutedForeground }]}>Add property video</Text>
+            <Ionicons name="add-circle-outline" size={20} color={colors.primary} />
           </TouchableOpacity>
         )}
 
@@ -537,6 +616,14 @@ const styles = StyleSheet.create({
   infoItem: { flex: 1, minWidth: '45%', borderRadius: 12, padding: 12, gap: 4 },
   infoLabel: { fontSize: 11, fontWeight: '600' },
   infoValue: { fontSize: 14, fontWeight: '700' },
+  videoCard: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 16, marginTop: 12, borderRadius: 14, borderWidth: 1, overflow: 'hidden' },
+  videoThumb: { width: 72, height: 72, alignItems: 'center', justifyContent: 'center' },
+  videoInfo: { flex: 1, paddingHorizontal: 12, gap: 3 },
+  videoTitle: { fontSize: 14, fontWeight: '700' },
+  videoSub: { fontSize: 12 },
+  videoRemove: { paddingRight: 14 },
+  videoCardEmpty: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 16, marginTop: 12, borderRadius: 14, borderWidth: 1, borderStyle: 'dashed', paddingHorizontal: 16, paddingVertical: 14, gap: 10 },
+  videoEmptyText: { flex: 1, fontSize: 14, fontWeight: '500' },
   bottomBar: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingTop: 12, borderTopWidth: 1 },
   bottomBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, borderRadius: 12, paddingVertical: 11 },
   bottomBtnText: { fontSize: 13, fontWeight: '600' },
