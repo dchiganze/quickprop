@@ -133,17 +133,22 @@ export default function ListingDetailScreen() {
     );
   };
 
-  const handleAddPhotos = () => {
-    Alert.alert('Add Photos', 'Choose a source', [
+  const handleAddMedia = () => {
+    Alert.alert('Add Photo or Video', 'Choose a source', [
       {
-        text: 'Take Photo',
+        text: 'Take Photo or Video',
         onPress: async () => {
           try {
             const perm = await ImagePicker.requestCameraPermissionsAsync();
             if (!perm.granted) { Alert.alert('Permission Required', 'Enable camera access in Settings.'); return; }
-            const result = await ImagePicker.launchCameraAsync({ mediaTypes: 'images', quality: 0.8 });
+            const result = await ImagePicker.launchCameraAsync({ mediaTypes: ['images', 'videos'], videoMaxDuration: 60, quality: 0.8 });
             if (!result.canceled && result.assets?.[0]) {
-              updateProperty(property.id, { photos: [...property.photos, result.assets[0].uri] });
+              const asset = result.assets[0];
+              if (asset.type === 'video') {
+                updateProperty(property.id, { videoUrl: asset.uri });
+              } else {
+                updateProperty(property.id, { photos: [...property.photos, asset.uri] });
+              }
             }
           } catch (e: any) { Alert.alert('Camera Error', e?.message ?? 'Could not open camera.'); }
         },
@@ -154,9 +159,14 @@ export default function ListingDetailScreen() {
           try {
             const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
             if (!perm.granted) { Alert.alert('Permission Required', 'Enable photo library access in Settings.'); return; }
-            const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: 'images', allowsMultipleSelection: true, quality: 0.8 });
+            const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images', 'videos'], allowsMultipleSelection: true, videoMaxDuration: 60, quality: 0.8 });
             if (!result.canceled && result.assets?.length) {
-              updateProperty(property.id, { photos: [...property.photos, ...result.assets.map(a => a.uri)] });
+              const newPhotos = result.assets.filter(a => a.type !== 'video').map(a => a.uri);
+              const video = result.assets.find(a => a.type === 'video');
+              const updates: Record<string, unknown> = {};
+              if (newPhotos.length) updates.photos = [...property.photos, ...newPhotos];
+              if (video) updates.videoUrl = video.uri;
+              if (Object.keys(updates).length) updateProperty(property.id, updates as any);
             }
           } catch (e: any) { Alert.alert('Library Error', e?.message ?? 'Could not open library.'); }
         },
@@ -172,38 +182,6 @@ export default function ListingDetailScreen() {
         text: 'Remove', style: 'destructive',
         onPress: () => updateProperty(property.id, { photos: property.photos.filter((_, i) => i !== index) }),
       },
-    ]);
-  };
-
-  const handleAddVideo = () => {
-    Alert.alert('Add Video', 'Choose a source', [
-      {
-        text: 'Record Video',
-        onPress: async () => {
-          try {
-            const perm = await ImagePicker.requestCameraPermissionsAsync();
-            if (!perm.granted) { Alert.alert('Permission Required', 'Enable camera access in Settings.'); return; }
-            const result = await ImagePicker.launchCameraAsync({ mediaTypes: 'videos', videoMaxDuration: 60, allowsEditing: false });
-            if (!result.canceled && result.assets?.[0]) {
-              updateProperty(property.id, { videoUrl: result.assets[0].uri });
-            }
-          } catch (e: any) { Alert.alert('Camera Error', e?.message ?? 'Could not open camera.'); }
-        },
-      },
-      {
-        text: 'Choose from Library',
-        onPress: async () => {
-          try {
-            const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-            if (!perm.granted) { Alert.alert('Permission Required', 'Enable photo library access in Settings.'); return; }
-            const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: 'videos', videoMaxDuration: 60, allowsEditing: false });
-            if (!result.canceled && result.assets?.[0]) {
-              updateProperty(property.id, { videoUrl: result.assets[0].uri });
-            }
-          } catch (e: any) { Alert.alert('Library Error', e?.message ?? 'Could not open library.'); }
-        },
-      },
-      { text: 'Cancel', style: 'cancel' },
     ]);
   };
 
@@ -263,7 +241,7 @@ export default function ListingDetailScreen() {
 
       <ScrollView style={styles.flex} contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 120 }]} showsVerticalScrollIndicator={false}>
         {/* Gallery */}
-        {property.photos.length > 0 ? (
+        {property.photos.length > 0 || property.videoUrl ? (
           <View style={[styles.gallery, { backgroundColor: colors.card }]}>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.galleryScroll}>
               {property.photos.map((uri, index) => (
@@ -274,9 +252,22 @@ export default function ListingDetailScreen() {
                   </TouchableOpacity>
                 </View>
               ))}
+              {property.videoUrl && (
+                <View style={styles.photoThumb}>
+                  <View style={[styles.photoImg, { backgroundColor: '#0A1628', alignItems: 'center', justifyContent: 'center' }]}>
+                    <Ionicons name="videocam" size={28} color="#FFFFFF88" />
+                    <TouchableOpacity onPress={handlePlayVideo} style={styles.videoPlayOverlay}>
+                      <Ionicons name="play-circle" size={36} color="#FFF" />
+                    </TouchableOpacity>
+                  </View>
+                  <TouchableOpacity style={styles.photoDelete} onPress={handleRemoveVideo}>
+                    <Ionicons name="close-circle" size={24} color="#FFF" />
+                  </TouchableOpacity>
+                </View>
+              )}
               <TouchableOpacity
                 style={[styles.addPhotoTile, { backgroundColor: colors.muted, borderColor: colors.border }]}
-                onPress={handleAddPhotos}
+                onPress={handleAddMedia}
               >
                 <Ionicons name="add" size={28} color={colors.primary} />
                 <Text style={[styles.addPhotoLabel, { color: colors.primary }]}>Add</Text>
@@ -287,50 +278,20 @@ export default function ListingDetailScreen() {
             </View>
             <View style={[styles.photoCountBadge, { backgroundColor: '#00000066' }]}>
               <Ionicons name="images-outline" size={12} color="#FFF" />
-              <Text style={styles.photoCountText}>{property.photos.length}</Text>
+              <Text style={styles.photoCountText}>{property.photos.length}{property.videoUrl ? ' · 1 video' : ''}</Text>
             </View>
           </View>
         ) : (
           <TouchableOpacity
             style={[styles.gallery, { backgroundColor: colors.muted }]}
-            onPress={handleAddPhotos}
+            onPress={handleAddMedia}
             activeOpacity={0.75}
           >
             <Ionicons name="camera-outline" size={48} color={colors.mutedForeground} />
-            <Text style={[styles.galleryHint, { color: colors.mutedForeground }]}>Tap to add photos</Text>
+            <Text style={[styles.galleryHint, { color: colors.mutedForeground }]}>Tap to add photo or video</Text>
             <View style={[styles.statusBadge, { backgroundColor: STATUS_COLORS[property.status] }]}>
               <Text style={styles.statusText}>{property.status.charAt(0).toUpperCase() + property.status.slice(1)}</Text>
             </View>
-          </TouchableOpacity>
-        )}
-
-        {/* Video section */}
-        {property.videoUrl ? (
-          <TouchableOpacity
-            style={[styles.videoCard, { backgroundColor: colors.card, borderColor: colors.border }]}
-            onPress={handlePlayVideo}
-            activeOpacity={0.8}
-          >
-            <View style={[styles.videoThumb, { backgroundColor: '#0A1628' }]}>
-              <Ionicons name="play-circle" size={40} color="#FFF" />
-            </View>
-            <View style={styles.videoInfo}>
-              <Text style={[styles.videoTitle, { color: colors.foreground }]}>Property Video</Text>
-              <Text style={[styles.videoSub, { color: colors.mutedForeground }]}>Tap to play</Text>
-            </View>
-            <TouchableOpacity style={styles.videoRemove} onPress={handleRemoveVideo} hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}>
-              <Ionicons name="close-circle" size={22} color={colors.mutedForeground} />
-            </TouchableOpacity>
-          </TouchableOpacity>
-        ) : (
-          <TouchableOpacity
-            style={[styles.videoCardEmpty, { borderColor: colors.border, backgroundColor: colors.muted }]}
-            onPress={handleAddVideo}
-            activeOpacity={0.75}
-          >
-            <Ionicons name="videocam-outline" size={22} color={colors.mutedForeground} />
-            <Text style={[styles.videoEmptyText, { color: colors.mutedForeground }]}>Add property video</Text>
-            <Ionicons name="add-circle-outline" size={20} color={colors.primary} />
           </TouchableOpacity>
         )}
 
@@ -616,14 +577,7 @@ const styles = StyleSheet.create({
   infoItem: { flex: 1, minWidth: '45%', borderRadius: 12, padding: 12, gap: 4 },
   infoLabel: { fontSize: 11, fontWeight: '600' },
   infoValue: { fontSize: 14, fontWeight: '700' },
-  videoCard: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 16, marginTop: 12, borderRadius: 14, borderWidth: 1, overflow: 'hidden' },
-  videoThumb: { width: 72, height: 72, alignItems: 'center', justifyContent: 'center' },
-  videoInfo: { flex: 1, paddingHorizontal: 12, gap: 3 },
-  videoTitle: { fontSize: 14, fontWeight: '700' },
-  videoSub: { fontSize: 12 },
-  videoRemove: { paddingRight: 14 },
-  videoCardEmpty: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 16, marginTop: 12, borderRadius: 14, borderWidth: 1, borderStyle: 'dashed', paddingHorizontal: 16, paddingVertical: 14, gap: 10 },
-  videoEmptyText: { flex: 1, fontSize: 14, fontWeight: '500' },
+  videoPlayOverlay: { position: 'absolute' },
   bottomBar: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingTop: 12, borderTopWidth: 1 },
   bottomBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, borderRadius: 12, paddingVertical: 11 },
   bottomBtnText: { fontSize: 13, fontWeight: '600' },
