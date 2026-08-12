@@ -1,0 +1,28 @@
+2026-08-12T16:48:39.6067698Z ##[group]Run chmod +x gradlew
+2026-08-12T16:48:39.6068051Z [36;1mchmod +x gradlew[0m
+2026-08-12T16:48:39.6068299Z [36;1m./gradlew bundleRelease \[0m
+2026-08-12T16:48:39.6068659Z [36;1m  -Pandroid.injected.signing.store.file="$(pwd)/../android-keystore.jks" \[0m
+2026-08-12T16:48:39.6069285Z [36;1m  -Pandroid.injected.signing.store.*** \[0m
+2026-08-12T16:48:39.6069666Z [36;1m  -Pandroid.injected.signing.key.alias="***" \[0m
+2026-08-12T16:48:39.6070394Z [36;1m  -Pandroid.injected.signing.key.***[0m
+2026-08-12T16:48:39.6088487Z shell: /usr/bin/bash -e {0}
+2026-08-12T16:48:39.6088788Z env:
+2026-08-12T16:48:39.6089120Z   JAVA_HOME: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/17.0.19-10/x64
+2026-08-12T16:48:39.6089539Z   JAVA_HOME_17_X64: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/17.0.19-10/x64
+2026-08-12T16:48:39.6090083Z   PNPM_HOME: /home/runner/setup-pnpm/node_modules/.bin
+2026-08-12T16:48:39.6090402Z   ANDROID_HOME: /usr/local/lib/android/sdk
+2026-08-12T16:48:39.6090662Z ##[endgroup]
+2026-08-12T16:48:41.8572145Z Downloading https://services.gradle.org/distributions/gradle-8.14.3-bin.zip
+2026-08-12T16:48:42.5331575Z ##[error]Exception in thread "main" java.net.SocketException: Unexpected end of file from server
+2026-08-12T16:48:42.5332766Z 
+2026-08-12T16:48:42.5333557Z 	at java.base/sun.net.www.http.HttpClient.parseHTTPHeader(HttpClient.java:954)
+2026-08-12T16:48:42.5334403Z 	at java.base/sun.net.www.http.HttpClient.parseHTTP(HttpClient.java:761)
+2026-08-12T16:48:42.5334976Z 	at java.base/sun.net.www.http.HttpClient.parseHTTPHeader(HttpClient.java:951)
+2026-08-12T16:48:42.5335681Z 	at java.base/sun.net.www.http.HttpClient.parseHTTP(HttpClient.java:761)
+2026-08-12T16:48:42.5336307Z 	at java.base/sun.net.www.protocol.http.HttpURLConnection.getInputStream0(HttpURLConnection.java:1740)
+2026-08-12T16:48:42.5337154Z 	at java.base/sun.net.www.protocol.http.HttpURLConnection.getInputStream(HttpURLConnection.java:1641)
+2026-08-12T16:48:42.5337928Z 	at java.base/sun.net.www.protocol.https.HttpsURLConnectionImpl.getInputStream(HttpsURLConnectionImpl.java:224)
+2026-08-12T16:48:42.5338691Z 	at org.gradle.wrapper.Install.forceFetch(SourceFile:2)
+2026-08-12T16:48:42.5339587Z 	at org.gradle.wrapper.Install$1.call(SourceFile:8)
+2026-08-12T16:48:42.5340352Z 	at org.gradle.wrapper.GradleWrapperMain.main(SourceFile:67)
+2026-08-12T16:48:42.5946765Z ##[error]Process completed with exit code 1.
