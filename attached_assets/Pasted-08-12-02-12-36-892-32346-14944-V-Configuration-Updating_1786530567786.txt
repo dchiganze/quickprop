@@ -1,0 +1,22 @@
+08-12 02:12:36.892 32346 14944 V Configuration: Updating configuration, locales updated from [] to [en_US]
+08-12 02:12:36.894 32346 14944 V Configuration: Updating configuration, locales updated from [] to [en_US]
+08-12 02:12:36.898 32346 14944 V Configuration: Updating configuration, locales updated from [] to [en_US]
+08-12 02:12:36.899 15376 15475 I Finsky : [56] pjc.d(112): playLoggingServerUrl: https://play.googleapis.com/play/log
+08-12 02:12:36.899 15376 15475 I Finsky : [56] pjc.d(129): playLoggingServerTimestampUrl: https://play.googleapis.com/play/log/timestamp
+08-12 02:12:36.901 31300 13733 I SystemMemoryMap: (REDACTED) [activityrecognition] serialization complete (extras/values=%.2f/%.2fkb)
+08-12 02:12:36.901 32346 14944 V Configuration: Updating configuration, locales updated from [] to [en_US]
+08-12 02:12:36.902 32346 14944 V Configuration: Updating configuration, locales updated from [] to [en_US]
+08-12 02:12:36.903 1986 2943 I ActivityManager: Changes in 10276 19 to 8, 0 to 128
+08-12 02:12:36.903 32346 14944 V Configuration: Updating configuration, locales updated from [] to [en_US]
+08-12 02:12:36.905 32346 14944 V Configuration: Updating configuration, locales updated from [] to [en_US]
+08-12 02:12:36.906 32346 14944 V Configuration: Updating configuration, locales updated from [] to [en_US]
+08-12 02:12:36.907 32346 14944 V Configuration: Updating configuration, locales updated from [] to [en_US]
+08-12 02:12:36.907 32346 32346 D BoundBrokerSvc: onBind: Intent { act=com.google.android.gms.chimera.container.moduleinstall.ModuleInstallService.START dat=chimera-action:/... xflg=0x4 cmp=com.google.android.gms/.chimera.GmsApiService }
+08-12 02:12:36.907 32346 32346 D BoundBrokerSvc: Loading bound service for intent: Intent { act=com.google.android.gms.chimera.container.moduleinstall.ModuleInstallService.START dat=chimera-action:/... xflg=0x4 cmp=com.google.android.gms/.chimera.GmsApiService }
+08-12 02:12:36.907 15374 15902 I SamsungCalendar$ScpmHelper: create instance
+08-12 02:12:36.907 15374 15902 I SamsungCalendar$Scpm: SCPM Initialize
+08-12 02:12:36.907 32346 14944 V Configuration: Updating configuration, locales updated from [] to [en_US]
+08-12 02:12:36.909 32346 14944 V Configuration: Updating configuration, locales updated from [] to [en_US]
+08-12 02:12:36.909 15374 15902 I [SCPMSDK][1.0.0803][Configuration]: register : tivhn39mr9
+08-12 02:12:36.909 15374 15902 I [SCPMSDK][1.0.0803][Configuration]: call : Method = register, arg =
+08-12 02:12:36.911 15376 15408 I Finsky : [42] ahpm.q(56): SCH: jobFinished: 10-12. TimeElapsed: 589ms.
