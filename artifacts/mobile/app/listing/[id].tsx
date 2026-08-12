@@ -45,12 +45,91 @@ export default function ListingDetailScreen() {
     );
   }
 
+  const buildShareMessage = () => {
+    const typeLabel = property.type.charAt(0).toUpperCase() + property.type.slice(1);
+    const priceLabel = property.price >= 1_000_000
+      ? `${property.currency} ${(property.price / 1_000_000).toFixed(2)}M`
+      : `${property.currency} ${property.price.toLocaleString()}`;
+    const priceStr = property.type === 'rent' ? `${priceLabel}/mo` : priceLabel;
+
+    const lines: string[] = [];
+    lines.push(`🏠 *${typeLabel} — ${property.suburb}*`);
+    if (property.showAddress && property.address) {
+      lines.push(`📍 ${property.address}, ${property.suburb}`);
+    } else {
+      lines.push(`📍 ${property.suburb}`);
+    }
+    lines.push('');
+    lines.push(`💰 *${priceStr}*${property.negotiable ? ' _(Negotiable)_' : ''}`);
+    lines.push('');
+
+    const statsLine: string[] = [];
+    if (property.bedrooms !== undefined) statsLine.push(`🛏 ${property.bedrooms} bed`);
+    if (property.bathrooms !== undefined) statsLine.push(`🚿 ${property.bathrooms} bath`);
+    if (property.garages !== undefined && property.garages > 0) statsLine.push(`🚗 ${property.garages} garage`);
+    if (statsLine.length > 0) lines.push(statsLine.join('  |  '));
+
+    const sizeLines: string[] = [];
+    if (property.landSize && property.landSize > 0) sizeLines.push(`Land: ${property.landSize.toLocaleString()}m²`);
+    if (property.floorArea && property.floorArea > 0) sizeLines.push(`Floor: ${property.floorArea.toLocaleString()}m²`);
+    if (sizeLines.length > 0) lines.push(`📐 ${sizeLines.join('  |  ')}`);
+
+    if (property.features.length > 0) {
+      lines.push('');
+      lines.push(`✅ *Features:* ${property.features.join(', ')}`);
+    }
+
+    if (property.description) {
+      lines.push('');
+      const desc = property.description.length > 200
+        ? property.description.slice(0, 197) + '…'
+        : property.description;
+      lines.push(`📝 ${desc}`);
+    }
+
+    const financials: string[] = [];
+    if (property.rates && property.rates > 0) financials.push(`Rates: ${property.currency} ${property.rates}/mo`);
+    if (property.levies && property.levies > 0) financials.push(`Levies: ${property.currency} ${property.levies}/mo`);
+    if (financials.length > 0) {
+      lines.push('');
+      lines.push(`💵 ${financials.join('  |  ')}`);
+    }
+
+    if (property.photos.length > 0) {
+      lines.push('');
+      lines.push(`📸 ${property.photos.length} photo${property.photos.length > 1 ? 's' : ''} available`);
+    }
+
+    lines.push('');
+    lines.push(`📋 Ref: *${property.referenceNumber}*`);
+    lines.push('Listed on QuickProp');
+    return lines.join('\n');
+  };
+
   const handleShare = async () => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    Share.share({
-      title: `${property.referenceNumber} — ${property.suburb}`,
-      message: `${property.suburb}\n${property.currency} ${property.price.toLocaleString()}\n${property.bedrooms} bed • ${property.bathrooms} bath\n\nRef: ${property.referenceNumber}`,
-    });
+    const message = buildShareMessage();
+
+    Alert.alert(
+      'Share Property',
+      'How would you like to share this listing?',
+      [
+        {
+          text: 'WhatsApp',
+          onPress: () => {
+            const waUrl = `whatsapp://send?text=${encodeURIComponent(message)}`;
+            Linking.openURL(waUrl).catch(() => {
+              Alert.alert('WhatsApp not found', 'WhatsApp is not installed. Use "Share…" instead.');
+            });
+          },
+        },
+        {
+          text: 'Share…',
+          onPress: () => Share.share({ title: `${property.referenceNumber} — ${property.suburb}`, message }),
+        },
+        { text: 'Cancel', style: 'cancel' },
+      ]
+    );
   };
 
   const handleMarkSold = () => {
@@ -84,7 +163,7 @@ export default function ListingDetailScreen() {
           <TouchableOpacity style={[styles.iconBtn, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={handleShare}>
             <Ionicons name="share-outline" size={20} color={colors.foreground} />
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.iconBtn, { backgroundColor: colors.primary }]}>
+          <TouchableOpacity style={[styles.iconBtn, { backgroundColor: colors.primary }]} onPress={() => router.push(`/edit-listing/${property.id}`)}>
             <Ionicons name="create-outline" size={20} color="#FFF" />
           </TouchableOpacity>
         </View>
@@ -309,7 +388,7 @@ export default function ListingDetailScreen() {
             <Text style={[styles.bottomBtnText, { color: colors.destructive }]}>Sold</Text>
           </TouchableOpacity>
         )}
-        <TouchableOpacity style={[styles.bottomBtnPrimary, { backgroundColor: colors.primary }]}>
+        <TouchableOpacity style={[styles.bottomBtnPrimary, { backgroundColor: colors.primary }]} onPress={() => router.push(`/edit-listing/${property.id}`)}>
           <Ionicons name="create-outline" size={18} color="#FFF" />
           <Text style={styles.bottomBtnPrimaryText}>Edit</Text>
         </TouchableOpacity>

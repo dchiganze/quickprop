@@ -1,0 +1,109 @@
+Run gem install fastlane --no-document 2>&1 | tail -5
+  gem install fastlane --no-document 2>&1 | tail -5
+  fastlane pilot upload \
+    --ipa "/Users/runner/work/_temp/ipa/QuickPropAgent.ipa" \
+    --api_key_path /tmp/asc_key.json \
+    --skip_waiting_for_build_processing true
+  shell: /bin/bash -e {0}
+  env:
+    PNPM_HOME: /Users/runner/setup-pnpm/node_modules/.bin
+    IOS_BUILD_NUMBER: 65
+    PROFILE_UUID: c66196ec-5d56-44c6-98ed-bd14e600a3b6
+    XCODE_WORKSPACE: QuickPropAgent.xcworkspace
+    XCODE_SCHEME: QuickPropAgent
+    SENTRY_RELEASE: 1.0.0+65
+Successfully installed fastlane-2.237.0
+1 gem installed
+[09:59:28]: Get started using a Gemfile for fastlane https://docs.fastlane.tools/getting-started/ios/setup/#use-a-gemfile
+[09:59:30]: Sending anonymous analytics information
+[09:59:30]: Learn more at https://docs.fastlane.tools/#metrics
+[09:59:30]: No personal or sensitive data is sent.
+[09:59:30]: You can disable this by adding `opt_out_usage` at the top of your Fastfile
+[09:59:30]: Creating authorization token for App Store Connect API
+[09:59:30]: Ready to upload new build to TestFlight (App: 6791984702)...
+[09:59:30]: Going to upload updated app to App Store Connect
+[09:59:30]: This might take a few minutes. Please don't interrupt the script.
+[09:59:34]: [altool] Running altool at path '/Applications/Xcode_26.6.app/Contents/SharedFrameworks/ContentDelivery.framework/Resources/altool'...
+
+
+[!] Error uploading ipa file: 
+[09:59:34]: [altool] 
+ [Application Loader Error Output]: [ContentDelivery.Uploader.951024640] The provided entity includes an attribute with a value that has already been used (-19232) The bundle version must be higher than the previously uploaded version: ‘65’. (ID: 61008bbb-3d23-4818-855e-ebd5801641f9)
+
+[Application Loader Error Output]: [altool.951024640] Failed to upload package.
+[09:59:34]: [altool] 2026-08-12 09:59:34.558 ERROR: [ContentDelivery.Uploader.951024640] The provided entity includes an attribute with a value that has already been used (-19232) The bundle version must be higher than the previously uploaded version: ‘65’. (ID: 61008bbb-3d23-4818-855e-ebd5801641f9)
+[Application Loader Error Output]: [altool.951024640] The provided entity includes an attribute with a value that has already been used (-19232) The bundle version must be higher than the previously uploaded version: ‘65’. (ID: 61008bbb-3d23-4818-855e-ebd5801641f9)
+
+[Application Loader Error Output]: [altool.104A3AD30] ExitFailure (31)
+[09:59:34]: [altool]    NSUnderlyingError : The provided entity includes an attribute with a value that has already been used (-19241) The bundle version must be higher than the previously uploaded version.
+[Application Loader Error Output]: The call to the altool completed with a non-zero exit status: 1. This indicates a failure.
+
+[09:59:34]: [altool]       status : 409
+
+[09:59:34]: [altool]       detail : The bundle version must be higher than the previously uploaded version.
+
+[09:59:34]: [altool]       source : 
+
+[09:59:34]: [altool]          pointer : /data/attributes/cfBundleVersion
+
+[09:59:34]: [altool]       id : 61008bbb-3d23-4818-855e-ebd5801641f9
+
+[09:59:34]: [altool]       code : ENTITY_ERROR.ATTRIBUTE.INVALID.DUPLICATE
+
+[09:59:34]: [altool]       title : The provided entity includes an attribute with a value that has already been used
+
+[09:59:34]: [altool]       meta : 
+
+[09:59:34]: [altool]          previousBundleVersion : 65
+
+[09:59:34]: [altool]    previousBundleVersion : 65
+
+[09:59:34]: [altool]    iris-code : ENTITY_ERROR.ATTRIBUTE.INVALID.DUPLICATE
+
+[09:59:34]: [altool] 2026-08-12 09:59:34.560 ERROR: [altool.951024640] Failed to upload package.
+
+[09:59:34]: [altool] Failed to upload archive at '/var/folders/df/djsxfhc17x95674wsm_g8s980000gn/T/214c963e-339e-4d09-8ac0-54b50e65ed6b.ipa'.
+
+[09:59:34]: [altool] 2026-08-12 09:59:34.560 ERROR: [altool.951024640] The provided entity includes an attribute with a value that has already been used (-19232) The bundle version must be higher than the previously uploaded version: ‘65’. (ID: 61008bbb-3d23-4818-855e-ebd5801641f9)
+
+[09:59:34]: [altool]    NSUnderlyingError : The provided entity includes an attribute with a value that has already been used (-19241) The bundle version must be higher than the previously uploaded version.
+
+[09:59:34]: [altool]       status : 409
+
+[09:59:34]: [altool]       detail : The bundle version must be higher than the previously uploaded version.
+
+[09:59:34]: [altool]       source : 
+
+[09:59:34]: [altool]          pointer : /data/attributes/cfBundleVersion
+
+[09:59:34]: [altool]       id : 61008bbb-3d23-4818-855e-ebd5801641f9
+
+[09:59:34]: [altool]       code : ENTITY_ERROR.ATTRIBUTE.INVALID.DUPLICATE
+
+[09:59:34]: [altool]       title : The provided entity includes an attribute with a value that has already been used
+
+[09:59:34]: [altool]       meta : 
+
+[09:59:34]: [altool]          previousBundleVersion : 65
+
+[09:59:34]: [altool]    previousBundleVersion : 65
+
+[09:59:34]: [altool]    iris-code : ENTITY_ERROR.ATTRIBUTE.INVALID.DUPLICATE
+
+[09:59:34]: [altool] 
+
+[09:59:34]: [altool] 2026-08-12 09:59:34.563 ERROR: [altool.104A3AD30] ExitFailure (31)
+
+[09:59:34]: Application Loader output above ^
+[09:59:34]: [ContentDelivery.Uploader.951024640] The provided entity includes an attribute with a value that has already been used (-19232) The bundle version must be higher than the previously uploaded version: ‘65’. (ID: 61008bbb-3d23-4818-855e-ebd5801641f9)
+
+[09:59:34]: [altool.951024640] Failed to upload package.
+
+[09:59:34]: [altool.951024640] The provided entity includes an attribute with a value that has already been used (-19232) The bundle version must be higher than the previously uploaded version: ‘65’. (ID: 61008bbb-3d23-4818-855e-ebd5801641f9)
+
+[09:59:34]: [altool.104A3AD30] ExitFailure (31)
+
+[09:59:34]: The call to the altool completed with a non-zero exit status: 1. This indicates a failure.
+[09:59:34]: Could not download/upload from App Store Connect!
+Error: Process completed with exit code 1.
+1s
