@@ -42,6 +42,8 @@ export default function DashboardScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
     if (action === 'new') router.push('/new-listing');
     else if (action === 'listings') router.push('/(tabs)/listings');
+    else if (action === 'leads') router.push('/(tabs)/leads');
+    else if (action === 'matches') router.push('/(tabs)/matches');
   };
 
   const TASK_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
