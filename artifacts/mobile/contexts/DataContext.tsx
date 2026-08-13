@@ -1,12 +1,20 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useMemo } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Property, Lead, BuyerMatch, Task } from '@/types';
+import { Property, Lead, BuyerMatch, Task, PropertyAlert } from '@/types';
+
+export interface AlertMatch {
+  alert: PropertyAlert;
+  properties: Property[];
+}
 
 interface DataContextType {
   properties: Property[];
   leads: Lead[];
   buyerMatches: BuyerMatch[];
   tasks: Task[];
+  alerts: PropertyAlert[];
+  alertMatches: AlertMatch[];
+  unseenMatchCount: number;
   isLoading: boolean;
   addProperty: (p: Omit<Property, 'id' | 'createdAt' | 'updatedAt'>) => Promise<Property>;
   updateProperty: (id: string, updates: Partial<Property>) => Promise<void>;
@@ -16,12 +24,31 @@ interface DataContextType {
   addTask: (t: Omit<Task, 'id' | 'createdAt'>) => Promise<void>;
   updateTask: (id: string, updates: Partial<Task>) => Promise<void>;
   deleteTask: (id: string) => Promise<void>;
+  addAlert: (a: Omit<PropertyAlert, 'id' | 'createdAt' | 'seenPropertyIds'>) => Promise<void>;
+  deleteAlert: (id: string) => Promise<void>;
+  dismissAlertMatches: (alertId: string, propertyIds: string[]) => Promise<void>;
 }
 
 const PROPS_KEY = '@qp_properties';
 const LEADS_KEY = '@qp_leads';
 const MATCHES_KEY = '@qp_matches';
 const TASKS_KEY = '@qp_tasks';
+const ALERTS_KEY = '@qp_alerts';
+
+export function propertyMatchesAlert(p: Property, alert: PropertyAlert): boolean {
+  if (alert.type && p.type !== alert.type) return false;
+  if (alert.suburb && !p.suburb.toLowerCase().includes(alert.suburb.toLowerCase())) return false;
+  if (alert.minBedrooms && (p.bedrooms ?? 0) < alert.minBedrooms) return false;
+  if (alert.maxPrice && p.price > alert.maxPrice) return false;
+  if (alert.currency && p.currency !== alert.currency) return false;
+  if (alert.features.length > 0) {
+    const hasAll = alert.features.every(f =>
+      p.features.some(pf => pf.toLowerCase().includes(f.toLowerCase()))
+    );
+    if (!hasAll) return false;
+  }
+  return true;
+}
 
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 const now = () => new Date().toISOString();
@@ -181,21 +208,24 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [buyerMatches, setBuyerMatches] = useState<BuyerMatch[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [alerts, setAlerts] = useState<PropertyAlert[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const load = async () => {
       try {
-        const [ps, ls, ms, ts] = await Promise.all([
+        const [ps, ls, ms, ts, as_] = await Promise.all([
           AsyncStorage.getItem(PROPS_KEY),
           AsyncStorage.getItem(LEADS_KEY),
           AsyncStorage.getItem(MATCHES_KEY),
           AsyncStorage.getItem(TASKS_KEY),
+          AsyncStorage.getItem(ALERTS_KEY),
         ]);
         setProperties(ps ? JSON.parse(ps) : MOCK_PROPERTIES);
         setLeads(ls ? JSON.parse(ls) : MOCK_LEADS);
         setBuyerMatches(ms ? JSON.parse(ms) : MOCK_MATCHES);
         setTasks(ts ? JSON.parse(ts) : MOCK_TASKS);
+        setAlerts(as_ ? JSON.parse(as_) : []);
         if (!ps) await AsyncStorage.setItem(PROPS_KEY, JSON.stringify(MOCK_PROPERTIES));
         if (!ls) await AsyncStorage.setItem(LEADS_KEY, JSON.stringify(MOCK_LEADS));
         if (!ms) await AsyncStorage.setItem(MATCHES_KEY, JSON.stringify(MOCK_MATCHES));
@@ -208,6 +238,25 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const save = async (key: string, data: unknown[]) => AsyncStorage.setItem(key, JSON.stringify(data));
+
+  // Compute which published properties match each alert and haven't been dismissed
+  const alertMatches = useMemo<AlertMatch[]>(() => {
+    return alerts
+      .map(alert => ({
+        alert,
+        properties: properties.filter(
+          p => p.status === 'published' &&
+            !alert.seenPropertyIds.includes(p.id) &&
+            propertyMatchesAlert(p, alert)
+        ),
+      }))
+      .filter(m => m.properties.length > 0);
+  }, [alerts, properties]);
+
+  const unseenMatchCount = useMemo(
+    () => alertMatches.reduce((sum, m) => sum + m.properties.length, 0),
+    [alertMatches]
+  );
 
   const addProperty = async (p: Omit<Property, 'id' | 'createdAt' | 'updatedAt'>) => {
     const prop: Property = { ...p, id: uid(), createdAt: now(), updatedAt: now() };
@@ -262,11 +311,36 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     await save(TASKS_KEY, updated);
   };
 
+  const addAlert = async (a: Omit<PropertyAlert, 'id' | 'createdAt' | 'seenPropertyIds'>) => {
+    const alert: PropertyAlert = { ...a, id: uid(), createdAt: now(), seenPropertyIds: [] };
+    const updated = [...alerts, alert];
+    setAlerts(updated);
+    await save(ALERTS_KEY, updated);
+  };
+
+  const deleteAlert = async (id: string) => {
+    const updated = alerts.filter(a => a.id !== id);
+    setAlerts(updated);
+    await save(ALERTS_KEY, updated);
+  };
+
+  const dismissAlertMatches = async (alertId: string, propertyIds: string[]) => {
+    const updated = alerts.map(a =>
+      a.id === alertId
+        ? { ...a, seenPropertyIds: [...new Set([...a.seenPropertyIds, ...propertyIds])] }
+        : a
+    );
+    setAlerts(updated);
+    await save(ALERTS_KEY, updated);
+  };
+
   return (
     <DataContext.Provider value={{
-      properties, leads, buyerMatches, tasks, isLoading,
+      properties, leads, buyerMatches, tasks, alerts,
+      alertMatches, unseenMatchCount, isLoading,
       addProperty, updateProperty, deleteProperty,
       addLead, updateLead, addTask, updateTask, deleteTask,
+      addAlert, deleteAlert, dismissAlertMatches,
     }}>
       {children}
     </DataContext.Provider>

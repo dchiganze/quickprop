@@ -95,6 +95,20 @@ export const PROPERTY_FEATURES = [
   'Irrigation', 'Boma', 'Lapa', 'Outhouse',
 ];
 
+export interface PropertyAlert {
+  id: string;
+  agentId: string;
+  name: string;
+  type?: Property['type'];
+  suburb?: string;
+  minBedrooms?: number;
+  maxPrice?: number;
+  currency?: string;
+  features: string[];
+  createdAt: string;
+  seenPropertyIds: string[];
+}
+
 export const LEAD_STAGES: Record<Lead['stage'], { label: string; color: string }> = {
   new: { label: 'New', color: '#3B82F6' },
   contacted: { label: 'Contacted', color: '#8B5CF6' },
