@@ -1,0 +1,415 @@
+2026-08-13T16:03:00.9324864Z ##[group]Run chmod +x gradlew
+2026-08-13T16:03:00.9325864Z [36;1mchmod +x gradlew[0m
+2026-08-13T16:03:00.9326282Z [36;1m./gradlew bundleRelease \[0m
+2026-08-13T16:03:00.9326960Z [36;1m  -Pandroid.injected.signing.store.file="$(pwd)/../android-keystore.jks" \[0m
+2026-08-13T16:03:00.9328193Z [36;1m  -Pandroid.injected.signing.store.*** \[0m
+2026-08-13T16:03:00.9329034Z [36;1m  -Pandroid.injected.signing.key.alias="***" \[0m
+2026-08-13T16:03:00.9329844Z [36;1m  -Pandroid.injected.signing.key.***[0m
+2026-08-13T16:03:00.9388235Z shell: /usr/bin/bash -e {0}
+2026-08-13T16:03:00.9388673Z env:
+2026-08-13T16:03:00.9389165Z   JAVA_HOME: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/17.0.20-8/x64
+2026-08-13T16:03:00.9389979Z   JAVA_HOME_17_X64: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/17.0.20-8/x64
+2026-08-13T16:03:00.9390701Z   PNPM_HOME: /home/runner/setup-pnpm/node_modules/.bin
+2026-08-13T16:03:00.9391566Z   ANDROID_HOME: /usr/local/lib/android/sdk
+2026-08-13T16:03:00.9392003Z ##[endgroup]
+2026-08-13T16:03:02.6633795Z Downloading https://services.gradle.org/distributions/gradle-8.14.3-bin.zip
+2026-08-13T16:03:05.2230869Z .............10%.............20%.............30%.............40%.............50%.............60%.............70%.............80%.............90%..............100%
+2026-08-13T16:03:06.7769991Z 
+2026-08-13T16:03:06.7771175Z Welcome to Gradle 8.14.3!
+2026-08-13T16:03:06.7771542Z 
+2026-08-13T16:03:06.7775463Z Here are the highlights of this release:
+2026-08-13T16:03:06.7776140Z  - Java 24 support
+2026-08-13T16:03:06.7786271Z  - GraalVM Native Image toolchain selection
+2026-08-13T16:03:06.7789013Z  - Enhancements to test reporting
+2026-08-13T16:03:06.7789393Z  - Build Authoring improvements
+2026-08-13T16:03:06.7789579Z 
+2026-08-13T16:03:06.7789886Z For more details see https://docs.gradle.org/8.14.3/release-notes.html
+2026-08-13T16:03:06.7790231Z 
+2026-08-13T16:03:06.8767594Z Starting a Gradle Daemon (subsequent builds will be faster)
+2026-08-13T16:03:51.8759785Z 
+2026-08-13T16:03:51.8807342Z > Configure project :expo-gradle-plugin:expo-autolinking-plugin
+2026-08-13T16:03:51.8838302Z w: file:///home/runner/work/quickprop/quickprop/node_modules/.pnpm/expo-modules-autolinking@3.0.26/node_modules/expo-modules-autolinking/android/expo-gradle-plugin/expo-autolinking-plugin/build.gradle.kts:25:3: 'kotlinOptions(KotlinJvmOptionsDeprecated /* = KotlinJvmOptions */.() -> Unit): Unit' is deprecated. Please migrate to the compilerOptions DSL. More details are here: https://kotl.in/u1r8ln
+2026-08-13T16:03:54.0768943Z 
+2026-08-13T16:03:54.0777209Z > Configure project :expo-gradle-plugin:expo-autolinking-settings-plugin
+2026-08-13T16:03:54.0784947Z w: file:///home/runner/work/quickprop/quickprop/node_modules/.pnpm/expo-modules-autolinking@3.0.26/node_modules/expo-modules-autolinking/android/expo-gradle-plugin/expo-autolinking-settings-plugin/build.gradle.kts:30:3: 'kotlinOptions(KotlinJvmOptionsDeprecated /* = KotlinJvmOptions */.() -> Unit): Unit' is deprecated. Please migrate to the compilerOptions DSL. More details are here: https://kotl.in/u1r8ln
+2026-08-13T16:04:00.1764663Z 
+2026-08-13T16:04:00.1786553Z > Task :gradle-plugin:settings-plugin:checkKotlinGradlePluginConfigurationErrors SKIPPED
+2026-08-13T16:04:00.1788196Z > Task :expo-gradle-plugin:expo-autolinking-plugin-shared:checkKotlinGradlePluginConfigurationErrors SKIPPED
+2026-08-13T16:04:00.1789560Z > Task :gradle-plugin:shared:checkKotlinGradlePluginConfigurationErrors SKIPPED
+2026-08-13T16:04:00.1806549Z > Task :expo-gradle-plugin:expo-autolinking-settings-plugin:checkKotlinGradlePluginConfigurationErrors SKIPPED
+2026-08-13T16:04:00.2760296Z > Task :gradle-plugin:settings-plugin:pluginDescriptors
+2026-08-13T16:04:00.2761306Z > Task :expo-gradle-plugin:expo-autolinking-settings-plugin:pluginDescriptors
+2026-08-13T16:04:00.3760732Z > Task :expo-gradle-plugin:expo-autolinking-settings-plugin:processResources
+2026-08-13T16:04:00.3762354Z > Task :gradle-plugin:settings-plugin:processResources
+2026-08-13T16:04:06.3761641Z > Task :expo-gradle-plugin:expo-autolinking-plugin-shared:processResources NO-SOURCE
+2026-08-13T16:04:06.3817056Z > Task :gradle-plugin:shared:processResources NO-SOURCE
+2026-08-13T16:04:16.5763817Z > Task :gradle-plugin:shared:compileKotlin
+2026-08-13T16:04:16.5786192Z > Task :gradle-plugin:shared:compileJava NO-SOURCE
+2026-08-13T16:04:16.5789208Z > Task :gradle-plugin:shared:classes UP-TO-DATE
+2026-08-13T16:04:16.6759374Z > Task :gradle-plugin:shared:jar
+2026-08-13T16:04:19.1767090Z > Task :expo-gradle-plugin:expo-autolinking-plugin-shared:compileKotlin
+2026-08-13T16:04:19.2762041Z > Task :expo-gradle-plugin:expo-autolinking-plugin-shared:compileJava NO-SOURCE
+2026-08-13T16:04:19.2767717Z > Task :expo-gradle-plugin:expo-autolinking-plugin-shared:classes UP-TO-DATE
+2026-08-13T16:04:19.2768767Z > Task :expo-gradle-plugin:expo-autolinking-plugin-shared:jar
+2026-08-13T16:04:27.3796703Z > Task :gradle-plugin:settings-plugin:compileKotlin
+2026-08-13T16:04:27.3856012Z > Task :gradle-plugin:settings-plugin:compileJava NO-SOURCE
+2026-08-13T16:04:27.3946584Z > Task :gradle-plugin:settings-plugin:classes
+2026-08-13T16:04:27.4786653Z > Task :gradle-plugin:settings-plugin:jar
+2026-08-13T16:04:28.3759231Z > Task :expo-gradle-plugin:expo-autolinking-settings-plugin:compileKotlin
+2026-08-13T16:04:28.3760051Z > Task :expo-gradle-plugin:expo-autolinking-settings-plugin:compileJava NO-SOURCE
+2026-08-13T16:04:28.3760672Z > Task :expo-gradle-plugin:expo-autolinking-settings-plugin:classes
+2026-08-13T16:04:28.3761212Z > Task :expo-gradle-plugin:expo-autolinking-settings-plugin:jar
+2026-08-13T16:04:33.9785989Z 
+2026-08-13T16:04:33.9787730Z > Configure project :expo-module-gradle-plugin
+2026-08-13T16:04:33.9811654Z w: file:///home/runner/work/quickprop/quickprop/node_modules/.pnpm/expo-modules-core@3.0.30_react-native@0.81.5_@babel+core@7.29.7_@types+react@19.1.17_react@19.1.0__react@19.1.0/node_modules/expo-modules-core/expo-module-gradle-plugin/build.gradle.kts:58:3: 'kotlinOptions(KotlinJvmOptionsDeprecated /* = KotlinJvmOptions */.() -> Unit): Unit' is deprecated. Please migrate to the compilerOptions DSL. More details are here: https://kotl.in/u1r8ln
+2026-08-13T16:04:39.3788200Z 
+2026-08-13T16:04:39.3789522Z > Task :gradle-plugin:react-native-gradle-plugin:checkKotlinGradlePluginConfigurationErrors SKIPPED
+2026-08-13T16:04:39.3790997Z > Task :expo-module-gradle-plugin:checkKotlinGradlePluginConfigurationErrors SKIPPED
+2026-08-13T16:04:39.3792374Z > Task :expo-gradle-plugin:expo-autolinking-plugin:checkKotlinGradlePluginConfigurationErrors SKIPPED
+2026-08-13T16:04:39.3793596Z > Task :expo-module-gradle-plugin:pluginDescriptors
+2026-08-13T16:04:39.3794676Z > Task :expo-module-gradle-plugin:processResources
+2026-08-13T16:04:39.4787040Z > Task :expo-gradle-plugin:expo-autolinking-plugin:pluginDescriptors
+2026-08-13T16:04:39.4830587Z > Task :expo-gradle-plugin:expo-autolinking-plugin:processResources
+2026-08-13T16:04:43.6786660Z > Task :gradle-plugin:react-native-gradle-plugin:pluginDescriptors
+2026-08-13T16:04:43.6819688Z > Task :gradle-plugin:react-native-gradle-plugin:processResources
+2026-08-13T16:04:44.2762901Z > Task :expo-gradle-plugin:expo-autolinking-plugin:compileKotlin
+2026-08-13T16:04:44.2791505Z > Task :expo-gradle-plugin:expo-autolinking-plugin:compileJava NO-SOURCE
+2026-08-13T16:04:44.2812200Z > Task :expo-gradle-plugin:expo-autolinking-plugin:classes
+2026-08-13T16:04:44.3786766Z > Task :expo-gradle-plugin:expo-autolinking-plugin:jar
+2026-08-13T16:04:48.6786712Z > Task :gradle-plugin:react-native-gradle-plugin:compileKotlin
+2026-08-13T16:04:48.6816437Z > Task :gradle-plugin:react-native-gradle-plugin:compileJava NO-SOURCE
+2026-08-13T16:04:48.6846259Z > Task :gradle-plugin:react-native-gradle-plugin:classes
+2026-08-13T16:04:48.7759712Z > Task :gradle-plugin:react-native-gradle-plugin:jar
+2026-08-13T16:04:50.6762951Z 
+2026-08-13T16:04:50.6776504Z > Task :expo-module-gradle-plugin:compileKotlin
+2026-08-13T16:04:50.6780421Z w: file:///home/runner/work/quickprop/quickprop/node_modules/.pnpm/expo-modules-core@3.0.30_react-native@0.81.5_@babel+core@7.29.7_@types+react@19.1.17_react@19.1.0__react@19.1.0/node_modules/expo-modules-core/expo-module-gradle-plugin/src/main/kotlin/expo/modules/plugin/android/AndroidLibraryExtension.kt:9:24 'var targetSdk: Int?' is deprecated. Will be removed from library DSL in v9.0. Use testOptions.targetSdk or/and lint.targetSdk instead.
+2026-08-13T16:04:50.6783353Z 
+2026-08-13T16:04:50.6791382Z > Task :expo-module-gradle-plugin:compileJava NO-SOURCE
+2026-08-13T16:04:50.6792317Z > Task :expo-module-gradle-plugin:classes
+2026-08-13T16:04:50.6793066Z > Task :expo-module-gradle-plugin:jar
+2026-08-13T16:04:59.3758581Z 
+2026-08-13T16:04:59.3768905Z > Configure project :
+2026-08-13T16:04:59.3770338Z [32m[ExpoRootProject][0m Using the following versions:
+2026-08-13T16:04:59.3771317Z   - buildTools:  [32m36.0.0[0m
+2026-08-13T16:04:59.3772023Z   - minSdk:      [32m24[0m
+2026-08-13T16:04:59.3773470Z   - compileSdk:  [32m36[0m
+2026-08-13T16:04:59.3774136Z   - targetSdk:   [32m36[0m
+2026-08-13T16:04:59.3777714Z   - ndk:         [32m27.1.12297006[0m
+2026-08-13T16:04:59.3778552Z   - kotlin:      [32m2.1.20[0m
+2026-08-13T16:04:59.3779289Z   - ksp:         [32m2.1.20-2.0.1[0m
+2026-08-13T16:05:04.8758286Z 
+2026-08-13T16:05:04.8759125Z > Configure project :expo
+2026-08-13T16:05:04.8759584Z 
+2026-08-13T16:05:04.8759984Z Using expo modules
+2026-08-13T16:05:04.8763296Z   - [32msentry-react-native-expo[0m (unspecified)
+2026-08-13T16:05:04.8764309Z   - [32mexpo-constants[0m (18.0.13)
+2026-08-13T16:05:33.9758903Z 
+2026-08-13T16:05:33.9762107Z > Configure project :expo-modules-core
+2026-08-13T16:05:33.9763357Z Warning: Still waiting for package manifests to be fetched remotely.
+2026-08-13T16:05:33.9764829Z Checking the license for package NDK (Side by side) 27.1.12297006 in /usr/local/lib/android/sdk/licenses
+2026-08-13T16:05:33.9766092Z License for package NDK (Side by side) 27.1.12297006 accepted.
+2026-08-13T16:05:33.9767031Z Preparing "Install NDK (Side by side) 27.1.12297006 v.27.1.12297006".
+2026-08-13T16:05:39.6759165Z "Install NDK (Side by side) 27.1.12297006 v.27.1.12297006" ready.
+2026-08-13T16:05:39.7759317Z Installing NDK (Side by side) 27.1.12297006 in /usr/local/lib/android/sdk/ndk/27.1.12297006
+2026-08-13T16:05:39.7760370Z "Install NDK (Side by side) 27.1.12297006 v.27.1.12297006" complete.
+2026-08-13T16:05:40.0760282Z "Install NDK (Side by side) 27.1.12297006 v.27.1.12297006" finished.
+2026-08-13T16:05:40.3758311Z 
+2026-08-13T16:05:40.3816529Z > Configure project :expo
+2026-08-13T16:05:40.3846503Z   - [32mexpo-modules-core[0m (3.0.30)
+2026-08-13T16:05:40.3847653Z   - [33m[📦][0m [32mexpo-asset[0m (12.0.13)
+2026-08-13T16:05:40.3906631Z   - [33m[📦][0m [32mexpo-blur[0m (15.0.8)
+2026-08-13T16:05:40.3936470Z   - [33m[📦][0m [32mexpo-file-system[0m (19.0.23)
+2026-08-13T16:05:40.3966572Z   - [33m[📦][0m [32mexpo-font[0m (14.0.12)
+2026-08-13T16:05:40.3974556Z   - [33m[📦][0m [32mexpo-haptics[0m (15.0.8)
+2026-08-13T16:05:40.3975830Z   - [33m[📦][0m [32mexpo-image[0m (3.0.11)
+2026-08-13T16:05:40.3976675Z   - [33m[📦][0m [32mexpo-image-loader[0m (6.0.0)
+2026-08-13T16:05:40.3977557Z   - [33m[📦][0m [32mexpo-image-picker[0m (17.0.11)
+2026-08-13T16:05:40.3978410Z   - [33m[📦][0m [32mexpo-keep-awake[0m (15.0.8)
+2026-08-13T16:05:40.3979307Z   - [33m[📦][0m [32mexpo-linear-gradient[0m (15.0.8)
+2026-08-13T16:05:40.3980155Z   - [33m[📦][0m [32mexpo-linking[0m (8.0.12)
+2026-08-13T16:05:40.3981038Z   - [33m[📦][0m [32mexpo-local-authentication[0m (17.0.8)
+2026-08-13T16:05:40.3981907Z   - [33m[📦][0m [32mexpo-location[0m (19.0.8)
+2026-08-13T16:05:40.3982695Z   - [33m[📦][0m [32mexpo-print[0m (15.0.8)
+2026-08-13T16:05:40.3983527Z   - [33m[📦][0m [32mexpo-secure-store[0m (15.0.8)
+2026-08-13T16:05:40.3984399Z   - [33m[📦][0m [32mexpo-sharing[0m (14.0.8)
+2026-08-13T16:05:40.3985416Z   - [33m[📦][0m [32mexpo-splash-screen[0m (31.0.13)
+2026-08-13T16:05:40.3986292Z   - [33m[📦][0m [32mexpo-system-ui[0m (6.0.9)
+2026-08-13T16:05:40.3987068Z   - [33m[📦][0m [32mexpo-video[0m (3.0.16)
+2026-08-13T16:05:40.3988453Z   - [33m[📦][0m [32mexpo-web-browser[0m (15.0.11)
+2026-08-13T16:05:40.3989022Z 
+2026-08-13T16:08:15.8775903Z 
+2026-08-13T16:08:15.8836534Z > Task :expo-modules-core:preBuild UP-TO-DATE
+2026-08-13T16:08:15.8837499Z > Task :react-native-async-storage_async-storage:preBuild UP-TO-DATE
+2026-08-13T16:08:15.8866452Z > Task :react-native-gesture-handler:preBuild UP-TO-DATE
+2026-08-13T16:08:15.8946497Z > Task :react-native-keyboard-controller:preBuild UP-TO-DATE
+2026-08-13T16:08:15.8947431Z > Task :react-native-safe-area-context:preBuild UP-TO-DATE
+2026-08-13T16:08:15.8976405Z > Task :react-native-screens:preBuild UP-TO-DATE
+2026-08-13T16:08:15.9019072Z > Task :react-native-svg:preBuild UP-TO-DATE
+2026-08-13T16:08:15.9096197Z > Task :sentry-react-native-expo:preBuild UP-TO-DATE
+2026-08-13T16:08:15.9133526Z > Task :sentry_react-native:preBuild UP-TO-DATE
+2026-08-13T16:08:15.9162563Z > Task :expo-modules-core:preReleaseBuild UP-TO-DATE
+2026-08-13T16:08:15.9805579Z > Task :expo-modules-core:generateReleaseResValues
+2026-08-13T16:08:15.9836499Z > Task :expo-modules-core:generateReleaseResources
+2026-08-13T16:08:16.0797461Z The NODE_ENV environment variable is required but was not specified. Ensure the project is bundled with Expo CLI or NODE_ENV is set. Using only .env.local and .env
+2026-08-13T16:08:16.0798518Z 
+2026-08-13T16:08:16.0828325Z > Task :expo-constants:createExpoConfig
+2026-08-13T16:08:16.0853263Z 
+2026-08-13T16:08:16.0898733Z > Task :expo-constants:preBuild
+2026-08-13T16:08:16.0899495Z > Task :expo-constants:preReleaseBuild
+2026-08-13T16:08:16.0900526Z > Task :expo-constants:generateReleaseResValues
+2026-08-13T16:08:16.0901594Z > Task :expo-constants:generateReleaseResources
+2026-08-13T16:08:16.0902468Z > Task :expo-modules-core:packageReleaseResources
+2026-08-13T16:08:16.0903556Z > Task :react-native-async-storage_async-storage:preReleaseBuild UP-TO-DATE
+2026-08-13T16:08:16.0904629Z > Task :expo-constants:packageReleaseResources
+2026-08-13T16:08:16.0905770Z > Task :react-native-gesture-handler:preReleaseBuild UP-TO-DATE
+2026-08-13T16:08:16.0906832Z > Task :react-native-gesture-handler:generateReleaseResValues
+2026-08-13T16:08:16.0907941Z > Task :react-native-async-storage_async-storage:generateReleaseResValues
+2026-08-13T16:08:16.0909053Z > Task :react-native-gesture-handler:generateReleaseResources
+2026-08-13T16:08:16.0910153Z > Task :react-native-async-storage_async-storage:generateReleaseResources
+2026-08-13T16:08:16.0911319Z > Task :react-native-async-storage_async-storage:packageReleaseResources
+2026-08-13T16:08:16.0912451Z > Task :react-native-keyboard-controller:preReleaseBuild UP-TO-DATE
+2026-08-13T16:08:16.0913539Z > Task :react-native-gesture-handler:packageReleaseResources
+2026-08-13T16:08:16.0914579Z > Task :react-native-safe-area-context:preReleaseBuild UP-TO-DATE
+2026-08-13T16:08:16.0915810Z > Task :react-native-keyboard-controller:generateReleaseResValues
+2026-08-13T16:08:16.1794739Z > Task :react-native-safe-area-context:generateReleaseResValues
+2026-08-13T16:08:16.1816729Z > Task :react-native-keyboard-controller:generateReleaseResources
+2026-08-13T16:08:16.1836467Z > Task :react-native-safe-area-context:generateReleaseResources
+2026-08-13T16:08:16.1856335Z > Task :react-native-safe-area-context:packageReleaseResources
+2026-08-13T16:08:16.1863205Z > Task :react-native-screens:preReleaseBuild UP-TO-DATE
+2026-08-13T16:08:16.1864276Z > Task :react-native-screens:generateReleaseResValues
+2026-08-13T16:08:16.1865361Z > Task :react-native-screens:generateReleaseResources
+2026-08-13T16:08:16.3793316Z > Task :react-native-keyboard-controller:packageReleaseResources
+2026-08-13T16:08:16.3818107Z > Task :react-native-svg:preReleaseBuild UP-TO-DATE
+2026-08-13T16:08:16.3846175Z > Task :react-native-svg:generateReleaseResValues
+2026-08-13T16:08:16.3873341Z > Task :react-native-svg:generateReleaseResources
+2026-08-13T16:08:16.3906171Z > Task :react-native-screens:packageReleaseResources
+2026-08-13T16:08:16.3927482Z > Task :sentry-react-native-expo:preReleaseBuild UP-TO-DATE
+2026-08-13T16:08:16.3937670Z > Task :sentry-react-native-expo:generateReleaseResValues
+2026-08-13T16:08:16.3996364Z > Task :sentry-react-native-expo:generateReleaseResources
+2026-08-13T16:08:16.4024893Z > Task :react-native-svg:packageReleaseResources
+2026-08-13T16:08:16.4073613Z > Task :sentry_react-native:preReleaseBuild UP-TO-DATE
+2026-08-13T16:08:16.4093303Z > Task :sentry_react-native:generateReleaseResValues
+2026-08-13T16:08:16.4780484Z > Task :sentry_react-native:generateReleaseResources
+2026-08-13T16:08:16.4836497Z > Task :sentry-react-native-expo:packageReleaseResources
+2026-08-13T16:08:16.4886510Z > Task :expo-constants:extractDeepLinksRelease
+2026-08-13T16:08:16.4896377Z > Task :sentry_react-native:packageReleaseResources
+2026-08-13T16:08:16.4916354Z > Task :expo-modules-core:extractDeepLinksRelease
+2026-08-13T16:08:16.6760329Z > Task :expo-constants:processReleaseManifest
+2026-08-13T16:08:16.6813565Z 
+2026-08-13T16:08:16.6837131Z > Task :expo-modules-core:processReleaseManifest
+2026-08-13T16:08:16.6839531Z /home/runner/work/quickprop/quickprop/node_modules/.pnpm/expo-modules-core@3.0.30_react-native@0.81.5_@babel+core@7.29.7_@types+react@19.1.17_react@19.1.0__react@19.1.0/node_modules/expo-modules-core/android/src/main/AndroidManifest.xml:8:9-11:45 Warning:
+2026-08-13T16:08:16.6849522Z 	meta-data#com.facebook.soloader.enabled@android:value was tagged at AndroidManifest.xml:8 to replace other declarations but no other declaration present
+2026-08-13T16:08:16.6850426Z 
+2026-08-13T16:08:16.6850893Z > Task :react-native-async-storage_async-storage:extractDeepLinksRelease
+2026-08-13T16:08:16.6851740Z > Task :react-native-gesture-handler:extractDeepLinksRelease
+2026-08-13T16:08:16.6852478Z > Task :react-native-gesture-handler:processReleaseManifest
+2026-08-13T16:08:16.6852861Z 
+2026-08-13T16:08:16.6853287Z > Task :react-native-async-storage_async-storage:processReleaseManifest
+2026-08-13T16:08:16.6856351Z package="com.reactnativecommunity.asyncstorage" found in source AndroidManifest.xml: /home/runner/work/quickprop/quickprop/node_modules/.pnpm/@react-native-async-storage+async-storage@2.2.0_react-native@0.81.5_@babel+core@7.29.7_@types_mlvz6ddtrp7zd4rlx2jkw65ht4/node_modules/@react-native-async-storage/async-storage/android/src/main/AndroidManifest.xml.
+2026-08-13T16:08:16.6859171Z Setting the namespace via the package attribute in the source AndroidManifest.xml is no longer supported, and the value is ignored.
+2026-08-13T16:08:16.6862578Z Recommendation: remove package="com.reactnativecommunity.asyncstorage" from the source AndroidManifest.xml: /home/runner/work/quickprop/quickprop/node_modules/.pnpm/@react-native-async-storage+async-storage@2.2.0_react-native@0.81.5_@babel+core@7.29.7_@types_mlvz6ddtrp7zd4rlx2jkw65ht4/node_modules/@react-native-async-storage/async-storage/android/src/main/AndroidManifest.xml.
+2026-08-13T16:08:16.6864757Z 
+2026-08-13T16:08:16.6865342Z > Task :react-native-keyboard-controller:extractDeepLinksRelease
+2026-08-13T16:08:16.6866173Z > Task :react-native-safe-area-context:extractDeepLinksRelease
+2026-08-13T16:08:16.7768632Z 
+2026-08-13T16:08:16.7790528Z > Task :react-native-keyboard-controller:processReleaseManifest
+2026-08-13T16:08:16.7822412Z package="com.reactnativekeyboardcontroller" found in source AndroidManifest.xml: /home/runner/work/quickprop/quickprop/node_modules/.pnpm/react-native-keyboard-controller@1.18.5_react-native@0.81.5_@babel+core@7.29.7_@types+react@1_wbpfzsjureihgswb4fwxj4skmi/node_modules/react-native-keyboard-controller/android/src/main/AndroidManifest.xml.
+2026-08-13T16:08:16.7826579Z Setting the namespace via the package attribute in the source AndroidManifest.xml is no longer supported, and the value is ignored.
+2026-08-13T16:08:16.7830414Z Recommendation: remove package="com.reactnativekeyboardcontroller" from the source AndroidManifest.xml: /home/runner/work/quickprop/quickprop/node_modules/.pnpm/react-native-keyboard-controller@1.18.5_react-native@0.81.5_@babel+core@7.29.7_@types+react@1_wbpfzsjureihgswb4fwxj4skmi/node_modules/react-native-keyboard-controller/android/src/main/AndroidManifest.xml.
+2026-08-13T16:08:16.7833604Z 
+2026-08-13T16:08:16.7838282Z > Task :react-native-safe-area-context:processReleaseManifest
+2026-08-13T16:08:16.7841413Z package="com.th3rdwave.safeareacontext" found in source AndroidManifest.xml: /home/runner/work/quickprop/quickprop/node_modules/.pnpm/react-native-safe-area-context@5.6.2_react-native@0.81.5_@babel+core@7.29.7_@types+react@19.1_gady5hfcei6vn44ywdyhwdxnau/node_modules/react-native-safe-area-context/android/src/main/AndroidManifest.xml.
+2026-08-13T16:08:16.7844580Z Setting the namespace via the package attribute in the source AndroidManifest.xml is no longer supported, and the value is ignored.
+2026-08-13T16:08:16.7848513Z Recommendation: remove package="com.th3rdwave.safeareacontext" from the source AndroidManifest.xml: /home/runner/work/quickprop/quickprop/node_modules/.pnpm/react-native-safe-area-context@5.6.2_react-native@0.81.5_@babel+core@7.29.7_@types+react@19.1_gady5hfcei6vn44ywdyhwdxnau/node_modules/react-native-safe-area-context/android/src/main/AndroidManifest.xml.
+2026-08-13T16:08:16.7851747Z 
+2026-08-13T16:08:16.7852213Z > Task :expo:generatePackagesList
+2026-08-13T16:08:16.7853015Z > Task :react-native-screens:extractDeepLinksRelease
+2026-08-13T16:08:16.7853769Z > Task :expo:preBuild
+2026-08-13T16:08:16.7854343Z > Task :expo:preReleaseBuild
+2026-08-13T16:08:16.7855090Z > Task :react-native-svg:extractDeepLinksRelease
+2026-08-13T16:08:16.7856564Z > Task :expo:generateReleaseResValues
+2026-08-13T16:08:16.7857555Z > Task :expo:generateReleaseResources
+2026-08-13T16:08:16.7858750Z > Task :react-native-screens:processReleaseManifest
+2026-08-13T16:08:16.7859741Z > Task :react-native-svg:processReleaseManifest
+2026-08-13T16:08:16.7860862Z > Task :sentry_react-native:extractDeepLinksRelease
+2026-08-13T16:08:16.7862072Z > Task :sentry-react-native-expo:extractDeepLinksRelease
+2026-08-13T16:08:16.7863010Z > Task :expo:packageReleaseResources
+2026-08-13T16:08:16.7939806Z > Task :expo:extractDeepLinksRelease
+2026-08-13T16:08:16.7941036Z > Task :expo:processReleaseManifest
+2026-08-13T16:08:16.7941628Z 
+2026-08-13T16:08:16.7942173Z > Task :sentry_react-native:processReleaseManifest
+2026-08-13T16:08:16.7944936Z package="io.sentry.react" found in source AndroidManifest.xml: /home/runner/work/quickprop/quickprop/node_modules/.pnpm/@sentry+react-native@8.21.0_@expo+env@2.0.11_dotenv@17.4.2_expo@54.0.35_react-native@0.81.5_@_hljce7xffosqwcm2j3tkzh4c3q/node_modules/@sentry/react-native/android/src/main/AndroidManifest.xml.
+2026-08-13T16:08:16.7948128Z Setting the namespace via the package attribute in the source AndroidManifest.xml is no longer supported, and the value is ignored.
+2026-08-13T16:08:16.7951575Z Recommendation: remove package="io.sentry.react" from the source AndroidManifest.xml: /home/runner/work/quickprop/quickprop/node_modules/.pnpm/@sentry+react-native@8.21.0_@expo+env@2.0.11_dotenv@17.4.2_expo@54.0.35_react-native@0.81.5_@_hljce7xffosqwcm2j3tkzh4c3q/node_modules/@sentry/react-native/android/src/main/AndroidManifest.xml.
+2026-08-13T16:08:16.7953783Z 
+2026-08-13T16:08:16.7954398Z > Task :sentry-react-native-expo:processReleaseManifest
+2026-08-13T16:08:16.8768965Z > Task :expo-constants:writeReleaseAarMetadata
+2026-08-13T16:08:16.8769936Z > Task :expo:writeReleaseAarMetadata
+2026-08-13T16:08:16.8770767Z > Task :expo-modules-core:writeReleaseAarMetadata
+2026-08-13T16:08:16.8771883Z > Task :react-native-async-storage_async-storage:writeReleaseAarMetadata
+2026-08-13T16:08:16.8773117Z > Task :react-native-safe-area-context:writeReleaseAarMetadata
+2026-08-13T16:08:16.8774115Z > Task :react-native-screens:writeReleaseAarMetadata
+2026-08-13T16:08:16.8775089Z > Task :react-native-keyboard-controller:writeReleaseAarMetadata
+2026-08-13T16:08:16.8776395Z > Task :react-native-gesture-handler:writeReleaseAarMetadata
+2026-08-13T16:08:16.8777339Z > Task :react-native-svg:writeReleaseAarMetadata
+2026-08-13T16:08:16.8778305Z > Task :sentry-react-native-expo:writeReleaseAarMetadata
+2026-08-13T16:08:16.8779240Z > Task :sentry_react-native:writeReleaseAarMetadata
+2026-08-13T16:08:17.2759680Z > Task :expo-modules-core:compileReleaseLibraryResources
+2026-08-13T16:08:17.2761054Z > Task :expo-constants:compileReleaseLibraryResources
+2026-08-13T16:08:17.2761889Z > Task :expo:compileReleaseLibraryResources
+2026-08-13T16:08:17.8757726Z 
+2026-08-13T16:08:17.8758852Z > Task :app:createBundleReleaseJsAndAssets
+2026-08-13T16:08:17.8762974Z Starting Metro Bundler
+2026-08-13T16:08:18.4763685Z 
+2026-08-13T16:08:18.4787540Z > Task :expo-modules-core:parseReleaseLocalResources
+2026-08-13T16:08:18.4788774Z > Task :expo-constants:parseReleaseLocalResources
+2026-08-13T16:08:18.4816941Z > Task :expo:parseReleaseLocalResources
+2026-08-13T16:08:18.5791952Z > Task :expo-constants:generateReleaseRFile
+2026-08-13T16:08:18.5816786Z > Task :expo-modules-core:generateReleaseRFile
+2026-08-13T16:08:18.5845884Z > Task :expo:generateReleaseRFile
+2026-08-13T16:08:18.5869926Z > Task :react-native-async-storage_async-storage:compileReleaseLibraryResources
+2026-08-13T16:08:18.5917364Z > Task :react-native-gesture-handler:compileReleaseLibraryResources
+2026-08-13T16:08:18.5944248Z > Task :react-native-keyboard-controller:compileReleaseLibraryResources
+2026-08-13T16:08:18.5977094Z > Task :react-native-gesture-handler:parseReleaseLocalResources
+2026-08-13T16:08:18.6004011Z > Task :react-native-async-storage_async-storage:parseReleaseLocalResources
+2026-08-13T16:08:18.6068300Z > Task :react-native-async-storage_async-storage:generateReleaseRFile
+2026-08-13T16:08:18.6083000Z > Task :react-native-safe-area-context:compileReleaseLibraryResources
+2026-08-13T16:08:18.6136300Z > Task :react-native-gesture-handler:generateReleaseRFile
+2026-08-13T16:08:18.6772055Z > Task :react-native-keyboard-controller:parseReleaseLocalResources
+2026-08-13T16:08:18.6787194Z > Task :react-native-safe-area-context:parseReleaseLocalResources
+2026-08-13T16:08:18.6806233Z > Task :react-native-safe-area-context:generateReleaseRFile
+2026-08-13T16:08:18.6856373Z > Task :react-native-keyboard-controller:generateReleaseRFile
+2026-08-13T16:08:18.6857550Z > Task :react-native-svg:compileReleaseLibraryResources
+2026-08-13T16:08:18.6876580Z > Task :react-native-screens:parseReleaseLocalResources
+2026-08-13T16:08:18.8758380Z > Task :react-native-svg:parseReleaseLocalResources
+2026-08-13T16:08:18.8772528Z > Task :react-native-screens:generateReleaseRFile
+2026-08-13T16:08:18.8773843Z > Task :react-native-screens:compileReleaseLibraryResources
+2026-08-13T16:08:18.8786436Z > Task :sentry-react-native-expo:compileReleaseLibraryResources
+2026-08-13T16:08:18.8789833Z > Task :sentry_react-native:compileReleaseLibraryResources
+2026-08-13T16:08:18.8790903Z > Task :sentry-react-native-expo:parseReleaseLocalResources
+2026-08-13T16:08:18.8791831Z > Task :react-native-svg:generateReleaseRFile
+2026-08-13T16:08:18.8792966Z > Task :react-native-gesture-handler:checkKotlinGradlePluginConfigurationErrors SKIPPED
+2026-08-13T16:08:18.8797487Z > Task :sentry_react-native:parseReleaseLocalResources
+2026-08-13T16:08:18.8798522Z > Task :sentry-react-native-expo:generateReleaseRFile
+2026-08-13T16:08:18.8799517Z > Task :sentry_react-native:generateReleaseRFile
+2026-08-13T16:08:18.8800748Z > Task :react-native-keyboard-controller:checkKotlinGradlePluginConfigurationErrors SKIPPED
+2026-08-13T16:08:18.8802042Z > Task :react-native-gesture-handler:generateReleaseBuildConfig
+2026-08-13T16:08:18.8803225Z > Task :react-native-keyboard-controller:generateReleaseBuildConfig
+2026-08-13T16:08:18.8804267Z > Task :react-native-svg:generateReleaseBuildConfig
+2026-08-13T16:08:18.9781737Z > Task :react-native-gesture-handler:javaPreCompileRelease
+2026-08-13T16:08:18.9805989Z > Task :react-native-safe-area-context:checkKotlinGradlePluginConfigurationErrors SKIPPED
+2026-08-13T16:08:18.9836158Z > Task :react-native-svg:javaPreCompileRelease
+2026-08-13T16:08:18.9866268Z > Task :react-native-safe-area-context:generateReleaseBuildConfig
+2026-08-13T16:08:20.9785763Z 
+2026-08-13T16:08:20.9846607Z > Task :app:createBundleReleaseJsAndAssets
+2026-08-13T16:08:20.9847922Z Android artifacts/mobile/index.js ▓▓▓▓░░░░░░░░░░░░ 25.0% (5/8)
+2026-08-13T16:08:24.4797080Z Android artifacts/mobile/index.js ▓▓▓▓░░░░░░░░░░░░ 25.0% (109/272)
+2026-08-13T16:08:27.9787075Z Android artifacts/mobile/index.js ▓▓▓▓░░░░░░░░░░░░ 29.4% (209/391)
+2026-08-13T16:08:31.4797090Z Android artifacts/mobile/index.js ▓▓▓▓▓▓░░░░░░░░░░ 41.2% (384/598)
+2026-08-13T16:08:34.9847004Z Android artifacts/mobile/index.js ▓▓▓▓▓▓▓░░░░░░░░░ 45.2% (429/640)
+2026-08-13T16:08:37.9805671Z 
+2026-08-13T16:08:37.9881774Z > Task :react-native-safe-area-context:compileReleaseKotlin
+2026-08-13T16:08:37.9969147Z w: file:///home/runner/work/quickprop/quickprop/node_modules/.pnpm/react-native-safe-area-context@5.6.2_react-native@0.81.5_@babel+core@7.29.7_@types+react@19.1_gady5hfcei6vn44ywdyhwdxnau/node_modules/react-native-safe-area-context/android/src/main/java/com/th3rdwave/safeareacontext/SafeAreaView.kt:59:23 'val uiImplementation: UIImplementation!' is deprecated. Deprecated in Java.
+2026-08-13T16:08:38.0028845Z w: file:///home/runner/work/quickprop/quickprop/node_modules/.pnpm/react-native-safe-area-context@5.6.2_react-native@0.81.5_@babel+core@7.29.7_@types+react@19.1_gady5hfcei6vn44ywdyhwdxnau/node_modules/react-native-safe-area-context/android/src/paper/java/com/th3rdwave/safeareacontext/InsetsChangeEvent.kt:19:16 This declaration overrides a deprecated member but is not marked as deprecated itself. Add the '@Deprecated' annotation or suppress the diagnostic.
+2026-08-13T16:08:38.0115659Z 
+2026-08-13T16:08:38.0173544Z > Task :react-native-keyboard-controller:javaPreCompileRelease
+2026-08-13T16:08:38.0286561Z > Task :react-native-safe-area-context:javaPreCompileRelease
+2026-08-13T16:08:38.5845845Z 
+2026-08-13T16:08:38.5906706Z > Task :app:createBundleReleaseJsAndAssets
+2026-08-13T16:08:38.5936883Z Android artifacts/mobile/index.js ▓▓▓▓▓▓▓▓░░░░░░░░ 55.7% (539/722)
+2026-08-13T16:08:42.0776981Z Android artifacts/mobile/index.js ▓▓▓▓▓▓▓▓▓▓░░░░░░ 68.2% (659/802)
+2026-08-13T16:08:45.2806553Z Note: Some input files use or override a deprecated API.
+2026-08-13T16:08:45.2807106Z 
+2026-08-13T16:08:45.2856375Z > Task :react-native-keyboard-controller:compileReleaseKotlin
+2026-08-13T16:08:45.2886150Z Note: Recompile with -Xlint:deprecation for details.
+2026-08-13T16:08:45.2889486Z w: file:///home/runner/work/quickprop/quickprop/node_modules/.pnpm/react-native-keyboard-controller@1.18.5_react-native@0.81.5_@babel+core@7.29.7_@types+react@1_wbpfzsjureihgswb4fwxj4skmi/node_modules/react-native-keyboard-controller/android/src/main/java/com/reactnativekeyboardcontroller/extensions/EditText.kt:69:42 Unchecked cast of 'ArrayList<*>' to 'ArrayList<TextWatcher>'.
+2026-08-13T16:08:45.2916006Z Note: Some input files use unchecked or unsafe operations.
+2026-08-13T16:08:45.2919892Z w: file:///home/runner/work/quickprop/quickprop/node_modules/.pnpm/react-native-keyboard-controller@1.18.5_react-native@0.81.5_@babel+core@7.29.7_@types+react@1_wbpfzsjureihgswb4fwxj4skmi/node_modules/react-native-keyboard-controller/android/src/main/java/com/reactnativekeyboardcontroller/interactive/KeyboardAnimationController.kt:89:16 'static fun getWindowInsetsController(p0: View): WindowInsetsControllerCompat?' is deprecated. Deprecated in Java.
+2026-08-13T16:08:45.2937665Z Note: Recompile with -Xlint:unchecked for details.
+2026-08-13T16:08:45.2940974Z w: file:///home/runner/work/quickprop/quickprop/node_modules/.pnpm/react-native-keyboard-controller@1.18.5_react-native@0.81.5_@babel+core@7.29.7_@types+react@1_wbpfzsjureihgswb4fwxj4skmi/node_modules/react-native-keyboard-controller/android/src/main/java/com/reactnativekeyboardcontroller/managers/KeyboardControllerViewManagerImpl.kt:3:8 'object MapBuilder : Any' is deprecated. Use Kotlin's built-in collections extensions.
+2026-08-13T16:08:45.2978870Z w: file:///home/runner/work/quickprop/quickprop/node_modules/.pnpm/react-native-keyboard-controller@1.18.5_react-native@0.81.5_@babel+core@7.29.7_@types+react@1_wbpfzsjureihgswb4fwxj4skmi/node_modules/react-native-keyboard-controller/android/src/main/java/com/reactnativekeyboardcontroller/managers/KeyboardControllerViewManagerImpl.kt:62:7 'object MapBuilder : Any' is deprecated. Use Kotlin's built-in collections extensions.
+2026-08-13T16:08:45.3039600Z w: file:///home/runner/work/quickprop/quickprop/node_modules/.pnpm/react-native-keyboard-controller@1.18.5_react-native@0.81.5_@babel+core@7.29.7_@types+react@1_wbpfzsjureihgswb4fwxj4skmi/node_modules/react-native-keyboard-controller/android/src/main/java/com/reactnativekeyboardcontroller/managers/KeyboardControllerViewManagerImpl.kt:64:9 'object MapBuilder : Any' is deprecated. Use Kotlin's built-in collections extensions.
+2026-08-13T16:08:45.3119251Z w: file:///home/runner/work/quickprop/quickprop/node_modules/.pnpm/react-native-keyboard-controller@1.18.5_react-native@0.81.5_@babel+core@7.29.7_@types+react@1_wbpfzsjureihgswb4fwxj4skmi/node_modules/react-native-keyboard-controller/android/src/main/java/com/reactnativekeyboardcontroller/managers/KeyboardControllerViewManagerImpl.kt:66:9 'object MapBuilder : Any' is deprecated. Use Kotlin's built-in collections extensions.
+2026-08-13T16:08:45.3178974Z w: file:///home/runner/work/quickprop/quickprop/node_modules/.pnpm/react-native-keyboard-controller@1.18.5_react-native@0.81.5_@babel+core@7.29.7_@types+react@1_wbpfzsjureihgswb4fwxj4skmi/node_modules/react-native-keyboard-controller/android/src/main/java/com/reactnativekeyboardcontroller/managers/KeyboardControllerViewManagerImpl.kt:68:9 'object MapBuilder : Any' is deprecated. Use Kotlin's built-in collections extensions.
+2026-08-13T16:08:45.3269150Z w: file:///home/runner/work/quickprop/quickprop/node_modules/.pnpm/react-native-keyboard-controller@1.18.5_react-native@0.81.5_@babel+core@7.29.7_@types+react@1_wbpfzsjureihgswb4fwxj4skmi/node_modules/react-native-keyboard-controller/android/src/main/java/com/reactnativekeyboardcontroller/managers/KeyboardControllerViewManagerImpl.kt:70:9 'object MapBuilder : Any' is deprecated. Use Kotlin's built-in collections extensions.
+2026-08-13T16:08:45.3298866Z w: file:///home/runner/work/quickprop/quickprop/node_modules/.pnpm/react-native-keyboard-controller@1.18.5_react-native@0.81.5_@babel+core@7.29.7_@types+react@1_wbpfzsjureihgswb4fwxj4skmi/node_modules/react-native-keyboard-controller/android/src/main/java/com/reactnativekeyboardcontroller/managers/KeyboardControllerViewManagerImpl.kt:72:9 'object MapBuilder : Any' is deprecated. Use Kotlin's built-in collections extensions.
+2026-08-13T16:08:45.3358706Z w: file:///home/runner/work/quickprop/quickprop/node_modules/.pnpm/react-native-keyboard-controller@1.18.5_react-native@0.81.5_@babel+core@7.29.7_@types+react@1_wbpfzsjureihgswb4fwxj4skmi/node_modules/react-native-keyboard-controller/android/src/main/java/com/reactnativekeyboardcontroller/managers/KeyboardControllerViewManagerImpl.kt:74:9 'object MapBuilder : Any' is deprecated. Use Kotlin's built-in collections extensions.
+2026-08-13T16:08:45.3418827Z w: file:///home/runner/work/quickprop/quickprop/node_modules/.pnpm/react-native-keyboard-controller@1.18.5_react-native@0.81.5_@babel+core@7.29.7_@types+react@1_wbpfzsjureihgswb4fwxj4skmi/node_modules/react-native-keyboard-controller/android/src/main/java/com/reactnativekeyboardcontroller/managers/KeyboardControllerViewManagerImpl.kt:76:9 'object MapBuilder : Any' is deprecated. Use Kotlin's built-in collections extensions.
+2026-08-13T16:08:45.3479074Z w: file:///home/runner/work/quickprop/quickprop/node_modules/.pnpm/react-native-keyboard-controller@1.18.5_react-native@0.81.5_@babel+core@7.29.7_@types+react@1_wbpfzsjureihgswb4fwxj4skmi/node_modules/react-native-keyboard-controller/android/src/main/java/com/reactnativekeyboardcontroller/modal/ModalAttachedWatcher.kt:29:111 'val DEFAULT: Int' is deprecated. UIManagerType.DEFAULT will be deleted in the next release of React Native. Use [LEGACY] instead.
+2026-08-13T16:08:45.3558886Z w: file:///home/runner/work/quickprop/quickprop/node_modules/.pnpm/react-native-keyboard-controller@1.18.5_react-native@0.81.5_@babel+core@7.29.7_@types+react@1_wbpfzsjureihgswb4fwxj4skmi/node_modules/react-native-keyboard-controller/android/src/main/java/com/reactnativekeyboardcontroller/modules/statusbar/StatusBarManagerCompatModuleImpl.kt:62:36 'var statusBarColor: Int' is deprecated. Deprecated in Java.
+2026-08-13T16:08:45.3615658Z w: file:///home/runner/work/quickprop/quickprop/node_modules/.pnpm/react-native-keyboard-controller@1.18.5_react-native@0.81.5_@babel+core@7.29.7_@types+react@1_wbpfzsjureihgswb4fwxj4skmi/node_modules/react-native-keyboard-controller/android/src/main/java/com/reactnativekeyboardcontroller/modules/statusbar/StatusBarManagerCompatModuleImpl.kt:65:18 'var statusBarColor: Int' is deprecated. Deprecated in Java.
+2026-08-13T16:08:45.3658141Z w: file:///home/runner/work/quickprop/quickprop/node_modules/.pnpm/react-native-keyboard-controller@1.18.5_react-native@0.81.5_@babel+core@7.29.7_@types+react@1_wbpfzsjureihgswb4fwxj4skmi/node_modules/react-native-keyboard-controller/android/src/main/java/com/reactnativekeyboardcontroller/modules/statusbar/StatusBarManagerCompatModuleImpl.kt:70:16 'var statusBarColor: Int' is deprecated. Deprecated in Java.
+2026-08-13T16:08:45.3709176Z w: file:///home/runner/work/quickprop/quickprop/node_modules/.pnpm/react-native-keyboard-controller@1.18.5_react-native@0.81.5_@babel+core@7.29.7_@types+react@1_wbpfzsjureihgswb4fwxj4skmi/node_modules/react-native-keyboard-controller/android/src/main/java/com/reactnativekeyboardcontroller/views/EdgeToEdgeReactViewGroup.kt:134:23 'fun replaceSystemWindowInsets(p0: Int, p1: Int, p2: Int, p3: Int): WindowInsetsCompat' is deprecated. Deprecated in Java.
+2026-08-13T16:08:45.3788657Z w: file:///home/runner/work/quickprop/quickprop/node_modules/.pnpm/react-native-keyboard-controller@1.18.5_react-native@0.81.5_@babel+core@7.29.7_@types+react@1_wbpfzsjureihgswb4fwxj4skmi/node_modules/react-native-keyboard-controller/android/src/main/java/com/reactnativekeyboardcontroller/views/EdgeToEdgeReactViewGroup.kt:135:25 'val systemWindowInsetLeft: Int' is deprecated. Deprecated in Java.
+2026-08-13T16:08:45.3818663Z w: file:///home/runner/work/quickprop/quickprop/node_modules/.pnpm/react-native-keyboard-controller@1.18.5_react-native@0.81.5_@babel+core@7.29.7_@types+react@1_wbpfzsjureihgswb4fwxj4skmi/node_modules/react-native-keyboard-controller/android/src/main/java/com/reactnativekeyboardcontroller/views/EdgeToEdgeReactViewGroup.kt:136:65 'val systemWindowInsetTop: Int' is deprecated. Deprecated in Java.
+2026-08-13T16:08:45.3898881Z w: file:///home/runner/work/quickprop/quickprop/node_modules/.pnpm/react-native-keyboard-controller@1.18.5_react-native@0.81.5_@babel+core@7.29.7_@types+react@1_wbpfzsjureihgswb4fwxj4skmi/node_modules/react-native-keyboard-controller/android/src/main/java/com/reactnativekeyboardcontroller/views/EdgeToEdgeReactViewGroup.kt:137:25 'val systemWindowInsetRight: Int' is deprecated. Deprecated in Java.
+2026-08-13T16:08:45.3988915Z w: file:///home/runner/work/quickprop/quickprop/node_modules/.pnpm/react-native-keyboard-controller@1.18.5_react-native@0.81.5_@babel+core@7.29.7_@types+react@1_wbpfzsjureihgswb4fwxj4skmi/node_modules/react-native-keyboard-controller/android/src/main/java/com/reactnativekeyboardcontroller/views/EdgeToEdgeReactViewGroup.kt:138:25 'val systemWindowInsetBottom: Int' is deprecated. Deprecated in Java.
+2026-08-13T16:08:45.4049236Z w: file:///home/runner/work/quickprop/quickprop/node_modules/.pnpm/react-native-keyboard-controller@1.18.5_react-native@0.81.5_@babel+core@7.29.7_@types+react@1_wbpfzsjureihgswb4fwxj4skmi/node_modules/react-native-keyboard-controller/android/src/main/java/com/reactnativekeyboardcontroller/views/overlay/OverKeyboardViewGroup.kt:13:8 'object ReactFeatureFlags : Any' is deprecated. Use com.facebook.react.internal.featureflags.ReactNativeFeatureFlags instead.
+2026-08-13T16:08:45.4149611Z w: file:///home/runner/work/quickprop/quickprop/node_modules/.pnpm/react-native-keyboard-controller@1.18.5_react-native@0.81.5_@babel+core@7.29.7_@types+react@1_wbpfzsjureihgswb4fwxj4skmi/node_modules/react-native-keyboard-controller/android/src/main/java/com/reactnativekeyboardcontroller/views/overlay/OverKeyboardViewGroup.kt:79:5 The corresponding parameter in the supertype 'ReactViewGroup' is named 'left'. This may cause problems when calling this function with named arguments.
+2026-08-13T16:08:45.4173100Z w: file:///home/runner/work/quickprop/quickprop/node_modules/.pnpm/react-native-keyboard-controller@1.18.5_react-native@0.81.5_@babel+core@7.29.7_@types+react@1_wbpfzsjureihgswb4fwxj4skmi/node_modules/react-native-keyboard-controller/android/src/main/java/com/reactnativekeyboardcontroller/views/overlay/OverKeyboardViewGroup.kt:80:5 The corresponding parameter in the supertype 'ReactViewGroup' is named 'top'. This may cause problems when calling this function with named arguments.
+2026-08-13T16:08:45.4251196Z w: file:///home/runner/work/quickprop/quickprop/node_modules/.pnpm/react-native-keyboard-controller@1.18.5_react-native@0.81.5_@babel+core@7.29.7_@types+react@1_wbpfzsjureihgswb4fwxj4skmi/node_modules/react-native-keyboard-controller/android/src/main/java/com/reactnativekeyboardcontroller/views/overlay/OverKeyboardViewGroup.kt:81:5 The corresponding parameter in the supertype 'ReactViewGroup' is named 'right'. This may cause problems when calling this function with named arguments.
+2026-08-13T16:08:45.4269488Z w: file:///home/runner/work/quickprop/quickprop/node_modules/.pnpm/react-native-keyboard-controller@1.18.5_react-native@0.81.5_@babel+core@7.29.7_@types+react@1_wbpfzsjureihgswb4fwxj4skmi/node_modules/react-native-keyboard-controller/android/src/main/java/com/reactnativekeyboardcontroller/views/overlay/OverKeyboardViewGroup.kt:82:5 The corresponding parameter in the supertype 'ReactViewGroup' is named 'bottom'. This may cause problems when calling this function with named arguments.
+2026-08-13T16:08:45.4409477Z w: file:///home/runner/work/quickprop/quickprop/node_modules/.pnpm/react-native-keyboard-controller@1.18.5_react-native@0.81.5_@babel+core@7.29.7_@types+react@1_wbpfzsjureihgswb4fwxj4skmi/node_modules/react-native-keyboard-controller/android/src/main/java/com/reactnativekeyboardcontroller/views/overlay/OverKeyboardViewGroup.kt:132:9 'object ReactFeatureFlags : Any' is deprecated. Use com.facebook.react.internal.featureflags.ReactNativeFeatureFlags instead.
+2026-08-13T16:08:45.4438914Z w: file:///home/runner/work/quickprop/quickprop/node_modules/.pnpm/react-native-keyboard-controller@1.18.5_react-native@0.81.5_@babel+core@7.29.7_@types+react@1_wbpfzsjureihgswb4fwxj4skmi/node_modules/react-native-keyboard-controller/android/src/main/java/com/reactnativekeyboardcontroller/views/overlay/OverKeyboardViewGroup.kt:152:5 The corresponding parameter in the supertype 'ReactViewGroup' is named 'w'. This may cause problems when calling this function with named arguments.
+2026-08-13T16:08:45.4499080Z w: file:///home/runner/work/quickprop/quickprop/node_modules/.pnpm/react-native-keyboard-controller@1.18.5_react-native@0.81.5_@babel+core@7.29.7_@types+react@1_wbpfzsjureihgswb4fwxj4skmi/node_modules/react-native-keyboard-controller/android/src/main/java/com/reactnativekeyboardcontroller/views/overlay/OverKeyboardViewGroup.kt:153:5 The corresponding parameter in the supertype 'ReactViewGroup' is named 'h'. This may cause problems when calling this function with named arguments.
+2026-08-13T16:08:45.4569750Z w: file:///home/runner/work/quickprop/quickprop/node_modules/.pnpm/react-native-keyboard-controller@1.18.5_react-native@0.81.5_@babel+core@7.29.7_@types+react@1_wbpfzsjureihgswb4fwxj4skmi/node_modules/react-native-keyboard-controller/android/src/main/java/com/reactnativekeyboardcontroller/views/overlay/OverKeyboardViewGroup.kt:154:5 The corresponding parameter in the supertype 'ReactViewGroup' is named 'oldw'. This may cause problems when calling this function with named arguments.
+2026-08-13T16:08:45.4684385Z w: file:///home/runner/work/quickprop/quickprop/node_modules/.pnpm/react-native-keyboard-controller@1.18.5_react-native@0.81.5_@babel+core@7.29.7_@types+react@1_wbpfzsjureihgswb4fwxj4skmi/node_modules/react-native-keyboard-controller/android/src/main/java/com/reactnativekeyboardcontroller/views/overlay/OverKeyboardViewGroup.kt:155:5 The corresponding parameter in the supertype 'ReactViewGroup' is named 'oldh'. This may cause problems when calling this function with named arguments.
+2026-08-13T16:08:45.4779352Z w: file:///home/runner/work/quickprop/quickprop/node_modules/.pnpm/react-native-keyboard-controller@1.18.5_react-native@0.81.5_@babel+core@7.29.7_@types+react@1_wbpfzsjureihgswb4fwxj4skmi/node_modules/react-native-keyboard-controller/android/src/paper/java/com/reactnativekeyboardcontroller/KeyboardBackgroundViewManager.kt:13:35 The corresponding parameter in the supertype 'ReactViewManager' is named 'context'. This may cause problems when calling this function with named arguments.
+2026-08-13T16:08:45.4861168Z w: file:///home/runner/work/quickprop/quickprop/node_modules/.pnpm/react-native-keyboard-controller@1.18.5_react-native@0.81.5_@babel+core@7.29.7_@types+react@1_wbpfzsjureihgswb4fwxj4skmi/node_modules/react-native-keyboard-controller/android/src/paper/java/com/reactnativekeyboardcontroller/KeyboardGestureAreaViewManager.kt:14:35 The corresponding parameter in the supertype 'ReactViewManager' is named 'context'. This may cause problems when calling this function with named arguments.
+2026-08-13T16:08:45.4905578Z 
+2026-08-13T16:08:45.4966140Z > Task :react-native-svg:compileReleaseJavaWithJavac
+2026-08-13T16:08:49.0799228Z Note: /home/runner/work/quickprop/quickprop/node_modules/.pnpm/react-native-safe-area-context@5.6.2_react-native@0.81.5_@babel+core@7.29.7_@types+react@19.1_gady5hfcei6vn44ywdyhwdxnau/node_modules/react-native-safe-area-context/android/src/paper/java/com/th3rdwave/safeareacontext/NativeSafeAreaContextSpec.java uses or overrides a deprecated API.
+2026-08-13T16:08:49.0801654Z 
+2026-08-13T16:08:49.0837148Z Note: Recompile with -Xlint:deprecation for details.
+2026-08-13T16:08:49.0838114Z > Task :react-native-keyboard-controller:compileReleaseJavaWithJavac
+2026-08-13T16:08:49.0866976Z 
+2026-08-13T16:08:49.0868431Z > Task :react-native-safe-area-context:compileReleaseJavaWithJavac
+2026-08-13T16:08:49.0869145Z 
+2026-08-13T16:08:49.0869690Z > Task :app:createBundleReleaseJsAndAssets
+2026-08-13T16:08:49.0871039Z Android artifacts/mobile/index.js ▓▓▓▓▓▓▓▓▓▓▓░░░░░ 73.7% (759/904)
+2026-08-13T16:08:49.0872115Z Android artifacts/mobile/index.js ▓▓▓▓▓▓▓▓▓▓▓▓▓▓░░ 92.6% (923/959)
+2026-08-13T16:08:49.1800392Z 
+2026-08-13T16:08:49.1826841Z > Task :react-native-safe-area-context:bundleLibRuntimeToDirRelease
+2026-08-13T16:08:49.1850979Z > Task :react-native-keyboard-controller:bundleLibRuntimeToDirRelease
+2026-08-13T16:08:49.2758590Z > Task :react-native-svg:bundleLibCompileToJarRelease
+2026-08-13T16:08:52.0780071Z SyntaxError: SyntaxError: /home/runner/work/quickprop/quickprop/artifacts/mobile/app/_layout.tsx: Identifier 'React' has already been declared. (5:66)
+2026-08-13T16:08:52.0781268Z 
+2026-08-13T16:08:52.0806364Z > Task :app:createBundleReleaseJsAndAssets
+2026-08-13T16:08:52.0895715Z 
+2026-08-13T16:08:52.0896667Z Android Bundling failed 31928ms artifacts/mobile/index.js (1096 modules)
+2026-08-13T16:08:52.0957708Z [0m [90m 3 |[39m [36mimport[39m { [33mGestureHandlerRootView[39m } [36mfrom[39m [32m'react-native-gesture-handler'[39m[33m;[39m
+2026-08-13T16:08:52.0959487Z  [90m 4 |[39m [36mimport[39m { [33mSafeAreaProvider[39m } [36mfrom[39m [32m'react-native-safe-area-context'[39m[33m;[39m
+2026-08-13T16:08:52.0962014Z [31m[1m>[22m[39m[90m 5 |[39m [36mimport[39m { [33mErrorBoundary[39m } [36mfrom[39m [32m'@/components/ErrorBoundary'[39m[33m;[39m[36mimport[39m [33mReact[39m[33m,[39m { useEffect } [36mfrom[39m [32m'react'[39m[33m;[39m
+2026-08-13T16:08:52.1037604Z  [90m   |[39m                                                                   [31m[1m^[22m[39m
+2026-08-13T16:08:52.1127406Z  [90m 6 |[39m [36mimport[39m { [33mAppearance[39m } [36mfrom[39m [32m'react-native'[39m[33m;[39m
+2026-08-13T16:08:52.1180563Z  [90m 7 |[39m [36mimport[39m [33mAsyncStorage[39m [36mfrom[39m [32m'@react-native-async-storage/async-storage'[39m[33m;[39m
+2026-08-13T16:08:52.1218697Z  [90m 8 |[39m [36mimport[39m { [33mQueryClient[39m[33m,[39m [33mQueryClientProvider[39m } [36mfrom[39m [32m'@tanstack/react-query'[39m[33m;[39m[0m
+2026-08-13T16:08:52.2785703Z 
+2026-08-13T16:08:52.2846523Z > Task :app:createBundleReleaseJsAndAssets FAILED
+2026-08-13T16:08:58.9758444Z 
+2026-08-13T16:08:58.9767026Z > Task :react-native-gesture-handler:compileReleaseKotlin
+2026-08-13T16:08:58.9770643Z w: file:///home/runner/work/quickprop/quickprop/node_modules/.pnpm/react-native-gesture-handler@2.28.0_react-native@0.81.5_@babel+core@7.29.7_@types+react@19.1._d6ysgx6fswfr4opkgx6226jpf4/node_modules/react-native-gesture-handler/android/src/main/java/com/swmansion/gesturehandler/react/RNGestureHandlerRootView.kt:41:43 The corresponding parameter in the supertype 'ReactViewGroup' is named 'ev'. This may cause problems when calling this function with named arguments.
+2026-08-13T16:08:59.0757483Z 
+2026-08-13T16:08:59.0761931Z 
+2026-08-13T16:08:59.0771917Z [Incubating] Problems report is available at: file:///home/runner/work/quickprop/quickprop/artifacts/mobile/android/build/reports/problems/problems-report.html
+2026-08-13T16:08:59.0773761Z FAILURE: Build failed with an exception.
+2026-08-13T16:08:59.0774351Z 
+2026-08-13T16:08:59.0774472Z 
+2026-08-13T16:08:59.0775547Z Deprecated Gradle features were used in this build, making it incompatible with Gradle 9.0.
+2026-08-13T16:08:59.0779946Z * What went wrong:
+2026-08-13T16:08:59.0780209Z 
+2026-08-13T16:08:59.0780828Z Execution failed for task ':app:createBundleReleaseJsAndAssets'.
+2026-08-13T16:08:59.0782873Z You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+2026-08-13T16:08:59.0786580Z > Process 'command 'node'' finished with non-zero exit value 1
+2026-08-13T16:08:59.0787051Z 
+2026-08-13T16:08:59.0787273Z 
+2026-08-13T16:08:59.0788986Z For more on this, please refer to https://docs.gradle.org/8.14.3/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+2026-08-13T16:08:59.0790204Z * Try:
+2026-08-13T16:08:59.0790884Z 143 actionable tasks: 143 executed
+2026-08-13T16:08:59.0791566Z > Run with --stacktrace option to get the stack trace.
+2026-08-13T16:08:59.0792682Z > Run with --info or --debug option to get more log output.
+2026-08-13T16:08:59.0793557Z > Run with --scan to get full insights.
+2026-08-13T16:08:59.0794436Z > Get more help at https://help.gradle.org.
+2026-08-13T16:08:59.0795060Z 
+2026-08-13T16:08:59.0795682Z BUILD FAILED in 5m 56s
+2026-08-13T16:08:59.5581777Z ##[error]Process completed with exit code 1.
