@@ -137,7 +137,7 @@ function AboutModal({ visible, onClose }: { visible: boolean; onClose: () => voi
               <Ionicons name="home" size={32} color="#FFF" />
             </View>
             <Text style={[ab.appName, { color: colors.foreground }]}>QuickProp Agent</Text>
-            <Text style={[ab.version, { color: colors.mutedForeground }]}>Version 1.0.0 · Build 75</Text>
+            <Text style={[ab.version, { color: colors.mutedForeground }]}>Version 1.0.0 · Build 76</Text>
             <Text style={[ab.tagline, { color: colors.mutedForeground }]}>
               Zimbabwe's premier property management platform for estate agents.
             </Text>
@@ -396,7 +396,7 @@ export default function ProfileScreen() {
         <Row icon="log-out-outline" label="Sign Out" onPress={handleLogout} destructive chevron={false} />
       </View>
 
-      <Text style={[styles.version, { color: colors.mutedForeground }]}>QuickProp Agent v1.0.0 · Build 75</Text>
+      <Text style={[styles.version, { color: colors.mutedForeground }]}>QuickProp Agent v1.0.0 · Build 76</Text>
 
       {/* Sheets & Modals */}
       <CatalogueBrochureSheet visible={brochureOpen} onClose={() => setBrochureOpen(false)} />
