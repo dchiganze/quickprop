@@ -165,10 +165,6 @@ export default function NewListingScreen() {
         Alert.alert('Camera Permission Required', 'Please enable camera access in Settings to record property videos.');
         return;
       }
-      // Note: requestMicrophonePermissionsAsync was removed in expo-image-picker v15+.
-      // Microphone permission is granted at install time via the plugin config in app.json.
-      // Note: videoQuality / UIImagePickerControllerQualityType was removed in
-      // expo-image-picker v15+. Omit it so iOS uses its default medium quality.
       const result = await ImagePicker.launchCameraAsync({
         mediaTypes: 'videos',
         videoMaxDuration: 60,
