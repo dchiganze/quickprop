@@ -5,7 +5,7 @@ import { Property, Lead, BuyerMatch, Task, PropertyAlert } from '@/types';
 export interface AlertMatch {
   alert: PropertyAlert;
   properties: Property[];
-}
+}just needs
 
 interface DataContextType {
   properties: Property[];
