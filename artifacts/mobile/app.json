@@ -23,7 +23,7 @@
       "supportsTablet": false,
       "jsEngine": "jsc",
       "bundleIdentifier": "com.quickprop.agent",
-      "buildNumber": "70",
+      "buildNumber": "71",
       "deploymentTarget": "16.4",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
@@ -43,7 +43,7 @@
     },
     "android": {
       "package": "zw.co.melios.quickprop.agent",
-      "versionCode": 12,
+      "versionCode": 13,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
@@ -65,6 +65,7 @@
       "./plugins/withNoHermes",
       "./plugins/withDeploymentTarget",
       "./plugins/withExpoPrintPod",
+      "expo-video",
       [
         "expo-router",
         {
