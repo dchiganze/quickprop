@@ -15,6 +15,7 @@ interface DataContextType {
   updateLead: (id: string, updates: Partial<Lead>) => Promise<void>;
   addTask: (t: Omit<Task, 'id' | 'createdAt'>) => Promise<void>;
   updateTask: (id: string, updates: Partial<Task>) => Promise<void>;
+  deleteTask: (id: string) => Promise<void>;
 }
 
 const PROPS_KEY = '@qp_properties';
@@ -255,11 +256,17 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     await save(TASKS_KEY, updated);
   };
 
+  const deleteTask = async (id: string) => {
+    const updated = tasks.filter(t => t.id !== id);
+    setTasks(updated);
+    await save(TASKS_KEY, updated);
+  };
+
   return (
     <DataContext.Provider value={{
       properties, leads, buyerMatches, tasks, isLoading,
       addProperty, updateProperty, deleteProperty,
-      addLead, updateLead, addTask, updateTask,
+      addLead, updateLead, addTask, updateTask, deleteTask,
     }}>
       {children}
     </DataContext.Provider>
