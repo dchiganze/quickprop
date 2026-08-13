@@ -54,6 +54,9 @@ jobs:
             expo-local-authentication@17.0.8 \
             expo-apple-authentication@8.0.8
           mkdir -p artifacts/mobile/node_modules
+          rm -rf artifacts/mobile/node_modules/expo-secure-store \
+                 artifacts/mobile/node_modules/expo-local-authentication \
+                 artifacts/mobile/node_modules/expo-apple-authentication
           cp -r "$TMPDIR/node_modules/expo-secure-store"        artifacts/mobile/node_modules/
           cp -r "$TMPDIR/node_modules/expo-local-authentication" artifacts/mobile/node_modules/
           cp -r "$TMPDIR/node_modules/expo-apple-authentication" artifacts/mobile/node_modules/
@@ -143,4 +146,3 @@ jobs:
       #     --member="serviceAccount:<WIF_SERVICE_ACCOUNT>" \
       #     --role="roles/firebase.qaAdmin"
       # ─────────────────────────────────────────────────────────────────────
-     
