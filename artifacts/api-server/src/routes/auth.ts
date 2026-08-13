@@ -41,6 +41,24 @@ router.post("/auth/logout", async (_req, res): Promise<void> => {
   res.json({ ok: true });
 });
 
+router.delete("/auth/account", async (req, res): Promise<void> => {
+  const raw = req.cookies?.[COOKIE];
+  const id = parseInt(raw ?? "", 10);
+  if (!id || Number.isNaN(id)) {
+    res.status(401).json({ error: "Not logged in" });
+    return;
+  }
+  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, id));
+  if (!user) {
+    res.status(401).json({ error: "Not logged in" });
+    return;
+  }
+  await logAudit("deleted", "user", id, `${user.name} deleted their account`, id, user.name);
+  await db.delete(usersTable).where(eq(usersTable.id, id));
+  res.clearCookie(COOKIE);
+  res.json({ ok: true });
+});
+
 router.get("/auth/me", async (req, res): Promise<void> => {
   const raw = req.cookies?.[COOKIE];
   const id = parseInt(raw ?? "", 10);

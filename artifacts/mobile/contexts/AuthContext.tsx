@@ -7,6 +7,7 @@ interface AuthContextType {
   loading: boolean;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
+  deleteAccount: () => Promise<void>;
 }
 
 const MOCK_USER: User = {
@@ -29,6 +30,7 @@ const AuthContext = createContext<AuthContextType>({
   loading: true,
   login: async () => ({ success: false }),
   logout: async () => {},
+  deleteAccount: async () => {},
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -64,8 +66,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
   };
 
+  /**
+   * Permanently deletes the account: wipes all locally stored data and signs
+   * the user out. In a production build this would also call DELETE /auth/account
+   * on the API server to remove the record from the database.
+   */
+  const deleteAccount = async () => {
+    await AsyncStorage.clear();
+    setUser(null);
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, deleteAccount }}>
       {children}
     </AuthContext.Provider>
   );

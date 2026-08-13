@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import {
-  View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, Switch,
+  View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, Switch, Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useColors } from '@/hooks/useColors';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface ToggleRowProps {
   icon: keyof typeof Ionicons.glyphMap;
@@ -64,6 +66,34 @@ function SelectRow({ icon, label, value, onPress }: { icon: keyof typeof Ionicon
 export default function SettingsScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const { deleteAccount } = useAuth();
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDeleteAccount = () => {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+    Alert.alert(
+      'Delete Account',
+      'This will permanently delete your account and all associated data. This action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete Account',
+          style: 'destructive',
+          onPress: async () => {
+            setDeleting(true);
+            await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+            try {
+              await deleteAccount();
+              router.replace('/login');
+            } catch {
+              setDeleting(false);
+              Alert.alert('Error', 'Could not delete account. Please try again.');
+            }
+          },
+        },
+      ],
+    );
+  };
 
   const [pushEnabled, setPushEnabled] = useState(true);
   const [newLeadNotif, setNewLeadNotif] = useState(true);
@@ -135,6 +165,29 @@ export default function SettingsScreen() {
           <SelectRow icon="help-circle-outline" label="Help Centre" value="" onPress={() => {}} />
           <SelectRow icon="chatbubble-outline" label="Contact Support" value="" onPress={() => {}} />
           <SelectRow icon="star-outline" label="Rate the App" value="" onPress={() => {}} />
+        </View>
+
+        <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>DANGER ZONE</Text>
+        <View style={[styles.section, { backgroundColor: colors.card, borderColor: '#EF4444' + '40' }]}>
+          <TouchableOpacity
+            style={[tStyles.row, { borderBottomColor: 'transparent' }]}
+            onPress={handleDeleteAccount}
+            disabled={deleting}
+            activeOpacity={0.7}
+          >
+            <View style={[tStyles.icon, { backgroundColor: '#EF444415' }]}>
+              {deleting
+                ? <ActivityIndicator size="small" color="#EF4444" />
+                : <Ionicons name="person-remove-outline" size={18} color="#EF4444" />}
+            </View>
+            <View style={tStyles.text}>
+              <Text style={[tStyles.label, { color: '#EF4444' }]}>Delete Account</Text>
+              <Text style={[tStyles.desc, { color: colors.mutedForeground }]}>
+                Permanently removes your account and all data
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={16} color="#EF4444" />
+          </TouchableOpacity>
         </View>
 
         <Text style={[styles.version, { color: colors.mutedForeground }]}>QuickProp Agent v1.0.0 — Build 100</Text>
