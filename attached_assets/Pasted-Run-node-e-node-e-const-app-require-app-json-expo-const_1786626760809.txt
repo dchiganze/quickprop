@@ -1,0 +1,55 @@
+Run node -e "
+  node -e "
+    const app = require('./app.json').expo;
+    const v = app.version;
+    const b = app.ios.buildNumber;
+    console.log('SENTRY_RELEASE=' + v + '+' + b);
+  " >> $GITHUB_ENV
+  npx expo export:embed \
+    --platform ios \
+    --dev false \
+    --entry-file "$PWD/index.js" \
+    --bundle-output "$RUNNER_TEMP/main.jsbundle" \
+    --sourcemap-output "$RUNNER_TEMP/main.jsbundle.map" \
+    --assets-dest "$RUNNER_TEMP/assets"
+  echo "Bundle + source map exported."
+  ls -lh "$RUNNER_TEMP/main.jsbundle" "$RUNNER_TEMP/main.jsbundle.map"
+  shell: /bin/bash -e {0}
+  env:
+    PNPM_HOME: /Users/runner/setup-pnpm/node_modules/.bin
+    IOS_BUILD_NUMBER: 74
+    PROFILE_UUID: c66196ec-5d56-44c6-98ed-bd14e600a3b6
+    XCODE_WORKSPACE: QuickPropAgent.xcworkspace
+    XCODE_SCHEME: QuickPropAgent
+Starting Metro Bundler
+iOS artifacts/mobile/index.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+iOS artifacts/mobile/index.js ▓▓▓░░░░░░░░░░░░░ 21.3% ( 57/205)
+iOS artifacts/mobile/index.js ▓▓▓▓▓░░░░░░░░░░░ 35.8% (275/503)
+iOS artifacts/mobile/index.js ▓▓▓▓▓▓▓░░░░░░░░░ 49.9% (425/605)
+iOS artifacts/mobile/index.js ▓▓▓▓▓▓▓▓▓░░░░░░░ 60.6% (580/745)
+iOS artifacts/mobile/index.js ▓▓▓▓▓▓▓▓▓▓░░░░░░ 67.7% (783/983)
+iOS artifacts/mobile/index.js ▓▓▓▓▓▓▓▓▓▓░░░░░░ 67.7% ( 983/1407)
+iOS artifacts/mobile/index.js ▓▓▓▓▓▓▓▓▓▓░░░░░░ 67.7% (1093/1463)
+iOS artifacts/mobile/index.js ▓▓▓▓▓▓▓▓▓▓▓░░░░░ 71.6% (1290/1524)
+iOS artifacts/mobile/index.js ▓▓▓▓▓▓▓▓▓▓▓▓▓░░░ 87.0% (1486/1593)
+iOS artifacts/mobile/index.js ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░ 99.2% (1729/1736)
+iOS Bundling failed 35278ms artifacts/mobile/index.js (1737 modules)
+SyntaxError: /Users/runner/work/quickprop/quickprop/artifacts/mobile/components/ShareHubSheet.tsx: Missing semicolon. (23:5)
+
+  21 | 
+  22 | const CATALOG_BASE = process.env.EXPO_PUBLIC_DOMAIN
+> 23 |   ? `https://${process.env.EXPO_PUBLIC_DOMAIN}/web`
+     |      ^
+  24 |   : 'https://quickprop.replit.app/web';
+  25 |
+  26 | function formatPrice(p: Property) {
+SyntaxError: SyntaxError: /Users/runner/work/quickprop/quickprop/artifacts/mobile/components/ShareHubSheet.tsx: Missing semicolon. (23:5)
+
+  21 | 
+  22 | const CATALOG_BASE = process.env.EXPO_PUBLIC_DOMAIN
+> 23 |   ? `https://${process.env.EXPO_PUBLIC_DOMAIN}/web`
+     |      ^
+  24 |   : 'https://quickprop.replit.app/web';
+  25 |
+  26 | function formatPrice(p: Property) {
+Error: Process completed with exit code 1.
