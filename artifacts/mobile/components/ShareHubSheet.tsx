@@ -1,4 +1,3 @@
-```tsx
 import React, { useState, useCallback } from 'react';
 import {
   View, Text, Modal, TouchableOpacity, StyleSheet, Share, Linking,
@@ -105,6 +104,7 @@ export function ShareHubSheet({ visible, onClose }: Props) {
 
   const handleClose = () => {
     onClose();
+    // reset after animation
     setTimeout(() => { setStep('hub'); setSelectedProperty(null); }, 400);
   };
 
@@ -114,6 +114,7 @@ export function ShareHubSheet({ visible, onClose }: Props) {
     else if (step === 'catalogue-share') setStep('hub');
   };
 
+  // ── Property share actions ─────────────────────────────────────────────────
   const sharePropertyWhatsApp = useCallback(async (p: Property) => {
     setSharing(true);
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -137,6 +138,7 @@ export function ShareHubSheet({ visible, onClose }: Props) {
     handleClose();
   }, [user?.name]);
 
+  // ── Catalogue share actions ────────────────────────────────────────────────
   const activeProps = catalogMode === 'agent' ? myProps : allProps;
   const catalogUrl = catalogMode === 'agent' && user?.id
     ? `${CATALOG_BASE}/agents/${user.id}`
@@ -169,6 +171,7 @@ export function ShareHubSheet({ visible, onClose }: Props) {
     handleClose();
   }, [activeProps, catalogMode, user?.name, catalogUrl]);
 
+  // ── Render steps ─────────────────────────────────────────────────────────
   const renderHub = () => (
     <>
       <Text style={[s.sheetTitle, { color: colors.foreground }]}>Share</Text>
@@ -325,6 +328,7 @@ export function ShareHubSheet({ visible, onClose }: Props) {
           {isAgent ? 'My Catalogue' : 'Company Catalogue'}
         </Text>
 
+        {/* Catalogue preview */}
         <View style={[s.catPreview, { backgroundColor: colors.muted, borderColor: colors.border }]}>
           <View style={s.catPreviewTop}>
             <View style={s.catPreviewInfo}>
@@ -424,8 +428,10 @@ export function ShareHubSheet({ visible, onClose }: Props) {
     >
       <Pressable style={s.backdrop} onPress={handleClose}>
         <Pressable style={[s.sheet, { backgroundColor: colors.card }]} onPress={() => {}}>
+          {/* Handle */}
           <View style={[s.handle, { backgroundColor: colors.border }]} />
 
+          {/* Header row */}
           <View style={s.headerRow}>
             {step !== 'hub' ? (
               <TouchableOpacity onPress={goBack} style={[s.navBtn, { backgroundColor: colors.muted }]}>
@@ -441,6 +447,7 @@ export function ShareHubSheet({ visible, onClose }: Props) {
             </TouchableOpacity>
           </View>
 
+          {/* Step content */}
           {step === 'hub' && renderHub()}
           {step === 'property-select' && renderPropertySelect()}
           {step === 'property-share' && renderPropertyShare()}
@@ -464,6 +471,8 @@ const s = StyleSheet.create({
   navBtn: { width: 34, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   sheetTitle: { fontSize: 22, fontWeight: '800', letterSpacing: -0.4, marginBottom: 4 },
   sheetSub: { fontSize: 14, marginBottom: 20 },
+
+  // Hub cards
   hubCard: {
     flexDirection: 'row', alignItems: 'center', gap: 14,
     borderRadius: 16, borderWidth: 1, padding: 16, marginBottom: 10,
@@ -476,6 +485,8 @@ const s = StyleSheet.create({
   hubText: { flex: 1 },
   hubLabel: { fontSize: 16, fontWeight: '700', marginBottom: 3 },
   hubDesc: { fontSize: 13, lineHeight: 18 },
+
+  // Property list (select step)
   propList: { maxHeight: 320 },
   propRow: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
@@ -485,12 +496,15 @@ const s = StyleSheet.create({
   propInfo: { flex: 1 },
   propTitle: { fontSize: 14, fontWeight: '700', marginBottom: 2 },
   propSub: { fontSize: 12 },
+
+  // Property share step
   propPreviewCard: { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 14, borderWidth: 1, padding: 14, marginBottom: 20 },
   propPreviewIcon: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   propPreviewText: { flex: 1 },
   propPreviewTitle: { fontSize: 14, fontWeight: '700' },
   propPreviewPrice: { fontSize: 15, fontWeight: '800', marginTop: 2 },
   propPreviewRef: { fontSize: 12, marginTop: 2 },
+
   sectionLabel: { fontSize: 11, fontWeight: '700', letterSpacing: 0.8, marginBottom: 12 },
   shareBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 14,
@@ -500,6 +514,8 @@ const s = StyleSheet.create({
   shareBtnText: { flex: 1 },
   shareBtnLabel: { fontSize: 15, fontWeight: '700', marginBottom: 2 },
   shareBtnSub: { fontSize: 12 },
+
+  // Catalogue share step
   catPreview: { borderRadius: 14, borderWidth: 1, padding: 14, marginBottom: 20, gap: 8 },
   catPreviewTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   catPreviewInfo: { flex: 1, marginRight: 8 },
@@ -514,11 +530,12 @@ const s = StyleSheet.create({
   catPropRow: { flexDirection: 'row', justifyContent: 'space-between', paddingTop: 8, borderTopWidth: 1, marginTop: 4 },
   catPropName: { fontSize: 12, flex: 1 },
   catPropPrice: { fontSize: 12, fontWeight: '600', marginLeft: 8 },
+
   shareRow: { flexDirection: 'row', gap: 12 },
   shareSmallBtn: { flex: 1, alignItems: 'center', padding: 14, borderRadius: 16, borderWidth: 1, gap: 8 },
   shareSmallIcon: { width: 48, height: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   shareSmallLabel: { fontSize: 13, fontWeight: '600' },
+
   emptyWrap: { alignItems: 'center', paddingVertical: 32, gap: 10 },
   emptyText: { fontSize: 14 },
 });
-```
