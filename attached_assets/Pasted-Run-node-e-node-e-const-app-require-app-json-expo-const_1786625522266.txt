@@ -1,0 +1,56 @@
+Run node -e "
+  node -e "
+    const app = require('./app.json').expo;
+    const v = app.version;
+    const b = app.ios.buildNumber;
+    console.log('SENTRY_RELEASE=' + v + '+' + b);
+  " >> $GITHUB_ENV
+  npx expo export:embed \
+    --platform ios \
+    --dev false \
+    --entry-file "$PWD/index.js" \
+    --bundle-output "$RUNNER_TEMP/main.jsbundle" \
+    --sourcemap-output "$RUNNER_TEMP/main.jsbundle.map" \
+    --assets-dest "$RUNNER_TEMP/assets"
+  echo "Bundle + source map exported."
+  ls -lh "$RUNNER_TEMP/main.jsbundle" "$RUNNER_TEMP/main.jsbundle.map"
+  shell: /bin/bash -e {0}
+  env:
+    PNPM_HOME: /Users/runner/setup-pnpm/node_modules/.bin
+    IOS_BUILD_NUMBER: 74
+    PROFILE_UUID: c66196ec-5d56-44c6-98ed-bd14e600a3b6
+    XCODE_WORKSPACE: QuickPropAgent.xcworkspace
+    XCODE_SCHEME: QuickPropAgent
+Starting Metro Bundler
+iOS artifacts/mobile/index.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+iOS artifacts/mobile/index.js ▓▓▓░░░░░░░░░░░░░ 22.9% ( 43/238)
+iOS artifacts/mobile/index.js ▓▓▓░░░░░░░░░░░░░ 22.9% ( 83/304)
+iOS artifacts/mobile/index.js ▓▓▓░░░░░░░░░░░░░ 22.9% (170/439)
+iOS artifacts/mobile/index.js ▓▓▓▓░░░░░░░░░░░░ 29.3% (398/735)
+iOS artifacts/mobile/index.js ▓▓▓▓▓▓░░░░░░░░░░ 38.9% ( 611/1242)
+iOS artifacts/mobile/index.js ▓▓▓▓▓▓░░░░░░░░░░ 38.9% ( 836/1361)
+iOS artifacts/mobile/index.js ▓▓▓▓▓▓▓▓░░░░░░░░ 50.2% (1004/1417)
+iOS artifacts/mobile/index.js ▓▓▓▓▓▓▓▓▓░░░░░░░ 58.2% (1126/1476)
+iOS artifacts/mobile/index.js ▓▓▓▓▓▓▓▓▓▓▓▓░░░░ 76.0% (1326/1521)
+iOS artifacts/mobile/index.js ▓▓▓▓▓▓▓▓▓▓▓▓▓░░░ 83.1% (1420/1566)
+iOS artifacts/mobile/index.js ▓▓▓▓▓▓▓▓▓▓▓▓▓▓░░ 93.0% (1554/1616)
+iOS Bundling failed 40916ms artifacts/mobile/index.js (1736 modules)
+SyntaxError: /Users/runner/work/quickprop/quickprop/artifacts/mobile/app/task/[id].tsx: Unterminated JSX contents. (200:83)
+
+  198 |           {isOverdue && (
+  199 |             <View style={[styles.statusBadge, { backgroundColor: colors.destructive + '18' }]}>
+> 200 |               <Ionicons name="time-outline" size={14} color={colors.destructive} /> **…**
+      |                                                                                    ^
+  201 |
+  202 | _This response is too long to display in full._
+  203 |
+SyntaxError: SyntaxError: /Users/runner/work/quickprop/quickprop/artifacts/mobile/app/task/[id].tsx: Unterminated JSX contents. (200:83)
+
+  198 |           {isOverdue && (
+  199 |             <View style={[styles.statusBadge, { backgroundColor: colors.destructive + '18' }]}>
+> 200 |               <Ionicons name="time-outline" size={14} color={colors.destructive} /> **…**
+      |                                                                                    ^
+  201 |
+  202 | _This response is too long to display in full._
+  203 |
+Error: Process completed with exit code 1.
