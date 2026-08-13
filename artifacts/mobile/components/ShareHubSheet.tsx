@@ -117,25 +117,39 @@ export function ShareHubSheet({ visible, onClose }: Props) {
   // ── Property share actions ─────────────────────────────────────────────────
   const sharePropertyWhatsApp = useCallback(async (p: Property) => {
     setSharing(true);
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    const text = buildPropertyText(p, user?.name);
-    const waUrl = `whatsapp://send?text=${encodeURIComponent(text)}`;
-    const canOpen = await Linking.canOpenURL(waUrl);
-    if (canOpen) { await Linking.openURL(waUrl); }
-    else { await Linking.openURL(`https://wa.me/?text=${encodeURIComponent(text)}`); }
-    setSharing(false);
-    handleClose();
+    try {
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      const text = buildPropertyText(p, user?.name);
+      const waUrl = `whatsapp://send?text=${encodeURIComponent(text)}`;
+      let canOpen = false;
+      try { canOpen = await Linking.canOpenURL(waUrl); } catch {}
+      if (canOpen) {
+        await Linking.openURL(waUrl);
+      } else {
+        await Linking.openURL(`https://wa.me/?text=${encodeURIComponent(text)}`);
+      }
+      handleClose();
+    } catch (e) {
+      // no-op — surface nothing to the user; sheet stays open
+    } finally {
+      setSharing(false);
+    }
   }, [user?.name]);
 
   const sharePropertyNative = useCallback(async (p: Property) => {
     setSharing(true);
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    await Share.share({
-      title: `${p.type === 'sale' ? 'For Sale' : 'To Rent'} — ${p.suburb}`,
-      message: buildPropertyText(p, user?.name),
-    });
-    setSharing(false);
-    handleClose();
+    try {
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      await Share.share({
+        title: `${p.type === 'sale' ? 'For Sale' : 'To Rent'} — ${p.suburb}`,
+        message: buildPropertyText(p, user?.name),
+      });
+      handleClose();
+    } catch (e) {
+      // user dismissed or share failed — just close spinner
+    } finally {
+      setSharing(false);
+    }
   }, [user?.name]);
 
   // ── Catalogue share actions ────────────────────────────────────────────────
@@ -146,29 +160,43 @@ export function ShareHubSheet({ visible, onClose }: Props) {
 
   const shareCatalogWhatsApp = useCallback(async () => {
     setSharing(true);
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    const text = buildCatalogText(activeProps, catalogMode, user?.name, catalogUrl);
-    const waUrl = `whatsapp://send?text=${encodeURIComponent(text)}`;
-    const canOpen = await Linking.canOpenURL(waUrl);
-    if (canOpen) { await Linking.openURL(waUrl); }
-    else { await Linking.openURL(`https://wa.me/?text=${encodeURIComponent(text)}`); }
-    setSharing(false);
-    handleClose();
+    try {
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      const text = buildCatalogText(activeProps, catalogMode, user?.name, catalogUrl);
+      const waUrl = `whatsapp://send?text=${encodeURIComponent(text)}`;
+      let canOpen = false;
+      try { canOpen = await Linking.canOpenURL(waUrl); } catch {}
+      if (canOpen) {
+        await Linking.openURL(waUrl);
+      } else {
+        await Linking.openURL(`https://wa.me/?text=${encodeURIComponent(text)}`);
+      }
+      handleClose();
+    } catch (e) {
+    } finally {
+      setSharing(false);
+    }
   }, [activeProps, catalogMode, user?.name, catalogUrl]);
 
   const shareCatalogFacebook = useCallback(async () => {
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    await Linking.openURL(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(catalogUrl)}`);
-    handleClose();
+    try {
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      await Linking.openURL(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(catalogUrl)}`);
+      handleClose();
+    } catch (e) {}
   }, [catalogUrl]);
 
   const shareCatalogNative = useCallback(async () => {
     setSharing(true);
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    const text = buildCatalogText(activeProps, catalogMode, user?.name, catalogUrl);
-    await Share.share({ title: 'QuickProp Property Catalogue', message: text, url: catalogUrl });
-    setSharing(false);
-    handleClose();
+    try {
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      const text = buildCatalogText(activeProps, catalogMode, user?.name, catalogUrl);
+      await Share.share({ title: 'QuickProp Property Catalogue', message: text, url: catalogUrl });
+      handleClose();
+    } catch (e) {
+    } finally {
+      setSharing(false);
+    }
   }, [activeProps, catalogMode, user?.name, catalogUrl]);
 
   // ── Render steps ─────────────────────────────────────────────────────────

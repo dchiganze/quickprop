@@ -1,4 +1,6 @@
 import React, { useEffect } from 'react';
+import { Appearance } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -62,6 +64,12 @@ function RootLayoutNav() {
 function RootLayout() {
   useEffect(() => {
     SplashScreen.hideAsync();
+    // Restore user's dark mode preference
+    AsyncStorage.getItem('@qp_dark_mode').then(val => {
+      if (val !== null) {
+        Appearance.setColorScheme(val === 'true' ? 'dark' : 'light');
+      }
+    });
   }, []);
 
   return (

@@ -2,17 +2,20 @@ import React, { useState } from 'react';
 import { Platform, StyleSheet } from 'react-native';
 import { useColors } from '@/hooks/useColors';
 import { Feather } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { Tabs } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { ShareHubSheet } from '@/components/ShareHubSheet';
+import { AlertsSheet } from '@/components/AlertsSheet';
 
 export default function TabLayout() {
   const colors = useColors();
   const isIOS = Platform.OS === 'ios';
   const insets = useSafeAreaInsets();
   const [shareOpen, setShareOpen] = useState(false);
+  const [alertsOpen, setAlertsOpen] = useState(false);
 
   return (
     <>
@@ -58,8 +61,15 @@ export default function TabLayout() {
         <Tabs.Screen
           name="leads"
           options={{
-            title: 'Leads',
-            tabBarIcon: ({ color }) => <Feather name="users" size={22} color={color} />,
+            title: 'Alerts',
+            tabBarIcon: ({ color }) => <Ionicons name="notifications-outline" size={22} color={color} />,
+          }}
+          listeners={{
+            tabPress: (e) => {
+              e.preventDefault();
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+              setAlertsOpen(true);
+            },
           }}
         />
         <Tabs.Screen
@@ -88,6 +98,7 @@ export default function TabLayout() {
       </Tabs>
 
       <ShareHubSheet visible={shareOpen} onClose={() => setShareOpen(false)} />
+      <AlertsSheet visible={alertsOpen} onClose={() => setAlertsOpen(false)} />
     </>
   );
 }

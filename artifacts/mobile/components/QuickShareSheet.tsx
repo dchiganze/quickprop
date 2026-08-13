@@ -81,44 +81,53 @@ export function QuickShareSheet({ visible, onClose }: QuickShareSheetProps) {
       : `${CATALOG_BASE}/`;
 
   const handleWhatsApp = useCallback(async () => {
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    const text = buildCatalogText(activeProps, mode, user?.name, catalogUrl);
-    const waUrl = `whatsapp://send?text=${encodeURIComponent(text)}`;
-    const canOpen = await Linking.canOpenURL(waUrl);
-    if (canOpen) {
-      await Linking.openURL(waUrl);
-    } else {
-      await Linking.openURL(`https://wa.me/?text=${encodeURIComponent(text)}`);
-    }
-    onClose();
+    try {
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      const text = buildCatalogText(activeProps, mode, user?.name, catalogUrl);
+      const waUrl = `whatsapp://send?text=${encodeURIComponent(text)}`;
+      let canOpen = false;
+      try { canOpen = await Linking.canOpenURL(waUrl); } catch {}
+      if (canOpen) {
+        await Linking.openURL(waUrl);
+      } else {
+        await Linking.openURL(`https://wa.me/?text=${encodeURIComponent(text)}`);
+      }
+      onClose();
+    } catch (e) {}
   }, [activeProps, mode, user?.name, catalogUrl, onClose]);
 
   const handleFacebook = useCallback(async () => {
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    const url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(catalogUrl)}`;
-    await Linking.openURL(url);
-    onClose();
+    try {
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      const url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(catalogUrl)}`;
+      await Linking.openURL(url);
+      onClose();
+    } catch (e) {}
   }, [catalogUrl, onClose]);
 
   const handleInstagram = useCallback(async () => {
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    const text = buildCatalogText(activeProps, mode, user?.name, catalogUrl);
-    await Share.share({
-      title: 'QuickProp Property Catalogue',
-      message: text,
-      url: catalogUrl,
-    });
-    onClose();
+    try {
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      const text = buildCatalogText(activeProps, mode, user?.name, catalogUrl);
+      await Share.share({
+        title: 'QuickProp Property Catalogue',
+        message: text,
+        url: catalogUrl,
+      });
+      onClose();
+    } catch (e) {}
   }, [activeProps, mode, user?.name, catalogUrl, onClose]);
 
   const handleNativeShare = useCallback(async () => {
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    const text = buildCatalogText(activeProps, mode, user?.name, catalogUrl);
-    await Share.share({
-      title: 'QuickProp Property Catalogue',
-      message: text,
-      url: catalogUrl,
-    });
+    try {
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      const text = buildCatalogText(activeProps, mode, user?.name, catalogUrl);
+      await Share.share({
+        title: 'QuickProp Property Catalogue',
+        message: text,
+        url: catalogUrl,
+      });
+    } catch (e) {}
   }, [activeProps, mode, user?.name, catalogUrl]);
 
   const selectMode = async (m: CatalogMode) => {
