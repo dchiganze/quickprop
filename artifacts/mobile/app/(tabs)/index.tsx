@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {
-  View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, Pressable,
+  View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, Alert,
 } from 'react-native';
 import { CatalogueBrochureSheet } from '@/components/BrochureSheet';
 import { Ionicons } from '@expo/vector-icons';
@@ -12,7 +12,6 @@ import { useColors } from '@/hooks/useColors';
 import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
 import { StatCard } from '@/components/StatCard';
-import { QuickAction } from '@/components/QuickAction';
 import { PropertyCard } from '@/components/PropertyCard';
 import { QuickShareSheet } from '@/components/QuickShareSheet';
 
@@ -20,7 +19,7 @@ export default function DashboardScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const { properties, leads, tasks } = useData();
   const [shareOpen, setShareOpen] = useState(false);
   const [brochureOpen, setBrochureOpen] = useState(false);
@@ -38,19 +37,32 @@ export default function DashboardScreen() {
   const firstName = user?.name.split(' ')[0] ?? 'Agent';
   const dateStr = new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
 
-  const handleQuickAction = (action: string) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-    if (action === 'new') router.push('/new-listing');
-    else if (action === 'listings') router.push('/(tabs)/listings');
-    else if (action === 'leads') router.push('/(tabs)/leads');
-    else if (action === 'matches') router.push('/(tabs)/matches');
-  };
-
   const TASK_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
     call_seller: 'call-outline', viewing: 'eye-outline',
     price_update: 'trending-down-outline', renew_mandate: 'refresh-outline',
     take_photos: 'camera-outline', other: 'checkbox-outline',
   };
+
+  const handleSignOut = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+    Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Sign Out', style: 'destructive',
+        onPress: async () => {
+          await logout();
+          router.replace('/login');
+        },
+      },
+    ]);
+  };
+
+  const QUICK_ACTIONS = [
+    { label: 'New Listing', icon: 'add-circle' as const, accent: true, onPress: () => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}); router.push('/new-listing'); } },
+    { label: 'Search Inventory', icon: 'search-outline' as const, accent: false, onPress: () => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}); router.push('/(tabs)/listings'); } },
+    { label: 'Share Catalogue', icon: 'share-outline' as const, accent: true, onPress: () => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {}); setShareOpen(true); } },
+    { label: 'Generate Brochure', icon: 'document-text-outline' as const, accent: false, onPress: () => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}); setBrochureOpen(true); } },
+  ];
 
   return (
     <>
@@ -96,17 +108,32 @@ export default function DashboardScreen() {
         <StatCard label="Tasks Due" value={overdueTasks} icon="time-outline" color={overdueTasks > 0 ? colors.destructive : colors.mutedForeground} subtitle={overdueTasks > 0 ? 'Overdue' : 'On track'} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}); router.navigate({ pathname: '/(tabs)/tasks', params: { filter: 'all', title: 'Tasks', _t: String(Date.now()) } }); }} />
       </View>
 
-      {/* Quick Actions */}
-      <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Quick Actions</Text>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.actionsScroll} contentContainerStyle={styles.actionsContent}>
-        <QuickAction label="New Listing" icon="add-circle" onPress={() => handleQuickAction('new')} accent />
-        <QuickAction label="Search Inventory" icon="search-outline" onPress={() => handleQuickAction('listings')} />
-        <QuickAction label="Share Catalogue" icon="share-outline" onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {}); setShareOpen(true); }} accent />
-        <QuickAction label="Generate Brochure" icon="document-text-outline" onPress={() => {
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-          setBrochureOpen(true);
-        }} />
-      </ScrollView>
+      {/* Quick Actions — 2×2 grid, nudged down 9px */}
+      <Text style={[styles.sectionTitle, { color: colors.foreground, marginTop: 31 }]}>Quick Actions</Text>
+      <View style={styles.actionsGrid}>
+        {QUICK_ACTIONS.map((action) => (
+          <TouchableOpacity
+            key={action.label}
+            style={[
+              styles.actionCard,
+              {
+                backgroundColor: action.accent ? colors.primary : colors.card,
+                borderColor: action.accent ? colors.primary : colors.border,
+                shadowColor: colors.foreground,
+              },
+            ]}
+            onPress={action.onPress}
+            activeOpacity={0.8}
+          >
+            <View style={[styles.actionIcon, { backgroundColor: action.accent ? 'rgba(255,255,255,0.2)' : colors.secondary }]}>
+              <Ionicons name={action.icon} size={18} color={action.accent ? '#FFF' : colors.primary} />
+            </View>
+            <Text style={[styles.actionLabel, { color: action.accent ? '#FFF' : colors.foreground }]} numberOfLines={2}>
+              {action.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
 
       {/* Today's Tasks */}
       {todayTasks.length > 0 && (
@@ -148,6 +175,18 @@ export default function DashboardScreen() {
       {recentProperties.map(p => (
         <PropertyCard key={p.id} property={p} onPress={() => router.push(`/listing/${p.id}`)} />
       ))}
+
+      {/* Sign Out */}
+      <TouchableOpacity
+        style={[styles.signOutBtn, { borderColor: colors.border, backgroundColor: colors.card }]}
+        onPress={handleSignOut}
+        activeOpacity={0.75}
+      >
+        <View style={[styles.signOutIcon, { backgroundColor: colors.destructive + '12' }]}>
+          <Ionicons name="log-out-outline" size={18} color={colors.destructive} />
+        </View>
+        <Text style={[styles.signOutText, { color: colors.destructive }]}>Sign Out</Text>
+      </TouchableOpacity>
     </ScrollView>
 
     <QuickShareSheet visible={shareOpen} onClose={() => setShareOpen(false)} />
@@ -175,8 +214,25 @@ const styles = StyleSheet.create({
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, marginTop: 22 },
   seeAll: { fontSize: 14, fontWeight: '600' },
   statsRow: { flexDirection: 'row', gap: 10 },
-  actionsScroll: { marginHorizontal: -16 },
-  actionsContent: { paddingHorizontal: 16, gap: 10 },
+
+  // 2×2 Quick Actions grid
+  actionsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 4 },
+  actionCard: {
+    width: '47.5%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    padding: 12,
+    borderRadius: 14,
+    borderWidth: 1,
+    ...Platform.select({
+      ios: { shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.07, shadowRadius: 6 },
+      android: { elevation: 2 },
+    }),
+  },
+  actionIcon: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  actionLabel: { fontSize: 13, fontWeight: '600', flex: 1, lineHeight: 17 },
+
   tasksCard: {
     borderRadius: 16, borderWidth: 1,
     ...Platform.select({ ios: { shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.07, shadowRadius: 6 }, android: { elevation: 2 } }),
@@ -187,4 +243,11 @@ const styles = StyleSheet.create({
   taskInfo: { flex: 1 },
   taskTitle: { fontSize: 14, fontWeight: '600', marginBottom: 2 },
   taskSub: { fontSize: 12 },
+
+  signOutBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    borderRadius: 16, borderWidth: 1, padding: 14, marginTop: 24,
+  },
+  signOutIcon: { width: 34, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  signOutText: { fontSize: 15, fontWeight: '600' },
 });
