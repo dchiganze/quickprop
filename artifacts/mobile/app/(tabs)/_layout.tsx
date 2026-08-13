@@ -60,10 +60,7 @@ export default function TabLayout() {
       />
       <Tabs.Screen
         name="matches"
-        options={{
-          title: 'Matches',
-          tabBarIcon: ({ color }) => <Feather name="crosshair" size={22} color={color} />,
-        }}
+        options={{ href: null }}
       />
       <Tabs.Screen
         name="profile"
