@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import {
-  View, Text, FlatList, TouchableOpacity, StyleSheet, Platform,
+  View, Text, FlatList, ScrollView, TouchableOpacity, StyleSheet, Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -12,14 +12,15 @@ import { useAuth } from '@/contexts/AuthContext';
 import { PropertyCard } from '@/components/PropertyCard';
 import { SearchBar } from '@/components/SearchBar';
 import { EmptyState } from '@/components/EmptyState';
-import { Property } from '@/types';
 import { QuickShareSheet } from '@/components/QuickShareSheet';
+import { AlertsSheet } from '@/components/AlertsSheet';
 
 type Filter = 'all' | 'my' | 'agency' | 'draft' | 'pending' | 'sold' | 'rented' | 'archived';
 
-const FILTERS: { key: Filter; label: string }[] = [
+const STATUS_FILTERS: { key: Filter; label: string }[] = [
   { key: 'all', label: 'All' },
   { key: 'my', label: 'My Listings' },
+  // 'alerts' chip is rendered separately between My Listings and Draft
   { key: 'draft', label: 'Draft' },
   { key: 'pending', label: 'Pending' },
   { key: 'sold', label: 'Sold' },
@@ -27,17 +28,75 @@ const FILTERS: { key: Filter; label: string }[] = [
   { key: 'archived', label: 'Archived' },
 ];
 
+/** Comprehensive search across every meaningful property field */
+function propertyMatchesQuery(p: {
+  address: string; suburb: string; referenceNumber: string; type: string;
+  status: string; currency: string; description: string; price: number;
+  bedrooms?: number; bathrooms?: number; garages?: number;
+  features: string[]; seller: { name: string; mandateType: string };
+}, q: string): boolean {
+  const lower = q.toLowerCase().trim();
+
+  // Numeric-keyword shortcuts: "3 bed", "3bed", "3bedroom"
+  const bedMatch = lower.match(/^(\d+)\s*bed/);
+  if (bedMatch) return (p.bedrooms ?? 0) === parseInt(bedMatch[1]);
+
+  const bathMatch = lower.match(/^(\d+)\s*bath/);
+  if (bathMatch) return (p.bathrooms ?? 0) === parseInt(bathMatch[1]);
+
+  const garageMatch = lower.match(/^(\d+)\s*gar/);
+  if (garageMatch) return (p.garages ?? 0) === parseInt(garageMatch[1]);
+
+  // "for sale" / "for rent" shorthand
+  if (lower === 'for sale') return p.type === 'sale';
+  if (lower === 'for rent' || lower === 'to rent') return p.type === 'rent';
+
+  // Plain digits: match bedrooms, bathrooms, garages, or price digits
+  if (/^\d+$/.test(lower)) {
+    return (
+      String(p.bedrooms ?? '') === lower ||
+      String(p.bathrooms ?? '') === lower ||
+      String(p.garages ?? '') === lower ||
+      String(p.price).includes(lower) ||
+      p.referenceNumber.toLowerCase().includes(lower)
+    );
+  }
+
+  // Full text search across all fields
+  return (
+    p.address.toLowerCase().includes(lower) ||
+    p.suburb.toLowerCase().includes(lower) ||
+    p.referenceNumber.toLowerCase().includes(lower) ||
+    p.seller.name.toLowerCase().includes(lower) ||
+    p.type.toLowerCase().includes(lower) ||
+    p.status.toLowerCase().includes(lower) ||
+    p.currency.toLowerCase().includes(lower) ||
+    p.description.toLowerCase().includes(lower) ||
+    p.seller.mandateType.toLowerCase().includes(lower) ||
+    String(p.price).includes(lower) ||
+    p.features.some(f => f.toLowerCase().includes(lower)) ||
+    // e.g. "solar", "borehole", "pool"
+    // bedrooms as "3 bed" phrasing within text
+    (p.bedrooms !== undefined && `${p.bedrooms} bed`.includes(lower)) ||
+    (p.bathrooms !== undefined && `${p.bathrooms} bath`.includes(lower)) ||
+    (p.garages !== undefined && `${p.garages} garage`.includes(lower))
+  );
+}
+
 export default function ListingsScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
-  const { properties } = useData();
+  const { properties, unseenMatchCount } = useData();
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<Filter>('all');
   const [shareOpen, setShareOpen] = useState(false);
+  const [alertsOpen, setAlertsOpen] = useState(false);
 
   const filtered = useMemo(() => {
     let list = [...properties];
+
+    // Status / ownership filter
     if (filter === 'my') list = list.filter(p => p.agentId === user?.id);
     else if (filter === 'draft') list = list.filter(p => p.status === 'draft');
     else if (filter === 'pending') list = list.filter(p => p.status === 'pending');
@@ -45,27 +104,25 @@ export default function ListingsScreen() {
     else if (filter === 'rented') list = list.filter(p => p.status === 'rented');
     else if (filter === 'archived') list = list.filter(p => p.status === 'archived');
 
+    // Full-text search
     if (query.trim()) {
-      const q = query.toLowerCase();
-      list = list.filter(p =>
-        p.address.toLowerCase().includes(q) ||
-        p.suburb.toLowerCase().includes(q) ||
-        p.referenceNumber.toLowerCase().includes(q) ||
-        p.seller.name.toLowerCase().includes(q) ||
-        String(p.price).includes(q) ||
-        p.type.toLowerCase().includes(q)
-      );
+      list = list.filter(p => propertyMatchesQuery(p, query));
     }
 
     return list.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
   }, [properties, filter, query, user]);
+
+  const openAlerts = async () => {
+    await Haptics.selectionAsync();
+    setAlertsOpen(true);
+  };
 
   return (
     <View style={[styles.flex, { backgroundColor: colors.background }]}>
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + (Platform.OS === 'web' ? 67 : 16), backgroundColor: colors.background }]}>
         <View style={styles.titleRow}>
-                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
             <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
               <Ionicons name="chevron-back" size={24} color={colors.foreground} />
             </TouchableOpacity>
@@ -81,26 +138,65 @@ export default function ListingsScreen() {
             </TouchableOpacity>
           </View>
         </View>
-        <SearchBar value={query} onChangeText={setQuery} placeholder="Search by address, suburb, price, agent..." />
-        <FlatList
-          data={FILTERS}
+
+        <SearchBar
+          value={query}
+          onChangeText={setQuery}
+          placeholder="Search suburb, beds, solar, owner, ref…"
+        />
+
+        {/* Filter chips — ScrollView so we can insert Alerts between My Listings and Draft */}
+        <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          keyExtractor={f => f.key}
           style={styles.filterList}
           contentContainerStyle={styles.filterContent}
-          renderItem={({ item }) => {
+        >
+          {STATUS_FILTERS.map((item, index) => {
             const active = filter === item.key;
             return (
-              <TouchableOpacity
-                style={[styles.filterBtn, { backgroundColor: active ? colors.primary : colors.muted, borderColor: active ? colors.primary : colors.border }]}
-                onPress={async () => { await Haptics.selectionAsync(); setFilter(item.key); }}
-              >
-                <Text style={[styles.filterText, { color: active ? '#FFF' : colors.mutedForeground }]}>{item.label}</Text>
-              </TouchableOpacity>
+              <React.Fragment key={item.key}>
+                <TouchableOpacity
+                  style={[
+                    styles.filterBtn,
+                    { backgroundColor: active ? colors.primary : colors.muted, borderColor: active ? colors.primary : colors.border },
+                  ]}
+                  onPress={async () => { await Haptics.selectionAsync(); setFilter(item.key); }}
+                >
+                  <Text style={[styles.filterText, { color: active ? '#FFF' : colors.mutedForeground }]}>{item.label}</Text>
+                </TouchableOpacity>
+
+                {/* Alerts chip inserted after "My Listings" (index 1) */}
+                {index === 1 && (
+                  <TouchableOpacity
+                    style={[
+                      styles.filterBtn, styles.alertsChip,
+                      {
+                        backgroundColor: unseenMatchCount > 0 ? colors.primary : colors.muted,
+                        borderColor: unseenMatchCount > 0 ? colors.primary : colors.border,
+                      },
+                    ]}
+                    onPress={openAlerts}
+                  >
+                    <Ionicons
+                      name={unseenMatchCount > 0 ? 'notifications' : 'notifications-outline'}
+                      size={13}
+                      color={unseenMatchCount > 0 ? '#FFF' : colors.mutedForeground}
+                    />
+                    <Text style={[styles.filterText, { color: unseenMatchCount > 0 ? '#FFF' : colors.mutedForeground }]}>
+                      Alerts
+                    </Text>
+                    {unseenMatchCount > 0 && (
+                      <View style={styles.badge}>
+                        <Text style={styles.badgeText}>{unseenMatchCount > 9 ? '9+' : unseenMatchCount}</Text>
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                )}
+              </React.Fragment>
             );
-          }}
-        />
+          })}
+        </ScrollView>
       </View>
 
       {/* List */}
@@ -119,7 +215,7 @@ export default function ListingsScreen() {
           <EmptyState
             icon="business-outline"
             title={query ? 'No results found' : 'No listings yet'}
-            description={query ? 'Try a different search term.' : 'Tap the + button to add your first listing.'}
+            description={query ? 'Try suburb, beds, features or owner name.' : 'Tap the + button to add your first listing.'}
             actionLabel={query ? undefined : 'Create Listing'}
             onAction={() => router.push('/new-listing')}
           />
@@ -137,6 +233,7 @@ export default function ListingsScreen() {
       </TouchableOpacity>
 
       <QuickShareSheet visible={shareOpen} onClose={() => setShareOpen(false)} />
+      <AlertsSheet visible={alertsOpen} onClose={() => setAlertsOpen(false)} />
     </View>
   );
 }
@@ -153,7 +250,13 @@ const styles = StyleSheet.create({
   filterList: { marginHorizontal: -16 },
   filterContent: { paddingHorizontal: 16, gap: 8 },
   filterBtn: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, borderWidth: 1 },
+  alertsChip: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   filterText: { fontSize: 13, fontWeight: '600' },
+  badge: {
+    backgroundColor: '#FFF3', borderRadius: 8, minWidth: 16, height: 16,
+    alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3,
+  },
+  badgeText: { color: '#FFF', fontSize: 10, fontWeight: '800' },
   listContent: { paddingHorizontal: 16, paddingTop: 12 },
   fab: {
     position: 'absolute', right: 20, width: 56, height: 56,
