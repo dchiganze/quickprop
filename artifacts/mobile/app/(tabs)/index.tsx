@@ -42,8 +42,6 @@ export default function DashboardScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
     if (action === 'new') router.push('/new-listing');
     else if (action === 'listings') router.push('/(tabs)/listings');
-    else if (action === 'leads') router.push('/(tabs)/leads');
-    else if (action === 'matches') router.push('/(tabs)/matches');
   };
 
   const TASK_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
@@ -101,8 +99,6 @@ export default function DashboardScreen() {
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.actionsScroll} contentContainerStyle={styles.actionsContent}>
         <QuickAction label="New Listing" icon="add-circle" onPress={() => handleQuickAction('new')} accent />
         <QuickAction label="Search Inventory" icon="search-outline" onPress={() => handleQuickAction('listings')} />
-        <QuickAction label="Buyer Requests" icon="people-outline" onPress={() => handleQuickAction('matches')} />
-        <QuickAction label="My Leads" icon="person-outline" onPress={() => handleQuickAction('leads')} />
         <QuickAction label="Share Catalogue" icon="share-outline" onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {}); setShareOpen(true); }} accent />
         <QuickAction label="Generate Brochure" icon="document-text-outline" onPress={() => {
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
@@ -122,7 +118,7 @@ export default function DashboardScreen() {
               <TouchableOpacity
                 key={task.id}
                 style={[styles.taskRow, i < todayTasks.length - 1 && { borderBottomWidth: 1, borderBottomColor: colors.border }]}
-                onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}); if (task.propertyId) router.push(`/listing/${task.propertyId}`); else router.push('/(tabs)/leads'); }}
+                onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}); router.push(`/task/${task.id}`); }}
               >
                 <View style={[styles.taskIcon, { backgroundColor: colors.secondary }]}>
                   <Ionicons name={TASK_ICONS[task.type] || 'checkbox-outline'} size={16} color={colors.primary} />
