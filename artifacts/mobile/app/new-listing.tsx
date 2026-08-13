@@ -3,6 +3,7 @@ import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform,
   TextInput, Switch, Alert, KeyboardAvoidingView, ActivityIndicator,
 } from 'react-native';
+import { useVideoPlayer, VideoView } from 'expo-video';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -103,6 +104,37 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 const fStyles = StyleSheet.create({
   field: { gap: 8, marginBottom: 16 },
   label: { fontSize: 12, fontWeight: '700', letterSpacing: 0.4 },
+});
+
+function VideoThumbnailPreview({ uri, onRemove }: { uri: string; onRemove: () => void }) {
+  const colors = useColors();
+  const player = useVideoPlayer(uri, p => { p.pause(); });
+  return (
+    <View style={vt.wrap}>
+      <VideoView player={player} style={vt.thumb} contentFit="cover" nativeControls={false} />
+      <View style={vt.overlay}>
+        <View style={vt.playBadge}>
+          <Ionicons name="play" size={22} color="#FFF" />
+        </View>
+      </View>
+      <TouchableOpacity style={vt.removeBtn} onPress={onRemove}>
+        <Ionicons name="close-circle" size={26} color="#FFF" />
+      </TouchableOpacity>
+      <View style={[vt.label, { backgroundColor: colors.accent + 'CC' }]}>
+        <Ionicons name="checkmark-circle" size={14} color="#FFF" />
+        <Text style={vt.labelText}>Video selected</Text>
+      </View>
+    </View>
+  );
+}
+const vt = StyleSheet.create({
+  wrap: { borderRadius: 16, overflow: 'hidden', height: 200, backgroundColor: '#000' },
+  thumb: { width: '100%', height: '100%' },
+  overlay: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center' },
+  playBadge: { width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(0,0,0,0.55)', alignItems: 'center', justifyContent: 'center' },
+  removeBtn: { position: 'absolute', top: 10, right: 10 },
+  label: { position: 'absolute', bottom: 10, left: 10, flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20 },
+  labelText: { color: '#FFF', fontSize: 13, fontWeight: '700' },
 });
 
 export default function NewListingScreen() {
@@ -270,13 +302,7 @@ export default function NewListingScreen() {
           <Text style={[styles.stepHeading, { color: colors.foreground }]}>Property Video</Text>
           <Text style={[styles.stepSub, { color: colors.mutedForeground }]}>Optional — max 60 seconds. Compresses automatically.</Text>
           {form.videoUri ? (
-            <View style={[styles.videoCount, { backgroundColor: colors.accent + '15', borderColor: colors.accent }]}>
-              <Ionicons name="checkmark-circle" size={18} color={colors.accent} />
-              <Text style={[styles.videoCountText, { color: colors.accent }]}>Video selected</Text>
-              <TouchableOpacity onPress={() => set('videoUri', '')} style={styles.videoRemove}>
-                <Ionicons name="close-circle" size={18} color={colors.mutedForeground} />
-              </TouchableOpacity>
-            </View>
+            <VideoThumbnailPreview uri={form.videoUri} onRemove={() => set('videoUri', '')} />
           ) : (
             <View style={styles.videoButtons}>
               <TouchableOpacity
@@ -599,7 +625,7 @@ export default function NewListingScreen() {
             onPress={() => { if (canNext()) { Haptics.selectionAsync(); setStep(s => s + 1); } }}
           >
             <Text style={[styles.nextBtnText, { color: canNext() ? '#FFF' : colors.mutedForeground }]}>
-              {step === 1 ? 'Skip' : 'Continue'}
+              {step === 1 ? (form.videoUri ? 'Next' : 'Skip') : 'Continue'}
             </Text>
             <Ionicons name="arrow-forward" size={18} color={canNext() ? '#FFF' : colors.mutedForeground} />
           </TouchableOpacity>
