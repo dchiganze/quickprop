@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import {
-  View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, Alert, Share, Linking, Image,
+  View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, Alert, Share, Linking, Image, Modal,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import * as Sharing from 'expo-sharing';
+import { VideoView, useVideoPlayer } from 'expo-video';
 import { PropertyBrochureSheet } from '@/components/BrochureSheet';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -12,6 +12,23 @@ import * as Haptics from 'expo-haptics';
 import { useColors } from '@/hooks/useColors';
 import { useData } from '@/contexts/DataContext';
 import { Property } from '@/types';
+
+function VideoPlayerModal({ uri, onClose }: { uri: string; onClose: () => void }) {
+  const player = useVideoPlayer(uri, p => { p.loop = false; p.play(); });
+  return (
+    <Modal visible animationType="fade" onRequestClose={onClose} supportedOrientations={['portrait', 'landscape']}>
+      <View style={{ flex: 1, backgroundColor: '#000' }}>
+        <VideoView player={player} style={{ flex: 1 }} allowsFullscreen allowsPictureInPicture nativeControls />
+        <TouchableOpacity
+          onPress={onClose}
+          style={{ position: 'absolute', top: 56, right: 20, backgroundColor: '#00000099', borderRadius: 22, padding: 10 }}
+        >
+          <Ionicons name="close" size={22} color="#FFF" />
+        </TouchableOpacity>
+      </View>
+    </Modal>
+  );
+}
 
 const STATUS_COLORS: Record<Property['status'], string> = {
   published: '#10B981', draft: '#F59E0B', archived: '#64748B', sold: '#EF4444', rented: '#8B5CF6', pending: '#3B82F6',
@@ -38,6 +55,7 @@ export default function ListingDetailScreen() {
   const { properties, updateProperty } = useData();
   const property = properties.find(p => p.id === id);
   const [brochureOpen, setBrochureOpen] = useState(false);
+  const [videoPlayerVisible, setVideoPlayerVisible] = useState(false);
 
   if (!property) {
     return (
@@ -196,18 +214,9 @@ export default function ListingDetailScreen() {
     ]);
   };
 
-  const handlePlayVideo = async () => {
+  const handlePlayVideo = () => {
     if (!property.videoUrl) return;
-    try {
-      const available = await Sharing.isAvailableAsync();
-      if (available) {
-        await Sharing.shareAsync(property.videoUrl, { mimeType: 'video/mp4', UTI: 'public.movie' });
-      } else {
-        Alert.alert('Cannot Play Video', 'No video player available on this device.');
-      }
-    } catch (e: any) {
-      Alert.alert('Cannot Play Video', e?.message ?? 'Could not open the video.');
-    }
+    setVideoPlayerVisible(true);
   };
 
   const handleMarkSold = () => {
@@ -231,6 +240,9 @@ export default function ListingDetailScreen() {
 
   return (
     <View style={[styles.flex, { backgroundColor: colors.background }]}>
+      {videoPlayerVisible && property.videoUrl && (
+        <VideoPlayerModal uri={property.videoUrl} onClose={() => setVideoPlayerVisible(false)} />
+      )}
       {/* Header */}
       <View style={[styles.topBar, { paddingTop: insets.top + (Platform.OS === 'web' ? 67 : 12), backgroundColor: colors.background, borderBottomColor: colors.border }]}>
         <TouchableOpacity style={[styles.backBtn, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={() => router.back()}>
