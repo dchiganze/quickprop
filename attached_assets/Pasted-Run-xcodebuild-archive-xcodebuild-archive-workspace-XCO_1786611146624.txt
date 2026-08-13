@@ -1,0 +1,49 @@
+Run xcodebuild archive \
+  xcodebuild archive \
+    -workspace "$XCODE_WORKSPACE" \
+    -scheme "$XCODE_SCHEME" \
+    -configuration Release \
+    -destination "generic/platform=iOS" \
+    -archivePath "$RUNNER_TEMP/QuickPropAgent.xcarchive" \
+    CODE_SIGN_STYLE=Manual \
+    PROVISIONING_PROFILE="$PROFILE_UUID" \
+    CODE_SIGN_IDENTITY="iPhone Distribution" \
+    DEVELOPMENT_TEAM=R7FGJAAUQF \
+    CURRENT_PROJECT_VERSION="$IOS_BUILD_NUMBER" \
+    MARKETING_VERSION="1.0.0"
+  echo "Archive created:"
+  ls -la "$RUNNER_TEMP/QuickPropAgent.xcarchive"
+  shell: /bin/bash -e {0}
+  env:
+    PNPM_HOME: /Users/runner/setup-pnpm/node_modules/.bin
+    IOS_BUILD_NUMBER: 72
+    PROFILE_UUID: c66196ec-5d56-44c6-98ed-bd14e600a3b6
+    XCODE_WORKSPACE: QuickPropAgent.xcworkspace
+    XCODE_SCHEME: QuickPropAgent
+    SENTRY_RELEASE: 1.0.0+72
+Command line invocation:
+    /Applications/Xcode_26.6.app/Contents/Developer/usr/bin/xcodebuild archive -workspace QuickPropAgent.xcworkspace -scheme QuickPropAgent -configuration Release -destination generic/platform=iOS -archivePath /Users/runner/work/_temp/QuickPropAgent.xcarchive CODE_SIGN_STYLE=Manual PROVISIONING_PROFILE=c66196ec-5d56-44c6-98ed-bd14e600a3b6 "CODE_SIGN_IDENTITY=iPhone Distribution" DEVELOPMENT_TEAM=R7FGJAAUQF CURRENT_PROJECT_VERSION=72 MARKETING_VERSION=1.0.0
+
+Build settings from command line:
+    CODE_SIGN_IDENTITY = iPhone Distribution
+    CODE_SIGN_STYLE = Manual
+    CURRENT_PROJECT_VERSION = 72
+    DEVELOPMENT_TEAM = R7FGJAAUQF
+    MARKETING_VERSION = 1.0.0
+    PROVISIONING_PROFILE = c66196ec-5d56-44c6-98ed-bd14e600a3b6
+
+note: Using codesigning identity override: iPhone Distribution
+ComputePackagePrebuildTargetDependencyGraph
+
+Prepare packages
+
+CreateBuildRequest
+
+SendProjectDescription
+
+CreateBuildOperation
+
+ComputeTargetDependencyGraph
+note: Building targets in dependency order
+note: Target dependency graph (126 targets)
+    Target 'QuickPropAgent' in project 'QuickPropAgent'
