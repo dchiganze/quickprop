@@ -246,6 +246,7 @@ export default function NewListingScreen() {
       features: form.features,
       description: form.description,
       photos: form.photos,
+       videoUrl: form.videoUri || undefined,
       seller: {
         name: form.sellerName,
         phone: form.sellerPhone,

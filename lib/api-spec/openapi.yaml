@@ -618,6 +618,13 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Viewing" }
+    delete:
+      operationId: deleteViewing
+      tags: [viewings]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "204": { description: Deleted }
   /documents:
     get:
       operationId: listDocuments
@@ -862,7 +869,7 @@ paths:
       tags: [public]
       summary: Public property detail (no auth required)
       parameters:
-        - { name: id, in: path, required: true, schema: { type: integer } }
+        - { name: id, in: path, required: true, schema: { type: string }, description: Numeric ID or listing reference (for example QP-0005). }
       responses:
         "200":
           description: Property detail with agent info
@@ -1219,6 +1226,7 @@ components:
         photos:
           type: array
           items: { type: string }
+        videoUrl: { type: ["string", "null"] }
         coverImage: { type: ["string", "null"] }
         agentId: { type: ["integer", "null"] }
         branchId: { type: ["integer", "null"] }
@@ -1261,6 +1269,7 @@ components:
         photos:
           type: array
           items: { type: string }
+        videoUrl: { type: string }
         coverImage: { type: string }
         agentId: { type: integer }
         branchId: { type: integer }
@@ -1295,6 +1304,7 @@ components:
         photos:
           type: array
           items: { type: string }
+        videoUrl: { type: string }
         coverImage: { type: string }
         agentId: { type: integer }
         branchId: { type: integer }

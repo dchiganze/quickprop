@@ -9,11 +9,15 @@ import opsRouter from "./ops";
 import adminRouter from "./admin";
 import adminPortalRouter from "./admin-portal";
 import dashboardRouter from "./dashboard";
+import storageRouter from "./storage";
 
 const router: IRouter = Router();
 
 router.use(healthRouter);
 router.use(authRouter);
+// Storage reads are public for published listing media, while upload URL
+// requests validate the bearer session inside the route.
+router.use(storageRouter);
 // Public routes — no auth required
 router.use(publicRouter);
 // All business routes below require a logged-in user.

@@ -26,11 +26,15 @@ const enquirySchema = z.object({
 
 export default function PropertyDetail() {
   const params = useParams();
-  const id = parseInt(params.id || "0");
+  const propertyIdentifier = params.id || "";
+  const id = parseInt(propertyIdentifier, 10);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
-  const { data, isLoading } = useGetPublicProperty(id, { query: { enabled: !!id } });
+  // The public API accepts a numeric ID or the stable listing reference. This
+  // lets links shared from the field app continue working after cross-device
+  // sync replaces a temporary local ID.
+  const { data, isLoading } = useGetPublicProperty(propertyIdentifier);
   const { data: savedProperties } = useListSavedProperties();
   
   const submitEnquiry = useSubmitEnquiry();

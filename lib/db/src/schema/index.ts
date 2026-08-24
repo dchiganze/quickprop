@@ -5,3 +5,4 @@ export * from "./leads";
 export * from "./ops";
 export * from "./system";
 export * from "./saved";
+export * from "./sync";

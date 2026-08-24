@@ -34,14 +34,22 @@ const ACCOUNT_DATA_KEYS = [
   '@qp_leads',
   '@qp_matches',
   '@qp_tasks',
+  '@qp_viewings',
+  '@qp_pending_sync',
   '@qp_alerts',
   '@qp_biometric',
 ];
 
 const configuredApiUrl = process.env.EXPO_PUBLIC_API_URL?.replace(/\/$/, '');
-const apiBaseUrl = configuredApiUrl
+export const apiBaseUrl = configuredApiUrl
   ? (configuredApiUrl.endsWith('/api') ? configuredApiUrl : `${configuredApiUrl}/api`)
   : (process.env.EXPO_PUBLIC_DOMAIN ? `https://${process.env.EXPO_PUBLIC_DOMAIN}/api` : null);
+export const apiOrigin = apiBaseUrl?.replace(/\/api$/, '') ?? null;
+export const AUTH_TOKEN_STORAGE_KEY = AUTH_TOKEN_KEY;
+
+export async function getStoredAccessToken(): Promise<string | null> {
+  return SecureStore.getItemAsync(AUTH_TOKEN_KEY);
+}
 
 type ApiUser = {
   id: number;

@@ -42,6 +42,8 @@ export interface Property {
   features?: string[];
   photos?: string[];
   /** @nullable */
+  videoUrl?: string | null;
+  /** @nullable */
   coverImage?: string | null;
   /** @nullable */
   agentId?: number | null;

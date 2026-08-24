@@ -20,7 +20,9 @@ export function propertyShareLinks(property: Pick<Property, 'id' | 'referenceNum
   const propertyQuery = query({ propertyId: property.id, ref: property.referenceNumber });
   return {
     appUrl: `${QUICKPROP_AGENT_SCHEME}://invite?${propertyQuery}`,
-    webUrl: `${QUICKPROP_WEB_URL}/property/${encodeURIComponent(property.id)}`,
+    // References remain stable even when a queued offline listing is replaced
+    // with its server ID. The public API accepts both IDs and references.
+    webUrl: `${QUICKPROP_WEB_URL}/properties/${encodeURIComponent(property.referenceNumber)}`,
   };
 }
 

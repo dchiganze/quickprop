@@ -25,6 +25,7 @@ export interface PropertyUpdate {
   buildingSize?: number;
   features?: string[];
   photos?: string[];
+  videoUrl?: string;
   coverImage?: string;
   agentId?: number;
   branchId?: number;

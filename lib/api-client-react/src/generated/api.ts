@@ -2983,6 +2983,71 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       return useMutation(getUpdateViewingMutationOptions(options));
     }
 
+export const getDeleteViewingUrl = (id: number,) => {
+
+
+
+
+  return `/api/viewings/${id}`
+}
+
+export const deleteViewing = async (id: number, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getDeleteViewingUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteViewingMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteViewing>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteViewing>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['deleteViewing'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteViewing>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  deleteViewing(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteViewingMutationResult = NonNullable<Awaited<ReturnType<typeof deleteViewing>>>
+
+    export type DeleteViewingMutationError = ErrorType<unknown>
+
+    export const useDeleteViewing = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteViewing>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteViewing>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getDeleteViewingMutationOptions(options));
+    }
+
 export const getListDocumentsUrl = (params?: ListDocumentsParams,) => {
   const normalizedParams = new URLSearchParams();
 
@@ -4272,7 +4337,7 @@ export function useListPublicProperties<TData = Awaited<ReturnType<typeof listPu
 
 
 
-export const getGetPublicPropertyUrl = (id: number,) => {
+export const getGetPublicPropertyUrl = (id: string,) => {
 
 
 
@@ -4283,7 +4348,7 @@ export const getGetPublicPropertyUrl = (id: number,) => {
 /**
  * @summary Public property detail (no auth required)
  */
-export const getPublicProperty = async (id: number, options?: RequestInit): Promise<PublicPropertyDetail> => {
+export const getPublicProperty = async (id: string, options?: RequestInit): Promise<PublicPropertyDetail> => {
 
   return customFetch<PublicPropertyDetail>(getGetPublicPropertyUrl(id),
   {
@@ -4298,14 +4363,14 @@ export const getPublicProperty = async (id: number, options?: RequestInit): Prom
 
 
 
-export const getGetPublicPropertyQueryKey = (id: number,) => {
+export const getGetPublicPropertyQueryKey = (id: string,) => {
     return [
     `/api/public/properties/${id}`
     ] as const;
     }
 
 
-export const getGetPublicPropertyQueryOptions = <TData = Awaited<ReturnType<typeof getPublicProperty>>, TError = ErrorType<void>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPublicProperty>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getGetPublicPropertyQueryOptions = <TData = Awaited<ReturnType<typeof getPublicProperty>>, TError = ErrorType<void>>(id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPublicProperty>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -4332,7 +4397,7 @@ export type GetPublicPropertyQueryError = ErrorType<void>
  */
 
 export function useGetPublicProperty<TData = Awaited<ReturnType<typeof getPublicProperty>>, TError = ErrorType<void>>(
- id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPublicProperty>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+ id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPublicProperty>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 

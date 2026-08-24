@@ -12,6 +12,8 @@ import { DataProvider } from '@/contexts/DataContext';
 import { useColors } from '@/hooks/useColors';
 import { SplashScreenView } from '@/components/SplashScreenView';
 import * as Sentry from '@sentry/react-native';
+import { setAuthTokenGetter, setBaseUrl } from '@workspace/api-client-react';
+import { apiOrigin, getStoredAccessToken } from '@/contexts/AuthContext';
 
 import appJson from '../app.json';
 
@@ -27,6 +29,11 @@ Sentry.init({
 SplashScreen.preventAutoHideAsync();
 
 const queryClient = new QueryClient();
+
+// Generated API calls are used by DataContext. Configure them once for Expo so
+// every request targets the production API and carries the secure bearer token.
+setBaseUrl(apiOrigin);
+setAuthTokenGetter(getStoredAccessToken);
 
 function RootLayoutNav() {
   const { user, loading } = useAuth();

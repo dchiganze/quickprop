@@ -1,7 +1,18 @@
-import React, { createContext, useContext, useEffect, useState, useMemo, useRef } from 'react';
+import React, { createContext, useContext, useEffect, useState, useMemo, useRef, useCallback } from 'react';
+import { AppState } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Property, Lead, BuyerMatch, Task, PropertyAlert } from '@/types';
 import { registerDataReset } from './dataReset';
+import { apiBaseUrl, apiOrigin, getStoredAccessToken, useAuth } from './AuthContext';
+import {
+  createProperty, createTask, createViewing, deleteProperty as deleteRemoteProperty,
+  deleteTask as deleteRemoteTask, deleteViewing as deleteRemoteViewing,
+  listProperties, listTasks, listViewings, updateProperty as updateRemoteProperty,
+  updateTask as updateRemoteTask, updateViewing as updateRemoteViewing,
+  type Property as ApiProperty, type PropertyInput, type PropertyUpdate,
+  type Task as ApiTask, type TaskInput, type TaskUpdate,
+  type Viewing as ApiViewing, type ViewingInput, type ViewingUpdate,
+} from '@workspace/api-client-react';
 
 export interface AlertMatch {
   alert: PropertyAlert;
@@ -13,6 +24,7 @@ interface DataContextType {
   leads: Lead[];
   buyerMatches: BuyerMatch[];
   tasks: Task[];
+  viewings: ApiViewing[];
   alerts: PropertyAlert[];
   alertMatches: AlertMatch[];
   unseenMatchCount: number;
@@ -25,6 +37,9 @@ interface DataContextType {
   addTask: (t: Omit<Task, 'id' | 'createdAt'>) => Promise<void>;
   updateTask: (id: string, updates: Partial<Task>) => Promise<void>;
   deleteTask: (id: string) => Promise<void>;
+  addViewing: (viewing: ViewingInput) => Promise<void>;
+  updateViewing: (id: string, updates: ViewingUpdate) => Promise<void>;
+  deleteViewing: (id: string) => Promise<void>;
   addAlert: (a: Omit<PropertyAlert, 'id' | 'createdAt' | 'seenPropertyIds'>) => Promise<void>;
   deleteAlert: (id: string) => Promise<void>;
   dismissAlertMatches: (alertId: string, propertyIds: string[]) => Promise<void>;
@@ -35,6 +50,19 @@ const LEADS_KEY = '@qp_leads';
 const MATCHES_KEY = '@qp_matches';
 const TASKS_KEY = '@qp_tasks';
 const ALERTS_KEY = '@qp_alerts';
+const VIEWINGS_KEY = '@qp_viewings';
+const PENDING_SYNC_KEY = '@qp_pending_sync';
+
+type PendingSync =
+  | { kind: 'property-create'; localId: string; property: Property }
+  | { kind: 'property-update'; localId: string; updates: Partial<Property> }
+  | { kind: 'property-delete'; localId: string }
+  | { kind: 'task-create'; localId: string; task: Task }
+  | { kind: 'task-update'; localId: string; updates: Partial<Task> }
+  | { kind: 'task-delete'; localId: string }
+  | { kind: 'viewing-create'; localId: string; mutationKey: string; viewing: ViewingInput }
+  | { kind: 'viewing-update'; localId: string; updates: ViewingUpdate }
+  | { kind: 'viewing-delete'; localId: string };
 
 export function propertyMatchesAlert(p: Property, alert: PropertyAlert): boolean {
   if (alert.type && p.type !== alert.type) return false;
@@ -62,6 +90,155 @@ const parseStoredArray = <T,>(raw: string | null, fallback: T[]): T[] => {
     return fallback;
   }
 };
+
+const isServerId = (id: string) => /^\d+$/.test(id);
+const remoteEnabled = (userId?: string) => Boolean(apiBaseUrl && apiOrigin && userId && isServerId(userId));
+
+function mobileStatus(status: string): Property['status'] {
+  if (status === 'public' || status === 'coming_soon' || status === 'under_offer') return 'published';
+  if (status === 'internal_only' || status === 'private_listing') return 'pending';
+  if (status === 'withdrawn') return 'archived';
+  return ['draft', 'archived', 'sold', 'rented'].includes(status) ? status as Property['status'] : 'draft';
+}
+
+function serverStatus(status: Property['status']): string {
+  if (status === 'published') return 'public';
+  if (status === 'pending') return 'internal_only';
+  return status;
+}
+
+function toMobileProperty(property: ApiProperty): Property {
+  const type: Property['type'] = property.propertyType === 'commercial' || property.propertyType === 'stand' || property.propertyType === 'farm'
+    ? property.propertyType
+    : property.listingType === 'rent' ? 'rent' : 'sale';
+  return {
+    id: String(property.id),
+    referenceNumber: property.reference,
+    type,
+    status: mobileStatus(property.status),
+    address: property.address ?? '',
+    suburb: property.suburb,
+    price: property.price,
+    currency: property.currency,
+    negotiable: false,
+    bedrooms: property.bedrooms ?? undefined,
+    bathrooms: property.bathrooms ?? undefined,
+    garages: property.parking ?? undefined,
+    landSize: property.landSize ?? undefined,
+    floorArea: property.buildingSize ?? undefined,
+    features: property.features ?? [],
+    description: property.description ?? '',
+    photos: property.photos ?? [],
+    videoUrl: property.videoUrl ?? undefined,
+    seller: {
+      name: 'Seller details available in QuickProp Office',
+      phone: '',
+      email: '',
+      mandateExpiry: property.mandateExpiry ?? '',
+      mandateType: (property.mandateType === 'exclusive' || property.mandateType === 'open' ? property.mandateType : 'sole'),
+      notes: property.privateNotes ?? '',
+    },
+    agentId: String(property.agentId ?? ''),
+    createdAt: property.createdAt ?? now(),
+    updatedAt: property.updatedAt ?? property.createdAt ?? now(),
+  };
+}
+
+function toServerProperty(property: Property, userId: string): PropertyInput {
+  const propertyType = property.type === 'commercial' || property.type === 'stand' || property.type === 'farm'
+    ? property.type
+    : 'house';
+  return {
+    title: property.address || `${property.bedrooms ?? ''} bedroom ${propertyType}`.trim(),
+    description: property.description,
+    propertyType,
+    listingType: property.type === 'rent' ? 'rent' : 'sale',
+    status: serverStatus(property.status),
+    pipelineStage: property.status === 'published' ? 'published' : property.status === 'pending' ? 'ready' : property.status,
+    price: property.price,
+    currency: property.currency,
+    suburb: property.suburb,
+    city: 'Harare',
+    address: property.showAddress === false ? undefined : property.address,
+    bedrooms: property.bedrooms,
+    bathrooms: property.bathrooms,
+    parking: property.garages,
+    landSize: property.landSize,
+    buildingSize: property.floorArea,
+    features: property.features,
+    photos: property.photos,
+    videoUrl: property.videoUrl,
+    coverImage: property.photos[0],
+    agentId: Number(userId),
+    mandateType: property.seller.mandateType,
+    mandateExpiry: property.seller.mandateExpiry || undefined,
+    privateNotes: [
+      property.seller.name ? `Seller: ${property.seller.name}` : '',
+      property.seller.phone ? `Phone: ${property.seller.phone}` : '',
+      property.seller.email ? `Email: ${property.seller.email}` : '',
+      property.seller.notes,
+    ].filter(Boolean).join('\n'),
+  };
+}
+
+function toServerTask(task: Task, userId: string, propertyId?: string): TaskInput {
+  return {
+    title: task.title,
+    type: task.type === 'price_update' ? 'price_review' : task.type,
+    dueDate: task.dueDate,
+    propertyId: propertyId && isServerId(propertyId) ? Number(propertyId) : undefined,
+    assigneeId: Number(userId),
+  };
+}
+
+function toMobileTask(task: ApiTask, properties: Property[]): Task {
+  const property = task.propertyId ? properties.find(p => p.id === String(task.propertyId)) : undefined;
+  const supportedTypes = ['call_seller', 'viewing', 'price_update', 'renew_mandate', 'take_photos', 'other'];
+  const type = task.type === 'price_review' ? 'price_update' : task.type;
+  return {
+    id: String(task.id),
+    title: task.title,
+    type: supportedTypes.includes(type ?? '') ? type as Task['type'] : 'other',
+    dueDate: task.dueDate ?? now(),
+    propertyId: task.propertyId ? String(task.propertyId) : undefined,
+    propertyAddress: property?.address,
+    completed: task.status === 'done',
+    createdAt: task.createdAt,
+  };
+}
+
+async function uploadOneMedia(uri: string, mediaKind: 'image' | 'video'): Promise<string> {
+  if (!apiBaseUrl || !apiOrigin || /^https?:\/\//.test(uri)) return uri;
+  const source = await fetch(uri);
+  const blob = await source.blob();
+  const fileName = uri.split('/').pop()?.split('?')[0] || (mediaKind === 'video' ? 'listing-video.mp4' : 'listing-photo.jpg');
+  const lowerFileName = fileName.toLowerCase();
+  const contentType = blob.type || (
+    mediaKind === 'video'
+      ? lowerFileName.endsWith('.mov') ? 'video/quicktime' : lowerFileName.endsWith('.webm') ? 'video/webm' : 'video/mp4'
+      : lowerFileName.endsWith('.png') ? 'image/png' : 'image/jpeg'
+  );
+  const token = await getStoredAccessToken();
+  const request = await fetch(`${apiBaseUrl}/storage/uploads/request-url`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify({ name: fileName, size: blob.size, contentType }),
+  });
+  if (!request.ok) throw new Error(`Could not prepare ${mediaKind} upload.`);
+  const { uploadURL, objectPath } = await request.json() as { uploadURL: string; objectPath: string };
+  const upload = await fetch(uploadURL, { method: 'PUT', headers: { 'Content-Type': contentType }, body: blob });
+  if (!upload.ok) throw new Error(`Could not upload ${mediaKind}.`);
+  return `${apiOrigin}/api/storage${objectPath}`;
+}
+
+async function uploadPropertyMedia(property: Property): Promise<Property> {
+  const photos = await Promise.all(property.photos.map(uri => uploadOneMedia(uri, 'image')));
+  const videoUrl = property.videoUrl ? await uploadOneMedia(property.videoUrl, 'video') : undefined;
+  return { ...property, photos, videoUrl };
+}
 
 const MOCK_PROPERTIES: Property[] = [
   {
@@ -214,10 +391,12 @@ const MOCK_TASKS: Task[] = [
 const DataContext = createContext<DataContextType>({} as DataContextType);
 
 export function DataProvider({ children }: { children: React.ReactNode }) {
+  const { user } = useAuth();
   const [properties, setProperties] = useState<Property[]>([]);
   const [leads, setLeads] = useState<Lead[]>([]);
   const [buyerMatches, setBuyerMatches] = useState<BuyerMatch[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [viewings, setViewings] = useState<ApiViewing[]>([]);
   const [alerts, setAlerts] = useState<PropertyAlert[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   // Collections are ref-backed so asynchronous mutations never use a render's
@@ -227,6 +406,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const leadsRef = useRef<Lead[]>([]);
   const buyerMatchesRef = useRef<BuyerMatch[]>([]);
   const tasksRef = useRef<Task[]>([]);
+  const viewingsRef = useRef<ApiViewing[]>([]);
   const alertsRef = useRef<PropertyAlert[]>([]);
   const resetGenerationRef = useRef(0);
   const propertiesVersionRef = useRef(0);
@@ -234,6 +414,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const buyerMatchesVersionRef = useRef(0);
   const tasksVersionRef = useRef(0);
   const alertsVersionRef = useRef(0);
+  const pendingSyncRef = useRef<PendingSync[]>([]);
+  const syncedPropertyResultsRef = useRef(new Map<string, Property>());
+  const flushingRef = useRef(false);
 
   useEffect(() => registerDataReset(() => {
     // Invalidate a pending hydration before clearing every in-memory collection.
@@ -243,6 +426,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     leadsRef.current = [];
     buyerMatchesRef.current = [];
     tasksRef.current = [];
+    viewingsRef.current = [];
+    pendingSyncRef.current = [];
+    syncedPropertyResultsRef.current.clear();
     alertsRef.current = [];
     propertiesVersionRef.current += 1;
     leadsVersionRef.current += 1;
@@ -253,6 +439,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setLeads([]);
     setBuyerMatches([]);
     setTasks([]);
+    setViewings([]);
     setAlerts([]);
     setIsLoading(false);
   }), []);
@@ -268,19 +455,36 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         alerts: alertsVersionRef.current,
       };
       try {
-        const [ps, ls, ms, ts, as_] = await Promise.all([
+        const [ps, ls, ms, ts, as_, vs, pending] = await Promise.all([
           AsyncStorage.getItem(PROPS_KEY),
           AsyncStorage.getItem(LEADS_KEY),
           AsyncStorage.getItem(MATCHES_KEY),
           AsyncStorage.getItem(TASKS_KEY),
           AsyncStorage.getItem(ALERTS_KEY),
+          AsyncStorage.getItem(VIEWINGS_KEY),
+          AsyncStorage.getItem(PENDING_SYNC_KEY),
         ]);
         if (generation !== resetGenerationRef.current) return;
-        const loadedProperties = parseStoredArray(ps, MOCK_PROPERTIES);
+        const loadedProperties = parseStoredArray(ps, remoteEnabled(user?.id) ? [] : MOCK_PROPERTIES);
         const loadedLeads = parseStoredArray(ls, MOCK_LEADS);
         const loadedBuyerMatches = parseStoredArray(ms, MOCK_MATCHES);
         const loadedTasks = parseStoredArray(ts, MOCK_TASKS);
         const loadedAlerts = parseStoredArray(as_, []);
+        const loadedViewings = parseStoredArray<ApiViewing>(vs, []);
+        const parsedPending = parseStoredArray<PendingSync>(pending, []);
+        // Queues written before viewing creates had an explicit mutation key
+        // need one before replay. Persist the migration first so a restart
+        // cannot make multiple legacy operations share a fallback key.
+        const migratedPending = parsedPending.map((operation) => {
+          if (operation.kind !== 'viewing-create' || typeof (operation as { mutationKey?: unknown }).mutationKey === 'string') {
+            return operation;
+          }
+          return { ...operation, mutationKey: uid() };
+        });
+        pendingSyncRef.current = migratedPending;
+        if (migratedPending.some((operation, index) => operation !== parsedPending[index])) {
+          await AsyncStorage.setItem(PENDING_SYNC_KEY, JSON.stringify(migratedPending));
+        }
 
         if (
           generation === resetGenerationRef.current &&
@@ -290,6 +494,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           setProperties(loadedProperties);
           if (!ps) await AsyncStorage.setItem(PROPS_KEY, JSON.stringify(propertiesRef.current));
         }
+        viewingsRef.current = loadedViewings;
+        setViewings(loadedViewings);
+        if (!vs) await AsyncStorage.setItem(VIEWINGS_KEY, JSON.stringify(loadedViewings));
         if (
           generation === resetGenerationRef.current &&
           leadsVersionRef.current === collectionVersions.leads
@@ -326,10 +533,228 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       }
     };
     load();
-  }, []);
+  }, [user?.id]);
 
   const save = async <T,>(key: string, collectionRef: React.MutableRefObject<T[]>) =>
     AsyncStorage.setItem(key, JSON.stringify(collectionRef.current));
+
+  const persistPending = async () => {
+    await AsyncStorage.setItem(PENDING_SYNC_KEY, JSON.stringify(pendingSyncRef.current));
+  };
+
+  const flushPendingSync = useCallback(async () => {
+    if (!remoteEnabled(user?.id) || flushingRef.current) return;
+    flushingRef.current = true;
+    const idMap = new Map<string, string>();
+    try {
+      while (pendingSyncRef.current.length > 0) {
+        const operation = pendingSyncRef.current[0];
+        const resolveId = (id: string) => idMap.get(id) ?? id;
+
+        if (operation.kind === 'property-create') {
+          const local = propertiesRef.current.find(p => p.id === operation.localId) ?? operation.property;
+          const withDurableMedia = await uploadPropertyMedia(local);
+          const created = await createProperty(
+            toServerProperty(withDurableMedia, user!.id),
+            { headers: { 'Idempotency-Key': operation.localId } },
+          );
+          const remote = toMobileProperty(created);
+          idMap.set(operation.localId, remote.id);
+          syncedPropertyResultsRef.current.set(operation.localId, remote);
+          propertiesRef.current = propertiesRef.current.map(p => p.id === operation.localId ? remote : p);
+          setProperties(propertiesRef.current);
+          await save(PROPS_KEY, propertiesRef);
+        } else if (operation.kind === 'property-update') {
+          const id = resolveId(operation.localId);
+          if (isServerId(id)) {
+            const current = propertiesRef.current.find(p => p.id === id);
+            if (current) {
+              const withDurableMedia = await uploadPropertyMedia(current);
+              const result = await updateRemoteProperty(Number(id), toServerProperty(withDurableMedia, user!.id) as PropertyUpdate);
+              const remote = toMobileProperty(result);
+              propertiesRef.current = propertiesRef.current.map(p => p.id === id ? remote : p);
+              setProperties(propertiesRef.current);
+              await save(PROPS_KEY, propertiesRef);
+            }
+          }
+        } else if (operation.kind === 'property-delete') {
+          const id = resolveId(operation.localId);
+          if (isServerId(id)) await deleteRemoteProperty(Number(id));
+        } else if (operation.kind === 'task-create') {
+          const local = tasksRef.current.find(t => t.id === operation.localId) ?? operation.task;
+          const propertyId = local.propertyId ? resolveId(local.propertyId) : undefined;
+          const created = await createTask(
+            toServerTask(local, user!.id, propertyId),
+            { headers: { 'Idempotency-Key': operation.localId } },
+          );
+          const remote = toMobileTask(created, propertiesRef.current);
+          idMap.set(operation.localId, remote.id);
+          tasksRef.current = tasksRef.current.map(t => t.id === operation.localId ? remote : t);
+          setTasks(tasksRef.current);
+          await save(TASKS_KEY, tasksRef);
+        } else if (operation.kind === 'task-update') {
+          const id = resolveId(operation.localId);
+          if (isServerId(id)) {
+            const current = tasksRef.current.find(t => t.id === id);
+            if (current) {
+              const result = await updateRemoteTask(Number(id), {
+                ...toServerTask(current, user!.id, current.propertyId),
+                status: current.completed ? 'done' : 'open',
+              } as TaskUpdate);
+              const remote = toMobileTask(result, propertiesRef.current);
+              tasksRef.current = tasksRef.current.map(t => t.id === id ? remote : t);
+              setTasks(tasksRef.current);
+              await save(TASKS_KEY, tasksRef);
+            }
+          }
+        } else if (operation.kind === 'task-delete') {
+          const id = resolveId(operation.localId);
+          if (isServerId(id)) await deleteRemoteTask(Number(id));
+        } else if (operation.kind === 'viewing-create') {
+          const created = await createViewing(
+            { ...operation.viewing, agentId: Number(user!.id) },
+            { headers: { 'Idempotency-Key': operation.mutationKey } },
+          );
+          idMap.set(operation.localId, String(created.id));
+          viewingsRef.current = viewingsRef.current.map(v => String(v.id) === operation.localId ? created : v);
+          setViewings(viewingsRef.current);
+          await save(VIEWINGS_KEY, viewingsRef);
+        } else if (operation.kind === 'viewing-update') {
+          const id = resolveId(operation.localId);
+          if (isServerId(id)) {
+            const updated = await updateRemoteViewing(Number(id), operation.updates);
+            viewingsRef.current = viewingsRef.current.map(v => v.id === Number(id) ? updated : v);
+            setViewings(viewingsRef.current);
+            await save(VIEWINGS_KEY, viewingsRef);
+          }
+        } else if (operation.kind === 'viewing-delete') {
+          const id = resolveId(operation.localId);
+          if (isServerId(id)) await deleteRemoteViewing(Number(id));
+        }
+
+        pendingSyncRef.current.shift();
+        await persistPending();
+      }
+    } catch {
+      // The local mutation has already been saved. Leave this operation and the
+      // remaining order intact so it retries after the connection returns.
+    } finally {
+      flushingRef.current = false;
+    }
+  }, [user?.id]);
+
+  const syncFromServer = useCallback(async () => {
+    if (!remoteEnabled(user?.id)) return;
+    try {
+      const [remoteProperties, remoteTasks, remoteViewings] = await Promise.all([
+        listProperties({ agentId: Number(user!.id) }),
+        listTasks({ assigneeId: Number(user!.id) }),
+        listViewings({ agentId: Number(user!.id) }),
+      ]);
+      const pendingPropertyDeletes = new Set(
+        pendingSyncRef.current
+          .filter((operation): operation is Extract<PendingSync, { kind: 'property-delete' }> => operation.kind === 'property-delete')
+          .map(operation => operation.localId),
+      );
+      const pendingPropertyUpdates = new Map<string, Partial<Property>>();
+      for (const operation of pendingSyncRef.current) {
+        if (operation.kind === 'property-update') {
+          pendingPropertyUpdates.set(operation.localId, {
+            ...pendingPropertyUpdates.get(operation.localId),
+            ...operation.updates,
+          });
+        }
+      }
+      const mappedProperties = remoteProperties
+        .map(toMobileProperty)
+        .filter(property => !pendingPropertyDeletes.has(property.id))
+        .map(property => ({ ...property, ...pendingPropertyUpdates.get(property.id) }));
+      const localOnlyProperties = propertiesRef.current.filter(
+        property => !isServerId(property.id) && !pendingPropertyDeletes.has(property.id),
+      );
+      propertiesRef.current = [...mappedProperties, ...localOnlyProperties];
+      setProperties(propertiesRef.current);
+      await save(PROPS_KEY, propertiesRef);
+
+      const pendingTaskDeletes = new Set(
+        pendingSyncRef.current
+          .filter((operation): operation is Extract<PendingSync, { kind: 'task-delete' }> => operation.kind === 'task-delete')
+          .map(operation => operation.localId),
+      );
+      const pendingTaskUpdates = new Map<string, Partial<Task>>();
+      for (const operation of pendingSyncRef.current) {
+        if (operation.kind === 'task-update') {
+          pendingTaskUpdates.set(operation.localId, {
+            ...pendingTaskUpdates.get(operation.localId),
+            ...operation.updates,
+          });
+        }
+      }
+      const mappedTasks = remoteTasks
+        .map(task => toMobileTask(task, propertiesRef.current))
+        .filter(task => !pendingTaskDeletes.has(task.id))
+        .map(task => ({ ...task, ...pendingTaskUpdates.get(task.id) }));
+      const localOnlyTasks = tasksRef.current.filter(
+        task => !isServerId(task.id) && !pendingTaskDeletes.has(task.id),
+      );
+      tasksRef.current = [...mappedTasks, ...localOnlyTasks];
+      setTasks(tasksRef.current);
+      await save(TASKS_KEY, tasksRef);
+
+      const pendingViewingDeletes = new Set(
+        pendingSyncRef.current
+          .filter((operation): operation is Extract<PendingSync, { kind: 'viewing-delete' }> => operation.kind === 'viewing-delete')
+          .map(operation => operation.localId),
+      );
+      const pendingViewingUpdates = new Map<string, ViewingUpdate>();
+      for (const operation of pendingSyncRef.current) {
+        if (operation.kind === 'viewing-update') {
+          pendingViewingUpdates.set(operation.localId, {
+            ...pendingViewingUpdates.get(operation.localId),
+            ...operation.updates,
+          });
+        }
+      }
+      const refreshedViewings = remoteViewings
+        .filter(viewing => !pendingViewingDeletes.has(String(viewing.id)))
+        .map(viewing => ({ ...viewing, ...pendingViewingUpdates.get(String(viewing.id)) }));
+      const localOnlyViewings = viewingsRef.current.filter(
+        viewing => !isServerId(String(viewing.id)) && !pendingViewingDeletes.has(String(viewing.id)),
+      );
+      viewingsRef.current = [...refreshedViewings, ...localOnlyViewings];
+      setViewings(viewingsRef.current);
+      await save(VIEWINGS_KEY, viewingsRef);
+    } catch {
+      // Offline access keeps the last persisted data visible.
+    }
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (!user?.id || isLoading) return;
+    flushPendingSync().then(syncFromServer).catch(() => {});
+  }, [user?.id, isLoading, flushPendingSync, syncFromServer]);
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', state => {
+      if (state === 'active') {
+        flushPendingSync().then(syncFromServer).catch(() => {});
+      }
+    });
+    return () => subscription.remove();
+  }, [flushPendingSync, syncFromServer]);
+
+  // A second agent can make changes while this app stays in the foreground.
+  // Refresh periodically so active devices converge without waiting for an
+  // AppState transition; the runtime pauses this work when backgrounded.
+  useEffect(() => {
+    if (!remoteEnabled(user?.id) || isLoading) return;
+    const interval = setInterval(() => {
+      if (AppState.currentState === 'active') {
+        flushPendingSync().then(syncFromServer).catch(() => {});
+      }
+    }, 30_000);
+    return () => clearInterval(interval);
+  }, [user?.id, isLoading, flushPendingSync, syncFromServer]);
 
   // Compute which published properties match each alert and haven't been dismissed
   const alertMatches = useMemo<AlertMatch[]>(() => {
@@ -357,7 +782,12 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     propertiesVersionRef.current += 1;
     setProperties(updated);
     await save(PROPS_KEY, propertiesRef);
-    return prop;
+    if (remoteEnabled(user?.id)) {
+      pendingSyncRef.current.push({ kind: 'property-create', localId: prop.id, property: prop });
+      await persistPending();
+      await flushPendingSync();
+    }
+    return syncedPropertyResultsRef.current.get(prop.id) ?? prop;
   };
 
   const updateProperty = async (id: string, updates: Partial<Property>) => {
@@ -366,6 +796,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     propertiesVersionRef.current += 1;
     setProperties(updated);
     await save(PROPS_KEY, propertiesRef);
+    if (remoteEnabled(user?.id)) {
+      pendingSyncRef.current.push({ kind: 'property-update', localId: id, updates });
+      await persistPending();
+      await flushPendingSync();
+    }
   };
 
   const deleteProperty = async (id: string) => {
@@ -374,6 +809,19 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     propertiesVersionRef.current += 1;
     setProperties(updated);
     await save(PROPS_KEY, propertiesRef);
+    if (remoteEnabled(user?.id)) {
+      // Deleting a record before its queued creation reaches the server should
+      // never create a ghost listing later.
+      if (!isServerId(id)) {
+        pendingSyncRef.current = pendingSyncRef.current.filter(op =>
+          !('localId' in op) || op.localId !== id
+        );
+      } else {
+        pendingSyncRef.current.push({ kind: 'property-delete', localId: id });
+      }
+      await persistPending();
+      await flushPendingSync();
+    }
   };
 
   const addLead = async (l: Omit<Lead, 'id' | 'createdAt'>) => {
@@ -401,6 +849,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     tasksVersionRef.current += 1;
     setTasks(updated);
     await save(TASKS_KEY, tasksRef);
+    if (remoteEnabled(user?.id)) {
+      pendingSyncRef.current.push({ kind: 'task-create', localId: task.id, task });
+      await persistPending();
+      await flushPendingSync();
+    }
   };
 
   const updateTask = async (id: string, updates: Partial<Task>) => {
@@ -409,6 +862,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     tasksVersionRef.current += 1;
     setTasks(updated);
     await save(TASKS_KEY, tasksRef);
+    if (remoteEnabled(user?.id)) {
+      pendingSyncRef.current.push({ kind: 'task-update', localId: id, updates });
+      await persistPending();
+      await flushPendingSync();
+    }
   };
 
   const deleteTask = async (id: string) => {
@@ -417,6 +875,69 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     tasksVersionRef.current += 1;
     setTasks(updated);
     await save(TASKS_KEY, tasksRef);
+    if (remoteEnabled(user?.id)) {
+      if (!isServerId(id)) {
+        pendingSyncRef.current = pendingSyncRef.current.filter(op =>
+          !('localId' in op) || op.localId !== id
+        );
+      } else {
+        pendingSyncRef.current.push({ kind: 'task-delete', localId: id });
+      }
+      await persistPending();
+      await flushPendingSync();
+    }
+  };
+
+  const addViewing = async (viewing: ViewingInput) => {
+    const localId = uid();
+    const localViewing: ApiViewing = {
+      id: -Math.floor(Math.random() * 2_000_000_000) - 1,
+      propertyId: viewing.propertyId,
+      buyerName: viewing.buyerName,
+      leadId: viewing.leadId,
+      agentId: Number(user?.id) || undefined,
+      scheduledAt: viewing.scheduledAt,
+      status: 'scheduled',
+      notes: viewing.notes,
+    };
+    viewingsRef.current = [...viewingsRef.current, localViewing];
+    setViewings(viewingsRef.current);
+    await save(VIEWINGS_KEY, viewingsRef);
+    if (remoteEnabled(user?.id)) {
+      pendingSyncRef.current.push({
+        kind: 'viewing-create',
+        localId: String(localViewing.id),
+        mutationKey: localId,
+        viewing,
+      });
+      await persistPending();
+      await flushPendingSync();
+    }
+  };
+
+  const updateViewing = async (id: string, updates: ViewingUpdate) => {
+    const numericId = Number(id);
+    viewingsRef.current = viewingsRef.current.map(viewing => viewing.id === numericId ? { ...viewing, ...updates } : viewing);
+    setViewings(viewingsRef.current);
+    await save(VIEWINGS_KEY, viewingsRef);
+    if (remoteEnabled(user?.id)) {
+      pendingSyncRef.current.push({ kind: 'viewing-update', localId: id, updates });
+      await persistPending();
+      await flushPendingSync();
+    }
+  };
+
+  const deleteViewing = async (id: string) => {
+    const numericId = Number(id);
+    viewingsRef.current = viewingsRef.current.filter(viewing => viewing.id !== numericId);
+    setViewings(viewingsRef.current);
+    await save(VIEWINGS_KEY, viewingsRef);
+    if (remoteEnabled(user?.id)) {
+      if (isServerId(id)) pendingSyncRef.current.push({ kind: 'viewing-delete', localId: id });
+      else pendingSyncRef.current = pendingSyncRef.current.filter(op => !('localId' in op) || op.localId !== id);
+      await persistPending();
+      await flushPendingSync();
+    }
   };
 
   const addAlert = async (a: Omit<PropertyAlert, 'id' | 'createdAt' | 'seenPropertyIds'>) => {
@@ -450,10 +971,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <DataContext.Provider value={{
-      properties, leads, buyerMatches, tasks, alerts,
+      properties, leads, buyerMatches, tasks, viewings, alerts,
       alertMatches, unseenMatchCount, isLoading,
       addProperty, updateProperty, deleteProperty,
       addLead, updateLead, addTask, updateTask, deleteTask,
+      addViewing, updateViewing, deleteViewing,
       addAlert, deleteAlert, dismissAlertMatches,
     }}>
       {children}

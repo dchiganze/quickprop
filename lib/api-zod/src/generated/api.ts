@@ -96,6 +96,7 @@ export const ListPropertiesResponseItem = zod.object({
   "buildingSize": zod.number().nullish(),
   "features": zod.array(zod.string()).optional(),
   "photos": zod.array(zod.string()).optional(),
+  "videoUrl": zod.string().nullish(),
   "coverImage": zod.string().nullish(),
   "agentId": zod.number().nullish(),
   "branchId": zod.number().nullish(),
@@ -135,6 +136,7 @@ export const CreatePropertyBody = zod.object({
   "buildingSize": zod.number().optional(),
   "features": zod.array(zod.string()).optional(),
   "photos": zod.array(zod.string()).optional(),
+  "videoUrl": zod.string().optional(),
   "coverImage": zod.string().optional(),
   "agentId": zod.number().optional(),
   "branchId": zod.number().optional(),
@@ -167,6 +169,7 @@ export const CreatePropertyResponse = zod.object({
   "buildingSize": zod.number().nullish(),
   "features": zod.array(zod.string()).optional(),
   "photos": zod.array(zod.string()).optional(),
+  "videoUrl": zod.string().nullish(),
   "coverImage": zod.string().nullish(),
   "agentId": zod.number().nullish(),
   "branchId": zod.number().nullish(),
@@ -211,6 +214,7 @@ export const GetPropertyResponse = zod.object({
   "buildingSize": zod.number().nullish(),
   "features": zod.array(zod.string()).optional(),
   "photos": zod.array(zod.string()).optional(),
+  "videoUrl": zod.string().nullish(),
   "coverImage": zod.string().nullish(),
   "agentId": zod.number().nullish(),
   "branchId": zod.number().nullish(),
@@ -253,6 +257,7 @@ export const UpdatePropertyBody = zod.object({
   "buildingSize": zod.number().optional(),
   "features": zod.array(zod.string()).optional(),
   "photos": zod.array(zod.string()).optional(),
+  "videoUrl": zod.string().optional(),
   "coverImage": zod.string().optional(),
   "agentId": zod.number().optional(),
   "branchId": zod.number().optional(),
@@ -285,6 +290,7 @@ export const UpdatePropertyResponse = zod.object({
   "buildingSize": zod.number().nullish(),
   "features": zod.array(zod.string()).optional(),
   "photos": zod.array(zod.string()).optional(),
+  "videoUrl": zod.string().nullish(),
   "coverImage": zod.string().nullish(),
   "agentId": zod.number().nullish(),
   "branchId": zod.number().nullish(),
@@ -393,6 +399,7 @@ export const GetPipelineResponseItem = zod.object({
   "buildingSize": zod.number().nullish(),
   "features": zod.array(zod.string()).optional(),
   "photos": zod.array(zod.string()).optional(),
+  "videoUrl": zod.string().nullish(),
   "coverImage": zod.string().nullish(),
   "agentId": zod.number().nullish(),
   "branchId": zod.number().nullish(),
@@ -646,6 +653,7 @@ export const GetBuyerMatchesResponseItem = zod.object({
   "buildingSize": zod.number().nullish(),
   "features": zod.array(zod.string()).optional(),
   "photos": zod.array(zod.string()).optional(),
+  "videoUrl": zod.string().nullish(),
   "coverImage": zod.string().nullish(),
   "agentId": zod.number().nullish(),
   "branchId": zod.number().nullish(),
@@ -769,6 +777,7 @@ export const GetBuyerRequestMatchesResponseItem = zod.object({
   "buildingSize": zod.number().nullish(),
   "features": zod.array(zod.string()).optional(),
   "photos": zod.array(zod.string()).optional(),
+  "videoUrl": zod.string().nullish(),
   "coverImage": zod.string().nullish(),
   "agentId": zod.number().nullish(),
   "branchId": zod.number().nullish(),
@@ -1079,6 +1088,13 @@ export const UpdateViewingResponse = zod.object({
 })
 
 
+export const DeleteViewingParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const DeleteViewingResponse = zod.void()
+
+
 export const ListDocumentsQueryParams = zod.object({
   "propertyId": zod.coerce.number().optional(),
   "category": zod.coerce.string().optional(),
@@ -1370,6 +1386,7 @@ export const OfficeSearchResponse = zod.object({
   "buildingSize": zod.number().nullish(),
   "features": zod.array(zod.string()).optional(),
   "photos": zod.array(zod.string()).optional(),
+  "videoUrl": zod.string().nullish(),
   "coverImage": zod.string().nullish(),
   "agentId": zod.number().nullish(),
   "branchId": zod.number().nullish(),
@@ -1487,7 +1504,7 @@ export const ListPublicPropertiesResponse = zod.object({
  * @summary Public property detail (no auth required)
  */
 export const GetPublicPropertyParams = zod.object({
-  "id": zod.coerce.number()
+  "id": zod.coerce.string().describe('Numeric ID or listing reference (for example QP-0005).')
 })
 
 export const GetPublicPropertyResponse = zod.object({

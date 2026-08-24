@@ -130,16 +130,18 @@ router.get("/public/properties", async (req, res): Promise<void> => {
 
 /* ─── GET /public/properties/:id ──────────────────────────────────────── */
 router.get("/public/properties/:id", async (req, res): Promise<void> => {
-  const id = parseInt(req.params.id ?? "", 10);
-  if (!id) { res.status(404).json({ error: "Not found" }); return; }
-
+  const rawIdentifier = req.params.id ?? "";
+  const numericId = parseInt(rawIdentifier, 10);
+  const propertyIdentifier = /^\d+$/.test(rawIdentifier)
+    ? eq(propertiesTable.id, numericId)
+    : eq(propertiesTable.reference, rawIdentifier.toUpperCase());
   const [prop] = await db.select().from(propertiesTable).where(
-    and(eq(propertiesTable.id, id), inArray(propertiesTable.status, PUBLIC_STATUSES))
+    and(propertyIdentifier, inArray(propertiesTable.status, PUBLIC_STATUSES))
   );
   if (!prop) { res.status(404).json({ error: "Not found" }); return; }
 
   // Increment views
-  await db.update(propertiesTable).set({ views: (prop.views ?? 0) + 1 }).where(eq(propertiesTable.id, id));
+  await db.update(propertiesTable).set({ views: (prop.views ?? 0) + 1 }).where(eq(propertiesTable.id, prop.id));
 
   const agent = await agentWithBranch(prop.agentId);
   res.json({ property: jsonify(stripPrivate(prop)), agent: jsonify(agent) });

@@ -116,6 +116,8 @@ export interface Property {
   features?: string[];
   photos?: string[];
   /** @nullable */
+  videoUrl?: string | null;
+  /** @nullable */
   coverImage?: string | null;
   /** @nullable */
   agentId?: number | null;
@@ -165,6 +167,7 @@ export interface PropertyInput {
   buildingSize?: number;
   features?: string[];
   photos?: string[];
+  videoUrl?: string;
   coverImage?: string;
   agentId?: number;
   branchId?: number;
@@ -195,6 +198,7 @@ export interface PropertyUpdate {
   buildingSize?: number;
   features?: string[];
   photos?: string[];
+  videoUrl?: string;
   coverImage?: string;
   agentId?: number;
   branchId?: number;

@@ -1,4 +1,5 @@
-import { Router, type IRouter } from "express";
+import { randomUUID } from "node:crypto";
+import { Router, type IRouter, type Request } from "express";
 import { eq, and, ilike, or, gte, lte, desc, type SQL } from "drizzle-orm";
 import {
   db,
@@ -6,6 +7,12 @@ import {
   priceHistoryTable,
   activityTable,
   sellersTable,
+  syncMutationsTable,
+  savedPropertiesTable,
+  tasksTable,
+  viewingsTable,
+  documentsTable,
+  leadsTable,
 } from "@workspace/db";
 import {
   ListPropertiesQueryParams,
@@ -37,10 +44,9 @@ const PIPELINE_STAGES = [
   "archived",
 ];
 
-async function nextReference(): Promise<string> {
-  const rows = await db.select({ id: propertiesTable.id }).from(propertiesTable).orderBy(desc(propertiesTable.id)).limit(1);
-  const next = (rows[0]?.id ?? 0) + 1;
-  return `QP-${String(next).padStart(4, "0")}`;
+function mutationKey(req: Request): string | null {
+  const value = req.get("Idempotency-Key")?.trim();
+  return value && /^[a-z0-9-]{8,80}$/i.test(value) ? value : null;
 }
 
 router.get("/properties", async (req, res): Promise<void> => {
@@ -56,7 +62,14 @@ router.get("/properties", async (req, res): Promise<void> => {
   if (f.listingType) conds.push(eq(propertiesTable.listingType, f.listingType));
   if (f.propertyType) conds.push(eq(propertiesTable.propertyType, f.propertyType));
   if (f.suburb) conds.push(ilike(propertiesTable.suburb, f.suburb));
-  if (f.agentId != null) conds.push(eq(propertiesTable.agentId, f.agentId));
+  const user = await currentUser(req);
+  // Agent mobile sessions only ever see their own portfolio. Principals and
+  // admins retain the broader office query behaviour used by the web apps.
+  if (user?.role === "agent" || user?.role === "senior_agent") {
+    conds.push(eq(propertiesTable.agentId, user.id));
+  } else if (f.agentId != null) {
+    conds.push(eq(propertiesTable.agentId, f.agentId));
+  }
   if (f.minPrice != null) conds.push(gte(propertiesTable.price, f.minPrice));
   if (f.maxPrice != null) conds.push(lte(propertiesTable.price, f.maxPrice));
   if (f.q) {
@@ -85,24 +98,63 @@ router.post("/properties", async (req, res): Promise<void> => {
     return;
   }
   const user = await currentUser(req);
-  const reference = await nextReference();
-  const [row] = await db
-    .insert(propertiesTable)
-    .values({ ...parsed.data, reference })
-    .returning();
-  await db.insert(priceHistoryTable).values({
-    propertyId: row.id,
-    price: row.price,
-    changedBy: user?.name ?? null,
+  const requestKey = mutationKey(req);
+  const result = await db.transaction(async (tx) => {
+    let mutationId: number | null = null;
+    if (requestKey && user) {
+      const [claim] = await tx
+        .insert(syncMutationsTable)
+        .values({ actorId: user.id, mutationKey: requestKey, resourceType: "property" })
+        .onConflictDoNothing()
+        .returning();
+      if (!claim) {
+        const [existingClaim] = await tx.select().from(syncMutationsTable).where(and(
+          eq(syncMutationsTable.actorId, user.id),
+          eq(syncMutationsTable.mutationKey, requestKey),
+          eq(syncMutationsTable.resourceType, "property"),
+        ));
+        if (!existingClaim?.resourceId) throw new Error("Sync mutation did not complete.");
+        const [existing] = await tx.select().from(propertiesTable).where(eq(propertiesTable.id, existingClaim.resourceId));
+        if (!existing) throw new Error("Sync mutation resource is unavailable.");
+        return { row: existing, created: false };
+      }
+      mutationId = claim.id;
+    }
+    const temporaryReference = `pending-${randomUUID()}`;
+    const [created] = await tx
+      .insert(propertiesTable)
+      .values({ ...parsed.data, agentId: user?.id, reference: temporaryReference })
+      .returning();
+    const [row] = await tx
+      .update(propertiesTable)
+      .set({ reference: `QP-${String(created.id).padStart(4, "0")}` })
+      .where(eq(propertiesTable.id, created.id))
+      .returning();
+    if (mutationId) {
+      await tx.update(syncMutationsTable).set({ resourceId: row.id }).where(eq(syncMutationsTable.id, mutationId));
+    }
+    await tx.insert(priceHistoryTable).values({
+      propertyId: row.id,
+      price: row.price,
+      changedBy: user?.name ?? null,
+    });
+    return { row, created: true };
   });
-  await logActivity("created", `New mandate ${row.reference}: ${row.title}`, "property", row.id, user?.name);
-  await logAudit("created", "property", row.id, `Created ${row.reference}`, user?.id, user?.name);
-  res.status(201).json(CreatePropertyResponse.parse(jsonify(row)));
+  if (result.created) {
+    await logActivity("created", `New mandate ${result.row.reference}: ${result.row.title}`, "property", result.row.id, user?.name);
+    await logAudit("created", "property", result.row.id, `Created ${result.row.reference}`, user?.id, user?.name);
+  }
+  res.status(201).json(CreatePropertyResponse.parse(jsonify(result.row)));
 });
 
 router.get("/properties/:id", async (req, res): Promise<void> => {
   const id = parseId(req);
-  const [row] = await db.select().from(propertiesTable).where(eq(propertiesTable.id, id));
+  const user = await currentUser(req);
+  const [row] = await db.select().from(propertiesTable).where(
+    user?.role === "agent" || user?.role === "senior_agent"
+      ? and(eq(propertiesTable.id, id), eq(propertiesTable.agentId, user.id))
+      : eq(propertiesTable.id, id),
+  );
   if (!row) {
     res.status(404).json({ error: "Property not found" });
     return;
@@ -117,12 +169,15 @@ router.patch("/properties/:id", async (req, res): Promise<void> => {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
-  const [existing] = await db.select().from(propertiesTable).where(eq(propertiesTable.id, id));
+  const user = await currentUser(req);
+  const ownership = user?.role === "agent" || user?.role === "senior_agent"
+    ? and(eq(propertiesTable.id, id), eq(propertiesTable.agentId, user.id))
+    : eq(propertiesTable.id, id);
+  const [existing] = await db.select().from(propertiesTable).where(ownership);
   if (!existing) {
     res.status(404).json({ error: "Property not found" });
     return;
   }
-  const user = await currentUser(req);
   const update: Record<string, unknown> = { ...parsed.data, updatedAt: new Date() };
   if (parsed.data.status === "public" && existing.status !== "public") {
     update.publishedAt = new Date();
@@ -130,7 +185,7 @@ router.patch("/properties/:id", async (req, res): Promise<void> => {
   const [row] = await db
     .update(propertiesTable)
     .set(update)
-    .where(eq(propertiesTable.id, id))
+    .where(ownership)
     .returning();
 
   if (parsed.data.price != null && parsed.data.price !== existing.price) {
@@ -152,9 +207,31 @@ router.patch("/properties/:id", async (req, res): Promise<void> => {
 router.delete("/properties/:id", async (req, res): Promise<void> => {
   const id = parseId(req);
   const user = await currentUser(req);
-  const [row] = await db.delete(propertiesTable).where(eq(propertiesTable.id, id)).returning();
+  const ownership = user?.role === "agent" || user?.role === "senior_agent"
+    ? and(eq(propertiesTable.id, id), eq(propertiesTable.agentId, user.id))
+    : eq(propertiesTable.id, id);
+  const row = await db.transaction(async (tx) => {
+    const [property] = await tx.select({ id: propertiesTable.id, reference: propertiesTable.reference })
+      .from(propertiesTable)
+      .where(ownership);
+    if (!property) return null;
+
+    // Keep independent leads and tasks, but detach them before removing the
+    // listing. Other dependent records have no useful meaning without it.
+    await tx.update(tasksTable).set({ propertyId: null }).where(eq(tasksTable.propertyId, id));
+    await tx.update(leadsTable).set({ propertyId: null }).where(eq(leadsTable.propertyId, id));
+    await tx.delete(viewingsTable).where(eq(viewingsTable.propertyId, id));
+    await tx.delete(documentsTable).where(eq(documentsTable.propertyId, id));
+    await tx.delete(savedPropertiesTable).where(eq(savedPropertiesTable.propertyId, id));
+    await tx.delete(priceHistoryTable).where(eq(priceHistoryTable.propertyId, id));
+    const [deleted] = await tx.delete(propertiesTable).where(ownership).returning();
+    return deleted;
+  });
   if (!row) {
-    res.status(404).json({ error: "Property not found" });
+    // A queued client may retry after the first delete committed but before it
+    // received the 204 response. Treat that retry as complete so it cannot
+    // block later offline mutations.
+    res.sendStatus(204);
     return;
   }
   await logAudit("deleted", "property", id, `Deleted ${row.reference}`, user?.id, user?.name);
@@ -163,6 +240,15 @@ router.delete("/properties/:id", async (req, res): Promise<void> => {
 
 router.get("/properties/:id/price-history", async (req, res): Promise<void> => {
   const id = parseId(req);
+  const user = await currentUser(req);
+  const propertyCondition = user?.role === "agent" || user?.role === "senior_agent"
+    ? and(eq(propertiesTable.id, id), eq(propertiesTable.agentId, user.id))
+    : eq(propertiesTable.id, id);
+  const [property] = await db.select({ id: propertiesTable.id }).from(propertiesTable).where(propertyCondition);
+  if (!property) {
+    res.status(404).json({ error: "Property not found" });
+    return;
+  }
   const rows = await db
     .select()
     .from(priceHistoryTable)
@@ -173,6 +259,15 @@ router.get("/properties/:id/price-history", async (req, res): Promise<void> => {
 
 router.get("/properties/:id/activity", async (req, res): Promise<void> => {
   const id = parseId(req);
+  const user = await currentUser(req);
+  const propertyCondition = user?.role === "agent" || user?.role === "senior_agent"
+    ? and(eq(propertiesTable.id, id), eq(propertiesTable.agentId, user.id))
+    : eq(propertiesTable.id, id);
+  const [property] = await db.select({ id: propertiesTable.id }).from(propertiesTable).where(propertyCondition);
+  if (!property) {
+    res.status(404).json({ error: "Property not found" });
+    return;
+  }
   const rows = await db
     .select()
     .from(activityTable)
@@ -188,17 +283,20 @@ router.post("/properties/:id/share", async (req, res): Promise<void> => {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
-  const [existing] = await db.select().from(propertiesTable).where(eq(propertiesTable.id, id));
+  const user = await currentUser(req);
+  const propertyCondition = user?.role === "agent" || user?.role === "senior_agent"
+    ? and(eq(propertiesTable.id, id), eq(propertiesTable.agentId, user.id))
+    : eq(propertiesTable.id, id);
+  const [existing] = await db.select().from(propertiesTable).where(propertyCondition);
   if (!existing) {
     res.status(404).json({ error: "Property not found" });
     return;
   }
-  const user = await currentUser(req);
   await db
     .update(propertiesTable)
     .set({ shares: existing.shares + 1 })
     .where(eq(propertiesTable.id, id));
-  const url = `https://quickprop.co.zw/p/${existing.reference.toLowerCase()}`;
+  const url = `${req.protocol}://${req.get("host")}/properties/${existing.reference.toLowerCase()}`;
   await logActivity("share", `${existing.reference} shared via ${parsed.data.channel}`, "property", id, user?.name);
   res.json(
     SharePropertyResponse.parse({
@@ -210,12 +308,15 @@ router.post("/properties/:id/share", async (req, res): Promise<void> => {
 
 router.post("/properties/:id/brochure", async (req, res): Promise<void> => {
   const id = parseId(req);
-  const [existing] = await db.select().from(propertiesTable).where(eq(propertiesTable.id, id));
+  const user = await currentUser(req);
+  const propertyCondition = user?.role === "agent" || user?.role === "senior_agent"
+    ? and(eq(propertiesTable.id, id), eq(propertiesTable.agentId, user.id))
+    : eq(propertiesTable.id, id);
+  const [existing] = await db.select().from(propertiesTable).where(propertyCondition);
   if (!existing) {
     res.status(404).json({ error: "Property not found" });
     return;
   }
-  const user = await currentUser(req);
   await db.update(propertiesTable).set({ hasBrochure: true }).where(eq(propertiesTable.id, id));
   await logActivity("brochure", `Brochure generated for ${existing.reference}`, "property", id, user?.name);
   res.json(
