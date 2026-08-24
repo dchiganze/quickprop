@@ -6,5 +6,7 @@
  */
 export const NavigationFlags = {
   notificationsFromDashboard: false,
-  tasksFilter: 'all' as string,
+  tasksFilter: null as string | null,
+  tasksDateScope: null as 'today' | null,
+  tasksTitle: null as string | null,
 };

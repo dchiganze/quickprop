@@ -1,16 +1,18 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useColors } from '@/hooks/useColors';
 import { useData } from '@/contexts/DataContext';
+import { NavigationFlags } from '@/utils/navigationFlags';
 
 const FILTERS = [
   { key: 'all', label: 'All' },
+  { key: 'due', label: 'Due' },
   { key: 'viewing', label: 'Viewings' },
   { key: 'call_seller', label: 'Calls' },
   { key: 'price_update', label: 'Price Updates' },
@@ -43,26 +45,47 @@ export default function TasksScreen() {
 // Read filter from route params (set by dashboard stat cards).
   // _t is a timestamp that changes on every tap so useEffect fires even when
   // the filter value itself hasn't changed.
-  const { filter: paramFilter, _t, title: paramTitle } = useLocalSearchParams<{ filter?: string; _t?: string; title?: string }>();
+  const { filter: paramFilter, dateScope: paramDateScope, _t, title: paramTitle } = useLocalSearchParams<{ filter?: string; dateScope?: string; _t?: string; title?: string }>();
   const [activeFilter, setActiveFilter] = useState(paramFilter || 'all');
+  const [dateScope, setDateScope] = useState<'today' | undefined>(paramDateScope === 'today' ? 'today' : undefined);
+  const [screenTitle, setScreenTitle] = useState(paramTitle || 'Tasks');
   const lastAppliedT = useRef<string | undefined>(undefined);
   
   useEffect(() => {
-  // Only apply when _t is new (i.e. a fresh navigation, not a local filter-pill tap)
+    // _t changes on every dashboard tap, including when this tab is already mounted.
     if (_t !== undefined && _t !== lastAppliedT.current) {
       lastAppliedT.current = _t;
       setActiveFilter(paramFilter || 'all');
+      setDateScope(paramDateScope === 'today' ? 'today' : undefined);
+      setScreenTitle(paramTitle || 'Tasks');
     }
-  }, [paramFilter, _t]);  
+  }, [paramFilter, paramDateScope, _t]);
 
-  const screenTitle = paramTitle || 'Tasks';
+  // A focus event covers tab reuse/navigation actions that do not remount TasksScreen.
+  useFocusEffect(useCallback(() => {
+    if (NavigationFlags.tasksFilter !== null) {
+      setActiveFilter(NavigationFlags.tasksFilter);
+      setDateScope(NavigationFlags.tasksDateScope ?? undefined);
+      setScreenTitle(NavigationFlags.tasksTitle ?? 'Tasks');
+      lastAppliedT.current = _t;
+      NavigationFlags.tasksFilter = null;
+      NavigationFlags.tasksDateScope = null;
+      NavigationFlags.tasksTitle = null;
+    }
+  }, [_t]));
 
   const now = new Date();
+  const endOfToday = new Date(now);
+  endOfToday.setHours(23, 59, 59, 999);
   const pending = tasks.filter(t => !t.completed);
 
-  const filtered = activeFilter === 'all'
-    ? pending
-    : pending.filter(t => t.type === activeFilter);
+  const filtered = activeFilter === 'due'
+    ? pending.filter(t => new Date(t.dueDate) <= endOfToday)
+    : activeFilter === 'viewing' && dateScope === 'today'
+      ? pending.filter(t => t.type === 'viewing' && new Date(t.dueDate).toDateString() === now.toDateString())
+      : activeFilter === 'all'
+        ? pending
+        : pending.filter(t => t.type === activeFilter);
 
   // Sort each section descending by date (most recent first)
   const desc = (a: any, b: any) => new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime();
@@ -151,7 +174,7 @@ export default function TasksScreen() {
           <TouchableOpacity
             key={f.key}
             style={[styles.filterPill, { backgroundColor: activeFilter === f.key ? colors.primary : colors.card, borderColor: activeFilter === f.key ? colors.primary : colors.border }]}
-            onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}); setActiveFilter(f.key); }}
+            onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}); setActiveFilter(f.key); setDateScope(undefined); setScreenTitle('Tasks'); }}
           >
             <Text style={[styles.filterLabel, { color: activeFilter === f.key ? '#FFF' : colors.foreground }]}>{f.label}</Text>
           </TouchableOpacity>

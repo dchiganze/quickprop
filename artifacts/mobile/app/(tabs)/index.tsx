@@ -29,8 +29,13 @@ export default function DashboardScreen() {
   const activeLeads = leads.filter(l => !['completed', 'lost'].includes(l.stage)).length;
   const newLeads = leads.filter(l => l.stage === 'new').length;
   const todayStr = new Date().toDateString();
-  const viewingsToday = tasks.filter(t => t.type === 'viewing' && !t.completed && new Date(t.dueDate).toDateString() === todayStr).length;
-  const overdueTasks = tasks.filter(t => !t.completed && new Date(t.dueDate) < new Date()).length;
+  const pendingTasks = tasks.filter(t => !t.completed);
+  const viewingsToday = pendingTasks.filter(t => t.type === 'viewing' && new Date(t.dueDate).toDateString() === todayStr).length;
+  const now = new Date();
+  const endOfToday = new Date(now);
+  endOfToday.setHours(23, 59, 59, 999);
+  const dueTasks = pendingTasks.filter(t => new Date(t.dueDate) <= endOfToday);
+  const overdueTasks = dueTasks.filter(t => new Date(t.dueDate) < now).length;
   const todayTasks = tasks.filter(t => !t.completed && new Date(t.dueDate).toDateString() === todayStr);
   const recentProperties = [...properties].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()).slice(0, 3);
 
@@ -103,8 +108,20 @@ export default function DashboardScreen() {
         <StatCard label="Active Leads" value={activeLeads} icon="people-outline" color="#8B5CF6" subtitle={newLeads > 0 ? `${newLeads} new` : undefined} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}); router.push('/(tabs)/leads'); }} />
       </View>
       <View style={[styles.statsRow, { marginTop: 10 }]}>
-        <StatCard label="Viewings Scheduled" value={viewingsToday} icon="eye-outline" color={colors.accent} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}); router.navigate({ pathname: '/(tabs)/tasks', params: { filter: 'viewing', title: 'Viewings Scheduled', _t: String(Date.now()) } }); }} />
-        <StatCard label="Tasks Due" value={overdueTasks} icon="time-outline" color={overdueTasks > 0 ? colors.destructive : colors.mutedForeground} subtitle={overdueTasks > 0 ? 'Overdue' : 'On track'} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}); router.navigate({ pathname: '/(tabs)/tasks', params: { filter: 'all', title: 'Tasks', _t: String(Date.now()) } }); }} />
+        <StatCard label="Viewings Today" value={viewingsToday} icon="eye-outline" color={colors.accent} onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+          NavigationFlags.tasksFilter = 'viewing';
+          NavigationFlags.tasksDateScope = 'today';
+          NavigationFlags.tasksTitle = 'Viewings Today';
+          router.navigate({ pathname: '/(tabs)/tasks', params: { filter: 'viewing', dateScope: 'today', title: 'Viewings Today', _t: String(Date.now()) } });
+        }} />
+        <StatCard label="Tasks Due" value={dueTasks.length} icon="time-outline" color={overdueTasks > 0 ? colors.destructive : colors.mutedForeground} subtitle={overdueTasks > 0 ? `${overdueTasks} overdue` : 'On track'} onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+          NavigationFlags.tasksFilter = 'due';
+          NavigationFlags.tasksDateScope = null;
+          NavigationFlags.tasksTitle = 'Tasks Due';
+          router.navigate({ pathname: '/(tabs)/tasks', params: { filter: 'due', title: 'Tasks Due', _t: String(Date.now()) } });
+        }} />
       </View>
 
       {/* Quick Actions — 2×2 grid, nudged down 9px */}
