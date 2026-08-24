@@ -23,7 +23,7 @@
       "supportsTablet": false,
       "jsEngine": "jsc",
       "bundleIdentifier": "com.quickprop.agent",
-      "buildNumber": "78",
+      "buildNumber": "79",
       "deploymentTarget": "16.4",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
@@ -44,7 +44,7 @@
     },
     "android": {
       "package": "zw.co.melios.quickprop.agent",
-      "versionCode": 20,
+      "versionCode": 21,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
