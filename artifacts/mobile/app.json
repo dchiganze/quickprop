@@ -81,7 +81,6 @@
     "plugins": [
       "./plugins/withNoHermes",
       "./plugins/withDeploymentTarget",
-      "./plugins/withExpoPrintPod",
       "expo-video",
       [
         "expo-router",
