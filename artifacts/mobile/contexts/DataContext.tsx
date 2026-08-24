@@ -1,11 +1,12 @@
-import React, { createContext, useContext, useEffect, useState, useMemo } from 'react';
+import React, { createContext, useContext, useEffect, useState, useMemo, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Property, Lead, BuyerMatch, Task, PropertyAlert } from '@/types';
+import { registerDataReset } from './dataReset';
 
 export interface AlertMatch {
   alert: PropertyAlert;
   properties: Property[];
-}just needs
+}
 
 interface DataContextType {
   properties: Property[];
@@ -52,6 +53,15 @@ export function propertyMatchesAlert(p: Property, alert: PropertyAlert): boolean
 
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 const now = () => new Date().toISOString();
+const parseStoredArray = <T,>(raw: string | null, fallback: T[]): T[] => {
+  if (!raw) return fallback;
+  try {
+    const value: unknown = JSON.parse(raw);
+    return Array.isArray(value) ? value as T[] : fallback;
+  } catch {
+    return fallback;
+  }
+};
 
 const MOCK_PROPERTIES: Property[] = [
   {
@@ -210,9 +220,53 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [alerts, setAlerts] = useState<PropertyAlert[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  // Collections are ref-backed so asynchronous mutations never use a render's
+  // stale snapshot. Versions prevent a late hydration from replacing a
+  // collection changed while its AsyncStorage read was in flight.
+  const propertiesRef = useRef<Property[]>([]);
+  const leadsRef = useRef<Lead[]>([]);
+  const buyerMatchesRef = useRef<BuyerMatch[]>([]);
+  const tasksRef = useRef<Task[]>([]);
+  const alertsRef = useRef<PropertyAlert[]>([]);
+  const resetGenerationRef = useRef(0);
+  const propertiesVersionRef = useRef(0);
+  const leadsVersionRef = useRef(0);
+  const buyerMatchesVersionRef = useRef(0);
+  const tasksVersionRef = useRef(0);
+  const alertsVersionRef = useRef(0);
+
+  useEffect(() => registerDataReset(() => {
+    // Invalidate a pending hydration before clearing every in-memory collection.
+    // This prevents late AsyncStorage reads from repopulating deleted data.
+    resetGenerationRef.current += 1;
+    propertiesRef.current = [];
+    leadsRef.current = [];
+    buyerMatchesRef.current = [];
+    tasksRef.current = [];
+    alertsRef.current = [];
+    propertiesVersionRef.current += 1;
+    leadsVersionRef.current += 1;
+    buyerMatchesVersionRef.current += 1;
+    tasksVersionRef.current += 1;
+    alertsVersionRef.current += 1;
+    setProperties([]);
+    setLeads([]);
+    setBuyerMatches([]);
+    setTasks([]);
+    setAlerts([]);
+    setIsLoading(false);
+  }), []);
 
   useEffect(() => {
     const load = async () => {
+      const generation = resetGenerationRef.current;
+      const collectionVersions = {
+        properties: propertiesVersionRef.current,
+        leads: leadsVersionRef.current,
+        buyerMatches: buyerMatchesVersionRef.current,
+        tasks: tasksVersionRef.current,
+        alerts: alertsVersionRef.current,
+      };
       try {
         const [ps, ls, ms, ts, as_] = await Promise.all([
           AsyncStorage.getItem(PROPS_KEY),
@@ -221,23 +275,61 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           AsyncStorage.getItem(TASKS_KEY),
           AsyncStorage.getItem(ALERTS_KEY),
         ]);
-        setProperties(ps ? JSON.parse(ps) : MOCK_PROPERTIES);
-        setLeads(ls ? JSON.parse(ls) : MOCK_LEADS);
-        setBuyerMatches(ms ? JSON.parse(ms) : MOCK_MATCHES);
-        setTasks(ts ? JSON.parse(ts) : MOCK_TASKS);
-        setAlerts(as_ ? JSON.parse(as_) : []);
-        if (!ps) await AsyncStorage.setItem(PROPS_KEY, JSON.stringify(MOCK_PROPERTIES));
-        if (!ls) await AsyncStorage.setItem(LEADS_KEY, JSON.stringify(MOCK_LEADS));
-        if (!ms) await AsyncStorage.setItem(MATCHES_KEY, JSON.stringify(MOCK_MATCHES));
-        if (!ts) await AsyncStorage.setItem(TASKS_KEY, JSON.stringify(MOCK_TASKS));
+        if (generation !== resetGenerationRef.current) return;
+        const loadedProperties = parseStoredArray(ps, MOCK_PROPERTIES);
+        const loadedLeads = parseStoredArray(ls, MOCK_LEADS);
+        const loadedBuyerMatches = parseStoredArray(ms, MOCK_MATCHES);
+        const loadedTasks = parseStoredArray(ts, MOCK_TASKS);
+        const loadedAlerts = parseStoredArray(as_, []);
+
+        if (
+          generation === resetGenerationRef.current &&
+          propertiesVersionRef.current === collectionVersions.properties
+        ) {
+          propertiesRef.current = loadedProperties;
+          setProperties(loadedProperties);
+          if (!ps) await AsyncStorage.setItem(PROPS_KEY, JSON.stringify(propertiesRef.current));
+        }
+        if (
+          generation === resetGenerationRef.current &&
+          leadsVersionRef.current === collectionVersions.leads
+        ) {
+          leadsRef.current = loadedLeads;
+          setLeads(loadedLeads);
+          if (!ls) await AsyncStorage.setItem(LEADS_KEY, JSON.stringify(leadsRef.current));
+        }
+        if (
+          generation === resetGenerationRef.current &&
+          buyerMatchesVersionRef.current === collectionVersions.buyerMatches
+        ) {
+          buyerMatchesRef.current = loadedBuyerMatches;
+          setBuyerMatches(loadedBuyerMatches);
+          if (!ms) await AsyncStorage.setItem(MATCHES_KEY, JSON.stringify(buyerMatchesRef.current));
+        }
+        if (
+          generation === resetGenerationRef.current &&
+          tasksVersionRef.current === collectionVersions.tasks
+        ) {
+          tasksRef.current = loadedTasks;
+          setTasks(loadedTasks);
+          if (!ts) await AsyncStorage.setItem(TASKS_KEY, JSON.stringify(tasksRef.current));
+        }
+        if (
+          generation === resetGenerationRef.current &&
+          alertsVersionRef.current === collectionVersions.alerts
+        ) {
+          alertsRef.current = loadedAlerts;
+          setAlerts(loadedAlerts);
+        }
       } finally {
-        setIsLoading(false);
+        if (generation === resetGenerationRef.current) setIsLoading(false);
       }
     };
     load();
   }, []);
 
-  const save = async (key: string, data: unknown[]) => AsyncStorage.setItem(key, JSON.stringify(data));
+  const save = async <T,>(key: string, collectionRef: React.MutableRefObject<T[]>) =>
+    AsyncStorage.setItem(key, JSON.stringify(collectionRef.current));
 
   // Compute which published properties match each alert and haven't been dismissed
   const alertMatches = useMemo<AlertMatch[]>(() => {
@@ -260,78 +352,100 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
   const addProperty = async (p: Omit<Property, 'id' | 'createdAt' | 'updatedAt'>) => {
     const prop: Property = { ...p, id: uid(), createdAt: now(), updatedAt: now() };
-    const updated = [...properties, prop];
+    const updated = [...propertiesRef.current, prop];
+    propertiesRef.current = updated;
+    propertiesVersionRef.current += 1;
     setProperties(updated);
-    await save(PROPS_KEY, updated);
+    await save(PROPS_KEY, propertiesRef);
     return prop;
   };
 
   const updateProperty = async (id: string, updates: Partial<Property>) => {
-    const updated = properties.map(p => p.id === id ? { ...p, ...updates, updatedAt: now() } : p);
+    const updated = propertiesRef.current.map(p => p.id === id ? { ...p, ...updates, updatedAt: now() } : p);
+    propertiesRef.current = updated;
+    propertiesVersionRef.current += 1;
     setProperties(updated);
-    await save(PROPS_KEY, updated);
+    await save(PROPS_KEY, propertiesRef);
   };
 
   const deleteProperty = async (id: string) => {
-    const updated = properties.filter(p => p.id !== id);
+    const updated = propertiesRef.current.filter(p => p.id !== id);
+    propertiesRef.current = updated;
+    propertiesVersionRef.current += 1;
     setProperties(updated);
-    await save(PROPS_KEY, updated);
+    await save(PROPS_KEY, propertiesRef);
   };
 
   const addLead = async (l: Omit<Lead, 'id' | 'createdAt'>) => {
     const lead: Lead = { ...l, id: uid(), createdAt: now() };
-    const updated = [...leads, lead];
+    const updated = [...leadsRef.current, lead];
+    leadsRef.current = updated;
+    leadsVersionRef.current += 1;
     setLeads(updated);
-    await save(LEADS_KEY, updated);
+    await save(LEADS_KEY, leadsRef);
     return lead;
   };
 
   const updateLead = async (id: string, updates: Partial<Lead>) => {
-    const updated = leads.map(l => l.id === id ? { ...l, ...updates } : l);
+    const updated = leadsRef.current.map(l => l.id === id ? { ...l, ...updates } : l);
+    leadsRef.current = updated;
+    leadsVersionRef.current += 1;
     setLeads(updated);
-    await save(LEADS_KEY, updated);
+    await save(LEADS_KEY, leadsRef);
   };
 
   const addTask = async (t: Omit<Task, 'id' | 'createdAt'>) => {
     const task: Task = { ...t, id: uid(), createdAt: now() };
-    const updated = [...tasks, task];
+    const updated = [...tasksRef.current, task];
+    tasksRef.current = updated;
+    tasksVersionRef.current += 1;
     setTasks(updated);
-    await save(TASKS_KEY, updated);
+    await save(TASKS_KEY, tasksRef);
   };
 
   const updateTask = async (id: string, updates: Partial<Task>) => {
-    const updated = tasks.map(t => t.id === id ? { ...t, ...updates } : t);
+    const updated = tasksRef.current.map(t => t.id === id ? { ...t, ...updates } : t);
+    tasksRef.current = updated;
+    tasksVersionRef.current += 1;
     setTasks(updated);
-    await save(TASKS_KEY, updated);
+    await save(TASKS_KEY, tasksRef);
   };
 
   const deleteTask = async (id: string) => {
-    const updated = tasks.filter(t => t.id !== id);
+    const updated = tasksRef.current.filter(t => t.id !== id);
+    tasksRef.current = updated;
+    tasksVersionRef.current += 1;
     setTasks(updated);
-    await save(TASKS_KEY, updated);
+    await save(TASKS_KEY, tasksRef);
   };
 
   const addAlert = async (a: Omit<PropertyAlert, 'id' | 'createdAt' | 'seenPropertyIds'>) => {
     const alert: PropertyAlert = { ...a, id: uid(), createdAt: now(), seenPropertyIds: [] };
-    const updated = [...alerts, alert];
+    const updated = [...alertsRef.current, alert];
+    alertsRef.current = updated;
+    alertsVersionRef.current += 1;
     setAlerts(updated);
-    await save(ALERTS_KEY, updated);
+    await save(ALERTS_KEY, alertsRef);
   };
 
   const deleteAlert = async (id: string) => {
-    const updated = alerts.filter(a => a.id !== id);
+    const updated = alertsRef.current.filter(a => a.id !== id);
+    alertsRef.current = updated;
+    alertsVersionRef.current += 1;
     setAlerts(updated);
-    await save(ALERTS_KEY, updated);
+    await save(ALERTS_KEY, alertsRef);
   };
 
   const dismissAlertMatches = async (alertId: string, propertyIds: string[]) => {
-    const updated = alerts.map(a =>
+    const updated = alertsRef.current.map(a =>
       a.id === alertId
         ? { ...a, seenPropertyIds: [...new Set([...a.seenPropertyIds, ...propertyIds])] }
         : a
     );
+    alertsRef.current = updated;
+    alertsVersionRef.current += 1;
     setAlerts(updated);
-    await save(ALERTS_KEY, updated);
+    await save(ALERTS_KEY, alertsRef);
   };
 
   return (

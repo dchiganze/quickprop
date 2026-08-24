@@ -10,6 +10,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useColors } from '@/hooks/useColors';
+import { propertyShareLinks } from '@/utils/shareLinks';
 import { useData } from '@/contexts/DataContext';
 import { Property } from '@/types';
 
@@ -123,6 +124,10 @@ export default function ListingDetailScreen() {
     lines.push('');
     lines.push(`📋 Ref: *${property.referenceNumber}*`);
     lines.push('Listed on QuickProp');
+    const links = propertyShareLinks(property);
+    lines.push('');
+    lines.push(`Open in QuickProp Agent: ${links.appUrl}`);
+    lines.push(`View online: ${links.webUrl}`);
     return lines.join('\n');
   };
 
@@ -307,8 +312,11 @@ export default function ListingDetailScreen() {
             onPress={handleAddMedia}
             activeOpacity={0.75}
           >
-            <Ionicons name="camera-outline" size={48} color={colors.mutedForeground} />
-            <Text style={[styles.galleryHint, { color: colors.mutedForeground }]}>Tap to add photo or video</Text>
+            <Image source={require('../../assets/images/logo.png')} style={styles.fallbackImage} resizeMode="contain" />
+            <View style={[styles.fallbackVeil, { backgroundColor: colors.muted + 'D9' }]}>
+              <Ionicons name="home-outline" size={38} color={colors.mutedForeground} />
+              <Text style={[styles.galleryHint, { color: colors.mutedForeground }]}>Main photo coming soon · tap to add media</Text>
+            </View>
             <View style={[styles.statusBadge, { backgroundColor: STATUS_COLORS[property.status] }]}>
               <Text style={styles.statusText}>{property.status.charAt(0).toUpperCase() + property.status.slice(1)}</Text>
             </View>
@@ -321,7 +329,7 @@ export default function ListingDetailScreen() {
             <Text style={[styles.price, { color: colors.primary }]}>{priceDisplay}</Text>
             {property.negotiable && <View style={[styles.negBadge, { backgroundColor: colors.accent + '20' }]}><Text style={[styles.negText, { color: colors.accent }]}>Negotiable</Text></View>}
           </View>
-                    <Text style={[styles.address, { color: colors.foreground }]}>{property.address}</Text>
+          {property.showAddress && <Text style={[styles.address, { color: colors.foreground }]}>{property.address}</Text>}
           <View style={styles.suburbRow}>
             <Text style={[styles.suburb, { color: colors.mutedForeground }]}>{property.suburb}</Text>
             <View style={[styles.visibilityBadge, {
@@ -557,6 +565,8 @@ const styles = StyleSheet.create({
   photoCountBadge: { position: 'absolute', bottom: 12, right: 12, flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12 },
   photoCountText: { color: '#FFF', fontSize: 11, fontWeight: '700' },
   galleryHint: { fontSize: 14 },
+  fallbackImage: { width: '100%', height: '100%' },
+  fallbackVeil: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center', gap: 8 },
   statusBadge: { position: 'absolute', top: 12, left: 12, paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20 },
   statusText: { color: '#FFF', fontSize: 12, fontWeight: '700' },
   body: { paddingHorizontal: 20, paddingTop: 20, gap: 0 },

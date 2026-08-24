@@ -46,6 +46,10 @@ function RootLayoutNav() {
         />
         <Stack.Screen name="listing/[id]" />
         <Stack.Screen name="task/[id]" />
+        <Stack.Screen
+          name="task/new"
+          options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
+        />
         <Stack.Screen name="lead/[id]" />
         <Stack.Screen name="notifications" />
         <Stack.Screen name="settings" />

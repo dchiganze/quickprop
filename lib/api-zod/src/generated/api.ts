@@ -30,7 +30,9 @@ export const LoginResponse = zod.object({
   "branchId": zod.number().nullish(),
   "status": zod.string().describe('active | suspended | inactive'),
   "avatarUrl": zod.string().nullish()
-})
+}).and(zod.object({
+  "accessToken": zod.string().describe('Signed bearer token for native clients, valid for up to 30 days.')
+}))
 
 
 export const LogoutResponse = zod.unknown()
@@ -45,6 +47,19 @@ export const GetCurrentUserResponse = zod.object({
   "branchId": zod.number().nullish(),
   "status": zod.string().describe('active | suspended | inactive'),
   "avatarUrl": zod.string().nullish()
+})
+
+
+/**
+ * @summary Permanently delete the signed-in user's account and dependent data
+ */
+export const DeleteCurrentUserAccountBody = zod.object({
+  "confirmation": zod.string().describe('Must exactly equal DELETE.'),
+  "password": zod.string().describe('The signed-in user\'s current password.')
+})
+
+export const DeleteCurrentUserAccountResponse = zod.object({
+  "ok": zod.boolean()
 })
 
 

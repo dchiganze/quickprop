@@ -20,6 +20,8 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  AccountDeletionInput,
+  AccountDeletionResult,
   ActivityEntry,
   AdminAgency,
   AdminAgent,
@@ -61,6 +63,7 @@ import type {
   ListTasksParams,
   ListViewingsParams,
   LoginInput,
+  LoginResult,
   MarketplaceStats,
   ModerateProperty200,
   Notification,
@@ -210,9 +213,9 @@ export const getLoginUrl = () => {
   return `/api/auth/login`
 }
 
-export const login = async (loginInput: LoginInput, options?: RequestInit): Promise<User> => {
+export const login = async (loginInput: LoginInput, options?: RequestInit): Promise<LoginResult> => {
 
-  return customFetch<User>(getLoginUrl(),
+  return customFetch<LoginResult>(getLoginUrl(),
   {
     ...options,
     method: 'POST',
@@ -402,6 +405,77 @@ export function useGetCurrentUser<TData = Awaited<ReturnType<typeof getCurrentUs
 
 
 
+
+export const getDeleteCurrentUserAccountUrl = () => {
+
+
+
+
+  return `/api/auth/account`
+}
+
+/**
+ * @summary Permanently delete the signed-in user's account and dependent data
+ */
+export const deleteCurrentUserAccount = async (accountDeletionInput: AccountDeletionInput, options?: RequestInit): Promise<AccountDeletionResult> => {
+
+  return customFetch<AccountDeletionResult>(getDeleteCurrentUserAccountUrl(),
+  {
+    ...options,
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(accountDeletionInput)
+  }
+);}
+
+
+
+
+
+export const getDeleteCurrentUserAccountMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteCurrentUserAccount>>, TError,{data: BodyType<AccountDeletionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteCurrentUserAccount>>, TError,{data: BodyType<AccountDeletionInput>}, TContext> => {
+
+const mutationKey = ['deleteCurrentUserAccount'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteCurrentUserAccount>>, {data: BodyType<AccountDeletionInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  deleteCurrentUserAccount(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteCurrentUserAccountMutationResult = NonNullable<Awaited<ReturnType<typeof deleteCurrentUserAccount>>>
+    export type DeleteCurrentUserAccountMutationBody = BodyType<AccountDeletionInput>
+    export type DeleteCurrentUserAccountMutationError = ErrorType<void>
+
+    /**
+ * @summary Permanently delete the signed-in user's account and dependent data
+ */
+export const useDeleteCurrentUserAccount = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteCurrentUserAccount>>, TError,{data: BodyType<AccountDeletionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteCurrentUserAccount>>,
+        TError,
+        {data: BodyType<AccountDeletionInput>},
+        TContext
+      > => {
+      return useMutation(getDeleteCurrentUserAccountMutationOptions(options));
+    }
 
 export const getListPropertiesUrl = (params?: ListPropertiesParams,) => {
   const normalizedParams = new URLSearchParams();

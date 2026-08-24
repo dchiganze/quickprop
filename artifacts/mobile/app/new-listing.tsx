@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform,
-  TextInput, Switch, Alert, KeyboardAvoidingView, ActivityIndicator,
+  TextInput, Switch, Alert, KeyboardAvoidingView, ActivityIndicator, Image,
 } from 'react-native';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { Ionicons } from '@expo/vector-icons';
@@ -198,13 +198,15 @@ export default function NewListingScreen() {
   };
 
   const handlePickPhotos = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: 'images',
-      allowsMultipleSelection: true,
-      quality: 0.8,
-    });
-    if (!result.canceled) {
-      set('photos', [...form.photos, ...result.assets.map(a => a.uri)]);
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: 'images',
+        allowsMultipleSelection: true,
+        quality: 0.8,
+      });
+      if (!result.canceled) set('photos', [...form.photos, ...result.assets.map(a => a.uri)]);
+    } catch (e: any) {
+      Alert.alert('Photo Library Error', e?.message ?? 'Could not open the photo library.');
     }
   };
 
@@ -218,13 +220,13 @@ export default function NewListingScreen() {
   };
 
   const handlePublish = async (status: 'published' | 'draft') => {
-    if (!form.address.trim() || !form.suburb.trim() || !form.price.trim()) {
-      Alert.alert('Required Fields', 'Please fill in address, suburb and price before publishing.');
+    if (!form.address.trim() || !form.suburb.trim() || !form.price.trim() || Number(form.price) <= 0) {
+      Alert.alert('Required Fields', 'Please enter a street address, suburb, and a valid price before publishing.');
       return;
     }
     setSaving(true);
-    await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    await addProperty({
+    try {
+      const property = await addProperty({
       referenceNumber: form.referenceNumber,
       type: form.type,
       status,
@@ -252,14 +254,26 @@ export default function NewListingScreen() {
         mandateType: form.mandateType,
         notes: form.sellerNotes,
       },
-      agentId: user?.id ?? 'agent-001',
-    });
-    setSaving(false);
-    router.replace('/(tabs)/listings');
+        agentId: user?.id ?? 'agent-001',
+      });
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Alert.alert(
+        status === 'published' ? 'Listing Published' : 'Draft Saved',
+        status === 'published'
+          ? `${property.referenceNumber} is now live and visible in your listings.`
+          : `${property.referenceNumber} was saved as a draft.`,
+        [{ text: 'View Listings', onPress: () => router.replace('/(tabs)/listings') }]
+      );
+    } catch (e: any) {
+      Alert.alert('Could Not Save Listing', e?.message ?? 'Please try again.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const canNext = () => {
-    if (step === 3) return !!form.address.trim() && !!form.suburb.trim() && !!form.price.trim();
+    if (step === 2) return !!form.address.trim() && !!form.suburb.trim();
+    if (step === 3) return !!form.price.trim() && Number(form.price) > 0;
     return true;
   };
 
@@ -284,9 +298,26 @@ export default function NewListingScreen() {
             </TouchableOpacity>
           </View>
           {form.photos.length > 0 ? (
-            <View style={[styles.photoCount, { backgroundColor: colors.accent + '15', borderColor: colors.accent }]}>
-              <Ionicons name="checkmark-circle" size={18} color={colors.accent} />
-              <Text style={[styles.photoCountText, { color: colors.accent }]}>{form.photos.length} photo{form.photos.length > 1 ? 's' : ''} selected</Text>
+            <View>
+              <View style={[styles.photoCount, { backgroundColor: colors.accent + '15', borderColor: colors.accent }]}>
+                <Ionicons name="checkmark-circle" size={18} color={colors.accent} />
+                <Text style={[styles.photoCountText, { color: colors.accent }]}>{form.photos.length} photo{form.photos.length > 1 ? 's' : ''} selected</Text>
+              </View>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.photoPreviewRow}>
+                {form.photos.map((uri, index) => (
+                  <View key={`${uri}-${index}`} style={styles.photoPreview}>
+                    <Image source={{ uri }} style={styles.photoPreviewImage} />
+                    {index === 0 && <Text style={styles.mainPhotoLabel}>Main</Text>}
+                    <TouchableOpacity
+                      accessibilityLabel={`Remove photo ${index + 1}`}
+                      style={styles.photoRemove}
+                      onPress={() => set('photos', form.photos.filter((_, photoIndex) => photoIndex !== index))}
+                    >
+                      <Ionicons name="close-circle" size={24} color="#FFF" />
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </ScrollView>
             </View>
           ) : (
             <View style={[styles.photoEmpty, { backgroundColor: colors.muted, borderColor: colors.border }]}>
@@ -382,7 +413,11 @@ export default function NewListingScreen() {
           </Field>
           <Field label="PRICE *">
             <View style={styles.priceRow}>
-              <TouchableOpacity style={[styles.currencyBtn, { backgroundColor: colors.secondary, borderColor: colors.border }]}>
+              <TouchableOpacity
+                style={[styles.currencyBtn, { backgroundColor: colors.secondary, borderColor: colors.border }]}
+                onPress={() => set('currency', CURRENCIES[(CURRENCIES.indexOf(form.currency) + 1) % CURRENCIES.length])}
+                accessibilityLabel="Change currency"
+              >
                 <Text style={[styles.currencyText, { color: colors.foreground }]}>{form.currency}</Text>
                 <Ionicons name="chevron-down" size={14} color={colors.mutedForeground} />
               </TouchableOpacity>
@@ -571,7 +606,7 @@ export default function NewListingScreen() {
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.draftBtn, { borderColor: colors.border, backgroundColor: colors.card }]}
-              onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
+              onPress={() => Alert.alert('Save Before Scheduling', 'Save this listing as a draft first. You can publish it when you are ready.')}
             >
               <Ionicons name="time-outline" size={18} color={colors.mutedForeground} />
               <Text style={[styles.draftBtnText, { color: colors.mutedForeground }]}>Schedule Later</Text>
@@ -650,6 +685,11 @@ const styles = StyleSheet.create({
   photoBtnText: { color: '#FFF', fontSize: 13, fontWeight: '700' },
   photoCount: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 14, borderRadius: 12, borderWidth: 1 },
   photoCountText: { fontSize: 14, fontWeight: '700' },
+  photoPreviewRow: { gap: 10, paddingTop: 12 },
+  photoPreview: { width: 110, height: 86, borderRadius: 10, overflow: 'hidden', position: 'relative' },
+  photoPreviewImage: { width: '100%', height: '100%' },
+  photoRemove: { position: 'absolute', top: 4, right: 4, backgroundColor: '#00000066', borderRadius: 14 },
+  mainPhotoLabel: { position: 'absolute', bottom: 4, left: 4, color: '#FFF', backgroundColor: '#00000099', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 8, fontSize: 10, fontWeight: '700' },
   photoEmpty: { height: 140, alignItems: 'center', justifyContent: 'center', borderRadius: 16, borderWidth: 1, gap: 8 },
   photoEmptyText: { fontSize: 13 },
   videoButtons: { flexDirection: 'row', gap: 12 },

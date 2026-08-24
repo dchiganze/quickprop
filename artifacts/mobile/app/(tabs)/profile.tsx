@@ -173,7 +173,7 @@ const ab = StyleSheet.create({
 export default function ProfileScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { user, logout, updateUser } = useAuth();
+  const { user, logout, deleteAccount, updateUser } = useAuth();
   const { properties, leads } = useData();
 
   // Sheet visibility
@@ -191,6 +191,10 @@ export default function ProfileScreen() {
   const [editPhoneOpen, setEditPhoneOpen] = useState(false);
   const [editPhone, setEditPhone] = useState('');
   const [savingPhone, setSavingPhone] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteConfirmation, setDeleteConfirmation] = useState('');
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deletingAccount, setDeletingAccount] = useState(false);
 
   // Toggles
   const [biometric, setBiometric] = useState(false);
@@ -277,6 +281,39 @@ export default function ProfileScreen() {
         },
       },
     ]);
+  };
+
+  const openDeleteAccount = () => {
+    setDeleteConfirmation('');
+    setDeletePassword('');
+    setDeleteOpen(true);
+  };
+
+  const handleDeleteAccount = async () => {
+    if (deleteConfirmation !== 'DELETE') {
+      Alert.alert('Confirmation required', 'Type DELETE exactly to continue.');
+      return;
+    }
+    if (!deletePassword) {
+      Alert.alert('Password required', 'Enter your current password to permanently delete your account.');
+      return;
+    }
+
+    setDeletingAccount(true);
+    try {
+      await deleteAccount(deletePassword, deleteConfirmation);
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setDeleteOpen(false);
+      Alert.alert('Account deleted', 'Your account and associated data have been permanently deleted.');
+      router.replace('/login');
+    } catch (error) {
+      Alert.alert(
+        'Account not deleted',
+        error instanceof Error ? error.message : 'Account deletion failed. Your account was not deleted.',
+      );
+    } finally {
+      setDeletingAccount(false);
+    }
   };
 
   return (
@@ -387,16 +424,25 @@ export default function ProfileScreen() {
       <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>SUPPORT</Text>
       <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border }]}>
         <Row icon="help-circle-outline" label="Help & Support" onPress={handleSupport} />
-        <Row icon="shield-checkmark-outline" label="Privacy Policy" onPress={() => {}} />
+        <Row
+          icon="shield-checkmark-outline"
+          label="Privacy Policy"
+          onPress={() => {
+            Linking.openURL('https://quickprop.melios.co.zw/privacy').catch(() => {
+              Alert.alert('Unable to open Privacy Policy', 'Please visit quickprop.melios.co.zw/privacy in your browser.');
+            });
+          }}
+        />
         <Row icon="information-circle-outline" label="About QuickProp" onPress={() => setAboutOpen(true)} />
       </View>
 
       {/* Sign Out */}
       <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border }]}>
         <Row icon="log-out-outline" label="Sign Out" onPress={handleLogout} destructive chevron={false} />
+        <Row icon="trash-outline" label="Delete Account" onPress={openDeleteAccount} destructive chevron={false} />
       </View>
 
-      <Text style={[styles.version, { color: colors.mutedForeground }]}>QuickProp Agent v1.0.0 · Build 77</Text>
+      <Text style={[styles.version, { color: colors.mutedForeground }]}>QuickProp Agent v1.0.0 · Build 78</Text>
 
       {/* Sheets & Modals */}
       <CatalogueBrochureSheet visible={brochureOpen} onClose={() => setBrochureOpen(false)} />
@@ -425,6 +471,54 @@ export default function ProfileScreen() {
         onSave={handleSavePhone}
         saving={savingPhone}
       />
+
+      <Modal visible={deleteOpen} animationType="slide" transparent onRequestClose={() => !deletingAccount && setDeleteOpen(false)} statusBarTranslucent>
+        <Pressable style={em.backdrop} onPress={() => !deletingAccount && setDeleteOpen(false)}>
+          <Pressable style={[em.sheet, { backgroundColor: colors.card }]} onPress={() => {}}>
+            <View style={[em.handle, { backgroundColor: colors.border }]} />
+            <View style={em.headerRow}>
+              <Text style={[em.title, { color: colors.destructive }]}>Delete Account</Text>
+              <TouchableOpacity disabled={deletingAccount} onPress={() => setDeleteOpen(false)} style={[em.closeBtn, { backgroundColor: colors.muted }]}>
+                <Ionicons name="close" size={18} color={colors.mutedForeground} />
+              </TouchableOpacity>
+            </View>
+            <Text style={[styles.deleteWarning, { color: colors.foreground }]}>
+              This is permanent. Your account, listings, leads, tasks, and associated data will be deleted and cannot be recovered.
+            </Text>
+            <Text style={[em.fieldLabel, { color: colors.mutedForeground }]}>TYPE DELETE TO CONFIRM</Text>
+            <TextInput
+              style={[em.input, { color: colors.foreground, backgroundColor: colors.muted, borderColor: colors.border }]}
+              value={deleteConfirmation}
+              onChangeText={setDeleteConfirmation}
+              autoCapitalize="characters"
+              autoCorrect={false}
+              editable={!deletingAccount}
+              placeholder="DELETE"
+              placeholderTextColor={colors.mutedForeground}
+            />
+            <Text style={[em.fieldLabel, { color: colors.mutedForeground, marginTop: 16 }]}>CURRENT PASSWORD</Text>
+            <TextInput
+              style={[em.input, { color: colors.foreground, backgroundColor: colors.muted, borderColor: colors.border }]}
+              value={deletePassword}
+              onChangeText={setDeletePassword}
+              secureTextEntry
+              autoCapitalize="none"
+              autoCorrect={false}
+              editable={!deletingAccount}
+              placeholder="Enter current password"
+              placeholderTextColor={colors.mutedForeground}
+            />
+            <TouchableOpacity
+              style={[em.saveBtn, { backgroundColor: deletingAccount ? colors.muted : colors.destructive, marginTop: 20 }]}
+              onPress={handleDeleteAccount}
+              disabled={deletingAccount}
+              activeOpacity={0.85}
+            >
+              {deletingAccount ? <ActivityIndicator color="#FFF" /> : <Text style={em.saveBtnText}>Permanently Delete Account</Text>}
+            </TouchableOpacity>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </ScrollView>
   );
 }
@@ -464,4 +558,5 @@ const styles = StyleSheet.create({
   rowRight: { flexDirection: 'row', alignItems: 'center', gap: 6, maxWidth: 180 },
   rowValue: { fontSize: 13, maxWidth: 140 },
   version: { textAlign: 'center', fontSize: 12, marginTop: 8, marginBottom: 16 },
+  deleteWarning: { fontSize: 14, lineHeight: 20, marginBottom: 20 },
 });

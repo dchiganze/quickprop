@@ -9,6 +9,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useColors } from '@/hooks/useColors';
 import { useData } from '@/contexts/DataContext';
+import { addToDeviceCalendar, exportCalendarEvent } from '@/utils/calendar';
 
 const TASK_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
   call_seller: 'call-outline',
@@ -117,7 +118,7 @@ export default function TaskDetailScreen() {
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Reschedule',
-          onPress: async (value) => {
+            onPress: async (value?: string) => {
             if (!value) return;
             const newDate = fromDateInput(value.trim());
             setSaving(true);
@@ -154,6 +155,38 @@ export default function TaskDetailScreen() {
         },
       ],
     );
+  };
+
+  const calendarEvent = {
+    title: task.title,
+    startDate: new Date(task.dueDate),
+    location: task.propertyAddress,
+    notes: `QuickProp ${TASK_TYPE_LABELS[task.type] || 'task'}${task.completed ? ' (completed)' : ''}`,
+  };
+
+  const handleAddToCalendar = async () => {
+    const result = await addToDeviceCalendar(calendarEvent);
+    if (result.ok) {
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Alert.alert('Added to Calendar', 'The task has been added to your device calendar.');
+      return;
+    }
+    if (result.reason === 'permission-denied') {
+      Alert.alert('Calendar Permission Needed', 'Allow calendar access to add this task to your device calendar. You can still export an .ics file instead.');
+    } else if (result.reason === 'permission-blocked') {
+      Alert.alert('Calendar Access Blocked', 'Calendar access is disabled for QuickProp. Enable it in your device Settings, or export an .ics file instead.');
+    } else if (result.reason === 'unavailable') {
+      Alert.alert('Device Calendar Unavailable', 'This build does not include device calendar access. Export an .ics file to add the task in Google, Outlook, or Apple Calendar.');
+    } else {
+      Alert.alert('Could Not Add to Calendar', 'Please try again, or export an .ics file instead.');
+    }
+  };
+
+  const handleExportCalendar = async () => {
+    const result = await exportCalendarEvent(calendarEvent);
+    if (!result.ok) {
+      Alert.alert('Could Not Export Calendar Event', 'Please try again. Your task has not been changed.');
+    }
   };
 
   const inputStyle = [
@@ -335,18 +368,38 @@ export default function TaskDetailScreen() {
               <Ionicons name="chevron-forward" size={16} color={colors.mutedForeground} />
             </TouchableOpacity>
 
-            {Platform.OS === 'ios' && (
-              <TouchableOpacity
-                style={[styles.actionBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
-                onPress={handleReschedule}
-              >
-                <View style={[styles.actionIcon, { backgroundColor: '#F59E0B' + '18' }]}>
-                  <Ionicons name="calendar-outline" size={20} color="#F59E0B" />
-                </View>
-                <Text style={[styles.actionText, { color: colors.foreground }]}>Reschedule</Text>
-                <Ionicons name="chevron-forward" size={16} color={colors.mutedForeground} />
-              </TouchableOpacity>
-            )}
+            <TouchableOpacity
+              style={[styles.actionBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
+              onPress={Platform.OS === 'ios' ? handleReschedule : startEditing}
+            >
+              <View style={[styles.actionIcon, { backgroundColor: '#F59E0B' + '18' }]}>
+                <Ionicons name="calendar-outline" size={20} color="#F59E0B" />
+              </View>
+              <Text style={[styles.actionText, { color: colors.foreground }]}>Reschedule</Text>
+              <Ionicons name="chevron-forward" size={16} color={colors.mutedForeground} />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.actionBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
+              onPress={handleAddToCalendar}
+            >
+              <View style={[styles.actionIcon, { backgroundColor: colors.primary + '18' }]}>
+                <Ionicons name="calendar-outline" size={20} color={colors.primary} />
+              </View>
+              <Text style={[styles.actionText, { color: colors.foreground }]}>Add to Calendar</Text>
+              <Ionicons name="chevron-forward" size={16} color={colors.mutedForeground} />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.actionBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
+              onPress={handleExportCalendar}
+            >
+              <View style={[styles.actionIcon, { backgroundColor: '#3B82F6' + '18' }]}>
+                <Ionicons name="download-outline" size={20} color="#3B82F6" />
+              </View>
+              <Text style={[styles.actionText, { color: colors.foreground }]}>Export Calendar Event (.ics)</Text>
+              <Ionicons name="chevron-forward" size={16} color={colors.mutedForeground} />
+            </TouchableOpacity>
 
             <TouchableOpacity
               style={[styles.actionBtn, { backgroundColor: colors.card, borderColor: colors.destructive + '40' }]}

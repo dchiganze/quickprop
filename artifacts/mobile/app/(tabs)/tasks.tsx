@@ -45,7 +45,7 @@ export default function TasksScreen() {
   // the filter value itself hasn't changed.
   const { filter: paramFilter, _t, title: paramTitle } = useLocalSearchParams<{ filter?: string; _t?: string; title?: string }>();
   const [activeFilter, setActiveFilter] = useState(paramFilter || 'all');
-  const lastAppliedT = useRef<string | undefined>();
+  const lastAppliedT = useRef<string | undefined>(undefined);
   
   useEffect(() => {
   // Only apply when _t is new (i.e. a fresh navigation, not a local filter-pill tap)
@@ -122,7 +122,15 @@ export default function TasksScreen() {
           <Ionicons name="chevron-back" size={24} color={colors.foreground} />
         </TouchableOpacity>
                 <Text style={[styles.title, { color: colors.foreground }]}>{screenTitle}</Text>
-        <View style={styles.backBtn} />
+        <TouchableOpacity
+          testID="new-task-button"
+          accessibilityLabel="Create new task"
+          onPress={() => router.push('/task/new')}
+          style={[styles.newTaskBtn, { backgroundColor: colors.primary }]}
+        >
+          <Ionicons name="add" size={18} color="#FFF" />
+          <Text style={styles.newTaskText}>New Task</Text>
+        </TouchableOpacity>
       </View>
 
       {/* Summary */}
@@ -181,6 +189,8 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: 16 },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 },
   backBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
+  newTaskBtn: { height: 36, borderRadius: 18, paddingHorizontal: 11, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 2 },
+  newTaskText: { color: '#FFF', fontSize: 12, fontWeight: '800' },
   title: { fontSize: 20, fontWeight: '800', letterSpacing: -0.4 },
   summaryRow: { flexDirection: 'row', gap: 10, marginBottom: 16 },
   summaryCard: { flex: 1, borderRadius: 12, borderWidth: 1, padding: 14, alignItems: 'center' },

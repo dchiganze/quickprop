@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform,
-  TextInput, Switch, Alert, KeyboardAvoidingView, ActivityIndicator,
+  TextInput, Switch, Alert, KeyboardAvoidingView, ActivityIndicator, Image,
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -84,6 +85,7 @@ export default function EditListingScreen() {
   const [mandateExpiry, setMandateExpiry] = useState(property?.seller.mandateExpiry ?? '');
   const [mandateType, setMandateType] = useState<'open' | 'sole' | 'exclusive'>(property?.seller.mandateType ?? 'sole');
   const [sellerNotes, setSellerNotes] = useState(property?.seller.notes ?? '');
+  const [photos, setPhotos] = useState<string[]>(property?.photos ?? []);
 
   if (!property) {
     return (
@@ -102,8 +104,8 @@ export default function EditListingScreen() {
   };
 
   const handleSave = async () => {
-    if (!address.trim() || !suburb.trim() || !price.trim()) {
-      Alert.alert('Required Fields', 'Address, suburb and price are required.');
+    if (!address.trim() || !suburb.trim() || !price.trim() || Number(price) <= 0) {
+      Alert.alert('Required Fields', 'Enter an address, suburb, and a valid price.');
       return;
     }
     setSaving(true);
@@ -116,7 +118,7 @@ export default function EditListingScreen() {
         floorArea: floorArea ? parseFloat(floorArea) : undefined,
         levies: levies ? parseFloat(levies) : undefined,
         rates: rates ? parseFloat(rates) : undefined,
-        features, description,
+        features, description, photos,
         seller: { name: sellerName, phone: sellerPhone, email: sellerEmail, mandateExpiry, mandateType, notes: sellerNotes },
       });
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -125,6 +127,19 @@ export default function EditListingScreen() {
       Alert.alert('Error', e?.message ?? 'Could not save changes. Please try again.');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const addPhotos = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: 'images',
+        allowsMultipleSelection: true,
+        quality: 0.8,
+      });
+      if (!result.canceled) setPhotos(current => [...current, ...result.assets.map(asset => asset.uri)]);
+    } catch (e: any) {
+      Alert.alert('Photo Library Error', e?.message ?? 'Could not open the photo library.');
     }
   };
 
@@ -173,6 +188,28 @@ export default function EditListingScreen() {
             ))}
           </View>
 
+          <Text style={[styles.sectionHeading, { color: colors.mutedForeground, marginTop: 20 }]}>PHOTOS</Text>
+          <Text style={[styles.mediaHint, { color: colors.mutedForeground }]}>The first photo is used as the main listing image.</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.photoRow}>
+            {photos.map((uri, index) => (
+              <View key={`${uri}-${index}`} style={styles.photoPreview}>
+                <Image source={{ uri }} style={styles.photoImage} />
+                {index === 0 && <Text style={styles.mainPhotoLabel}>Main</Text>}
+                <TouchableOpacity
+                  style={styles.photoRemove}
+                  onPress={() => setPhotos(current => current.filter((_, photoIndex) => photoIndex !== index))}
+                  accessibilityLabel={`Remove photo ${index + 1}`}
+                >
+                  <Ionicons name="close-circle" size={24} color="#FFF" />
+                </TouchableOpacity>
+              </View>
+            ))}
+            <TouchableOpacity style={[styles.addPhoto, { backgroundColor: colors.muted, borderColor: colors.border }]} onPress={addPhotos}>
+              <Ionicons name="images-outline" size={24} color={colors.primary} />
+              <Text style={[styles.addPhotoText, { color: colors.primary }]}>Add photos</Text>
+            </TouchableOpacity>
+          </ScrollView>
+
           {/* Location */}
           <Text style={[styles.sectionHeading, { color: colors.mutedForeground, marginTop: 20 }]}>LOCATION</Text>
           <Field label="STREET ADDRESS *">
@@ -196,7 +233,7 @@ export default function EditListingScreen() {
 
           {/* Listing type & price */}
           <Text style={[styles.sectionHeading, { color: colors.mutedForeground, marginTop: 20 }]}>PROPERTY DETAILS</Text>
-          <Field label="LISTING TYPE">
+          <Field label="LISTING TYPE *">
             <View style={styles.chipRow}>
               {PROPERTY_TYPES.map(t => (
                 <TouchableOpacity
@@ -211,7 +248,11 @@ export default function EditListingScreen() {
           </Field>
           <Field label="PRICE *">
             <View style={{ flexDirection: 'row', gap: 8 }}>
-              <TouchableOpacity style={[styles.currencyBtn, { backgroundColor: colors.secondary, borderColor: colors.border }]}>
+              <TouchableOpacity
+                style={[styles.currencyBtn, { backgroundColor: colors.secondary, borderColor: colors.border }]}
+                onPress={() => setCurrency(CURRENCIES[(CURRENCIES.indexOf(currency) + 1) % CURRENCIES.length])}
+                accessibilityLabel="Change currency"
+              >
                 <Text style={[{ fontSize: 14, fontWeight: '600', color: colors.foreground }]}>{currency}</Text>
                 <Ionicons name="chevron-down" size={14} color={colors.mutedForeground} />
               </TouchableOpacity>
@@ -372,6 +413,14 @@ const styles = StyleSheet.create({
   stepVal: { fontSize: 20, fontWeight: '800', minWidth: 28, textAlign: 'center' },
   featuresWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 8 },
   privateNote: { flexDirection: 'row', alignItems: 'center', gap: 6, padding: 10, borderRadius: 10, borderWidth: 1, marginBottom: 14 },
+  mediaHint: { fontSize: 12, marginTop: -6, marginBottom: 10 },
+  photoRow: { gap: 10, paddingBottom: 8 },
+  photoPreview: { width: 112, height: 88, borderRadius: 10, overflow: 'hidden', position: 'relative' },
+  photoImage: { width: '100%', height: '100%' },
+  photoRemove: { position: 'absolute', top: 4, right: 4, backgroundColor: '#00000066', borderRadius: 14 },
+  mainPhotoLabel: { position: 'absolute', bottom: 4, left: 4, color: '#FFF', backgroundColor: '#00000099', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 8, fontSize: 10, fontWeight: '700' },
+  addPhoto: { width: 112, height: 88, borderRadius: 10, borderWidth: 1, borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center', gap: 4 },
+  addPhotoText: { fontSize: 11, fontWeight: '700' },
   saveBottom: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderRadius: 14, paddingVertical: 15, marginTop: 8 },
   saveBottomText: { color: '#FFF', fontSize: 16, fontWeight: '700' },
 });

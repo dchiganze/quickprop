@@ -16,6 +16,7 @@ import {
   ListAuditLogResponse,
 } from "@workspace/api-zod";
 import { parseId, logAudit, jsonify } from "../lib/helpers";
+import { hashPassword } from "../lib/passwords";
 import { currentUser, requireRole } from "./auth";
 
 const router: IRouter = Router();
@@ -42,7 +43,7 @@ router.post("/users", adminOnly, async (req, res): Promise<void> => {
   const { password, ...rest } = parsed.data;
   const [row] = await db
     .insert(usersTable)
-    .values({ ...rest, email: rest.email.toLowerCase().trim(), password: password ?? "demo1234" })
+    .values({ ...rest, email: rest.email.toLowerCase().trim(), password: await hashPassword(password ?? "demo1234") })
     .returning();
   await logAudit("created", "user", row.id, `Created user ${row.name}`, actor?.id, actor?.name);
   res.status(201).json(CreateUserResponse.parse(jsonify(stripUser(row))));

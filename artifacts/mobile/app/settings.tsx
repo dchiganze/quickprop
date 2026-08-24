@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {
-  View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, Switch,
+  View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, Switch, Linking, Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -94,7 +94,7 @@ export default function SettingsScreen() {
         <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <ToggleRow icon="notifications-outline" label="Push Notifications" description="Enable all push notifications" value={pushEnabled} onChange={setPushEnabled} />
           <ToggleRow icon="person-add-outline" label="New Lead" description="When a buyer enquires on your listing" value={newLeadNotif} onChange={setNewLeadNotif} />
-          <ToggleRow icon="target" label="Buyer Match" description="When a new buyer matches your listing" value={buyerMatchNotif} onChange={setBuyerMatchNotif} />
+          <ToggleRow icon="locate-outline" label="Buyer Match" description="When a new buyer matches your listing" value={buyerMatchNotif} onChange={setBuyerMatchNotif} />
           <ToggleRow icon="eye-outline" label="Viewing Reminders" description="30 minutes before a scheduled viewing" value={viewingReminder} onChange={setViewingReminder} />
           <ToggleRow icon="cash-outline" label="Offer Received" description="When a buyer submits an offer" value={offerNotif} onChange={setOfferNotif} />
           <ToggleRow icon="refresh-circle-outline" label="Mandate Expiring" description="7 days before mandate expiry" value={mandateNotif} onChange={setMandateNotif} />
@@ -125,7 +125,16 @@ export default function SettingsScreen() {
 
         <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>PRIVACY</Text>
         <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <SelectRow icon="shield-outline" label="Privacy Policy" value="" onPress={() => {}} />
+          <SelectRow
+            icon="shield-outline"
+            label="Privacy Policy"
+            value=""
+            onPress={() => {
+              Linking.openURL('https://quickprop.melios.co.zw/privacy').catch(() => {
+                Alert.alert('Unable to open Privacy Policy', 'Please visit quickprop.melios.co.zw/privacy in your browser.');
+              });
+            }}
+          />
           <SelectRow icon="document-text-outline" label="Terms of Service" value="" onPress={() => {}} />
           <SelectRow icon="trash-outline" label="Clear Cache" value="84 MB" onPress={() => {}} />
         </View>
@@ -137,7 +146,7 @@ export default function SettingsScreen() {
           <SelectRow icon="star-outline" label="Rate the App" value="" onPress={() => {}} />
         </View>
 
-        <Text style={[styles.version, { color: colors.mutedForeground }]}>QuickProp Agent v1.0.0 — Build 100</Text>
+        <Text style={[styles.version, { color: colors.mutedForeground }]}>QuickProp Agent v1.0.0 — Build 78</Text>
       </ScrollView>
     </View>
   );

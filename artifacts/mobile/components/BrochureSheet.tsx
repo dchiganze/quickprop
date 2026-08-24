@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   View, Text, Modal, TouchableOpacity, StyleSheet, ActivityIndicator,
-  Pressable, Alert, Platform, Share, Linking,
+  Pressable, Alert, Share, Linking,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -14,6 +14,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
 import { Property } from '@/types';
 import { singlePropertyBrochureHtml, catalogueBrochureHtml } from '@/utils/brochureHtml';
+import { propertyShareLinks } from '@/utils/shareLinks';
 
 type CatalogMode = 'my' | 'company';
 
@@ -55,7 +56,10 @@ export function PropertyBrochureSheet({ visible, onClose, property }: PropertyBr
     if (sizes.length) lines.push(`📐 ${sizes.join('  |  ')}`);
     if (property.features.length) { lines.push(''); lines.push(`✅ *Features:* ${property.features.join(', ')}`); }
     if (property.description) { lines.push(''); lines.push(`📝 ${property.description.slice(0, 200)}${property.description.length > 200 ? '…' : ''}`); }
-    lines.push(''); lines.push(`📋 Ref: *${property.referenceNumber}*`); lines.push('Listed on QuickProp');
+    const links = propertyShareLinks(property);
+    lines.push(''); lines.push(`📋 Ref: *${property.referenceNumber}*`);
+    lines.push(`Open in QuickProp Agent: ${links.appUrl}`);
+    lines.push(`View online: ${links.webUrl}`);
     return lines.join('\n');
   };
 
@@ -68,29 +72,26 @@ export function PropertyBrochureSheet({ visible, onClose, property }: PropertyBr
         onPress: () => Linking.openURL(`whatsapp://send?text=${encodeURIComponent(message)}`).catch(() =>
           Alert.alert('WhatsApp not found', 'Use "Share…" instead.')),
       },
-      { text: 'Share…', onPress: () => Share.share({ message }) },
+       {
+         text: 'Share…',
+         onPress: () => Share.share({ message }).catch((error: unknown) =>
+           Alert.alert('Could not share listing', error instanceof Error ? error.message : 'Please try again.')),
+       },
       { text: 'Cancel', style: 'cancel' },
     ]);
   };
 
   const handlePrint = async () => {
-    if (Platform.OS === 'android') {
-      Alert.alert(
-        'Not Available on Android',
-        'PDF printing requires iOS. Use "Share Listing" to send property details via WhatsApp or another app.',
-        [{ text: 'Share Listing', onPress: handleShareAsText }, { text: 'Cancel', style: 'cancel' }],
-      );
-      return;
-    }
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
     setLoading(true);
     try {
       const Print: PrintModule = await import('expo-print');
       const html = singlePropertyBrochureHtml(property, user);
       await Print.printAsync({ html });
-    } catch (e: any) {
-      if (!e?.message?.includes('cancel')) {
-        Alert.alert('Error', 'Could not generate brochure. Please try again.');
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : 'Could not generate brochure. Please try again.';
+      if (!message.toLowerCase().includes('cancel')) {
+        Alert.alert('Brochure unavailable', message);
       }
     } finally {
       setLoading(false);
@@ -99,10 +100,6 @@ export function PropertyBrochureSheet({ visible, onClose, property }: PropertyBr
   };
 
   const handleShare = async () => {
-    if (Platform.OS === 'android') {
-      handleShareAsText();
-      return;
-    }
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
     setLoading(true);
     try {
@@ -110,10 +107,14 @@ export function PropertyBrochureSheet({ visible, onClose, property }: PropertyBr
       const Sharing: SharingModule = await import('expo-sharing');
       const html = singlePropertyBrochureHtml(property, user);
       const { uri } = await Print.printToFileAsync({ html });
+      if (!(await Sharing.isAvailableAsync())) {
+        throw new Error('PDF sharing is not available on this device.');
+      }
       await Sharing.shareAsync(uri, { mimeType: 'application/pdf', dialogTitle: 'Share Property Brochure' });
-    } catch (e: any) {
-      if (!e?.message?.includes('cancel')) {
-        Alert.alert('Error', 'Could not generate PDF. Please try again.');
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : 'Could not generate PDF. Please try again.';
+      if (!message.toLowerCase().includes('cancel')) {
+        Alert.alert('PDF unavailable', message);
       }
     } finally {
       setLoading(false);
@@ -196,14 +197,6 @@ export function CatalogueBrochureSheet({ visible, onClose }: CatalogueBrochureSh
   const activeProps = mode === 'my' ? myProps : companyProps;
 
   const generate = async (action: 'print' | 'share') => {
-    if (Platform.OS === 'android') {
-      Alert.alert(
-        'Not Available on Android',
-        'PDF catalogue generation requires iOS. PDF brochures are not supported on Android due to a system limitation.',
-        [{ text: 'OK' }],
-      );
-      return;
-    }
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
     setLoading(true);
     try {
@@ -214,11 +207,15 @@ export function CatalogueBrochureSheet({ visible, onClose }: CatalogueBrochureSh
       } else {
         const Sharing: SharingModule = await import('expo-sharing');
         const { uri } = await Print.printToFileAsync({ html });
+        if (!(await Sharing.isAvailableAsync())) {
+          throw new Error('PDF sharing is not available on this device.');
+        }
         await Sharing.shareAsync(uri, { mimeType: 'application/pdf', dialogTitle: 'Share Property Catalogue' });
       }
-    } catch (e: any) {
-      if (!e?.message?.includes('cancel')) {
-        Alert.alert('Error', 'Could not generate catalogue. Please try again.');
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : 'Could not generate catalogue. Please try again.';
+      if (!message.toLowerCase().includes('cancel')) {
+        Alert.alert('Catalogue unavailable', message);
       }
     } finally {
       setLoading(false);

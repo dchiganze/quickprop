@@ -17,6 +17,7 @@ import {
   auditLogTable,
 } from "@workspace/db";
 import { logger } from "./lib/logger";
+import { hashPassword } from "./lib/passwords";
 
 function daysAgo(n: number): Date {
   return new Date(Date.now() - n * 24 * 3600 * 1000);
@@ -43,15 +44,16 @@ async function seed(): Promise<void> {
     ])
     .returning();
 
+  const defaultPasswordHash = await hashPassword("demo1234");
   const users = await db
     .insert(usersTable)
     .values([
-      { name: "Rutendo Moyo", email: "rutendo@quickprop.co.zw", phone: "+263 77 234 5678", role: "principal", branchId: hq.id },
-      { name: "Tawanda Ncube", email: "tawanda@quickprop.co.zw", phone: "+263 77 345 6789", role: "senior_agent", branchId: hq.id },
-      { name: "Chipo Marufu", email: "chipo@quickprop.co.zw", phone: "+263 78 456 7890", role: "agent", branchId: borrowdale.id },
-      { name: "Kudzai Dube", email: "kudzai@quickprop.co.zw", phone: "+263 71 567 8901", role: "agent", branchId: borrowdale.id },
-      { name: "Nyasha Chikore", email: "nyasha@quickprop.co.zw", phone: "+263 77 678 9012", role: "admin", branchId: hq.id },
-      { name: "Tariro Gonzo", email: "tariro@quickprop.co.zw", phone: "+263 78 789 0123", role: "marketing", branchId: hq.id },
+      { name: "Rutendo Moyo", email: "rutendo@quickprop.co.zw", phone: "+263 77 234 5678", role: "principal", branchId: hq.id, password: defaultPasswordHash },
+      { name: "Tawanda Ncube", email: "tawanda@quickprop.co.zw", phone: "+263 77 345 6789", role: "senior_agent", branchId: hq.id, password: defaultPasswordHash },
+      { name: "Chipo Marufu", email: "chipo@quickprop.co.zw", phone: "+263 78 456 7890", role: "agent", branchId: borrowdale.id, password: defaultPasswordHash },
+      { name: "Kudzai Dube", email: "kudzai@quickprop.co.zw", phone: "+263 71 567 8901", role: "agent", branchId: borrowdale.id, password: defaultPasswordHash },
+      { name: "Nyasha Chikore", email: "nyasha@quickprop.co.zw", phone: "+263 77 678 9012", role: "admin", branchId: hq.id, password: defaultPasswordHash },
+      { name: "Tariro Gonzo", email: "tariro@quickprop.co.zw", phone: "+263 78 789 0123", role: "marketing", branchId: borrowdale.id, password: defaultPasswordHash },
     ])
     .returning();
   const [rutendo, tawanda, chipo, kudzai, nyasha, tariro] = users;

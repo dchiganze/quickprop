@@ -30,6 +30,22 @@ export interface User {
   avatarUrl?: string | null;
 }
 
+export type LoginResult = User & {
+  /** Signed bearer token for native clients, valid for up to 30 days. */
+  accessToken: string;
+};
+
+export interface AccountDeletionInput {
+  /** Must exactly equal DELETE. */
+  confirmation: string;
+  /** The signed-in user's current password. */
+  password: string;
+}
+
+export interface AccountDeletionResult {
+  ok: boolean;
+}
+
 export interface UserInput {
   name: string;
   email: string;

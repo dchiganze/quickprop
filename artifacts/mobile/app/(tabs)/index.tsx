@@ -76,7 +76,6 @@ export default function DashboardScreen() {
         },
       ]}
       showsVerticalScrollIndicator={false}
-      delaysContentTouches={false}
     >
       {/* Header */}
       <View style={styles.header}>

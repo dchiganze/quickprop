@@ -6,6 +6,8 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from './accountDeletionInput';
+export * from './accountDeletionResult';
 export * from './activityEntry';
 export * from './adminAgency';
 export * from './adminAgent';
@@ -51,6 +53,7 @@ export * from './listSellersParams';
 export * from './listTasksParams';
 export * from './listViewingsParams';
 export * from './loginInput';
+export * from './loginResult';
 export * from './marketplaceStats';
 export * from './moderateProperty200';
 export * from './notification';

@@ -1,4 +1,5 @@
 import { Property, User } from '@/types';
+import { catalogueShareLinks, propertyShareLinks } from '@/utils/shareLinks';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -38,6 +39,7 @@ export function singlePropertyBrochureHtml(property: Property, agent: User | nul
   const st = statusLabel(property);
   const price = fmtPrice(property);
   const coverImg = property.photos?.[0];
+  const propertyLinks = propertyShareLinks(property);
 
   const specsHtml = [
     property.bedrooms != null ? `<div class="spec"><span class="spec-val">${property.bedrooms}</span><span class="spec-lbl">Bedrooms</span></div>` : '',
@@ -192,7 +194,7 @@ ${BASE_STYLES}
       </div>
       <div class="cta-card">
         <div class="cta-label">View online</div>
-        <div class="cta-url">quickprop.co.zw</div>
+        <div class="cta-url">${propertyLinks.webUrl}</div>
       </div>
     </div>
   </div>
@@ -200,7 +202,7 @@ ${BASE_STYLES}
   <!-- Footer -->
   <div class="footer">
     <div class="footer-left">QuickProp — Zimbabwe's Property Marketplace</div>
-    <div class="footer-right">www.quickprop.co.zw · Ref: ${property.referenceNumber}</div>
+    <div class="footer-right">${propertyLinks.webUrl} · Ref: ${property.referenceNumber}</div>
   </div>
 </div>
 </body>
@@ -249,6 +251,7 @@ export function catalogueBrochureHtml(
   const titleLine = mode === 'my'
     ? `${agent?.name ?? 'Agent'}'s Property Catalogue`
     : `${agent?.agency ?? 'Company'} Property Catalogue`;
+  const catalogueUrl = catalogueShareLinks(mode === 'my' ? agent?.id : undefined).webUrl;
 
   const forSale = properties.filter(p => p.type !== 'rent');
   const forRent = properties.filter(p => p.type === 'rent');
@@ -341,7 +344,7 @@ ${BASE_STYLES}
 
   <!-- Footer -->
   <div class="footer">
-    <span>QuickProp · Zimbabwe's Property Marketplace · www.quickprop.co.zw</span>
+     <span>QuickProp · Zimbabwe's Property Marketplace · ${catalogueUrl}</span>
     <span>Generated ${fmtDate()}</span>
   </div>
 </div>

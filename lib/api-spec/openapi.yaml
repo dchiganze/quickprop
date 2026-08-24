@@ -56,7 +56,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/User"
+                $ref: "#/components/schemas/LoginResult"
         "401":
           description: Invalid credentials
   /auth/logout:
@@ -79,6 +79,28 @@ paths:
                 $ref: "#/components/schemas/User"
         "401":
           description: Not logged in
+  /auth/account:
+    delete:
+      operationId: deleteCurrentUserAccount
+      tags: [auth]
+      summary: Permanently delete the signed-in user's account and dependent data
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AccountDeletionInput"
+      responses:
+        "200":
+          description: Account permanently deleted and session invalidated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountDeletionResult"
+        "400":
+          description: Invalid deletion confirmation
+        "401":
+          description: Not logged in or password is incorrect
   /properties:
     get:
       operationId: listProperties
@@ -1099,6 +1121,30 @@ components:
       properties:
         email: { type: string }
         password: { type: string }
+    LoginResult:
+      allOf:
+        - $ref: "#/components/schemas/User"
+        - type: object
+          required: [accessToken]
+          properties:
+            accessToken:
+              type: string
+              description: Signed bearer token for native clients, valid for up to 30 days.
+    AccountDeletionInput:
+      type: object
+      required: [confirmation, password]
+      properties:
+        confirmation:
+          type: string
+          description: Must exactly equal DELETE.
+        password:
+          type: string
+          description: The signed-in user's current password.
+    AccountDeletionResult:
+      type: object
+      required: [ok]
+      properties:
+        ok: { type: boolean }
     User:
       type: object
       required: [id, name, email, role, status]

@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import {
   View, Text, Modal, TouchableOpacity, StyleSheet, Share, Linking,
-  ScrollView, Platform, Pressable, ActivityIndicator,
+  ScrollView, Platform, Pressable, ActivityIndicator, Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -9,6 +9,7 @@ import { useColors } from '@/hooks/useColors';
 import { useData } from '@/contexts/DataContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Property } from '@/types';
+import { catalogueShareLinks, propertyShareLinks } from '@/utils/shareLinks';
 
 type Step = 'hub' | 'property-select' | 'property-share' | 'catalogue-share';
 type CatalogMode = 'agent' | 'company';
@@ -17,10 +18,6 @@ interface Props {
   visible: boolean;
   onClose: () => void;
 }
-
-const CATALOG_BASE = process.env.EXPO_PUBLIC_DOMAIN
-  ? `https://${process.env.EXPO_PUBLIC_DOMAIN}/web`
-  : 'https://quickprop.replit.app/web';
 
 function formatPrice(p: Property) {
   const val =
@@ -56,11 +53,13 @@ function buildPropertyText(p: Property, agentName?: string) {
   lines.push('');
   lines.push(`📋 Ref: *${p.referenceNumber}*`);
   if (agentName) lines.push(`Agent: ${agentName}`);
-  lines.push('Listed on QuickProp');
+  const links = propertyShareLinks(p);
+  lines.push(`Open in QuickProp Agent: ${links.appUrl}`);
+  lines.push(`View online: ${links.webUrl}`);
   return lines.join('\n');
 }
 
-function buildCatalogText(props: Property[], mode: CatalogMode, agentName: string | undefined, catalogUrl: string) {
+function buildCatalogText(props: Property[], mode: CatalogMode, agentName: string | undefined, appUrl: string, catalogUrl: string) {
   const lines: string[] = [];
   lines.push('QuickProp — Property Catalogue');
   lines.push('Your trusted Harare estate agency');
@@ -84,7 +83,8 @@ function buildCatalogText(props: Property[], mode: CatalogMode, agentName: strin
     });
     lines.push('');
   }
-  lines.push(`Browse listings: ${catalogUrl}`);
+  lines.push(`Open in QuickProp Agent: ${appUrl}`);
+  lines.push(`Browse listings online: ${catalogUrl}`);
   lines.push('Reply to enquire about any property.');
   return lines.join('\n');
 }
@@ -129,8 +129,8 @@ export function ShareHubSheet({ visible, onClose }: Props) {
         await Linking.openURL(`https://wa.me/?text=${encodeURIComponent(text)}`);
       }
       handleClose();
-    } catch (e) {
-      // no-op — surface nothing to the user; sheet stays open
+    } catch (e: unknown) {
+      Alert.alert('Could not share listing', e instanceof Error ? e.message : 'Please try another sharing option.');
     } finally {
       setSharing(false);
     }
@@ -143,10 +143,14 @@ export function ShareHubSheet({ visible, onClose }: Props) {
       await Share.share({
         title: `${p.type === 'sale' ? 'For Sale' : 'To Rent'} — ${p.suburb}`,
         message: buildPropertyText(p, user?.name),
+        url: propertyShareLinks(p).webUrl,
       });
       handleClose();
-    } catch (e) {
-      // user dismissed or share failed — just close spinner
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : '';
+      if (!message.toLowerCase().includes('cancel')) {
+        Alert.alert('Could not share listing', message || 'Please try again.');
+      }
     } finally {
       setSharing(false);
     }
@@ -154,15 +158,14 @@ export function ShareHubSheet({ visible, onClose }: Props) {
 
   // ── Catalogue share actions ────────────────────────────────────────────────
   const activeProps = catalogMode === 'agent' ? myProps : allProps;
-  const catalogUrl = catalogMode === 'agent' && user?.id
-    ? `${CATALOG_BASE}/agents/${user.id}`
-    : `${CATALOG_BASE}/`;
+  const catalogLinks = catalogueShareLinks(catalogMode === 'agent' ? user?.id : undefined);
+  const catalogUrl = catalogLinks.webUrl;
 
   const shareCatalogWhatsApp = useCallback(async () => {
     setSharing(true);
     try {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      const text = buildCatalogText(activeProps, catalogMode, user?.name, catalogUrl);
+      const text = buildCatalogText(activeProps, catalogMode, user?.name, catalogLinks.appUrl, catalogUrl);
       const waUrl = `whatsapp://send?text=${encodeURIComponent(text)}`;
       let canOpen = false;
       try { canOpen = await Linking.canOpenURL(waUrl); } catch {}
@@ -172,32 +175,42 @@ export function ShareHubSheet({ visible, onClose }: Props) {
         await Linking.openURL(`https://wa.me/?text=${encodeURIComponent(text)}`);
       }
       handleClose();
-    } catch (e) {
+    } catch (e: unknown) {
+      Alert.alert('Could not share catalogue', e instanceof Error ? e.message : 'Please try another sharing option.');
     } finally {
       setSharing(false);
     }
-  }, [activeProps, catalogMode, user?.name, catalogUrl]);
+  }, [activeProps, catalogMode, user?.name, catalogLinks.appUrl, catalogUrl]);
 
   const shareCatalogFacebook = useCallback(async () => {
+    setSharing(true);
     try {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       await Linking.openURL(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(catalogUrl)}`);
       handleClose();
-    } catch (e) {}
+    } catch (e: unknown) {
+      Alert.alert('Could not open Facebook', e instanceof Error ? e.message : 'Please try again.');
+    } finally {
+      setSharing(false);
+    }
   }, [catalogUrl]);
 
   const shareCatalogNative = useCallback(async () => {
     setSharing(true);
     try {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      const text = buildCatalogText(activeProps, catalogMode, user?.name, catalogUrl);
+      const text = buildCatalogText(activeProps, catalogMode, user?.name, catalogLinks.appUrl, catalogUrl);
       await Share.share({ title: 'QuickProp Property Catalogue', message: text, url: catalogUrl });
       handleClose();
-    } catch (e) {
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : '';
+      if (!message.toLowerCase().includes('cancel')) {
+        Alert.alert('Could not share catalogue', message || 'Please try again.');
+      }
     } finally {
       setSharing(false);
     }
-  }, [activeProps, catalogMode, user?.name, catalogUrl]);
+  }, [activeProps, catalogMode, user?.name, catalogLinks.appUrl, catalogUrl]);
 
   // ── Render steps ─────────────────────────────────────────────────────────
   const renderHub = () => (

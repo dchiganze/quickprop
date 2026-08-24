@@ -55,10 +55,14 @@
   "dependencies": {
     "@sentry/react-native": "^8.21.0",
     "expo-apple-authentication": "~8.0.8",
+    "expo-calendar": "15.0.8",
+    "expo-file-system": "~19.0.23",
     "expo-local-authentication": "~17.0.8",
     "expo-print": "~15.0.8",
     "expo-secure-store": "~15.0.8",
     "expo-sharing": "~14.0.8",
-    "expo-video": "~3.0.16"
+    "expo-video": "~3.0.16",
+    "react-native-reanimated": "~4.1.7",
+    "react-native-worklets": "0.5.1"
   }
 }

@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import {
   View, Text, Modal, TouchableOpacity, StyleSheet, Share, Linking,
-  ScrollView, Platform, Pressable,
+  ScrollView, Platform, Pressable, ActivityIndicator, Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -9,6 +9,7 @@ import { useColors } from '@/hooks/useColors';
 import { useData } from '@/contexts/DataContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Property } from '@/types';
+import { catalogueShareLinks } from '@/utils/shareLinks';
 
 type CatalogMode = 'agent' | 'company';
 
@@ -16,10 +17,6 @@ interface QuickShareSheetProps {
   visible: boolean;
   onClose: () => void;
 }
-
-const CATALOG_BASE = process.env.EXPO_PUBLIC_DOMAIN
-  ? `https://${process.env.EXPO_PUBLIC_DOMAIN}/web`
-  : 'https://quickprop.replit.app/web';
 
 function formatPrice(p: Property) {
   const val =
@@ -29,7 +26,7 @@ function formatPrice(p: Property) {
   return p.type === 'rent' ? `${val}/mo` : val;
 }
 
-function buildCatalogText(props: Property[], mode: CatalogMode, agentName: string | undefined, catalogUrl: string) {
+function buildCatalogText(props: Property[], mode: CatalogMode, agentName: string | undefined, appUrl: string, catalogUrl: string) {
   const lines: string[] = [];
   lines.push('QuickProp — Property Catalogue');
   lines.push('Your trusted Harare estate agency');
@@ -56,7 +53,8 @@ function buildCatalogText(props: Property[], mode: CatalogMode, agentName: strin
     lines.push('');
   }
 
-  lines.push(`Browse listings: ${catalogUrl}`);
+  lines.push(`Open in QuickProp Agent: ${appUrl}`);
+  lines.push(`Browse listings online: ${catalogUrl}`);
   lines.push('Reply to enquire about any property.');
   return lines.join('\n');
 }
@@ -66,6 +64,7 @@ export function QuickShareSheet({ visible, onClose }: QuickShareSheetProps) {
   const { properties } = useData();
   const { user } = useAuth();
   const [mode, setMode] = useState<CatalogMode>('agent');
+  const [sharing, setSharing] = useState(false);
 
   const myProps = properties.filter(p => p.agentId === user?.id && p.status === 'published');
   const allProps = properties.filter(p => p.status === 'published');
@@ -75,15 +74,14 @@ export function QuickShareSheet({ visible, onClose }: QuickShareSheetProps) {
   const forRent = activeProps.filter(p => p.type === 'rent');
   const suburbs = [...new Set(activeProps.map(p => p.suburb))].slice(0, 3);
 
-  const catalogUrl =
-    mode === 'agent' && user?.id
-      ? `${CATALOG_BASE}/agents/${user.id}`
-      : `${CATALOG_BASE}/`;
+  const catalogLinks = catalogueShareLinks(mode === 'agent' ? user?.id : undefined);
+  const catalogUrl = catalogLinks.webUrl;
 
   const handleWhatsApp = useCallback(async () => {
+    setSharing(true);
     try {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      const text = buildCatalogText(activeProps, mode, user?.name, catalogUrl);
+      const text = buildCatalogText(activeProps, mode, user?.name, catalogLinks.appUrl, catalogUrl);
       const waUrl = `whatsapp://send?text=${encodeURIComponent(text)}`;
       let canOpen = false;
       try { canOpen = await Linking.canOpenURL(waUrl); } catch {}
@@ -93,42 +91,63 @@ export function QuickShareSheet({ visible, onClose }: QuickShareSheetProps) {
         await Linking.openURL(`https://wa.me/?text=${encodeURIComponent(text)}`);
       }
       onClose();
-    } catch (e) {}
-  }, [activeProps, mode, user?.name, catalogUrl, onClose]);
+    } catch (e: unknown) {
+      Alert.alert('Could not share catalogue', e instanceof Error ? e.message : 'Please try another sharing option.');
+    } finally {
+      setSharing(false);
+    }
+  }, [activeProps, mode, user?.name, catalogLinks.appUrl, catalogUrl, onClose]);
 
   const handleFacebook = useCallback(async () => {
+    setSharing(true);
     try {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       const url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(catalogUrl)}`;
       await Linking.openURL(url);
       onClose();
-    } catch (e) {}
+    } catch (e: unknown) {
+      Alert.alert('Could not open Facebook', e instanceof Error ? e.message : 'Please try again.');
+    } finally {
+      setSharing(false);
+    }
   }, [catalogUrl, onClose]);
 
   const handleInstagram = useCallback(async () => {
+    setSharing(true);
     try {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      const text = buildCatalogText(activeProps, mode, user?.name, catalogUrl);
+      const text = buildCatalogText(activeProps, mode, user?.name, catalogLinks.appUrl, catalogUrl);
       await Share.share({
         title: 'QuickProp Property Catalogue',
         message: text,
         url: catalogUrl,
       });
       onClose();
-    } catch (e) {}
-  }, [activeProps, mode, user?.name, catalogUrl, onClose]);
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : '';
+      if (!message.toLowerCase().includes('cancel')) Alert.alert('Could not share catalogue', message || 'Please try again.');
+    } finally {
+      setSharing(false);
+    }
+  }, [activeProps, mode, user?.name, catalogLinks.appUrl, catalogUrl, onClose]);
 
   const handleNativeShare = useCallback(async () => {
+    setSharing(true);
     try {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      const text = buildCatalogText(activeProps, mode, user?.name, catalogUrl);
+      const text = buildCatalogText(activeProps, mode, user?.name, catalogLinks.appUrl, catalogUrl);
       await Share.share({
         title: 'QuickProp Property Catalogue',
         message: text,
         url: catalogUrl,
       });
-    } catch (e) {}
-  }, [activeProps, mode, user?.name, catalogUrl]);
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : '';
+      if (!message.toLowerCase().includes('cancel')) Alert.alert('Could not share catalogue', message || 'Please try again.');
+    } finally {
+      setSharing(false);
+    }
+  }, [activeProps, mode, user?.name, catalogLinks.appUrl, catalogUrl]);
 
   const selectMode = async (m: CatalogMode) => {
     await Haptics.selectionAsync();
@@ -259,13 +278,13 @@ export function QuickShareSheet({ visible, onClose }: QuickShareSheetProps) {
             <TouchableOpacity
               style={[styles.shareBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
               onPress={handleWhatsApp}
-              disabled={activeProps.length === 0}
+              disabled={activeProps.length === 0 || sharing}
               activeOpacity={0.75}
             >
               <View style={[styles.shareIcon, { backgroundColor: '#25D366' }]}>
                 <Ionicons name="logo-whatsapp" size={24} color="#FFF" />
               </View>
-              <Text style={[styles.shareName, { color: colors.foreground }]}>WhatsApp</Text>
+              {sharing ? <ActivityIndicator color={colors.primary} /> : <Text style={[styles.shareName, { color: colors.foreground }]}>WhatsApp</Text>}
               <Text style={[styles.shareHint, { color: colors.mutedForeground }]}>Send catalogue</Text>
             </TouchableOpacity>
 
@@ -273,13 +292,13 @@ export function QuickShareSheet({ visible, onClose }: QuickShareSheetProps) {
             <TouchableOpacity
               style={[styles.shareBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
               onPress={handleFacebook}
-              disabled={activeProps.length === 0}
+              disabled={activeProps.length === 0 || sharing}
               activeOpacity={0.75}
             >
               <View style={[styles.shareIcon, { backgroundColor: '#1877F2' }]}>
                 <Ionicons name="logo-facebook" size={24} color="#FFF" />
               </View>
-              <Text style={[styles.shareName, { color: colors.foreground }]}>Facebook</Text>
+              {sharing ? <ActivityIndicator color={colors.primary} /> : <Text style={[styles.shareName, { color: colors.foreground }]}>Facebook</Text>}
               <Text style={[styles.shareHint, { color: colors.mutedForeground }]}>Share link</Text>
             </TouchableOpacity>
 
@@ -287,13 +306,13 @@ export function QuickShareSheet({ visible, onClose }: QuickShareSheetProps) {
             <TouchableOpacity
               style={[styles.shareBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
               onPress={handleInstagram}
-              disabled={activeProps.length === 0}
+              disabled={activeProps.length === 0 || sharing}
               activeOpacity={0.75}
             >
               <View style={[styles.shareIcon, { backgroundColor: '#E1306C' }]}>
                 <Ionicons name="logo-instagram" size={24} color="#FFF" />
               </View>
-              <Text style={[styles.shareName, { color: colors.foreground }]}>Instagram</Text>
+              {sharing ? <ActivityIndicator color={colors.primary} /> : <Text style={[styles.shareName, { color: colors.foreground }]}>Instagram</Text>}
               <Text style={[styles.shareHint, { color: colors.mutedForeground }]}>Share sheet</Text>
             </TouchableOpacity>
           </View>
@@ -302,6 +321,7 @@ export function QuickShareSheet({ visible, onClose }: QuickShareSheetProps) {
           <TouchableOpacity
             style={[styles.moreBtn, { borderColor: colors.border }]}
             onPress={handleNativeShare}
+            disabled={sharing || activeProps.length === 0}
             activeOpacity={0.75}
           >
             <Ionicons name="ellipsis-horizontal-circle-outline" size={18} color={colors.primary} />

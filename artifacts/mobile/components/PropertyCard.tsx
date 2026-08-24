@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Platform, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useColors } from '@/hooks/useColors';
 import { Property } from '@/types';
@@ -45,7 +45,17 @@ export function PropertyCard({ property, onPress }: Props) {
     >
       {/* Photo placeholder / thumbnail */}
       <View style={[styles.imageContainer, { backgroundColor: colors.muted }]}>
-        <Ionicons name="business" size={40} color={colors.mutedForeground} />
+        <Image
+          source={property.photos[0] ? { uri: property.photos[0] } : require('../assets/images/logo.png')}
+          style={styles.mainImage}
+          resizeMode={property.photos[0] ? 'cover' : 'contain'}
+        />
+        {!property.photos[0] && (
+          <View style={[styles.fallbackOverlay, { backgroundColor: colors.muted + 'CC' }]}>
+            <Ionicons name="home-outline" size={32} color={colors.mutedForeground} />
+            <Text style={[styles.fallbackText, { color: colors.mutedForeground }]}>Photo coming soon</Text>
+          </View>
+        )}
         <View style={[styles.statusBadge, { backgroundColor: STATUS_COLORS[property.status] }]}>
           <Text style={styles.statusText}>{STATUS_LABELS[property.status]}</Text>
         </View>
@@ -116,6 +126,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     position: 'relative',
   },
+  mainImage: { width: '100%', height: '100%' },
+  fallbackOverlay: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center', gap: 4 },
+  fallbackText: { fontSize: 11, fontWeight: '600' },
   statusBadge: {
     position: 'absolute',
     top: 12,

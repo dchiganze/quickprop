@@ -21,6 +21,7 @@ timeoutMs = 20000
 
 [nix]
 packages = ["zulu8"]
+channel = "stable-25_05"
 
 [[ports]]
 localPort = 8080
