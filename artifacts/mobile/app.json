@@ -106,8 +106,7 @@
           "cameraPermission": "QuickProp Agent uses the camera to capture property photos and videos for listings.",
           "microphonePermission": "QuickProp Agent uses the microphone to record property videos."
         }
-      ],
-      "@sentry/react-native"
+      ]
     ],
     "experiments": {
       "typedRoutes": true
