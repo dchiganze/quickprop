@@ -95,6 +95,8 @@ export default function ListingsScreen() {
   const [shareOpen, setShareOpen] = useState(false);
   const [alertsOpen, setAlertsOpen] = useState(false);
   const offlineTransition = useRef(new Animated.Value(0)).current;
+  const wasOffline = useRef(false);
+  const [showBackOnline, setShowBackOnline] = useState(false);
 
   const filtered = useMemo(() => {
     let list = [...properties];
@@ -121,22 +123,45 @@ export default function ListingsScreen() {
   };
 
   useEffect(() => {
-    if (cloudSyncState !== 'offline') {
+    if (cloudSyncState === 'offline') {
+      wasOffline.current = true;
+      setShowBackOnline(false);
+      offlineTransition.stopAnimation();
+      offlineTransition.setValue(0);
+
+      const timer = setTimeout(() => {
+        Animated.timing(offlineTransition, {
+          toValue: 1,
+          duration: 900,
+          useNativeDriver: false,
+        }).start();
+      }, 1500);
+
+      return () => clearTimeout(timer);
+    }
+
+    if (!wasOffline.current) {
       offlineTransition.stopAnimation();
       offlineTransition.setValue(0);
       return;
     }
 
+    wasOffline.current = false;
     offlineTransition.setValue(0);
-    const timer = setTimeout(() => {
+    setShowBackOnline(true);
+    const fadeTimer = setTimeout(() => {
       Animated.timing(offlineTransition, {
         toValue: 1,
         duration: 900,
         useNativeDriver: false,
       }).start();
     }, 1500);
+    const hideTimer = setTimeout(() => setShowBackOnline(false), 4200);
 
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(fadeTimer);
+      clearTimeout(hideTimer);
+    };
   }, [cloudSyncState, offlineTransition]);
 
   const offlineBackground = offlineTransition.interpolate({
@@ -263,10 +288,10 @@ export default function ListingsScreen() {
         <Ionicons name="add" size={28} color="#FFF" />
       </TouchableOpacity>
 
-      {cloudSyncState === 'offline' && (
+      {(cloudSyncState === 'offline' || showBackOnline) && (
         <Animated.View
           accessibilityRole="text"
-          accessibilityLabel="You're offline"
+          accessibilityLabel={cloudSyncState === 'offline' ? "You're offline" : "You're back online"}
           style={[
             styles.offlineBanner,
             {
@@ -276,7 +301,7 @@ export default function ListingsScreen() {
           ]}
         >
           <Animated.Text style={[styles.offlineText, { color: offlineText }]}>
-            You're offline
+            {cloudSyncState === 'offline' ? "You're offline" : "You're back online"}
           </Animated.Text>
         </Animated.View>
       )}
