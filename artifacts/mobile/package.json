@@ -66,6 +66,6 @@
     "expo-video": "~3.0.16",
     "react": "19.1.0",
     "react-native": "0.81.5",
-    "react-native-reanimated": "~3.17.5"
+    "react-native-reanimated": "~3.19.1"
   }
 }
