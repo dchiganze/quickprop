@@ -31,7 +31,7 @@ interface FormData {
   address: string;
   suburb: string;
   showAddress: boolean;
-  type: Property['type'];
+  type: Property['type'] | null;
   price: string;
   currency: string;
   negotiable: boolean;
@@ -55,7 +55,7 @@ interface FormData {
 
 const defaultForm: FormData = {
   photos: [], videoUri: '', address: '', suburb: '', showAddress: false,
-  type: 'sale', price: '', currency: 'USD', negotiable: false,
+  type: null, price: '', currency: 'USD', negotiable: false,
   bedrooms: 3, bathrooms: 2, garages: 1, landSize: '', floorArea: '',
   levies: '', rates: '', referenceNumber: `QP-${Date.now().toString().slice(-6)}`,
   features: [], description: '',
@@ -219,8 +219,8 @@ export default function NewListingScreen() {
   };
 
   const handlePublish = async (status: 'published' | 'draft') => {
-    if (!form.address.trim() || !form.suburb.trim() || !form.price.trim() || Number(form.price) <= 0) {
-      Alert.alert('Required Fields', 'Please enter a street address, suburb, and a valid price before publishing.');
+    if (!form.address.trim() || !form.suburb.trim() || !form.price.trim() || Number(form.price) <= 0 || !form.type) {
+      Alert.alert('Required Fields', 'Choose a listing type, then enter a street address, suburb, and a valid price before publishing.');
       return;
     }
     setSaving(true);
@@ -615,7 +615,7 @@ export default function NewListingScreen() {
           <View style={[styles.reviewCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
             {[
               { label: 'Reference', value: form.referenceNumber },
-              { label: 'Type', value: `${form.type.charAt(0).toUpperCase() + form.type.slice(1)}` },
+               { label: 'Type', value: form.type ? `${form.type.charAt(0).toUpperCase() + form.type.slice(1)}` : 'Not selected' },
               { label: 'Address', value: `${form.address}, ${form.suburb}` },
               { label: 'Address visibility', value: form.showAddress ? 'Public (exact address shown)' : 'Private (suburb only)' },
               { label: 'Price', value: `${form.currency} ${form.price}${form.negotiable ? ' (Neg)' : ''}` },

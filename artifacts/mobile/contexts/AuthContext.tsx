@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 import { User } from '@/types';
@@ -27,9 +28,11 @@ const MOCK_USER: User = {
 const DEMO_EMAIL = 'demo@quickprop.co.zw';
 const DEMO_PASSWORD = 'demo1234';
 const AUTH_KEY = '@quickprop_user';
-const AUTH_TOKEN_KEY = '@quickprop_access_token';
+const AUTH_TOKEN_KEY = 'quickprop_access_token';
+const LEGACY_AUTH_TOKEN_KEY = '@quickprop_access_token';
 const ACCOUNT_DATA_KEYS = [
   AUTH_TOKEN_KEY,
+  LEGACY_AUTH_TOKEN_KEY,
   '@qp_properties',
   '@qp_leads',
   '@qp_matches',
@@ -47,8 +50,30 @@ export const apiBaseUrl = configuredApiUrl
 export const apiOrigin = apiBaseUrl?.replace(/\/api$/, '') ?? null;
 export const AUTH_TOKEN_STORAGE_KEY = AUTH_TOKEN_KEY;
 
+async function getStoredToken(): Promise<string | null> {
+  return Platform.OS === 'web'
+    ? AsyncStorage.getItem(AUTH_TOKEN_KEY)
+    : SecureStore.getItemAsync(AUTH_TOKEN_KEY);
+}
+
+async function storeToken(token: string): Promise<void> {
+  if (Platform.OS === 'web') {
+    await AsyncStorage.setItem(AUTH_TOKEN_KEY, token);
+    return;
+  }
+  await SecureStore.setItemAsync(AUTH_TOKEN_KEY, token);
+}
+
+async function removeStoredToken(): Promise<void> {
+  if (Platform.OS === 'web') {
+    await AsyncStorage.removeItem(AUTH_TOKEN_KEY);
+    return;
+  }
+  await SecureStore.deleteItemAsync(AUTH_TOKEN_KEY);
+}
+
 export async function getStoredAccessToken(): Promise<string | null> {
-  return SecureStore.getItemAsync(AUTH_TOKEN_KEY);
+  return getStoredToken();
 }
 
 type ApiUser = {
@@ -90,7 +115,7 @@ async function clearLocalAccountData(): Promise<void> {
     // AUTH_TOKEN_KEY was formerly kept in AsyncStorage. Remove this legacy
     // value as well so a token is never left behind during the migration.
     AsyncStorage.multiRemove(ACCOUNT_DATA_KEYS),
-    SecureStore.deleteItemAsync(AUTH_TOKEN_KEY),
+    removeStoredToken(),
   ]);
 }
 
@@ -127,7 +152,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const restoreSession = async () => {
       const [storedUser, storedToken] = await Promise.all([
         AsyncStorage.getItem(AUTH_KEY),
-        SecureStore.getItemAsync(AUTH_TOKEN_KEY),
+        getStoredToken(),
       ]);
       const serializedUser = storedUser;
       const token = storedToken;
@@ -187,7 +212,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
         await Promise.all([
           AsyncStorage.setItem(AUTH_KEY, JSON.stringify(loggedInUser)),
-          SecureStore.setItemAsync(AUTH_TOKEN_KEY, result.accessToken),
+          storeToken(result.accessToken),
         ]);
         setUser(loggedInUser);
         return { success: true };
@@ -234,7 +259,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    const token = await SecureStore.getItemAsync(AUTH_TOKEN_KEY);
+    const token = await getStoredToken();
     if (!token) throw new Error('Your session has expired. Please sign in again before deleting your account.');
 
     let response: Response;
