@@ -16,14 +16,13 @@ import { FeatureChip } from '@/components/FeatureChip';
 import { StepIndicator } from '@/components/StepIndicator';
 import { PROPERTY_FEATURES, Property } from '@/types';
 
-const TOTAL_STEPS = 8;
+const TOTAL_STEPS = 9;
 const STEP_LABELS = [
-  'Photos', 'Video', 'Location', 'Property Details',
+  'Photos', 'Video', 'Location', 'Listing Type', 'Property Details',
   'Features', 'Description', 'Seller Details', 'Review & Publish',
 ];
 
 const CURRENCIES = ['USD', 'ZAR', 'ZWL', 'GBP', 'EUR'];
-const PROPERTY_TYPES: Property['type'][] = ['sale', 'rent', 'commercial', 'stand', 'farm', 'mine'];
 const MANDATE_TYPES: Array<'open' | 'sole' | 'exclusive'> = ['open', 'sole', 'exclusive'];
 
 interface FormData {
@@ -274,7 +273,8 @@ export default function NewListingScreen() {
 
   const canNext = () => {
     if (step === 2) return !!form.address.trim() && !!form.suburb.trim();
-    if (step === 3) return !!form.price.trim() && Number(form.price) > 0;
+    if (step === 3) return form.type === 'sale' || form.type === 'rent';
+    if (step === 4) return !!form.price.trim() && Number(form.price) > 0;
     return true;
   };
 
@@ -396,20 +396,67 @@ export default function NewListingScreen() {
         </View>
       );
 
-      case 3: return ( // Property Details
+      case 3: return ( // Listing Type
+        <View style={styles.stepContent}>
+          <Text style={[styles.stepHeading, { color: colors.foreground }]}>What are you listing?</Text>
+          <Text style={[styles.stepSub, { color: colors.mutedForeground }]}>
+            Choose whether this property is being offered for sale or rent.
+          </Text>
+          <View style={styles.listingTypeGrid}>
+            {([
+              { value: 'sale' as const, title: 'For Sale', subtitle: 'A property being sold to a buyer', icon: 'home-outline' as const },
+              { value: 'rent' as const, title: 'For Rent', subtitle: 'A property available to let', icon: 'key-outline' as const },
+            ]).map(option => {
+              const selected = form.type === option.value;
+              return (
+                <TouchableOpacity
+                  key={option.value}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected }}
+                  style={[
+                    styles.listingTypeCard,
+                    {
+                      backgroundColor: selected ? colors.primary : colors.card,
+                      borderColor: selected ? colors.primary : colors.border,
+                    },
+                  ]}
+                  onPress={() => { Haptics.selectionAsync(); set('type', option.value); }}
+                >
+                  <View style={[styles.listingTypeIcon, { backgroundColor: selected ? '#FFFFFF24' : colors.secondary }]}>
+                    <Ionicons name={option.icon} size={28} color={selected ? '#FFF' : colors.primary} />
+                  </View>
+                  <View style={styles.listingTypeCopy}>
+                    <Text style={[styles.listingTypeTitle, { color: selected ? '#FFF' : colors.foreground }]}>{option.title}</Text>
+                    <Text style={[styles.listingTypeSubtitle, { color: selected ? '#FFFFFFCC' : colors.mutedForeground }]}>{option.subtitle}</Text>
+                  </View>
+                  <Ionicons
+                    name={selected ? 'checkmark-circle' : 'ellipse-outline'}
+                    size={24}
+                    color={selected ? '#FFF' : colors.mutedForeground}
+                  />
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+          <View style={[styles.selectionNote, { backgroundColor: colors.muted, borderColor: colors.border }]}>
+            <Ionicons name="information-circle-outline" size={16} color={colors.primary} />
+            <Text style={[styles.selectionNoteText, { color: colors.mutedForeground }]}>
+              You can review this choice before publishing.
+            </Text>
+          </View>
+        </View>
+      );
+
+      case 4: return ( // Property Details
         <ScrollView showsVerticalScrollIndicator={false}>
           <Text style={[styles.stepHeading, { color: colors.foreground }]}>Property Details</Text>
-          <Field label="LISTING TYPE *">
-            <View style={styles.typeGrid}>
-              {PROPERTY_TYPES.map(t => (
-                <TouchableOpacity
-                  key={t}
-                  style={[styles.typeBtn, { backgroundColor: form.type === t ? colors.primary : colors.secondary, borderColor: form.type === t ? colors.primary : colors.border }]}
-                  onPress={() => { Haptics.selectionAsync(); set('type', t); }}
-                >
-                  <Text style={[styles.typeBtnText, { color: form.type === t ? '#FFF' : colors.foreground }]}>{t.charAt(0).toUpperCase() + t.slice(1)}</Text>
-                </TouchableOpacity>
-              ))}
+          <Field label="LISTING TYPE">
+            <View style={[styles.selectedTypeCard, { backgroundColor: colors.secondary, borderColor: colors.border }]}>
+              <Ionicons name={form.type === 'rent' ? 'key-outline' : 'home-outline'} size={20} color={colors.primary} />
+              <Text style={[styles.selectedTypeText, { color: colors.foreground }]}>
+                {form.type === 'rent' ? 'For Rent' : 'For Sale'}
+              </Text>
+              <Text style={[styles.selectedTypeHint, { color: colors.mutedForeground }]}>Selected on the previous step</Text>
             </View>
           </Field>
           <Field label="PRICE *">
@@ -482,7 +529,7 @@ export default function NewListingScreen() {
         </ScrollView>
       );
 
-      case 4: return ( // Features
+      case 5: return ( // Features
         <View style={styles.stepContent}>
           <Text style={[styles.stepHeading, { color: colors.foreground }]}>Property Features</Text>
           <Text style={[styles.stepSub, { color: colors.mutedForeground }]}>Select all features this property has. {form.features.length} selected.</Text>
@@ -496,7 +543,7 @@ export default function NewListingScreen() {
         </View>
       );
 
-      case 5: return ( // Description
+      case 6: return ( // Description
         <View style={styles.stepContent}>
           <Text style={[styles.stepHeading, { color: colors.foreground }]}>Description</Text>
           <Text style={[styles.stepSub, { color: colors.mutedForeground }]}>Write a compelling description. Use AI tools to refine.</Text>
@@ -529,7 +576,7 @@ export default function NewListingScreen() {
         </View>
       );
 
-      case 6: return ( // Seller Details
+      case 7: return ( // Seller Details
         <ScrollView showsVerticalScrollIndicator={false}>
           <Text style={[styles.stepHeading, { color: colors.foreground }]}>Seller Details</Text>
           <View style={[styles.privateNote, { backgroundColor: colors.muted, borderColor: colors.border }]}>
@@ -561,7 +608,7 @@ export default function NewListingScreen() {
         </ScrollView>
       );
 
-      case 7: return ( // Review & Publish
+      case 8: return ( // Review & Publish
         <ScrollView showsVerticalScrollIndicator={false}>
           <Text style={[styles.stepHeading, { color: colors.foreground }]}>Review & Publish</Text>
           <Text style={[styles.stepSub, { color: colors.mutedForeground }]}>Confirm your listing details before publishing.</Text>
@@ -710,6 +757,17 @@ const styles = StyleSheet.create({
   disclosureSub: { fontSize: 12, lineHeight: 17 },
   input: { borderRadius: 12, borderWidth: 1, paddingHorizontal: 14, paddingVertical: 12, fontSize: 15 },
   textArea: { paddingVertical: 12, minHeight: 100 },
+  listingTypeGrid: { gap: 12 },
+  listingTypeCard: { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 16, borderWidth: 1, padding: 14 },
+  listingTypeIcon: { width: 52, height: 52, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
+  listingTypeCopy: { flex: 1, gap: 4 },
+  listingTypeTitle: { fontSize: 17, fontWeight: '800' },
+  listingTypeSubtitle: { fontSize: 12, lineHeight: 17 },
+  selectionNote: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 12, borderRadius: 10, borderWidth: 1 },
+  selectionNoteText: { fontSize: 13, flex: 1 },
+  selectedTypeCard: { flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: 12, borderWidth: 1, padding: 14 },
+  selectedTypeText: { fontSize: 15, fontWeight: '800' },
+  selectedTypeHint: { fontSize: 12, marginLeft: 'auto' },
   typeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   typeBtn: { paddingHorizontal: 16, paddingVertical: 9, borderRadius: 20, borderWidth: 1 },
   typeBtnText: { fontSize: 13, fontWeight: '600' },
