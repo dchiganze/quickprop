@@ -1,4 +1,5 @@
 - [QuickProp Mobile Runtime](quickprop-mobile-runtime.md) — native/web storage and Reanimated compatibility constraints for the Expo agent app.
+- [QuickProp Cloud Sync](quickprop-cloud-sync.md) — PostgreSQL is authoritative; mobile persistence is an offline cache with guarded reconciliation.
 - [QuickProp Office CRM](quickprop-office.md) — web CRM lessons: jsonify DB rows before zod parse, wouter param-passing in protected routes, seed esbuild bundling, orval queryKey quirk.
 - [QuickProp Public Website](quickprop-web.md) — public marketplace at artifacts/web (/web/); public routes on API server, buyer cookie (qp_buyer), saved_properties table, Zod schema naming gotcha.
 - [QuickProp Admin Portal](quickprop-admin.md) — deep navy/blue theme; new admin-portal routes; codegen duplicate-schema pitfall; BuyerUpdate lacks status; seeded admin users.

@@ -87,11 +87,15 @@ export default function ListingsScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
-  const { properties, unseenMatchCount } = useData();
+  const {
+    properties, unseenMatchCount, cloudSyncState, lastSyncedAt,
+    lastSyncError, pendingSyncCount, syncNow,
+  } = useData();
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<Filter>('all');
   const [shareOpen, setShareOpen] = useState(false);
   const [alertsOpen, setAlertsOpen] = useState(false);
+  const [refreshingSync, setRefreshingSync] = useState(false);
 
   const filtered = useMemo(() => {
     let list = [...properties];
@@ -116,6 +120,31 @@ export default function ListingsScreen() {
     await Haptics.selectionAsync();
     setAlertsOpen(true);
   };
+
+  const refreshCloud = async () => {
+    setRefreshingSync(true);
+    await Haptics.selectionAsync();
+    try {
+      await syncNow();
+    } finally {
+      setRefreshingSync(false);
+    }
+  };
+
+  const syncSummary = (() => {
+    if (lastSyncError) return lastSyncError;
+    if (cloudSyncState === 'offline') return 'Offline mode — changes stay on this device until you sign in.';
+    if (cloudSyncState === 'syncing' || refreshingSync) return 'Syncing your portfolio with QuickProp cloud…';
+    if (cloudSyncState === 'pending') return `${pendingSyncCount || 'Some'} change${pendingSyncCount === 1 ? '' : 's'} waiting to upload.`;
+    if (lastSyncedAt) return `Cloud backup complete at ${new Date(lastSyncedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}.`;
+    return 'Your listings are stored securely in QuickProp cloud.';
+  })();
+
+  const syncTone = lastSyncError || cloudSyncState === 'pending'
+    ? colors.warning ?? '#C27803'
+    : cloudSyncState === 'offline'
+      ? colors.mutedForeground
+      : colors.primary;
 
   return (
     <View style={[styles.flex, { backgroundColor: colors.background }]}>
@@ -144,6 +173,29 @@ export default function ListingsScreen() {
           onChangeText={setQuery}
           placeholder="Search suburb, beds, solar, owner, ref…"
         />
+
+        <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel="Sync listings with QuickProp cloud"
+          style={[styles.syncCard, { backgroundColor: colors.card, borderColor: lastSyncError ? syncTone : colors.border }]}
+          onPress={refreshCloud}
+          disabled={refreshingSync}
+        >
+          <View style={[styles.syncIcon, { backgroundColor: syncTone + '16' }]}>
+            <Ionicons
+              name={lastSyncError ? 'cloud-offline-outline' : cloudSyncState === 'synced' ? 'cloud-done-outline' : 'cloud-upload-outline'}
+              size={18}
+              color={syncTone}
+            />
+          </View>
+          <View style={styles.syncCopy}>
+            <Text style={[styles.syncTitle, { color: colors.foreground }]}>Listing cloud backup</Text>
+            <Text style={[styles.syncSummary, { color: lastSyncError ? syncTone : colors.mutedForeground }]} numberOfLines={2}>
+              {syncSummary}
+            </Text>
+          </View>
+          <Ionicons name={refreshingSync ? 'sync' : 'refresh'} size={18} color={syncTone} />
+        </TouchableOpacity>
 
         {/* Filter chips — ScrollView so we can insert Alerts between My Listings and Draft */}
         <ScrollView
@@ -247,6 +299,11 @@ const styles = StyleSheet.create({
   title: { fontSize: 28, fontWeight: '800', letterSpacing: -0.5 },
   count: { fontSize: 14, fontWeight: '500', marginBottom: 2 },
   shareIconBtn: { width: 34, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
+  syncCard: { flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: 12, borderWidth: 1, padding: 10 },
+  syncIcon: { width: 34, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  syncCopy: { flex: 1, gap: 2 },
+  syncTitle: { fontSize: 13, fontWeight: '800' },
+  syncSummary: { fontSize: 11, lineHeight: 15 },
   filterList: { marginHorizontal: -16 },
   filterContent: { paddingHorizontal: 16, gap: 8 },
   filterBtn: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, borderWidth: 1 },

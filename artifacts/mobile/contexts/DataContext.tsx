@@ -19,6 +19,8 @@ export interface AlertMatch {
   properties: Property[];
 }
 
+export type CloudSyncState = 'offline' | 'syncing' | 'synced' | 'pending' | 'error';
+
 interface DataContextType {
   properties: Property[];
   leads: Lead[];
@@ -29,6 +31,11 @@ interface DataContextType {
   alertMatches: AlertMatch[];
   unseenMatchCount: number;
   isLoading: boolean;
+  cloudSyncState: CloudSyncState;
+  lastSyncedAt: string | null;
+  lastSyncError: string | null;
+  pendingSyncCount: number;
+  syncNow: () => Promise<void>;
   addProperty: (p: Omit<Property, 'id' | 'createdAt' | 'updatedAt'>) => Promise<Property>;
   updateProperty: (id: string, updates: Partial<Property>) => Promise<void>;
   deleteProperty: (id: string) => Promise<void>;
@@ -93,6 +100,11 @@ const parseStoredArray = <T,>(raw: string | null, fallback: T[]): T[] => {
 
 const isServerId = (id: string) => /^\d+$/.test(id);
 const remoteEnabled = (userId?: string) => Boolean(apiBaseUrl && apiOrigin && userId && isServerId(userId));
+
+function syncErrorMessage(error: unknown): string {
+  if (error instanceof Error && error.message) return error.message;
+  return 'Unable to reach QuickProp cloud. Your changes are saved on this device and will retry automatically.';
+}
 
 function mobileStatus(status: string): Property['status'] {
   if (status === 'public' || status === 'coming_soon' || status === 'under_offer') return 'published';
@@ -399,6 +411,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [viewings, setViewings] = useState<ApiViewing[]>([]);
   const [alerts, setAlerts] = useState<PropertyAlert[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [cloudSyncState, setCloudSyncState] = useState<CloudSyncState>('offline');
+  const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
+  const [lastSyncError, setLastSyncError] = useState<string | null>(null);
   // Collections are ref-backed so asynchronous mutations never use a render's
   // stale snapshot. Versions prevent a late hydration from replacing a
   // collection changed while its AsyncStorage read was in flight.
@@ -442,6 +457,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setViewings([]);
     setAlerts([]);
     setIsLoading(false);
+    setCloudSyncState('offline');
+    setLastSyncedAt(null);
+    setLastSyncError(null);
   }), []);
 
   useEffect(() => {
@@ -529,7 +547,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           setAlerts(loadedAlerts);
         }
       } finally {
-        if (generation === resetGenerationRef.current) setIsLoading(false);
+        if (generation === resetGenerationRef.current) {
+          setIsLoading(false);
+          if (!remoteEnabled(user?.id)) setCloudSyncState('offline');
+        }
       }
     };
     load();
@@ -545,6 +566,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const flushPendingSync = useCallback(async () => {
     if (!remoteEnabled(user?.id) || flushingRef.current) return;
     flushingRef.current = true;
+    setCloudSyncState('syncing');
     const idMap = new Map<string, string>();
     try {
       while (pendingSyncRef.current.length > 0) {
@@ -635,9 +657,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         pendingSyncRef.current.shift();
         await persistPending();
       }
-    } catch {
+    } catch (error) {
       // The local mutation has already been saved. Leave this operation and the
       // remaining order intact so it retries after the connection returns.
+      setLastSyncError(syncErrorMessage(error));
+      setCloudSyncState('pending');
     } finally {
       flushingRef.current = false;
     }
@@ -645,6 +669,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
   const syncFromServer = useCallback(async () => {
     if (!remoteEnabled(user?.id)) return;
+    setCloudSyncState('syncing');
     try {
       const [remoteProperties, remoteTasks, remoteViewings] = await Promise.all([
         listProperties({ agentId: Number(user!.id) }),
@@ -656,6 +681,14 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           .filter((operation): operation is Extract<PendingSync, { kind: 'property-delete' }> => operation.kind === 'property-delete')
           .map(operation => operation.localId),
       );
+      const existingCloudProperties = propertiesRef.current.filter(
+        property => isServerId(property.id) && !pendingPropertyDeletes.has(property.id),
+      );
+      if (remoteProperties.length === 0 && existingCloudProperties.length > 0) {
+        setLastSyncError('QuickProp cloud returned an empty portfolio. Your existing listings were kept safely on this device; tap to retry sync.');
+        setCloudSyncState('error');
+        return;
+      }
       const pendingPropertyUpdates = new Map<string, Partial<Property>>();
       for (const operation of pendingSyncRef.current) {
         if (operation.kind === 'property-update') {
@@ -724,24 +757,42 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       viewingsRef.current = [...refreshedViewings, ...localOnlyViewings];
       setViewings(viewingsRef.current);
       await save(VIEWINGS_KEY, viewingsRef);
-    } catch {
+      setLastSyncedAt(now());
+      if (pendingSyncRef.current.length > 0) {
+        setCloudSyncState('pending');
+      } else {
+        setCloudSyncState('synced');
+        setLastSyncError(null);
+      }
+    } catch (error) {
       // Offline access keeps the last persisted data visible.
+      setLastSyncError(syncErrorMessage(error));
+      setCloudSyncState('error');
     }
   }, [user?.id]);
 
+  const syncNow = useCallback(async () => {
+    if (!remoteEnabled(user?.id)) {
+      setCloudSyncState('offline');
+      return;
+    }
+    await flushPendingSync();
+    await syncFromServer();
+  }, [user?.id, flushPendingSync, syncFromServer]);
+
   useEffect(() => {
     if (!user?.id || isLoading) return;
-    flushPendingSync().then(syncFromServer).catch(() => {});
-  }, [user?.id, isLoading, flushPendingSync, syncFromServer]);
+    syncNow().catch(() => {});
+  }, [user?.id, isLoading, syncNow]);
 
   useEffect(() => {
     const subscription = AppState.addEventListener('change', state => {
       if (state === 'active') {
-        flushPendingSync().then(syncFromServer).catch(() => {});
+        syncNow().catch(() => {});
       }
     });
     return () => subscription.remove();
-  }, [flushPendingSync, syncFromServer]);
+  }, [syncNow]);
 
   // A second agent can make changes while this app stays in the foreground.
   // Refresh periodically so active devices converge without waiting for an
@@ -750,11 +801,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     if (!remoteEnabled(user?.id) || isLoading) return;
     const interval = setInterval(() => {
       if (AppState.currentState === 'active') {
-        flushPendingSync().then(syncFromServer).catch(() => {});
+        syncNow().catch(() => {});
       }
     }, 30_000);
     return () => clearInterval(interval);
-  }, [user?.id, isLoading, flushPendingSync, syncFromServer]);
+  }, [user?.id, isLoading, syncNow]);
 
   // Compute which published properties match each alert and haven't been dismissed
   const alertMatches = useMemo<AlertMatch[]>(() => {
@@ -785,7 +836,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     if (remoteEnabled(user?.id)) {
       pendingSyncRef.current.push({ kind: 'property-create', localId: prop.id, property: prop });
       await persistPending();
-      await flushPendingSync();
+      await syncNow();
     }
     return syncedPropertyResultsRef.current.get(prop.id) ?? prop;
   };
@@ -799,7 +850,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     if (remoteEnabled(user?.id)) {
       pendingSyncRef.current.push({ kind: 'property-update', localId: id, updates });
       await persistPending();
-      await flushPendingSync();
+      await syncNow();
     }
   };
 
@@ -820,7 +871,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         pendingSyncRef.current.push({ kind: 'property-delete', localId: id });
       }
       await persistPending();
-      await flushPendingSync();
+      await syncNow();
     }
   };
 
@@ -852,7 +903,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     if (remoteEnabled(user?.id)) {
       pendingSyncRef.current.push({ kind: 'task-create', localId: task.id, task });
       await persistPending();
-      await flushPendingSync();
+      await syncNow();
     }
   };
 
@@ -865,7 +916,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     if (remoteEnabled(user?.id)) {
       pendingSyncRef.current.push({ kind: 'task-update', localId: id, updates });
       await persistPending();
-      await flushPendingSync();
+      await syncNow();
     }
   };
 
@@ -884,7 +935,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         pendingSyncRef.current.push({ kind: 'task-delete', localId: id });
       }
       await persistPending();
-      await flushPendingSync();
+      await syncNow();
     }
   };
 
@@ -911,7 +962,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         viewing,
       });
       await persistPending();
-      await flushPendingSync();
+      await syncNow();
     }
   };
 
@@ -923,7 +974,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     if (remoteEnabled(user?.id)) {
       pendingSyncRef.current.push({ kind: 'viewing-update', localId: id, updates });
       await persistPending();
-      await flushPendingSync();
+      await syncNow();
     }
   };
 
@@ -936,7 +987,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       if (isServerId(id)) pendingSyncRef.current.push({ kind: 'viewing-delete', localId: id });
       else pendingSyncRef.current = pendingSyncRef.current.filter(op => !('localId' in op) || op.localId !== id);
       await persistPending();
-      await flushPendingSync();
+      await syncNow();
     }
   };
 
@@ -973,6 +1024,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     <DataContext.Provider value={{
       properties, leads, buyerMatches, tasks, viewings, alerts,
       alertMatches, unseenMatchCount, isLoading,
+      cloudSyncState, lastSyncedAt, lastSyncError,
+      pendingSyncCount: pendingSyncRef.current.length, syncNow,
       addProperty, updateProperty, deleteProperty,
       addLead, updateLead, addTask, updateTask, deleteTask,
       addViewing, updateViewing, deleteViewing,
