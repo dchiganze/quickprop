@@ -1,6 +1,6 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import {
-  View, Text, FlatList, ScrollView, TouchableOpacity, StyleSheet, Platform,
+  View, Text, FlatList, ScrollView, TouchableOpacity, StyleSheet, Platform, Animated,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -88,14 +88,13 @@ export default function ListingsScreen() {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const {
-    properties, unseenMatchCount, cloudSyncState, lastSyncedAt,
-    lastSyncError, pendingSyncCount, syncNow,
+    properties, unseenMatchCount, cloudSyncState,
   } = useData();
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<Filter>('all');
   const [shareOpen, setShareOpen] = useState(false);
   const [alertsOpen, setAlertsOpen] = useState(false);
-  const [refreshingSync, setRefreshingSync] = useState(false);
+  const offlineTransition = useRef(new Animated.Value(0)).current;
 
   const filtered = useMemo(() => {
     let list = [...properties];
@@ -121,30 +120,33 @@ export default function ListingsScreen() {
     setAlertsOpen(true);
   };
 
-  const refreshCloud = async () => {
-    setRefreshingSync(true);
-    await Haptics.selectionAsync();
-    try {
-      await syncNow();
-    } finally {
-      setRefreshingSync(false);
+  useEffect(() => {
+    if (cloudSyncState !== 'offline') {
+      offlineTransition.stopAnimation();
+      offlineTransition.setValue(0);
+      return;
     }
-  };
 
-  const syncSummary = (() => {
-    if (lastSyncError) return lastSyncError;
-    if (cloudSyncState === 'offline') return 'Offline mode — changes stay on this device until you sign in.';
-    if (cloudSyncState === 'syncing' || refreshingSync) return 'Syncing your portfolio with QuickProp cloud…';
-    if (cloudSyncState === 'pending') return `${pendingSyncCount || 'Some'} change${pendingSyncCount === 1 ? '' : 's'} waiting to upload.`;
-    if (lastSyncedAt) return `Cloud backup complete at ${new Date(lastSyncedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}.`;
-    return 'Your listings are stored securely in QuickProp cloud.';
-  })();
+    offlineTransition.setValue(0);
+    const timer = setTimeout(() => {
+      Animated.timing(offlineTransition, {
+        toValue: 1,
+        duration: 900,
+        useNativeDriver: false,
+      }).start();
+    }, 1500);
 
-  const syncTone = lastSyncError || cloudSyncState === 'pending'
-    ? colors.warning ?? '#C27803'
-    : cloudSyncState === 'offline'
-      ? colors.mutedForeground
-      : colors.primary;
+    return () => clearTimeout(timer);
+  }, [cloudSyncState, offlineTransition]);
+
+  const offlineBackground = offlineTransition.interpolate({
+    inputRange: [0, 1],
+    outputRange: [colors.info, colors.background],
+  });
+  const offlineText = offlineTransition.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['#FFFFFF', colors.mutedForeground],
+  });
 
   return (
     <View style={[styles.flex, { backgroundColor: colors.background }]}>
@@ -173,29 +175,6 @@ export default function ListingsScreen() {
           onChangeText={setQuery}
           placeholder="Search suburb, beds, solar, owner, ref…"
         />
-
-        <TouchableOpacity
-          accessibilityRole="button"
-          accessibilityLabel="Sync listings with QuickProp cloud"
-          style={[styles.syncCard, { backgroundColor: colors.card, borderColor: lastSyncError ? syncTone : colors.border }]}
-          onPress={refreshCloud}
-          disabled={refreshingSync}
-        >
-          <View style={[styles.syncIcon, { backgroundColor: syncTone + '16' }]}>
-            <Ionicons
-              name={lastSyncError ? 'cloud-offline-outline' : cloudSyncState === 'synced' ? 'cloud-done-outline' : 'cloud-upload-outline'}
-              size={18}
-              color={syncTone}
-            />
-          </View>
-          <View style={styles.syncCopy}>
-            <Text style={[styles.syncTitle, { color: colors.foreground }]}>Listing cloud backup</Text>
-            <Text style={[styles.syncSummary, { color: lastSyncError ? syncTone : colors.mutedForeground }]} numberOfLines={2}>
-              {syncSummary}
-            </Text>
-          </View>
-          <Ionicons name={refreshingSync ? 'sync' : 'refresh'} size={18} color={syncTone} />
-        </TouchableOpacity>
 
         {/* Filter chips — ScrollView so we can insert Alerts between My Listings and Draft */}
         <ScrollView
@@ -284,6 +263,24 @@ export default function ListingsScreen() {
         <Ionicons name="add" size={28} color="#FFF" />
       </TouchableOpacity>
 
+      {cloudSyncState === 'offline' && (
+        <Animated.View
+          accessibilityRole="text"
+          accessibilityLabel="You're offline"
+          style={[
+            styles.offlineBanner,
+            {
+              backgroundColor: offlineBackground,
+              paddingBottom: Math.max(insets.bottom, 8),
+            },
+          ]}
+        >
+          <Animated.Text style={[styles.offlineText, { color: offlineText }]}>
+            You're offline
+          </Animated.Text>
+        </Animated.View>
+      )}
+
       <QuickShareSheet visible={shareOpen} onClose={() => setShareOpen(false)} />
       <AlertsSheet visible={alertsOpen} onClose={() => setAlertsOpen(false)} />
     </View>
@@ -299,11 +296,6 @@ const styles = StyleSheet.create({
   title: { fontSize: 28, fontWeight: '800', letterSpacing: -0.5 },
   count: { fontSize: 14, fontWeight: '500', marginBottom: 2 },
   shareIconBtn: { width: 34, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
-  syncCard: { flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: 12, borderWidth: 1, padding: 10 },
-  syncIcon: { width: 34, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  syncCopy: { flex: 1, gap: 2 },
-  syncTitle: { fontSize: 13, fontWeight: '800' },
-  syncSummary: { fontSize: 11, lineHeight: 15 },
   filterList: { marginHorizontal: -16 },
   filterContent: { paddingHorizontal: 16, gap: 8 },
   filterBtn: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, borderWidth: 1 },
@@ -320,4 +312,15 @@ const styles = StyleSheet.create({
     borderRadius: 18, alignItems: 'center', justifyContent: 'center',
     ...Platform.select({ ios: { shadowColor: '#1A3C6E', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8 }, android: { elevation: 6 } }),
   },
+  offlineBanner: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    minHeight: 38,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: 8,
+  },
+  offlineText: { fontSize: 14, fontWeight: '600' },
 });

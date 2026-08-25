@@ -27,6 +27,17 @@ const STATUS_LABELS: Record<Property['status'], string> = {
   pending: 'Pending',
 };
 
+// Stable demo photos keep the seeded portfolio useful even before an agent
+// uploads real listing media. Real property photos always take precedence.
+const DEMO_PHOTOS: Record<string, string> = {
+  'prop-001': 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=900&q=80',
+  'prop-002': 'https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?w=900&q=80',
+  'prop-003': 'https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?w=900&q=80',
+  'prop-004': 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=900&q=80',
+  'prop-005': 'https://images.unsplash.com/photo-1497366754035-f200968a6e72?w=900&q=80',
+  'prop-006': 'https://images.unsplash.com/photo-1600047509807-ba8f99d2cdde?w=900&q=80',
+};
+
 function formatPrice(price: number, currency: string, type: Property['type']) {
   const formatted = price >= 1000000
     ? `${currency} ${(price / 1000000).toFixed(1)}M`
@@ -36,6 +47,7 @@ function formatPrice(price: number, currency: string, type: Property['type']) {
 
 export function PropertyCard({ property, onPress }: Props) {
   const colors = useColors();
+  const photoUri = property.photos[0] || DEMO_PHOTOS[property.id];
 
   return (
     <TouchableOpacity
@@ -46,11 +58,11 @@ export function PropertyCard({ property, onPress }: Props) {
       {/* Photo placeholder / thumbnail */}
       <View style={[styles.imageContainer, { backgroundColor: colors.muted }]}>
         <Image
-          source={property.photos[0] ? { uri: property.photos[0] } : require('../assets/images/logo.png')}
+          source={photoUri ? { uri: photoUri } : require('../assets/images/logo.png')}
           style={styles.mainImage}
-          resizeMode={property.photos[0] ? 'cover' : 'contain'}
+          resizeMode={photoUri ? 'cover' : 'contain'}
         />
-        {!property.photos[0] && (
+        {!photoUri && (
           <View style={[styles.fallbackOverlay, { backgroundColor: colors.muted + 'CC' }]}>
             <Ionicons name="home-outline" size={32} color={colors.mutedForeground} />
             <Text style={[styles.fallbackText, { color: colors.mutedForeground }]}>Photo coming soon</Text>
