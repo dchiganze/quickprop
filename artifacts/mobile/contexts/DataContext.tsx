@@ -106,6 +106,11 @@ function syncErrorMessage(error: unknown): string {
   return 'Unable to reach QuickProp cloud. Your changes are saved on this device and will retry automatically.';
 }
 
+function isConnectivityError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
+  return error instanceof TypeError || /network request failed|network error|failed to fetch|offline|timed out|timeout|connection reset|internet disconnected/.test(message);
+}
+
 function mobileStatus(status: string): Property['status'] {
   if (status === 'public' || status === 'coming_soon' || status === 'under_offer') return 'published';
   if (status === 'internal_only' || status === 'private_listing') return 'pending';
@@ -660,8 +665,13 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       // The local mutation has already been saved. Leave this operation and the
       // remaining order intact so it retries after the connection returns.
-      setLastSyncError(syncErrorMessage(error));
-      setCloudSyncState('pending');
+      if (isConnectivityError(error)) {
+        setLastSyncError(null);
+        setCloudSyncState('offline');
+      } else {
+        setLastSyncError(syncErrorMessage(error));
+        setCloudSyncState('pending');
+      }
     } finally {
       flushingRef.current = false;
     }
@@ -766,8 +776,13 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       }
     } catch (error) {
       // Offline access keeps the last persisted data visible.
-      setLastSyncError(syncErrorMessage(error));
-      setCloudSyncState('error');
+      if (isConnectivityError(error)) {
+        setLastSyncError(null);
+        setCloudSyncState('offline');
+      } else {
+        setLastSyncError(syncErrorMessage(error));
+        setCloudSyncState('error');
+      }
     }
   }, [user?.id]);
 
