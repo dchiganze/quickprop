@@ -57,9 +57,10 @@ export default function TabLayout() {
           }}
         />
         <Tabs.Screen
-          name="leads"
+          name="matches"
           options={{
-            href: null,
+            title: 'Matches',
+            tabBarIcon: ({ color }) => <Ionicons name="people-outline" size={22} color={color} />,
           }}
         />
         <Tabs.Screen
@@ -83,13 +84,7 @@ export default function TabLayout() {
             tabBarIcon: ({ color }) => <Feather name="user" size={22} color={color} />,
           }}
         />
-        <Tabs.Screen
-          name="matches"
-          options={{
-            title: 'Matches',
-            tabBarIcon: ({ color }) => <Ionicons name="people-outline" size={22} color={color} />,
-          }}
-        />
+        <Tabs.Screen name="leads" options={{ href: null }} />
         <Tabs.Screen name="tasks" options={{ href: null }} />
       </Tabs>
 
