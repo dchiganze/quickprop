@@ -73,6 +73,10 @@ function buildCatalogText(props: Property[], mode: CatalogMode, agentName: strin
     forSale.slice(0, 8).forEach(p => {
       const beds = p.bedrooms ? `${p.bedrooms}-bed ` : '';
       lines.push(`• ${beds}House in ${p.suburb} — ${formatPrice(p)}`);
+      if (p.description.trim()) {
+        const description = p.description.replace(/\s+/g, ' ').trim();
+        lines.push(`  ${description.slice(0, 90)}${description.length > 90 ? '…' : ''}`);
+      }
     });
     lines.push('');
   }
@@ -81,6 +85,10 @@ function buildCatalogText(props: Property[], mode: CatalogMode, agentName: strin
     forRent.slice(0, 5).forEach(p => {
       const beds = p.bedrooms ? `${p.bedrooms}-bed ` : '';
       lines.push(`• ${beds}Property in ${p.suburb} — ${formatPrice(p)}`);
+      if (p.description.trim()) {
+        const description = p.description.replace(/\s+/g, ' ').trim();
+        lines.push(`  ${description.slice(0, 90)}${description.length > 90 ? '…' : ''}`);
+      }
     });
     lines.push('');
   }
