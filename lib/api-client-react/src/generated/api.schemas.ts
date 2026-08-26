@@ -142,6 +142,7 @@ export interface Property {
   enquiries?: number;
   shares?: number;
   hasBrochure?: boolean;
+  collaborationEnabled?: boolean;
   /** @nullable */
   publishedAt?: string | null;
   createdAt?: string;
@@ -166,7 +167,8 @@ export interface PropertyInput {
   landSize?: number;
   buildingSize?: number;
   features?: string[];
-  photos?: string[];
+  /** @minItems 1 */
+  photos: string[];
   videoUrl?: string;
   coverImage?: string;
   agentId?: number;
@@ -177,6 +179,7 @@ export interface PropertyInput {
   mandateExpiry?: string;
   commissionPercent?: number;
   privateNotes?: string;
+  collaborationEnabled?: boolean;
 }
 
 export interface PropertyUpdate {
@@ -197,6 +200,7 @@ export interface PropertyUpdate {
   landSize?: number;
   buildingSize?: number;
   features?: string[];
+  /** @minItems 1 */
   photos?: string[];
   videoUrl?: string;
   coverImage?: string;
@@ -208,6 +212,57 @@ export interface PropertyUpdate {
   mandateExpiry?: string;
   commissionPercent?: number;
   privateNotes?: string;
+  collaborationEnabled?: boolean;
+}
+
+export interface CollaborationRequestInput {
+  propertyId: number;
+  /** @maxLength 2000 */
+  message?: string;
+}
+
+export type CollaborationRequestStatusUpdateStatus = typeof CollaborationRequestStatusUpdateStatus[keyof typeof CollaborationRequestStatusUpdateStatus];
+
+
+export const CollaborationRequestStatusUpdateStatus = {
+  approved: 'approved',
+  declined: 'declined',
+  cancelled: 'cancelled',
+} as const;
+
+export interface CollaborationRequestStatusUpdate {
+  status: CollaborationRequestStatusUpdateStatus;
+}
+
+export type CollaborationMatchRequestStatus = typeof CollaborationMatchRequestStatus[keyof typeof CollaborationMatchRequestStatus];
+
+
+export const CollaborationMatchRequestStatus = {
+  pending: 'pending',
+  approved: 'approved',
+  declined: 'declined',
+  cancelled: 'cancelled',
+} as const;
+
+export interface CollaborationMatchRequest {
+  id: number;
+  requesterId: number;
+  propertyOwnerId: number;
+  propertyId: number;
+  status: CollaborationMatchRequestStatus;
+  /** @nullable */
+  message?: string | null;
+  /** @nullable */
+  respondedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  property: Property;
+  requesterName: string;
+  /** @nullable */
+  requesterPhone?: string | null;
+  ownerName: string;
+  /** @nullable */
+  ownerPhone?: string | null;
 }
 
 export interface PriceHistoryEntry {
@@ -888,10 +943,52 @@ listingType?: string;
 propertyType?: string;
 suburb?: string;
 agentId?: number;
+/**
+ * Supports phrases such as "3 bedroom in Highlands under $300,000".
+ */
 q?: string;
 minPrice?: number;
 maxPrice?: number;
 };
+
+export type ListCollaborationDiscoveryParams = {
+q?: string;
+suburb?: string;
+road?: string;
+description?: string;
+/**
+ * Comma-separated amenities or features.
+ */
+feature?: string;
+minBedrooms?: number;
+minPrice?: number;
+maxPrice?: number;
+minSize?: number;
+maxSize?: number;
+};
+
+export type ListCollaborationRequestsParams = {
+direction?: ListCollaborationRequestsDirection;
+status?: ListCollaborationRequestsStatus;
+};
+
+export type ListCollaborationRequestsDirection = typeof ListCollaborationRequestsDirection[keyof typeof ListCollaborationRequestsDirection];
+
+
+export const ListCollaborationRequestsDirection = {
+  incoming: 'incoming',
+  outgoing: 'outgoing',
+} as const;
+
+export type ListCollaborationRequestsStatus = typeof ListCollaborationRequestsStatus[keyof typeof ListCollaborationRequestsStatus];
+
+
+export const ListCollaborationRequestsStatus = {
+  pending: 'pending',
+  approved: 'approved',
+  declined: 'declined',
+  cancelled: 'cancelled',
+} as const;
 
 export type ListSellersParams = {
 q?: string;

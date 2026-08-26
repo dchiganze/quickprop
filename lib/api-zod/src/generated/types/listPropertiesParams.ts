@@ -13,6 +13,9 @@ listingType?: string;
 propertyType?: string;
 suburb?: string;
 agentId?: number;
+/**
+ * Supports phrases such as "3 bedroom in Highlands under $300,000".
+ */
 q?: string;
 minPrice?: number;
 maxPrice?: number;

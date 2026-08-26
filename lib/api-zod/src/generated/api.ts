@@ -70,7 +70,7 @@ export const ListPropertiesQueryParams = zod.object({
   "propertyType": zod.coerce.string().optional(),
   "suburb": zod.coerce.string().optional(),
   "agentId": zod.coerce.number().optional(),
-  "q": zod.coerce.string().optional(),
+  "q": zod.coerce.string().optional().describe('Supports phrases such as \"3 bedroom in Highlands under $300,000\".'),
   "minPrice": zod.coerce.number().optional(),
   "maxPrice": zod.coerce.number().optional()
 })
@@ -110,11 +110,15 @@ export const ListPropertiesResponseItem = zod.object({
   "enquiries": zod.number().optional(),
   "shares": zod.number().optional(),
   "hasBrochure": zod.boolean().optional(),
+  "collaborationEnabled": zod.boolean().optional(),
   "publishedAt": zod.string().nullish(),
   "createdAt": zod.string().optional(),
   "updatedAt": zod.string().optional()
 })
 export const ListPropertiesResponse = zod.array(ListPropertiesResponseItem)
+
+
+
 
 
 export const CreatePropertyBody = zod.object({
@@ -135,7 +139,7 @@ export const CreatePropertyBody = zod.object({
   "landSize": zod.number().optional(),
   "buildingSize": zod.number().optional(),
   "features": zod.array(zod.string()).optional(),
-  "photos": zod.array(zod.string()).optional(),
+  "photos": zod.array(zod.string()).min(1),
   "videoUrl": zod.string().optional(),
   "coverImage": zod.string().optional(),
   "agentId": zod.number().optional(),
@@ -145,7 +149,8 @@ export const CreatePropertyBody = zod.object({
   "mandateStart": zod.string().optional(),
   "mandateExpiry": zod.string().optional(),
   "commissionPercent": zod.number().optional(),
-  "privateNotes": zod.string().optional()
+  "privateNotes": zod.string().optional(),
+  "collaborationEnabled": zod.boolean().optional()
 })
 
 export const CreatePropertyResponse = zod.object({
@@ -183,6 +188,7 @@ export const CreatePropertyResponse = zod.object({
   "enquiries": zod.number().optional(),
   "shares": zod.number().optional(),
   "hasBrochure": zod.boolean().optional(),
+  "collaborationEnabled": zod.boolean().optional(),
   "publishedAt": zod.string().nullish(),
   "createdAt": zod.string().optional(),
   "updatedAt": zod.string().optional()
@@ -228,6 +234,7 @@ export const GetPropertyResponse = zod.object({
   "enquiries": zod.number().optional(),
   "shares": zod.number().optional(),
   "hasBrochure": zod.boolean().optional(),
+  "collaborationEnabled": zod.boolean().optional(),
   "publishedAt": zod.string().nullish(),
   "createdAt": zod.string().optional(),
   "updatedAt": zod.string().optional()
@@ -237,6 +244,9 @@ export const GetPropertyResponse = zod.object({
 export const UpdatePropertyParams = zod.object({
   "id": zod.coerce.number()
 })
+
+
+
 
 export const UpdatePropertyBody = zod.object({
   "title": zod.string().optional(),
@@ -256,7 +266,7 @@ export const UpdatePropertyBody = zod.object({
   "landSize": zod.number().optional(),
   "buildingSize": zod.number().optional(),
   "features": zod.array(zod.string()).optional(),
-  "photos": zod.array(zod.string()).optional(),
+  "photos": zod.array(zod.string()).min(1).optional(),
   "videoUrl": zod.string().optional(),
   "coverImage": zod.string().optional(),
   "agentId": zod.number().optional(),
@@ -266,7 +276,8 @@ export const UpdatePropertyBody = zod.object({
   "mandateStart": zod.string().optional(),
   "mandateExpiry": zod.string().optional(),
   "commissionPercent": zod.number().optional(),
-  "privateNotes": zod.string().optional()
+  "privateNotes": zod.string().optional(),
+  "collaborationEnabled": zod.boolean().optional()
 })
 
 export const UpdatePropertyResponse = zod.object({
@@ -304,6 +315,7 @@ export const UpdatePropertyResponse = zod.object({
   "enquiries": zod.number().optional(),
   "shares": zod.number().optional(),
   "hasBrochure": zod.boolean().optional(),
+  "collaborationEnabled": zod.boolean().optional(),
   "publishedAt": zod.string().nullish(),
   "createdAt": zod.string().optional(),
   "updatedAt": zod.string().optional()
@@ -374,6 +386,259 @@ export const GenerateBrochureResponse = zod.object({
 
 
 /**
+ * @summary Published branch and opted-in cross-branch listings available for collaboration
+ */
+export const ListCollaborationDiscoveryQueryParams = zod.object({
+  "q": zod.coerce.string().optional(),
+  "suburb": zod.coerce.string().optional(),
+  "road": zod.coerce.string().optional(),
+  "description": zod.coerce.string().optional(),
+  "feature": zod.coerce.string().optional().describe('Comma-separated amenities or features.'),
+  "minBedrooms": zod.coerce.number().optional(),
+  "minPrice": zod.coerce.number().optional(),
+  "maxPrice": zod.coerce.number().optional(),
+  "minSize": zod.coerce.number().optional(),
+  "maxSize": zod.coerce.number().optional()
+})
+
+export const ListCollaborationDiscoveryResponseItem = zod.object({
+  "id": zod.number(),
+  "reference": zod.string(),
+  "title": zod.string(),
+  "description": zod.string().nullish(),
+  "propertyType": zod.string().describe('house | apartment | townhouse | stand | commercial | industrial | farm'),
+  "listingType": zod.string().describe('sale | rent'),
+  "status": zod.string().describe('draft | internal_only | public | under_offer | sold | rented | archived | withdrawn | coming_soon | private_listing'),
+  "pipelineStage": zod.string().describe('draft | awaiting_photos | ready | published | under_offer | sold | archived'),
+  "price": zod.number(),
+  "currency": zod.string(),
+  "suburb": zod.string(),
+  "city": zod.string(),
+  "address": zod.string().nullish(),
+  "bedrooms": zod.number().nullish(),
+  "bathrooms": zod.number().nullish(),
+  "parking": zod.number().nullish(),
+  "landSize": zod.number().nullish().describe('square metres'),
+  "buildingSize": zod.number().nullish(),
+  "features": zod.array(zod.string()).optional(),
+  "photos": zod.array(zod.string()).optional(),
+  "videoUrl": zod.string().nullish(),
+  "coverImage": zod.string().nullish(),
+  "agentId": zod.number().nullish(),
+  "branchId": zod.number().nullish(),
+  "sellerId": zod.number().nullish(),
+  "mandateType": zod.string().nullish().describe('open | sole | exclusive'),
+  "mandateStart": zod.string().nullish(),
+  "mandateExpiry": zod.string().nullish(),
+  "commissionPercent": zod.number().nullish(),
+  "privateNotes": zod.string().nullish(),
+  "views": zod.number().optional(),
+  "enquiries": zod.number().optional(),
+  "shares": zod.number().optional(),
+  "hasBrochure": zod.boolean().optional(),
+  "collaborationEnabled": zod.boolean().optional(),
+  "publishedAt": zod.string().nullish(),
+  "createdAt": zod.string().optional(),
+  "updatedAt": zod.string().optional()
+})
+export const ListCollaborationDiscoveryResponse = zod.array(ListCollaborationDiscoveryResponseItem)
+
+
+export const ListCollaborationRequestsQueryParams = zod.object({
+  "direction": zod.enum(['incoming', 'outgoing']).optional(),
+  "status": zod.enum(['pending', 'approved', 'declined', 'cancelled']).optional()
+})
+
+export const ListCollaborationRequestsResponseItem = zod.object({
+  "id": zod.number(),
+  "requesterId": zod.number(),
+  "propertyOwnerId": zod.number(),
+  "propertyId": zod.number(),
+  "status": zod.enum(['pending', 'approved', 'declined', 'cancelled']),
+  "message": zod.string().nullish(),
+  "respondedAt": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string(),
+  "property": zod.object({
+  "id": zod.number(),
+  "reference": zod.string(),
+  "title": zod.string(),
+  "description": zod.string().nullish(),
+  "propertyType": zod.string().describe('house | apartment | townhouse | stand | commercial | industrial | farm'),
+  "listingType": zod.string().describe('sale | rent'),
+  "status": zod.string().describe('draft | internal_only | public | under_offer | sold | rented | archived | withdrawn | coming_soon | private_listing'),
+  "pipelineStage": zod.string().describe('draft | awaiting_photos | ready | published | under_offer | sold | archived'),
+  "price": zod.number(),
+  "currency": zod.string(),
+  "suburb": zod.string(),
+  "city": zod.string(),
+  "address": zod.string().nullish(),
+  "bedrooms": zod.number().nullish(),
+  "bathrooms": zod.number().nullish(),
+  "parking": zod.number().nullish(),
+  "landSize": zod.number().nullish().describe('square metres'),
+  "buildingSize": zod.number().nullish(),
+  "features": zod.array(zod.string()).optional(),
+  "photos": zod.array(zod.string()).optional(),
+  "videoUrl": zod.string().nullish(),
+  "coverImage": zod.string().nullish(),
+  "agentId": zod.number().nullish(),
+  "branchId": zod.number().nullish(),
+  "sellerId": zod.number().nullish(),
+  "mandateType": zod.string().nullish().describe('open | sole | exclusive'),
+  "mandateStart": zod.string().nullish(),
+  "mandateExpiry": zod.string().nullish(),
+  "commissionPercent": zod.number().nullish(),
+  "privateNotes": zod.string().nullish(),
+  "views": zod.number().optional(),
+  "enquiries": zod.number().optional(),
+  "shares": zod.number().optional(),
+  "hasBrochure": zod.boolean().optional(),
+  "collaborationEnabled": zod.boolean().optional(),
+  "publishedAt": zod.string().nullish(),
+  "createdAt": zod.string().optional(),
+  "updatedAt": zod.string().optional()
+}),
+  "requesterName": zod.string(),
+  "requesterPhone": zod.string().nullish(),
+  "ownerName": zod.string(),
+  "ownerPhone": zod.string().nullish()
+})
+export const ListCollaborationRequestsResponse = zod.array(ListCollaborationRequestsResponseItem)
+
+
+export const createCollaborationRequestBodyMessageMax = 2000;
+
+
+
+export const CreateCollaborationRequestBody = zod.object({
+  "propertyId": zod.number(),
+  "message": zod.string().max(createCollaborationRequestBodyMessageMax).optional()
+})
+
+export const CreateCollaborationRequestResponse = zod.object({
+  "id": zod.number(),
+  "requesterId": zod.number(),
+  "propertyOwnerId": zod.number(),
+  "propertyId": zod.number(),
+  "status": zod.enum(['pending', 'approved', 'declined', 'cancelled']),
+  "message": zod.string().nullish(),
+  "respondedAt": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string(),
+  "property": zod.object({
+  "id": zod.number(),
+  "reference": zod.string(),
+  "title": zod.string(),
+  "description": zod.string().nullish(),
+  "propertyType": zod.string().describe('house | apartment | townhouse | stand | commercial | industrial | farm'),
+  "listingType": zod.string().describe('sale | rent'),
+  "status": zod.string().describe('draft | internal_only | public | under_offer | sold | rented | archived | withdrawn | coming_soon | private_listing'),
+  "pipelineStage": zod.string().describe('draft | awaiting_photos | ready | published | under_offer | sold | archived'),
+  "price": zod.number(),
+  "currency": zod.string(),
+  "suburb": zod.string(),
+  "city": zod.string(),
+  "address": zod.string().nullish(),
+  "bedrooms": zod.number().nullish(),
+  "bathrooms": zod.number().nullish(),
+  "parking": zod.number().nullish(),
+  "landSize": zod.number().nullish().describe('square metres'),
+  "buildingSize": zod.number().nullish(),
+  "features": zod.array(zod.string()).optional(),
+  "photos": zod.array(zod.string()).optional(),
+  "videoUrl": zod.string().nullish(),
+  "coverImage": zod.string().nullish(),
+  "agentId": zod.number().nullish(),
+  "branchId": zod.number().nullish(),
+  "sellerId": zod.number().nullish(),
+  "mandateType": zod.string().nullish().describe('open | sole | exclusive'),
+  "mandateStart": zod.string().nullish(),
+  "mandateExpiry": zod.string().nullish(),
+  "commissionPercent": zod.number().nullish(),
+  "privateNotes": zod.string().nullish(),
+  "views": zod.number().optional(),
+  "enquiries": zod.number().optional(),
+  "shares": zod.number().optional(),
+  "hasBrochure": zod.boolean().optional(),
+  "collaborationEnabled": zod.boolean().optional(),
+  "publishedAt": zod.string().nullish(),
+  "createdAt": zod.string().optional(),
+  "updatedAt": zod.string().optional()
+}),
+  "requesterName": zod.string(),
+  "requesterPhone": zod.string().nullish(),
+  "ownerName": zod.string(),
+  "ownerPhone": zod.string().nullish()
+})
+
+
+export const UpdateCollaborationRequestParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const UpdateCollaborationRequestBody = zod.object({
+  "status": zod.enum(['approved', 'declined', 'cancelled'])
+})
+
+export const UpdateCollaborationRequestResponse = zod.object({
+  "id": zod.number(),
+  "requesterId": zod.number(),
+  "propertyOwnerId": zod.number(),
+  "propertyId": zod.number(),
+  "status": zod.enum(['pending', 'approved', 'declined', 'cancelled']),
+  "message": zod.string().nullish(),
+  "respondedAt": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string(),
+  "property": zod.object({
+  "id": zod.number(),
+  "reference": zod.string(),
+  "title": zod.string(),
+  "description": zod.string().nullish(),
+  "propertyType": zod.string().describe('house | apartment | townhouse | stand | commercial | industrial | farm'),
+  "listingType": zod.string().describe('sale | rent'),
+  "status": zod.string().describe('draft | internal_only | public | under_offer | sold | rented | archived | withdrawn | coming_soon | private_listing'),
+  "pipelineStage": zod.string().describe('draft | awaiting_photos | ready | published | under_offer | sold | archived'),
+  "price": zod.number(),
+  "currency": zod.string(),
+  "suburb": zod.string(),
+  "city": zod.string(),
+  "address": zod.string().nullish(),
+  "bedrooms": zod.number().nullish(),
+  "bathrooms": zod.number().nullish(),
+  "parking": zod.number().nullish(),
+  "landSize": zod.number().nullish().describe('square metres'),
+  "buildingSize": zod.number().nullish(),
+  "features": zod.array(zod.string()).optional(),
+  "photos": zod.array(zod.string()).optional(),
+  "videoUrl": zod.string().nullish(),
+  "coverImage": zod.string().nullish(),
+  "agentId": zod.number().nullish(),
+  "branchId": zod.number().nullish(),
+  "sellerId": zod.number().nullish(),
+  "mandateType": zod.string().nullish().describe('open | sole | exclusive'),
+  "mandateStart": zod.string().nullish(),
+  "mandateExpiry": zod.string().nullish(),
+  "commissionPercent": zod.number().nullish(),
+  "privateNotes": zod.string().nullish(),
+  "views": zod.number().optional(),
+  "enquiries": zod.number().optional(),
+  "shares": zod.number().optional(),
+  "hasBrochure": zod.boolean().optional(),
+  "collaborationEnabled": zod.boolean().optional(),
+  "publishedAt": zod.string().nullish(),
+  "createdAt": zod.string().optional(),
+  "updatedAt": zod.string().optional()
+}),
+  "requesterName": zod.string(),
+  "requesterPhone": zod.string().nullish(),
+  "ownerName": zod.string(),
+  "ownerPhone": zod.string().nullish()
+})
+
+
+/**
  * @summary Properties grouped by pipeline stage
  */
 export const GetPipelineResponseItem = zod.object({
@@ -413,6 +678,7 @@ export const GetPipelineResponseItem = zod.object({
   "enquiries": zod.number().optional(),
   "shares": zod.number().optional(),
   "hasBrochure": zod.boolean().optional(),
+  "collaborationEnabled": zod.boolean().optional(),
   "publishedAt": zod.string().nullish(),
   "createdAt": zod.string().optional(),
   "updatedAt": zod.string().optional()
@@ -667,6 +933,7 @@ export const GetBuyerMatchesResponseItem = zod.object({
   "enquiries": zod.number().optional(),
   "shares": zod.number().optional(),
   "hasBrochure": zod.boolean().optional(),
+  "collaborationEnabled": zod.boolean().optional(),
   "publishedAt": zod.string().nullish(),
   "createdAt": zod.string().optional(),
   "updatedAt": zod.string().optional()
@@ -791,6 +1058,7 @@ export const GetBuyerRequestMatchesResponseItem = zod.object({
   "enquiries": zod.number().optional(),
   "shares": zod.number().optional(),
   "hasBrochure": zod.boolean().optional(),
+  "collaborationEnabled": zod.boolean().optional(),
   "publishedAt": zod.string().nullish(),
   "createdAt": zod.string().optional(),
   "updatedAt": zod.string().optional()
@@ -1400,6 +1668,7 @@ export const OfficeSearchResponse = zod.object({
   "enquiries": zod.number().optional(),
   "shares": zod.number().optional(),
   "hasBrochure": zod.boolean().optional(),
+  "collaborationEnabled": zod.boolean().optional(),
   "publishedAt": zod.string().nullish(),
   "createdAt": zod.string().optional(),
   "updatedAt": zod.string().optional()

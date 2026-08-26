@@ -6,7 +6,9 @@ import {
   timestamp,
   doublePrecision,
   boolean,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { usersTable, branchesTable } from "./users";
 import { sellersTable } from "./people";
 
@@ -45,10 +47,27 @@ export const propertiesTable = pgTable("properties", {
   enquiries: integer("enquiries").notNull().default(0),
   shares: integer("shares").notNull().default(0),
   hasBrochure: boolean("has_brochure").notNull().default(false),
+  collaborationEnabled: boolean("collaboration_enabled").notNull().default(false),
   publishedAt: timestamp("published_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
+
+export const collaborationMatchRequestsTable = pgTable("collaboration_match_requests", {
+  id: serial("id").primaryKey(),
+  requesterId: integer("requester_id").notNull().references(() => usersTable.id),
+  propertyOwnerId: integer("property_owner_id").notNull().references(() => usersTable.id),
+  propertyId: integer("property_id").notNull().references(() => propertiesTable.id),
+  status: text("status").notNull().default("pending"),
+  message: text("message"),
+  respondedAt: timestamp("responded_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => [
+  uniqueIndex("collaboration_match_requests_active_unique")
+    .on(table.requesterId, table.propertyId)
+    .where(sql`${table.status} IN ('pending', 'approved')`),
+]);
 
 export const priceHistoryTable = pgTable("price_history", {
   id: serial("id").primaryKey(),
@@ -72,3 +91,4 @@ export const activityTable = pgTable("activity", {
 });
 
 export type Property = typeof propertiesTable.$inferSelect;
+export type CollaborationMatchRequest = typeof collaborationMatchRequestsTable.$inferSelect;

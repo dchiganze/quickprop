@@ -24,7 +24,8 @@ export interface PropertyInput {
   landSize?: number;
   buildingSize?: number;
   features?: string[];
-  photos?: string[];
+  /** @minItems 1 */
+  photos: string[];
   videoUrl?: string;
   coverImage?: string;
   agentId?: number;
@@ -35,4 +36,5 @@ export interface PropertyInput {
   mandateExpiry?: string;
   commissionPercent?: number;
   privateNotes?: string;
+  collaborationEnabled?: boolean;
 }

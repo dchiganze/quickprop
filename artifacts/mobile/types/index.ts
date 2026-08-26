@@ -32,6 +32,11 @@ export interface Property {
   description: string;
   photos: string[];
   videoUrl?: string;
+  /**
+   * Makes this listing available to agents outside the listing agent's branch
+   * through the Matches workspace. Seller details remain private.
+   */
+  collaborationEnabled?: boolean;
   coordinates?: { lat: number; lng: number };
   seller: {
     name: string;
@@ -44,6 +49,51 @@ export interface Property {
   agentId: string;
   createdAt: string;
   updatedAt: string;
+}
+
+export type CollaborationRequestStatus = 'pending' | 'approved' | 'declined' | 'cancelled';
+
+export interface CollaborationListing {
+  id: number;
+  reference: string;
+  title: string;
+  description?: string | null;
+  propertyType: string;
+  listingType: string;
+  status: string;
+  price: number;
+  currency: string;
+  suburb: string;
+  address?: string | null;
+  bedrooms?: number | null;
+  bathrooms?: number | null;
+  landSize?: number | null;
+  buildingSize?: number | null;
+  features: string[];
+  photos: string[];
+  collaborationEnabled: boolean;
+  agentId?: number | null;
+  agentName?: string | null;
+  branchId?: number | null;
+  isOwnBranch: boolean;
+  requestStatus?: CollaborationRequestStatus | null;
+}
+
+export interface CollaborationRequest {
+  id: number;
+  propertyId: number;
+  requesterId: number;
+  ownerId: number;
+  status: CollaborationRequestStatus;
+  message?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  respondedAt?: string | null;
+  property?: CollaborationListing;
+  requesterName?: string | null;
+  requesterPhone?: string | null;
+  ownerName?: string | null;
+  ownerPhone?: string | null;
 }
 
 export interface Lead {

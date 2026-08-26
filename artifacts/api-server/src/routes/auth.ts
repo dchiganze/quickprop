@@ -6,6 +6,7 @@ import {
   auditLogTable,
   buyerRequestsTable,
   buyersTable,
+  collaborationMatchRequestsTable,
   db,
   documentsTable,
   leadTimelineTable,
@@ -183,6 +184,10 @@ router.delete("/auth/account", requireAuth, async (req, res): Promise<void> => {
     await tx.delete(notificationsTable).where(eq(notificationsTable.userId, user.id));
     await tx.delete(auditLogTable).where(eq(auditLogTable.userId, user.id));
     await tx.delete(savedPropertiesTable).where(eq(savedPropertiesTable.userId, user.id));
+    await tx.delete(collaborationMatchRequestsTable).where(or(
+      eq(collaborationMatchRequestsTable.requesterId, user.id),
+      eq(collaborationMatchRequestsTable.propertyOwnerId, user.id),
+    ));
 
     const viewingConditions = [eq(viewingsTable.agentId, user.id)];
     if (propertyIds.length > 0) viewingConditions.push(inArray(viewingsTable.propertyId, propertyIds));

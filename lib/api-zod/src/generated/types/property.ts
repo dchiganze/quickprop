@@ -68,6 +68,7 @@ export interface Property {
   enquiries?: number;
   shares?: number;
   hasBrochure?: boolean;
+  collaborationEnabled?: boolean;
   /** @nullable */
   publishedAt?: string | null;
   createdAt?: string;

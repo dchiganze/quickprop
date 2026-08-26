@@ -86,6 +86,7 @@ export default function EditListingScreen() {
   const [mandateType, setMandateType] = useState<'open' | 'sole' | 'exclusive'>(property?.seller.mandateType ?? 'sole');
   const [sellerNotes, setSellerNotes] = useState(property?.seller.notes ?? '');
   const [photos, setPhotos] = useState<string[]>(property?.photos ?? []);
+  const [collaborationEnabled, setCollaborationEnabled] = useState(Boolean(property?.collaborationEnabled));
 
   if (!property) {
     return (
@@ -104,8 +105,8 @@ export default function EditListingScreen() {
   };
 
   const handleSave = async () => {
-    if (!address.trim() || !suburb.trim() || !price.trim() || Number(price) <= 0) {
-      Alert.alert('Required Fields', 'Enter an address, suburb, and a valid price.');
+    if (!address.trim() || !suburb.trim() || !price.trim() || Number(price) <= 0 || photos.length === 0) {
+      Alert.alert('Required Fields', 'Add at least one photo, then enter an address, suburb, and a valid price.');
       return;
     }
     setSaving(true);
@@ -118,7 +119,7 @@ export default function EditListingScreen() {
         floorArea: floorArea ? parseFloat(floorArea) : undefined,
         levies: levies ? parseFloat(levies) : undefined,
         rates: rates ? parseFloat(rates) : undefined,
-        features, description, photos,
+        features, description, photos, collaborationEnabled,
         seller: { name: sellerName, phone: sellerPhone, email: sellerEmail, mandateExpiry, mandateType, notes: sellerNotes },
       });
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -209,6 +210,20 @@ export default function EditListingScreen() {
               <Text style={[styles.addPhotoText, { color: colors.primary }]}>Add photos</Text>
             </TouchableOpacity>
           </ScrollView>
+
+          <Text style={[styles.sectionHeading, { color: colors.mutedForeground, marginTop: 20 }]}>COLLABORATION</Text>
+          <View style={[styles.disclosureCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+              <Ionicons name="people-outline" size={18} color={colors.primary} />
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.disclosureTitle, { color: colors.foreground }]}>Open to collaboration</Text>
+                <Text style={[styles.disclosureSub, { color: colors.mutedForeground }]}>
+                  Other QuickProp agents can find this listing and ask you to collaborate. Seller details remain private.
+                </Text>
+              </View>
+              <Switch value={collaborationEnabled} onValueChange={v => { Haptics.selectionAsync(); setCollaborationEnabled(v); }} trackColor={{ false: colors.border, true: colors.accent }} thumbColor="#FFF" />
+            </View>
+          </View>
 
           {/* Location */}
           <Text style={[styles.sectionHeading, { color: colors.mutedForeground, marginTop: 20 }]}>LOCATION</Text>

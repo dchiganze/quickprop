@@ -147,6 +147,7 @@ function toMobileProperty(property: ApiProperty): Property {
     description: property.description ?? '',
     photos: property.photos ?? [],
     videoUrl: property.videoUrl ?? undefined,
+    collaborationEnabled: property.collaborationEnabled ?? false,
     seller: {
       name: 'Seller details available in QuickProp Office',
       phone: '',
@@ -186,6 +187,7 @@ function toServerProperty(property: Property, userId: string): PropertyInput {
     photos: property.photos,
     videoUrl: property.videoUrl,
     coverImage: property.photos[0],
+    collaborationEnabled: property.collaborationEnabled ?? false,
     agentId: Number(userId),
     mandateType: property.seller.mandateType,
     mandateExpiry: property.seller.mandateExpiry || undefined,

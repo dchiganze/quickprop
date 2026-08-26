@@ -16,10 +16,10 @@ import { FeatureChip } from '@/components/FeatureChip';
 import { StepIndicator } from '@/components/StepIndicator';
 import { PROPERTY_FEATURES, Property } from '@/types';
 
-const TOTAL_STEPS = 9;
+const TOTAL_STEPS = 10;
 const STEP_LABELS = [
   'Photos', 'Video', 'Location', 'Listing Type', 'Property Details',
-  'Features', 'Description', 'Seller Details', 'Review & Publish',
+  'Features', 'Description', 'Seller Details', 'Collaboration', 'Review & Publish',
 ];
 
 const CURRENCIES = ['USD', 'ZAR', 'ZWL', 'GBP', 'EUR'];
@@ -51,6 +51,7 @@ interface FormData {
   mandateExpiry: string;
   mandateType: 'open' | 'sole' | 'exclusive';
   sellerNotes: string;
+  collaborationEnabled: boolean;
 }
 
 const defaultForm: FormData = {
@@ -62,6 +63,7 @@ const defaultForm: FormData = {
   sellerName: '', sellerPhone: '', sellerEmail: '',
   mandateExpiry: new Date(Date.now() + 90 * 86400000).toISOString().split('T')[0],
   mandateType: 'sole', sellerNotes: '',
+  collaborationEnabled: false,
 };
 
 function Stepper({ value, onChange, min = 0, max = 20 }: { value: number; onChange: (n: number) => void; min?: number; max?: number }) {
@@ -219,8 +221,8 @@ export default function NewListingScreen() {
   };
 
   const handlePublish = async (status: 'published' | 'draft') => {
-    if (!form.address.trim() || !form.suburb.trim() || !form.price.trim() || Number(form.price) <= 0 || !form.type) {
-      Alert.alert('Required Fields', 'Choose a listing type, then enter a street address, suburb, and a valid price before publishing.');
+    if (!form.address.trim() || !form.suburb.trim() || !form.price.trim() || Number(form.price) <= 0 || !form.type || form.photos.length === 0) {
+      Alert.alert('Required Fields', 'Add at least one photo, choose a listing type, then enter a street address, suburb, and a valid price.');
       return;
     }
     setSaving(true);
@@ -245,6 +247,7 @@ export default function NewListingScreen() {
       features: form.features,
       description: form.description,
       photos: form.photos,
+        collaborationEnabled: form.collaborationEnabled,
        videoUrl: form.videoUri || undefined,
       seller: {
         name: form.sellerName,
@@ -272,6 +275,7 @@ export default function NewListingScreen() {
   };
 
   const canNext = () => {
+    if (step === 0) return form.photos.length > 0;
     if (step === 2) return !!form.address.trim() && !!form.suburb.trim();
     if (step === 3) return form.type === 'sale' || form.type === 'rent';
     if (step === 4) return !!form.price.trim() && Number(form.price) > 0;
@@ -608,7 +612,58 @@ export default function NewListingScreen() {
         </ScrollView>
       );
 
-      case 8: return ( // Review & Publish
+      case 8: return ( // Collaboration
+        <View style={styles.stepContent}>
+          <Text style={[styles.stepHeading, { color: colors.foreground }]}>Open to collaboration?</Text>
+          <Text style={[styles.stepSub, { color: colors.mutedForeground }]}>
+            Let other QuickProp agents discover this listing and send you a collaboration request. Your seller details stay private.
+          </Text>
+          <TouchableOpacity
+            accessibilityRole="radio"
+            accessibilityState={{ selected: form.collaborationEnabled }}
+            style={[
+              styles.listingTypeCard,
+              {
+                backgroundColor: form.collaborationEnabled ? colors.primary : colors.card,
+                borderColor: form.collaborationEnabled ? colors.primary : colors.border,
+              },
+            ]}
+            onPress={() => { Haptics.selectionAsync(); set('collaborationEnabled', true); }}
+          >
+            <View style={[styles.listingTypeIcon, { backgroundColor: form.collaborationEnabled ? '#FFFFFF24' : colors.secondary }]}>
+              <Ionicons name="people-outline" size={28} color={form.collaborationEnabled ? '#FFF' : colors.primary} />
+            </View>
+            <View style={styles.listingTypeCopy}>
+              <Text style={[styles.listingTypeTitle, { color: form.collaborationEnabled ? '#FFF' : colors.foreground }]}>Yes, accept requests</Text>
+              <Text style={[styles.listingTypeSubtitle, { color: form.collaborationEnabled ? '#FFFFFFCC' : colors.mutedForeground }]}>Other agencies can ask to collaborate.</Text>
+            </View>
+            <Ionicons name={form.collaborationEnabled ? 'checkmark-circle' : 'ellipse-outline'} size={24} color={form.collaborationEnabled ? '#FFF' : colors.mutedForeground} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            accessibilityRole="radio"
+            accessibilityState={{ selected: !form.collaborationEnabled }}
+            style={[
+              styles.listingTypeCard,
+              {
+                backgroundColor: !form.collaborationEnabled ? colors.primary : colors.card,
+                borderColor: !form.collaborationEnabled ? colors.primary : colors.border,
+              },
+            ]}
+            onPress={() => { Haptics.selectionAsync(); set('collaborationEnabled', false); }}
+          >
+            <View style={[styles.listingTypeIcon, { backgroundColor: !form.collaborationEnabled ? '#FFFFFF24' : colors.secondary }]}>
+              <Ionicons name="lock-closed-outline" size={28} color={!form.collaborationEnabled ? '#FFF' : colors.primary} />
+            </View>
+            <View style={styles.listingTypeCopy}>
+              <Text style={[styles.listingTypeTitle, { color: !form.collaborationEnabled ? '#FFF' : colors.foreground }]}>No, keep it private</Text>
+              <Text style={[styles.listingTypeSubtitle, { color: !form.collaborationEnabled ? '#FFFFFFCC' : colors.mutedForeground }]}>Only your agency portfolio can access it.</Text>
+            </View>
+            <Ionicons name={!form.collaborationEnabled ? 'checkmark-circle' : 'ellipse-outline'} size={24} color={!form.collaborationEnabled ? '#FFF' : colors.mutedForeground} />
+          </TouchableOpacity>
+        </View>
+      );
+
+      case 9: return ( // Review & Publish
         <ScrollView showsVerticalScrollIndicator={false}>
           <Text style={[styles.stepHeading, { color: colors.foreground }]}>Review & Publish</Text>
           <Text style={[styles.stepSub, { color: colors.mutedForeground }]}>Confirm your listing details before publishing.</Text>
@@ -621,6 +676,7 @@ export default function NewListingScreen() {
               { label: 'Price', value: `${form.currency} ${form.price}${form.negotiable ? ' (Neg)' : ''}` },
               { label: 'Beds / Baths', value: `${form.bedrooms} bed / ${form.bathrooms} bath` },
               { label: 'Photos', value: `${form.photos.length} added` },
+               { label: 'Collaboration', value: form.collaborationEnabled ? 'Open to agent requests' : 'Private to your agency' },
               { label: 'Features', value: form.features.length > 0 ? `${form.features.length} selected` : 'None' },
               { label: 'Seller', value: form.sellerName || 'Not entered' },
               { label: 'Mandate', value: `${form.mandateType} · ${form.mandateExpiry}` },

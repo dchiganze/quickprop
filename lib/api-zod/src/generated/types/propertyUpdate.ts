@@ -24,6 +24,7 @@ export interface PropertyUpdate {
   landSize?: number;
   buildingSize?: number;
   features?: string[];
+  /** @minItems 1 */
   photos?: string[];
   videoUrl?: string;
   coverImage?: string;
@@ -35,4 +36,5 @@ export interface PropertyUpdate {
   mandateExpiry?: string;
   commissionPercent?: number;
   privateNotes?: string;
+  collaborationEnabled?: boolean;
 }

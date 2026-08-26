@@ -13,6 +13,7 @@ import {
   viewingsTable,
   documentsTable,
   leadsTable,
+  collaborationMatchRequestsTable,
 } from "@workspace/db";
 import {
   ListPropertiesQueryParams,
@@ -97,6 +98,10 @@ router.post("/properties", async (req, res): Promise<void> => {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
+  if (!parsed.data.photos?.length) {
+    res.status(400).json({ error: "At least one listing photo is required." });
+    return;
+  }
   const user = await currentUser(req);
   const requestKey = mutationKey(req);
   const result = await db.transaction(async (tx) => {
@@ -169,6 +174,10 @@ router.patch("/properties/:id", async (req, res): Promise<void> => {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
+  if (parsed.data.photos && parsed.data.photos.length === 0) {
+    res.status(400).json({ error: "At least one listing photo is required." });
+    return;
+  }
   const user = await currentUser(req);
   const ownership = user?.role === "agent" || user?.role === "senior_agent"
     ? and(eq(propertiesTable.id, id), eq(propertiesTable.agentId, user.id))
@@ -223,6 +232,7 @@ router.delete("/properties/:id", async (req, res): Promise<void> => {
     await tx.delete(viewingsTable).where(eq(viewingsTable.propertyId, id));
     await tx.delete(documentsTable).where(eq(documentsTable.propertyId, id));
     await tx.delete(savedPropertiesTable).where(eq(savedPropertiesTable.propertyId, id));
+    await tx.delete(collaborationMatchRequestsTable).where(eq(collaborationMatchRequestsTable.propertyId, id));
     await tx.delete(priceHistoryTable).where(eq(priceHistoryTable.propertyId, id));
     const [deleted] = await tx.delete(propertiesTable).where(ownership).returning();
     return deleted;
