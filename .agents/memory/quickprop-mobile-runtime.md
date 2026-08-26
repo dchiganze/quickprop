@@ -14,3 +14,9 @@ Pin Reanimated 3.19.1 or newer when the app stays on the legacy architecture wit
 **Why:** Reanimated 3.17.x references React Native APIs removed or changed in 0.81, causing Android Gradle compilation errors.
 
 **How to apply:** If the app remains on JSC with the New Architecture disabled, do not downgrade Reanimated below the compatible 3.19 line without validating a production Android build.
+
+Treat Expo Go success as insufficient validation for outbound third-party URL schemes on iOS.
+
+**Why:** Expo Go supplies its own native container, while TestFlight uses the app's generated Info.plist. A scheme can work in Expo Go but be unavailable to the standalone app unless explicitly queried in production configuration.
+
+**How to apply:** Whitelist required third-party schemes in the standalone iOS Info.plist, validate the generated Expo config, and keep a native share-sheet fallback that sends one complete message payload.

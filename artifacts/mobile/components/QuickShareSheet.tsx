@@ -122,7 +122,6 @@ export function QuickShareSheet({ visible, onClose }: QuickShareSheetProps) {
       await Share.share({
         title: 'QuickProp Property Catalogue',
         message: text,
-        url: catalogUrl,
       });
       onClose();
     } catch (e: unknown) {
@@ -141,7 +140,6 @@ export function QuickShareSheet({ visible, onClose }: QuickShareSheetProps) {
       await Share.share({
         title: 'QuickProp Property Catalogue',
         message: text,
-        url: catalogUrl,
       });
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : '';

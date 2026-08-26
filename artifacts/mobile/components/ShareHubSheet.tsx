@@ -145,7 +145,6 @@ export function ShareHubSheet({ visible, onClose }: Props) {
       await Share.share({
         title: `${p.type === 'sale' ? 'For Sale' : 'To Rent'} — ${p.suburb}`,
         message: buildPropertyText(p, user?.name),
-        url: propertyShareLinks(p).webUrl,
       });
       handleClose();
     } catch (e: unknown) {
@@ -195,7 +194,7 @@ export function ShareHubSheet({ visible, onClose }: Props) {
     try {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       const text = buildCatalogText(activeProps, catalogMode, user?.name, catalogLinks.appUrl, catalogUrl);
-      await Share.share({ title: 'QuickProp Property Catalogue', message: text, url: catalogUrl });
+      await Share.share({ title: 'QuickProp Property Catalogue', message: text });
       handleClose();
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : '';
