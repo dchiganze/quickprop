@@ -24,6 +24,27 @@ const ACTIVE_REQUEST_STATUSES = ["pending", "approved"] as const;
 const requester = aliasedTable(usersTable, "collaboration_requester");
 const owner = aliasedTable(usersTable, "collaboration_owner");
 
+type CollaborationRequestRow = {
+  request: typeof collaborationMatchRequestsTable.$inferSelect;
+  property: typeof propertiesTable.$inferSelect;
+  requesterName: string | null;
+  requesterPhone: string | null;
+  ownerName: string | null;
+  ownerPhone: string | null;
+};
+
+function serializeCollaborationRequest(row: CollaborationRequestRow) {
+  const contactsVisible = row.request.status === "approved";
+  return {
+    ...row.request,
+    property: row.property,
+    requesterName: row.requesterName,
+    requesterPhone: contactsVisible ? row.requesterPhone : null,
+    ownerName: row.ownerName,
+    ownerPhone: contactsVisible ? row.ownerPhone : null,
+  };
+}
+
 type NaturalLanguageFilters = {
   minBedrooms?: number;
   maxPrice?: number;
@@ -100,14 +121,7 @@ async function requestWithContacts(id: number) {
     .innerJoin(requester, eq(collaborationMatchRequestsTable.requesterId, requester.id))
     .innerJoin(owner, eq(collaborationMatchRequestsTable.propertyOwnerId, owner.id))
     .where(eq(collaborationMatchRequestsTable.id, id));
-  return row ? {
-    ...row.request,
-    property: row.property,
-    requesterName: row.requesterName,
-    requesterPhone: row.requesterPhone,
-    ownerName: row.ownerName,
-    ownerPhone: row.ownerPhone,
-  } : null;
+  return row ? serializeCollaborationRequest(row) : null;
 }
 
 router.get("/collaboration/discovery", async (req, res): Promise<void> => {
@@ -205,14 +219,7 @@ router.get("/collaboration/requests", async (req, res): Promise<void> => {
     .innerJoin(owner, eq(collaborationMatchRequestsTable.propertyOwnerId, owner.id))
     .where(and(...conds))
     .orderBy(desc(collaborationMatchRequestsTable.createdAt));
-  const result = rows.map((row) => ({
-    ...row.request,
-    property: row.property,
-    requesterName: row.requesterName,
-    requesterPhone: row.requesterPhone,
-    ownerName: row.ownerName,
-    ownerPhone: row.ownerPhone,
-  }));
+  const result = rows.map(serializeCollaborationRequest);
   res.json(ListCollaborationRequestsResponse.parse(jsonify(result)));
 });
 
