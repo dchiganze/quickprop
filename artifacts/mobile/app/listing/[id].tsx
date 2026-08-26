@@ -11,7 +11,8 @@ import { router, useLocalSearchParams } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useColors } from '@/hooks/useColors';
 import { propertyShareLinks } from '@/utils/shareLinks';
-import { openWhatsAppMessage } from '@/utils/whatsapp';
+import { openWhatsAppMessage, shareListingPhotoToWhatsAppStatus } from '@/utils/whatsapp';
+import { getPrimaryListingPhoto } from '@/utils/listingPhoto';
 import { useData } from '@/contexts/DataContext';
 import { Property } from '@/types';
 
@@ -141,7 +142,22 @@ export default function ListingDetailScreen() {
       'How would you like to share this listing?',
       [
         {
-          text: 'WhatsApp',
+          text: 'WhatsApp Status',
+          onPress: () => shareListingPhotoToWhatsAppStatus(property)
+            .then((result) => {
+              Alert.alert(
+                result.sharedPhoto ? 'Status caption copied' : 'Caption copied',
+                result.sharedPhoto
+                  ? 'Choose WhatsApp in the share sheet, select My Status, then paste the caption into the status field.'
+                  : 'Paste the copied caption into your WhatsApp Status.'
+              );
+            })
+            .catch((error: unknown) => {
+              Alert.alert('Could not share photo', error instanceof Error ? error.message : 'Please try again.');
+            }),
+        },
+        {
+          text: 'WhatsApp message',
           onPress: () => openWhatsAppMessage(message).catch(() => {
             Alert.alert('WhatsApp not found', 'WhatsApp is not installed. Use "Share…" instead.');
           }),
@@ -240,6 +256,7 @@ export default function ListingDetailScreen() {
     ? `${property.currency} ${(property.price / 1000000).toFixed(2)}M`
     : `${property.currency} ${property.price.toLocaleString()}`;
   const priceDisplay = property.type === 'rent' ? `${price}/mo` : price;
+  const primaryPhoto = getPrimaryListingPhoto(property);
 
   return (
     <View style={[styles.flex, { backgroundColor: colors.background }]}>
@@ -264,9 +281,14 @@ export default function ListingDetailScreen() {
 
       <ScrollView style={styles.flex} contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 120 }]} showsVerticalScrollIndicator={false}>
         {/* Gallery */}
-        {property.photos.length > 0 || property.videoUrl ? (
+        {property.photos.length > 0 || property.videoUrl || primaryPhoto ? (
           <View style={[styles.gallery, { backgroundColor: colors.card }]}>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.galleryScroll}>
+              {property.photos.length === 0 && primaryPhoto && (
+                <View style={styles.photoThumb}>
+                  <Image source={{ uri: primaryPhoto }} style={styles.photoImg} resizeMode="cover" />
+                </View>
+              )}
               {property.photos.map((uri, index) => (
                 <View key={index} style={styles.photoThumb}>
                   <Image source={{ uri }} style={styles.photoImg} resizeMode="cover" />
@@ -301,7 +323,7 @@ export default function ListingDetailScreen() {
             </View>
             <View style={[styles.photoCountBadge, { backgroundColor: '#00000066' }]}>
               <Ionicons name="images-outline" size={12} color="#FFF" />
-              <Text style={styles.photoCountText}>{property.photos.length}{property.videoUrl ? ' · 1 video' : ''}</Text>
+                <Text style={styles.photoCountText}>{property.photos.length || (primaryPhoto ? 1 : 0)}{property.videoUrl ? ' · 1 video' : ''}</Text>
             </View>
           </View>
         ) : (

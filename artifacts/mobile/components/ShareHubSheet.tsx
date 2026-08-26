@@ -10,7 +10,7 @@ import { useData } from '@/contexts/DataContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Property } from '@/types';
 import { catalogueShareLinks, propertyShareLinks } from '@/utils/shareLinks';
-import { openWhatsAppMessage } from '@/utils/whatsapp';
+import { openWhatsAppMessage, shareListingPhotoToWhatsAppStatus } from '@/utils/whatsapp';
 
 type Step = 'hub' | 'property-select' | 'property-share' | 'catalogue-share';
 type CatalogMode = 'agent' | 'company';
@@ -128,15 +128,20 @@ export function ShareHubSheet({ visible, onClose }: Props) {
     setSharing(true);
     try {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      const text = buildPropertyText(p, user?.name);
-      await openWhatsAppMessage(text);
+      const result = await shareListingPhotoToWhatsAppStatus(p);
+      Alert.alert(
+        result.sharedPhoto ? 'Status caption copied' : 'Caption copied',
+        result.sharedPhoto
+          ? 'Choose WhatsApp in the share sheet, select My Status, then paste the caption into the status field.'
+          : 'Paste the copied caption into your WhatsApp Status.'
+      );
       handleClose();
     } catch (e: unknown) {
       Alert.alert('Could not share listing', e instanceof Error ? e.message : 'Please try another sharing option.');
     } finally {
       setSharing(false);
     }
-  }, [user?.name]);
+  }, []);
 
   const sharePropertyNative = useCallback(async (p: Property) => {
     setSharing(true);
@@ -326,8 +331,8 @@ export function ShareHubSheet({ visible, onClose }: Props) {
             <Ionicons name="logo-whatsapp" size={22} color="#FFF" />
           </View>
           <View style={s.shareBtnText}>
-            <Text style={[s.shareBtnLabel, { color: colors.foreground }]}>WhatsApp</Text>
-            <Text style={[s.shareBtnSub, { color: colors.mutedForeground }]}>Send full details + price</Text>
+            <Text style={[s.shareBtnLabel, { color: colors.foreground }]}>WhatsApp Status</Text>
+            <Text style={[s.shareBtnSub, { color: colors.mutedForeground }]}>Share main photo + copy caption</Text>
           </View>
           {sharing ? <ActivityIndicator color={colors.primary} /> : <Ionicons name="chevron-forward" size={16} color={colors.mutedForeground} />}
         </TouchableOpacity>

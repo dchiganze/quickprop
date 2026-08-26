@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, Platform, Image } from 'react
 import { Ionicons } from '@expo/vector-icons';
 import { useColors } from '@/hooks/useColors';
 import { Property } from '@/types';
+import { getPrimaryListingPhoto } from '@/utils/listingPhoto';
 
 interface Props {
   property: Property;
@@ -27,17 +28,6 @@ const STATUS_LABELS: Record<Property['status'], string> = {
   pending: 'Pending',
 };
 
-// Stable demo photos keep the seeded portfolio useful even before an agent
-// uploads real listing media. Real property photos always take precedence.
-const DEMO_PHOTOS: Record<string, string> = {
-  'prop-001': 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=900&q=80',
-  'prop-002': 'https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?w=900&q=80',
-  'prop-003': 'https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?w=900&q=80',
-  'prop-004': 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=900&q=80',
-  'prop-005': 'https://images.unsplash.com/photo-1497366754035-f200968a6e72?w=900&q=80',
-  'prop-006': 'https://images.unsplash.com/photo-1600047509807-ba8f99d2cdde?w=900&q=80',
-};
-
 function formatPrice(price: number, currency: string, type: Property['type']) {
   const formatted = price >= 1000000
     ? `${currency} ${(price / 1000000).toFixed(1)}M`
@@ -47,7 +37,7 @@ function formatPrice(price: number, currency: string, type: Property['type']) {
 
 export function PropertyCard({ property, onPress }: Props) {
   const colors = useColors();
-  const photoUri = property.photos[0] || DEMO_PHOTOS[property.id];
+  const photoUri = getPrimaryListingPhoto(property);
 
   return (
     <TouchableOpacity
