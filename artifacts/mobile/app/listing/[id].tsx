@@ -11,6 +11,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useColors } from '@/hooks/useColors';
 import { propertyShareLinks } from '@/utils/shareLinks';
+import { openWhatsAppMessage } from '@/utils/whatsapp';
 import { useData } from '@/contexts/DataContext';
 import { Property } from '@/types';
 
@@ -141,12 +142,9 @@ export default function ListingDetailScreen() {
       [
         {
           text: 'WhatsApp',
-          onPress: () => {
-            const waUrl = `whatsapp://send?text=${encodeURIComponent(message)}`;
-            Linking.openURL(waUrl).catch(() => {
-              Alert.alert('WhatsApp not found', 'WhatsApp is not installed. Use "Share…" instead.');
-            });
-          },
+          onPress: () => openWhatsAppMessage(message).catch(() => {
+            Alert.alert('WhatsApp not found', 'WhatsApp is not installed. Use "Share…" instead.');
+          }),
         },
         {
           text: 'Share…',

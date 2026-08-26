@@ -15,6 +15,7 @@ import { useData } from '@/contexts/DataContext';
 import { Property } from '@/types';
 import { singlePropertyBrochureHtml, catalogueBrochureHtml } from '@/utils/brochureHtml';
 import { propertyShareLinks } from '@/utils/shareLinks';
+import { openWhatsAppMessage } from '@/utils/whatsapp';
 
 type CatalogMode = 'my' | 'company';
 
@@ -69,7 +70,7 @@ export function PropertyBrochureSheet({ visible, onClose, property }: PropertyBr
     Alert.alert('Share Listing', 'How would you like to share?', [
       {
         text: 'WhatsApp',
-        onPress: () => Linking.openURL(`whatsapp://send?text=${encodeURIComponent(message)}`).catch(() =>
+        onPress: () => openWhatsAppMessage(message).catch(() =>
           Alert.alert('WhatsApp not found', 'Use "Share…" instead.')),
       },
        {

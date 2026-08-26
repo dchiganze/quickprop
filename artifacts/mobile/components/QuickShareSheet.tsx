@@ -10,6 +10,7 @@ import { useData } from '@/contexts/DataContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Property } from '@/types';
 import { catalogueShareLinks } from '@/utils/shareLinks';
+import { openWhatsAppMessage } from '@/utils/whatsapp';
 
 type CatalogMode = 'agent' | 'company';
 
@@ -82,14 +83,7 @@ export function QuickShareSheet({ visible, onClose }: QuickShareSheetProps) {
     try {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       const text = buildCatalogText(activeProps, mode, user?.name, catalogLinks.appUrl, catalogUrl);
-      const waUrl = `whatsapp://send?text=${encodeURIComponent(text)}`;
-      let canOpen = false;
-      try { canOpen = await Linking.canOpenURL(waUrl); } catch {}
-      if (canOpen) {
-        await Linking.openURL(waUrl);
-      } else {
-        await Linking.openURL(`https://wa.me/?text=${encodeURIComponent(text)}`);
-      }
+      await openWhatsAppMessage(text);
       onClose();
     } catch (e: unknown) {
       Alert.alert('Could not share catalogue', e instanceof Error ? e.message : 'Please try another sharing option.');

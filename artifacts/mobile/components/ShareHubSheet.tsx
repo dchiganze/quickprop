@@ -10,6 +10,7 @@ import { useData } from '@/contexts/DataContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Property } from '@/types';
 import { catalogueShareLinks, propertyShareLinks } from '@/utils/shareLinks';
+import { openWhatsAppMessage } from '@/utils/whatsapp';
 
 type Step = 'hub' | 'property-select' | 'property-share' | 'catalogue-share';
 type CatalogMode = 'agent' | 'company';
@@ -120,14 +121,7 @@ export function ShareHubSheet({ visible, onClose }: Props) {
     try {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       const text = buildPropertyText(p, user?.name);
-      const waUrl = `whatsapp://send?text=${encodeURIComponent(text)}`;
-      let canOpen = false;
-      try { canOpen = await Linking.canOpenURL(waUrl); } catch {}
-      if (canOpen) {
-        await Linking.openURL(waUrl);
-      } else {
-        await Linking.openURL(`https://wa.me/?text=${encodeURIComponent(text)}`);
-      }
+      await openWhatsAppMessage(text);
       handleClose();
     } catch (e: unknown) {
       Alert.alert('Could not share listing', e instanceof Error ? e.message : 'Please try another sharing option.');
@@ -166,14 +160,7 @@ export function ShareHubSheet({ visible, onClose }: Props) {
     try {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       const text = buildCatalogText(activeProps, catalogMode, user?.name, catalogLinks.appUrl, catalogUrl);
-      const waUrl = `whatsapp://send?text=${encodeURIComponent(text)}`;
-      let canOpen = false;
-      try { canOpen = await Linking.canOpenURL(waUrl); } catch {}
-      if (canOpen) {
-        await Linking.openURL(waUrl);
-      } else {
-        await Linking.openURL(`https://wa.me/?text=${encodeURIComponent(text)}`);
-      }
+      await openWhatsAppMessage(text);
       handleClose();
     } catch (e: unknown) {
       Alert.alert('Could not share catalogue', e instanceof Error ? e.message : 'Please try another sharing option.');
