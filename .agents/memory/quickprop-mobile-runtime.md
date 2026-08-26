@@ -19,4 +19,4 @@ Treat Expo Go success as insufficient validation for outbound third-party URL sc
 
 **Why:** Expo Go supplies its own native container, while TestFlight uses the app's generated Info.plist. A scheme can work in Expo Go but be unavailable to the standalone app unless explicitly queried in production configuration.
 
-**How to apply:** Whitelist required third-party schemes in the standalone iOS Info.plist, validate the generated Expo config, and keep a native share-sheet fallback that sends one complete message payload.
+**How to apply:** Whitelist required third-party schemes in the standalone iOS Info.plist, validate the generated Expo config, and use the native iOS share sheet for WhatsApp text so the complete payload survives the handoff.

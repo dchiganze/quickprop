@@ -1,17 +1,23 @@
 import { Linking, Platform, Share } from 'react-native';
 
 /**
- * Open WhatsApp with a prefilled text message.
+ * Share a prefilled text message to WhatsApp.
  *
- * The native scheme is preferred so the user lands directly in WhatsApp.
- * The native share sheet is the fallback because it passes the complete
- * message body to WhatsApp without relying on URL-scheme payload limits.
+ * WhatsApp's direct iOS URL handler can discard a message body in standalone
+ * builds even when it works in Expo Go. On iOS, the system share sheet hands
+ * WhatsApp the complete plain-text payload instead. The recipient then picks
+ * WhatsApp from the share sheet.
  */
 export async function openWhatsAppMessage(message: string): Promise<void> {
   const encodedMessage = encodeURIComponent(message);
 
   if (Platform.OS === 'web') {
     await Linking.openURL(`https://api.whatsapp.com/send?text=${encodedMessage}`);
+    return;
+  }
+
+  if (Platform.OS === 'ios') {
+    await Share.share({ message });
     return;
   }
 
