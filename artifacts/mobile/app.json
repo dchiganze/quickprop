@@ -23,7 +23,7 @@
       "supportsTablet": false,
       "jsEngine": "jsc",
       "bundleIdentifier": "com.quickprop.agent",
-      "buildNumber": "86",
+      "buildNumber": "87",
       "deploymentTarget": "16.4",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
