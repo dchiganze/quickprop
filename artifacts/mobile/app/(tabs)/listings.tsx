@@ -1,6 +1,6 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
-  View, Text, FlatList, ScrollView, TouchableOpacity, StyleSheet, Platform, Animated,
+  View, Text, FlatList, ScrollView, TouchableOpacity, StyleSheet, Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -88,16 +88,12 @@ export default function ListingsScreen() {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const {
-    properties, unseenMatchCount, cloudSyncState,
+    properties, unseenMatchCount,
   } = useData();
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<Filter>('all');
   const [shareOpen, setShareOpen] = useState(false);
   const [alertsOpen, setAlertsOpen] = useState(false);
-  const offlineTransition = useRef(new Animated.Value(0)).current;
-  const wasOffline = useRef(false);
-  const [showBackOnline, setShowBackOnline] = useState(false);
-
   const filtered = useMemo(() => {
     let list = [...properties];
 
@@ -121,57 +117,6 @@ export default function ListingsScreen() {
     await Haptics.selectionAsync();
     setAlertsOpen(true);
   };
-
-  useEffect(() => {
-    if (cloudSyncState === 'offline') {
-      wasOffline.current = true;
-      setShowBackOnline(false);
-      offlineTransition.stopAnimation();
-      offlineTransition.setValue(0);
-
-      const timer = setTimeout(() => {
-        Animated.timing(offlineTransition, {
-          toValue: 1,
-          duration: 900,
-          useNativeDriver: false,
-        }).start();
-      }, 1500);
-
-      return () => clearTimeout(timer);
-    }
-
-    if (!wasOffline.current) {
-      offlineTransition.stopAnimation();
-      offlineTransition.setValue(0);
-      return;
-    }
-
-    wasOffline.current = false;
-    offlineTransition.setValue(0);
-    setShowBackOnline(true);
-    const fadeTimer = setTimeout(() => {
-      Animated.timing(offlineTransition, {
-        toValue: 1,
-        duration: 900,
-        useNativeDriver: false,
-      }).start();
-    }, 1500);
-    const hideTimer = setTimeout(() => setShowBackOnline(false), 4200);
-
-    return () => {
-      clearTimeout(fadeTimer);
-      clearTimeout(hideTimer);
-    };
-  }, [cloudSyncState, offlineTransition]);
-
-  const offlineBackground = offlineTransition.interpolate({
-    inputRange: [0, 1],
-    outputRange: [colors.info, colors.background],
-  });
-  const offlineText = offlineTransition.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['#FFFFFF', colors.mutedForeground],
-  });
 
   return (
     <View style={[styles.flex, { backgroundColor: colors.background }]}>
@@ -288,24 +233,6 @@ export default function ListingsScreen() {
         <Ionicons name="add" size={28} color="#FFF" />
       </TouchableOpacity>
 
-      {(cloudSyncState === 'offline' || showBackOnline) && (
-        <Animated.View
-          accessibilityRole="text"
-          accessibilityLabel={cloudSyncState === 'offline' ? "You're offline" : "You're back online"}
-          style={[
-            styles.offlineBanner,
-            {
-              backgroundColor: offlineBackground,
-              paddingBottom: Math.max(insets.bottom, 8),
-            },
-          ]}
-        >
-          <Animated.Text style={[styles.offlineText, { color: offlineText }]}>
-            {cloudSyncState === 'offline' ? "You're offline" : "You're back online"}
-          </Animated.Text>
-        </Animated.View>
-      )}
-
       <QuickShareSheet visible={shareOpen} onClose={() => setShareOpen(false)} />
       <AlertsSheet visible={alertsOpen} onClose={() => setAlertsOpen(false)} />
     </View>
@@ -337,15 +264,4 @@ const styles = StyleSheet.create({
     borderRadius: 18, alignItems: 'center', justifyContent: 'center',
     ...Platform.select({ ios: { shadowColor: '#1A3C6E', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8 }, android: { elevation: 6 } }),
   },
-  offlineBanner: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    minHeight: 38,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingTop: 8,
-  },
-  offlineText: { fontSize: 14, fontWeight: '600' },
 });

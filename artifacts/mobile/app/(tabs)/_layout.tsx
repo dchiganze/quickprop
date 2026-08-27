@@ -8,6 +8,7 @@ import { Tabs } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { ShareHubSheet } from '@/components/ShareHubSheet';
+import { SyncStatusBanner } from '@/components/SyncStatusBanner';
 
 export default function TabLayout() {
   const colors = useColors();
@@ -88,6 +89,7 @@ export default function TabLayout() {
         <Tabs.Screen name="tasks" options={{ href: null }} />
       </Tabs>
 
+      <SyncStatusBanner />
       <ShareHubSheet visible={shareOpen} onClose={() => setShareOpen(false)} />
     </>
   );
