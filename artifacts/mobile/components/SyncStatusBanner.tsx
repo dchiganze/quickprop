@@ -11,7 +11,7 @@ const BANNER_HEIGHT = 40;
 export function SyncStatusBanner() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { cloudSyncState } = useData();
+  const { cloudSyncEnabled, cloudSyncState } = useData();
   const [bannerState, setBannerState] = useState<BannerState>(null);
   const wasOffline = useRef(false);
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -52,6 +52,14 @@ export function SyncStatusBanner() {
   useEffect(() => {
     clearHideTimer();
 
+    if (!cloudSyncEnabled) {
+      wasOffline.current = false;
+      translateY.stopAnimation();
+      translateY.setValue(BANNER_HEIGHT);
+      setBannerState(null);
+      return;
+    }
+
     if (cloudSyncState === 'offline') {
       wasOffline.current = true;
       if (bannerState !== 'offline') {
@@ -75,7 +83,7 @@ export function SyncStatusBanner() {
         });
       }, 2600);
     }
-  }, [cloudSyncState]);
+  }, [cloudSyncEnabled, cloudSyncState]);
 
   useEffect(() => () => {
     clearHideTimer();

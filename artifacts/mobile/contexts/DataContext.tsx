@@ -31,6 +31,7 @@ interface DataContextType {
   alertMatches: AlertMatch[];
   unseenMatchCount: number;
   isLoading: boolean;
+  cloudSyncEnabled: boolean;
   cloudSyncState: CloudSyncState;
   lastSyncedAt: string | null;
   lastSyncError: string | null;
@@ -411,6 +412,7 @@ const DataContext = createContext<DataContextType>({} as DataContextType);
 
 export function DataProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
+  const cloudSyncEnabled = remoteEnabled(user?.id);
   const [properties, setProperties] = useState<Property[]>([]);
   const [leads, setLeads] = useState<Lead[]>([]);
   const [buyerMatches, setBuyerMatches] = useState<BuyerMatch[]>([]);
@@ -1041,7 +1043,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     <DataContext.Provider value={{
       properties, leads, buyerMatches, tasks, viewings, alerts,
       alertMatches, unseenMatchCount, isLoading,
-      cloudSyncState, lastSyncedAt, lastSyncError,
+      cloudSyncEnabled, cloudSyncState, lastSyncedAt, lastSyncError,
       pendingSyncCount: pendingSyncRef.current.length, syncNow,
       addProperty, updateProperty, deleteProperty,
       addLead, updateLead, addTask, updateTask, deleteTask,
