@@ -1,0 +1,543 @@
+Implement a robust offline/online connectivity system throughout the QuickProp React Native mobile app.
+
+IMPORTANT:
+Do not rebuild or restructure the existing application unnecessarily.
+Inspect the existing project first and integrate this functionality into the current architecture.
+Preserve all existing screens, navigation, authentication, API calls, CRM functionality and styling.
+
+TECH STACK:
+- React Native
+- Expo
+- TypeScript
+- Existing QuickProp backend/API
+- Use @react-native-community/netinfo for network state detection
+- Use the project's existing state management and storage architecture where possible
+
+OBJECTIVE:
+
+QuickProp must clearly detect when the device loses internet connectivity and when connectivity is restored.
+
+The experience should feel similar to modern apps such as Spotify/YouTube:
+- When the user goes offline, immediately show a subtle "You're offline" notification.
+- The app should remain usable where possible.
+- When internet connectivity returns, show "You're back online".
+- Do not repeatedly display notifications while the device remains offline.
+- Do not repeatedly display "back online" notifications every time the network changes between connected states.
+- Connectivity monitoring must work globally throughout the application.
+
+--------------------------------------------------
+1. NETWORK DETECTION
+--------------------------------------------------
+
+Install/use:
+
+@react-native-community/netinfo
+
+Create a centralized connectivity service/hook, for example:
+
+useNetworkStatus()
+
+or
+
+NetworkProvider
+
+The system must monitor:
+
+- Wi-Fi
+- cellular/mobile data
+- Ethernet where supported
+- internet reachability
+
+Use NetInfo's isConnected and isInternetReachable values rather than simply checking whether Wi-Fi/mobile data exists.
+
+The application should distinguish:
+
+ONLINE:
+isConnected === true
+AND
+isInternetReachable !== false
+
+OFFLINE:
+isConnected === false
+OR
+isInternetReachable === false
+
+UNKNOWN:
+isInternetReachable === null
+
+Treat UNKNOWN conservatively but avoid unnecessarily showing an offline warning during the initial connection check.
+
+--------------------------------------------------
+2. GLOBAL CONNECTIVITY STATE
+--------------------------------------------------
+
+Create a single source of truth for connectivity.
+
+Expose at minimum:
+
+isOnline
+isOffline
+isInternetReachable
+connectionType
+hasEverBeenOnline
+wasPreviouslyOffline
+
+The state should be available to all screens/components.
+
+Do not create separate NetInfo listeners on every screen.
+
+Use one global subscription/provider/service.
+
+Clean up the listener correctly when the app unmounts.
+
+--------------------------------------------------
+3. OFFLINE NOTIFICATION
+--------------------------------------------------
+
+When the app transitions from ONLINE → OFFLINE:
+
+Display a small, modern notification/banner:
+
+"You’re offline"
+
+Optional secondary text:
+
+"Some features may be unavailable."
+
+The notification should:
+
+- Be visually obvious but not intrusive.
+- Appear near the top of the application without breaking navigation.
+- Respect the existing QuickProp design system.
+- Work on iOS and Android.
+- Respect safe-area insets.
+- Animate smoothly.
+- Not block interaction with the application.
+- Automatically remain visible while offline OR use a short notification followed by a persistent offline indicator.
+
+Do not use browser APIs such as navigator.onLine.
+
+This is a native mobile app.
+
+--------------------------------------------------
+4. BACK ONLINE NOTIFICATION
+--------------------------------------------------
+
+When the app transitions:
+
+OFFLINE → ONLINE
+
+display:
+
+"You're back online"
+
+Optional:
+
+"Syncing your changes..."
+
+The notification should automatically disappear after approximately 2–4 seconds.
+
+Do not display this notification on initial app launch when the user is already online.
+
+Only display it when the application was previously offline and connectivity has genuinely returned.
+
+--------------------------------------------------
+5. CONNECTION FLAPPING / DEBOUNCING
+--------------------------------------------------
+
+Zimbabwean mobile networks can be unstable.
+
+Do NOT immediately switch between online/offline states for every tiny connectivity fluctuation.
+
+Implement sensible debouncing/stabilisation.
+
+For example:
+
+- Require offline state to persist for approximately 1–2 seconds before showing "You're offline".
+- Require online connectivity to be stable for approximately 1–2 seconds before showing "You're back online".
+
+Make these values configurable.
+
+Avoid notification spam.
+
+Example:
+
+ONLINE
+→ temporary 300ms disconnect
+→ ONLINE
+
+Should NOT display:
+
+"You're offline"
+"You're back online"
+
+ONLINE
+→ genuinely offline
+→ show "You're offline"
+
+OFFLINE
+→ connection returns
+→ verify internet reachability
+→ show "You're back online"
+
+--------------------------------------------------
+6. APP STARTUP
+--------------------------------------------------
+
+When QuickProp launches:
+
+Determine current network state.
+
+If online:
+Do not show "You're back online".
+
+If offline:
+Show a subtle offline state.
+
+The initial connectivity check should not cause the application to flash between online/offline states.
+
+--------------------------------------------------
+7. OFFLINE-FIRST BEHAVIOUR
+--------------------------------------------------
+
+IMPORTANT:
+
+The connectivity indicator is only one part of QuickProp's offline architecture.
+
+Where practical, the app should continue allowing agents to:
+
+- View previously loaded properties
+- Search cached agency inventory
+- View cached buyer requirements
+- View cached leads
+- Create/edit properties
+- Create/edit buyer requirements
+- Update appropriate CRM information
+- Prepare WhatsApp shares
+- Navigate previously loaded information
+
+Do not attempt to make every feature offline if the existing architecture cannot safely support it.
+
+Prioritise read access to previously synchronised data first.
+
+--------------------------------------------------
+8. OFFLINE WRITE QUEUE
+--------------------------------------------------
+
+Where the current QuickProp architecture supports local persistence, create an offline action queue.
+
+Example:
+
+Agent edits property while offline.
+
+Store locally:
+
+{
+  action: "UPDATE_PROPERTY",
+  entityId: "...",
+  payload: {...},
+  createdAt: "...",
+  status: "pending"
+}
+
+When internet connectivity returns:
+
+1. Detect online state.
+2. Start synchronisation.
+3. Process pending actions.
+4. Send them to the backend.
+5. Confirm successful response.
+6. Mark action as synced.
+7. Remove or archive successfully synced actions.
+
+Do NOT lose offline changes.
+
+If an action fails after reconnecting:
+
+- Keep it in the queue.
+- Retry using sensible exponential backoff.
+- Do not create duplicate records.
+
+--------------------------------------------------
+9. SYNC STATUS
+--------------------------------------------------
+
+When coming back online, show:
+
+"You're back online"
+
+Then, if pending changes exist:
+
+"Syncing changes..."
+
+After successful synchronisation:
+
+"All changes synced"
+
+Do not show unnecessary notifications if there is nothing to sync.
+
+--------------------------------------------------
+10. CONFLICT HANDLING
+--------------------------------------------------
+
+Do not blindly overwrite server data.
+
+If the same property/buyer/lead has changed both:
+
+- locally while offline
+AND
+- on the server
+
+the system must detect the conflict.
+
+For MVP:
+
+- Prefer server-side timestamps/version numbers.
+- Detect conflicting updates.
+- Preserve the local pending change rather than silently deleting it.
+- Log the conflict.
+- Where possible, present a simple conflict resolution interface to the user.
+
+Do not silently lose user data.
+
+--------------------------------------------------
+11. API REQUEST HANDLING
+--------------------------------------------------
+
+When the application is offline:
+
+Do not repeatedly attempt API requests that cannot succeed.
+
+Detect offline state before making non-essential requests.
+
+Display an appropriate message such as:
+
+"You're offline. Your changes will be saved and synced when you're back online."
+
+For GET requests:
+
+Use cached data where available.
+
+For mutations:
+
+Queue them locally where supported.
+
+--------------------------------------------------
+12. OFFLINE INDICATOR
+--------------------------------------------------
+
+In addition to the notification, create a reusable small status component:
+
+<ConnectivityIndicator />
+
+Possible states:
+
+ONLINE:
+No persistent indicator necessary.
+
+OFFLINE:
+Small banner/status:
+
+● Offline
+
+SYNCING:
+"Syncing..."
+
+SYNCED:
+Optional temporary confirmation.
+
+The component should be reusable throughout the application.
+
+--------------------------------------------------
+13. APP BACKGROUND / FOREGROUND
+--------------------------------------------------
+
+When the app returns from the background:
+
+Re-check network connectivity.
+
+This is important because an agent may:
+
+- Open QuickProp
+- Lose signal
+- Put the phone away
+- Travel
+- Regain signal
+- Reopen QuickProp
+
+The app should correctly determine its current connectivity state.
+
+Do not rely exclusively on the original NetInfo subscription.
+
+--------------------------------------------------
+14. AUTHENTICATION
+--------------------------------------------------
+
+Do not log the user out simply because they are offline.
+
+Persist authentication/session information according to the existing secure architecture.
+
+If the session expires while offline, handle it gracefully once the app reconnects.
+
+Do not delete locally cached data simply because an API request fails.
+
+--------------------------------------------------
+15. SECURITY
+--------------------------------------------------
+
+Do not store sensitive authentication credentials in ordinary AsyncStorage if the existing application has a secure credential mechanism available.
+
+Use the existing secure authentication/storage architecture.
+
+Offline data should be stored securely and only accessible to the authenticated QuickProp user.
+
+Do not log:
+
+- passwords
+- access tokens
+- sensitive personal information
+- private buyer information
+
+--------------------------------------------------
+16. PERFORMANCE
+--------------------------------------------------
+
+The connectivity system must be lightweight.
+
+Do not:
+
+- continuously poll the internet
+- create multiple listeners
+- run expensive background processes
+- re-render the entire application on every connectivity event
+
+Use a single network listener and expose state efficiently.
+
+--------------------------------------------------
+17. UI/UX
+--------------------------------------------------
+
+The design should feel like a polished production application rather than a development notification.
+
+Use the existing QuickProp UI language.
+
+Suggested messages:
+
+OFFLINE:
+"You're offline"
+"Your saved information is still available."
+
+BACK ONLINE:
+"You're back online"
+
+SYNCING:
+"Syncing your changes..."
+
+SYNC COMPLETE:
+"All changes synced"
+
+ERROR:
+"Some changes couldn't be synced. Tap to review."
+
+Avoid technical language such as:
+
+"NetInfo.isConnected = false"
+
+Users should never see implementation details.
+
+--------------------------------------------------
+18. TESTING
+--------------------------------------------------
+
+Test all of the following:
+
+1. Launch app online.
+2. Launch app offline.
+3. Disable Wi-Fi.
+4. Disable cellular data.
+5. Switch Wi-Fi → cellular.
+6. Switch cellular → Wi-Fi.
+7. Lose internet while Wi-Fi remains connected.
+8. Restore internet.
+9. Rapidly toggle connectivity.
+10. Put app into background while offline.
+11. Restore connectivity while app is backgrounded.
+12. Return to app.
+13. Create/edit data while offline.
+14. Reconnect.
+15. Confirm data syncs.
+16. Force a failed sync.
+17. Confirm failed changes are not lost.
+18. Confirm duplicate records are not created.
+19. Test on both iOS and Android.
+20. Test on poor/unstable mobile networks.
+
+--------------------------------------------------
+19. CODE QUALITY
+--------------------------------------------------
+
+Use TypeScript.
+
+Create clean reusable modules, for example:
+
+/services/connectivityService.ts
+
+/hooks/useNetworkStatus.ts
+
+/components/ConnectivityBanner.tsx
+
+/services/offlineQueueService.ts
+
+Do not blindly use these exact paths if the existing QuickProp architecture has a better structure.
+
+Follow the existing project's conventions.
+
+Add comments explaining important offline/synchronisation logic.
+
+--------------------------------------------------
+20. IMPORTANT EXISTING BACKEND REQUIREMENT
+--------------------------------------------------
+
+QuickProp uses a shared backend for:
+
+- Mobile app
+- CRM
+- Website
+- Admin portal
+
+Do NOT create a separate backend for offline functionality.
+
+Offline functionality must synchronise against the existing QuickProp backend.
+
+The backend remains the authoritative source of truth.
+
+Local mobile storage is a temporary/offline cache and pending-action queue.
+
+--------------------------------------------------
+21. DELIVERABLE
+--------------------------------------------------
+
+After implementation:
+
+1. Show exactly which files were created/modified.
+2. Explain how connectivity detection works.
+3. Explain how offline data is stored.
+4. Explain how queued changes are synchronised.
+5. Explain how conflicts are handled.
+6. Explain any limitations.
+7. Provide exact commands required to install dependencies/build/test.
+8. Confirm that the implementation does not break the existing QuickProp app.
+
+MOST IMPORTANT:
+
+Do not just build a "You're offline" banner.
+
+Build the connectivity layer so that it can become the foundation of QuickProp's broader offline-first mobile experience.
+
+The immediate MVP requirement is:
+
+ONLINE → OFFLINE → "You're offline"
+
+OFFLINE → ONLINE → "You're back online"
+
+But the architecture should allow QuickProp to progressively support offline property catalogues, buyer records, CRM activity and queued updates without requiring a major rewrite later.
