@@ -40,7 +40,7 @@ export function SyncStatusBanner() {
   if (!bannerState) return null;
 
   const isOffline = bannerState === 'offline';
-  const label = isOffline ? "You're offline" : "You're online";
+  const label = isOffline ? "You're offline" : "You're back online";
 
   return (
     <View
