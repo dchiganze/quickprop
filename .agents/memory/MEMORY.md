@@ -4,3 +4,4 @@
 - [QuickProp Public Website](quickprop-web.md) — public marketplace at artifacts/web (/web/); public routes on API server, buyer cookie (qp_buyer), saved_properties table, Zod schema naming gotcha.
 - [QuickProp Admin Portal](quickprop-admin.md) — deep navy/blue theme; new admin-portal routes; codegen duplicate-schema pitfall; BuyerUpdate lacks status; seeded admin users.
 - [QuickProp Collaboration](quickprop-collaboration.md) — branch boundaries stand in for agencies until an agency data model exists.
+- [QuickProp Merge Recovery](quickprop-merge-recovery.md) — merge recovery checks must use sequential queries within a single PostgreSQL transaction client.

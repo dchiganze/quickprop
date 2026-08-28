@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useListDuplicateReviews } from '@workspace/api-client-react';
 import { AlertTriangle, Check, GitMerge, HelpCircle, X } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -19,13 +19,23 @@ async function applyReviewAction(id: number, action: string, canonicalPropertyId
 
 export default function Duplicates() {
   const { data, isLoading, refetch } = useListDuplicateReviews();
+  const [mergedReviews, setMergedReviews] = useState<NonNullable<typeof data>>([]);
   const { toast } = useToast();
+
+  const refreshMergedReviews = async () => {
+    const response = await fetch('/api/admin/duplicates?status=merged');
+    if (response.ok) setMergedReviews(await response.json());
+  };
+
+  useEffect(() => {
+    void refreshMergedReviews();
+  }, []);
 
   const act = async (id: number, action: string, canonicalPropertyId?: number) => {
     try {
       await applyReviewAction(id, action, canonicalPropertyId);
-      toast({ title: action === 'merge' ? 'Properties merged' : 'Review updated' });
-      refetch();
+      toast({ title: action === 'merge' ? 'Properties merged' : action === 'unmerge' ? 'Merge reversed' : 'Review updated' });
+      await Promise.all([refetch(), refreshMergedReviews()]);
     } catch {
       toast({ title: 'Could not update duplicate review', variant: 'destructive' });
     }
@@ -102,6 +112,40 @@ export default function Duplicates() {
             <p className="text-sm text-muted-foreground mt-1">New possible matches will appear here for a reversible decision.</p>
           </CardContent>
         </Card>
+      )}
+      {mergedReviews.length > 0 && (
+        <div className="space-y-3 pt-2">
+          <div>
+            <h2 className="text-base font-semibold">Merged history</h2>
+            <p className="text-sm text-muted-foreground mt-0.5">
+              Reverse a merge to restore the source property and its operational records.
+            </p>
+          </div>
+          {mergedReviews.map((review) => {
+            const source = review.sourceProperty;
+            const candidate = review.candidateProperty;
+            return (
+              <Card key={review.id} className="border-blue-200/70">
+                <CardContent className="py-4 flex flex-wrap items-center gap-3">
+                  <div className="mr-auto">
+                    <p className="font-medium">
+                      {source?.reference ?? `Property #${review.sourcePropertyId}`}
+                      <span className="text-muted-foreground font-normal"> merged into </span>
+                      {candidate?.reference ?? `Property #${review.candidatePropertyId}`}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      The canonical property remains available after reversal.
+                    </p>
+                  </div>
+                  <Badge variant="outline">Merged</Badge>
+                  <Button size="sm" variant="outline" onClick={() => act(review.id, 'unmerge')}>
+                    <GitMerge className="w-3.5 h-3.5 mr-1.5" /> Unmerge
+                  </Button>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
       )}
     </div>
   );

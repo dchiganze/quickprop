@@ -6,8 +6,10 @@ import {
   leadsTable,
   propertiesTable,
   propertyAgentRelationshipsTable,
+  propertyMarketingAssetsTable,
   propertyDuplicateReviewsTable,
   propertyMergeHistoryTable,
+  type PropertyMergeSnapshot,
   tasksTable,
   viewingsTable,
   documentsTable,
@@ -184,9 +186,11 @@ router.post("/properties/:id/health", async (req, res): Promise<void> => {
   res.json({ ok: true, status, confirmedAt: now.toISOString() });
 });
 
-router.get("/admin/duplicates", adminOnly, async (_req, res): Promise<void> => {
+router.get("/admin/duplicates", adminOnly, async (req, res): Promise<void> => {
+  const requestedStatus = typeof req.query.status === "string" ? req.query.status : "pending";
+  const status = requestedStatus === "merged" ? "merged" : "pending";
   const reviews = await db.select().from(propertyDuplicateReviewsTable)
-    .where(eq(propertyDuplicateReviewsTable.status, "pending"))
+    .where(eq(propertyDuplicateReviewsTable.status, status))
     .orderBy(desc(propertyDuplicateReviewsTable.confidenceScore), desc(propertyDuplicateReviewsTable.createdAt));
   const propertyIds = [...new Set(reviews.flatMap((review) => [review.sourcePropertyId, review.candidatePropertyId]))];
   const properties = propertyIds.length ? await db.select().from(propertiesTable).where(inArray(propertiesTable.id, propertyIds)) : [];
@@ -262,16 +266,55 @@ router.post("/admin/duplicates/:id/merge", adminOnly, async (req, res): Promise<
   const result = await db.transaction(async (tx) => {
     const [review] = await tx.select().from(propertyDuplicateReviewsTable).where(eq(propertyDuplicateReviewsTable.id, reviewId));
     if (!review || review.status === "merged") return null;
+    if (canonicalId !== review.sourcePropertyId && canonicalId !== review.candidatePropertyId) return null;
     const sourceId = review.sourcePropertyId === canonicalId ? review.candidatePropertyId : review.sourcePropertyId;
     const [canonical] = await tx.select().from(propertiesTable).where(eq(propertiesTable.id, canonicalId));
     const [source] = await tx.select().from(propertiesTable).where(eq(propertiesTable.id, sourceId));
     if (!canonical || !source) return null;
-    const sourceSnapshot = JSON.parse(JSON.stringify(source)) as Record<string, unknown>;
+    const sourceLeads = await tx.select().from(leadsTable).where(eq(leadsTable.propertyId, source.id));
+    const sourceTasks = await tx.select().from(tasksTable).where(eq(tasksTable.propertyId, source.id));
+    const sourceViewings = await tx.select().from(viewingsTable).where(eq(viewingsTable.propertyId, source.id));
+    const sourceDocuments = await tx.select().from(documentsTable).where(eq(documentsTable.propertyId, source.id));
+    const sourceSavedProperties = await tx.select().from(savedPropertiesTable).where(eq(savedPropertiesTable.propertyId, source.id));
+    const sourceMarketingAssets = await tx.select().from(propertyMarketingAssetsTable)
+      .where(eq(propertyMarketingAssetsTable.propertyId, source.id));
+    const sourceSnapshot = JSON.parse(JSON.stringify({
+      property: source,
+      leads: sourceLeads,
+      tasks: sourceTasks,
+      viewings: sourceViewings,
+      documents: sourceDocuments,
+      savedProperties: sourceSavedProperties,
+      marketingAssets: sourceMarketingAssets,
+    })) as PropertyMergeSnapshot;
     await tx.update(leadsTable).set({ propertyId: canonical.id }).where(eq(leadsTable.propertyId, source.id));
     await tx.update(tasksTable).set({ propertyId: canonical.id }).where(eq(tasksTable.propertyId, source.id));
     await tx.update(viewingsTable).set({ propertyId: canonical.id }).where(eq(viewingsTable.propertyId, source.id));
     await tx.update(documentsTable).set({ propertyId: canonical.id }).where(eq(documentsTable.propertyId, source.id));
-    await tx.update(savedPropertiesTable).set({ propertyId: canonical.id }).where(eq(savedPropertiesTable.propertyId, source.id));
+    // The unique user/property index means a user who saved both duplicates
+    // cannot have both rows moved to the canonical property. Keep the
+    // canonical row and discard only the duplicate source row.
+    const canonicalSavedUsers = new Set(
+      (await tx.select({ userId: savedPropertiesTable.userId })
+        .from(savedPropertiesTable)
+        .where(eq(savedPropertiesTable.propertyId, canonical.id)))
+        .map((row) => row.userId),
+    );
+    const conflictingSavedIds = sourceSavedProperties
+      .filter((row) => canonicalSavedUsers.has(row.userId))
+      .map((row) => row.id);
+    if (conflictingSavedIds.length > 0) {
+      await tx.delete(savedPropertiesTable).where(inArray(savedPropertiesTable.id, conflictingSavedIds));
+    }
+    const movableSavedIds = sourceSavedProperties
+      .filter((row) => !canonicalSavedUsers.has(row.userId))
+      .map((row) => row.id);
+    if (movableSavedIds.length > 0) {
+      await tx.update(savedPropertiesTable).set({ propertyId: canonical.id })
+        .where(inArray(savedPropertiesTable.id, movableSavedIds));
+    }
+    await tx.update(propertyMarketingAssetsTable).set({ propertyId: canonical.id })
+      .where(eq(propertyMarketingAssetsTable.propertyId, source.id));
     await tx.update(propertiesTable).set({
       views: (canonical.views ?? 0) + (source.views ?? 0),
       enquiries: (canonical.enquiries ?? 0) + (source.enquiries ?? 0),
@@ -318,14 +361,92 @@ router.post("/admin/duplicates/:id/unmerge", adminOnly, async (req, res): Promis
     res.status(404).json({ error: "No active merge history found" });
     return;
   }
-  const snapshot = history.snapshot as { status?: string; duplicateStatus?: string };
+  const rawSnapshot = history.snapshot as Partial<PropertyMergeSnapshot> & {
+    status?: string;
+    duplicateStatus?: string;
+  };
+  // Merges created before related-record snapshots were introduced stored the
+  // property directly. Keep those histories unmergeable as a compatibility
+  // path while using the wider snapshot for new merges.
+  const snapshot = rawSnapshot.property ?? rawSnapshot;
+  const sourceRows: Record<"leads" | "tasks" | "viewings" | "documents" | "savedProperties" | "marketingAssets", Array<Record<string, unknown>>> = {
+    leads: Array.isArray(rawSnapshot.leads) ? rawSnapshot.leads : [],
+    tasks: Array.isArray(rawSnapshot.tasks) ? rawSnapshot.tasks : [],
+    viewings: Array.isArray(rawSnapshot.viewings) ? rawSnapshot.viewings : [],
+    documents: Array.isArray(rawSnapshot.documents) ? rawSnapshot.documents : [],
+    savedProperties: Array.isArray(rawSnapshot.savedProperties) ? rawSnapshot.savedProperties : [],
+    marketingAssets: Array.isArray(rawSnapshot.marketingAssets) ? rawSnapshot.marketingAssets : [],
+  };
+  const snapshotRecord = snapshot as Record<string, unknown>;
+  const {
+    id: _sourceId,
+    createdAt: _sourceCreatedAt,
+    updatedAt: _sourceUpdatedAt,
+    ...sourcePropertyValues
+  } = snapshotRecord;
+  for (const key of [
+    "lastAvailabilityConfirmedAt",
+    "lastPriceConfirmedAt",
+    "publishedAt",
+  ]) {
+    const value = sourcePropertyValues[key];
+    if (typeof value === "string") sourcePropertyValues[key] = new Date(value);
+  }
   const result = await db.transaction(async (tx) => {
     const [source] = await tx.update(propertiesTable).set({
+      ...sourcePropertyValues,
       canonicalPropertyId: null,
-      status: snapshot.status ?? "draft",
-      duplicateStatus: snapshot.duplicateStatus ?? "clear",
       updatedAt: new Date(),
-    }).where(eq(propertiesTable.id, history.sourcePropertyId)).returning();
+    } as any).where(eq(propertiesTable.id, history.sourcePropertyId)).returning();
+    const restoreRows = async (
+      table: typeof leadsTable | typeof tasksTable | typeof viewingsTable | typeof documentsTable | typeof propertyMarketingAssetsTable,
+      rows: Array<Record<string, unknown>>,
+    ) => {
+      const ids = rows
+        .map((row) => row.id)
+        .filter((id): id is number => typeof id === "number");
+      if (ids.length === 0) return;
+      await tx.update(table).set({ propertyId: history.sourcePropertyId })
+        .where(and(eq(table.propertyId, history.canonicalPropertyId), inArray(table.id, ids)));
+    };
+    await restoreRows(leadsTable, sourceRows.leads);
+    await restoreRows(tasksTable, sourceRows.tasks);
+    await restoreRows(viewingsTable, sourceRows.viewings);
+    await restoreRows(documentsTable, sourceRows.documents);
+    await restoreRows(propertyMarketingAssetsTable, sourceRows.marketingAssets);
+
+    const savedRows = sourceRows.savedProperties.filter((row): row is Record<string, unknown> & {
+      userId: number;
+      savedAt?: string | Date | null;
+    } => typeof row.userId === "number");
+    if (savedRows.length > 0) {
+      // Non-conflicting rows still exist under the canonical property.
+      const savedIds = savedRows
+        .map((row) => row.id)
+        .filter((id): id is number => typeof id === "number");
+      if (savedIds.length > 0) {
+        await tx.update(savedPropertiesTable).set({ propertyId: history.sourcePropertyId })
+          .where(and(
+            eq(savedPropertiesTable.propertyId, history.canonicalPropertyId),
+            inArray(savedPropertiesTable.id, savedIds),
+          ));
+      }
+
+      // Rows that conflicted during merge were deleted. Restore those saved
+      // properties if the user has not created a new source save meanwhile.
+      const existingSourceSaves = await tx.select({ userId: savedPropertiesTable.userId })
+        .from(savedPropertiesTable)
+        .where(eq(savedPropertiesTable.propertyId, history.sourcePropertyId));
+      const existingUsers = new Set(existingSourceSaves.map((row) => row.userId));
+      const missingSavedRows = savedRows.filter((row) => !existingUsers.has(row.userId));
+      if (missingSavedRows.length > 0) {
+        await tx.insert(savedPropertiesTable).values(missingSavedRows.map((row) => ({
+          userId: row.userId,
+          propertyId: history.sourcePropertyId,
+          savedAt: row.savedAt ? new Date(row.savedAt) : undefined,
+        })));
+      }
+    }
     const [review] = await tx.update(propertyDuplicateReviewsTable).set({
       status: "pending",
       canonicalPropertyId: null,

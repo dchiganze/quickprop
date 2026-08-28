@@ -84,6 +84,21 @@ export const propertyMergeHistoryTable = pgTable("property_merge_history", {
   status: text("status").notNull().default("merged"),
 });
 
+/**
+ * The merge history snapshot is intentionally wider than the property row.
+ * Related records are moved during a merge and need their original ownership
+ * captured so an unmerge can put them back without guessing from current data.
+ */
+export type PropertyMergeSnapshot = {
+  property: Record<string, unknown>;
+  leads: Array<Record<string, unknown>>;
+  tasks: Array<Record<string, unknown>>;
+  viewings: Array<Record<string, unknown>>;
+  documents: Array<Record<string, unknown>>;
+  savedProperties: Array<Record<string, unknown>>;
+  marketingAssets: Array<Record<string, unknown>>;
+};
+
 export type PropertyAgentRelationship = typeof propertyAgentRelationshipsTable.$inferSelect;
 export type PropertyMarketingAsset = typeof propertyMarketingAssetsTable.$inferSelect;
 export type PropertyDuplicateReview = typeof propertyDuplicateReviewsTable.$inferSelect;
