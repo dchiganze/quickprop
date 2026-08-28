@@ -28,6 +28,7 @@ tags:
   - name: marketing
   - name: public
   - name: collaboration
+  - name: listing-housekeeping
 paths:
   /healthz:
     get:
@@ -1291,6 +1292,37 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/ListingHousekeepingPreferences" }
+  /listing-housekeeping/push-tokens:
+    post:
+      operationId: registerListingHousekeepingPushToken
+      tags: [listing-housekeeping]
+      summary: Register a device push token for listing reminders
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ListingHousekeepingPushTokenInput" }
+      responses:
+        "201":
+          description: Push token registered
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ListingHousekeepingPushToken" }
+    delete:
+      operationId: deactivateListingHousekeepingPushToken
+      tags: [listing-housekeeping]
+      summary: Stop sending reminders to a device
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ListingHousekeepingPushTokenInput" }
+      responses:
+        "200":
+          description: Push token deactivated
+          content:
+            application/json:
+              schema: { type: object, required: [ok], properties: { ok: { type: boolean } } }
   /admin/listing-health:
     get:
       operationId: getAdminListingHealth
@@ -2769,6 +2801,22 @@ components:
         pushEnabled: { type: boolean }
         emailEnabled: { type: boolean }
         reminderFrequency: { type: string }
+    ListingHousekeepingPushTokenInput:
+      type: object
+      required: [token]
+      properties:
+        token: { type: string }
+        platform: { type: string }
+    ListingHousekeepingPushToken:
+      type: object
+      required: [id, userId, token, platform, active]
+      properties:
+        id: { type: integer }
+        userId: { type: integer }
+        token: { type: string }
+        platform: { type: string }
+        active: { type: boolean }
+        lastSeenAt: { type: string }
     ListingHousekeepingEvent:
       type: object
       required: [id, propertyId, eventType, source, createdAt]
@@ -2807,11 +2855,20 @@ components:
         thresholds: { $ref: "#/components/schemas/ListingHousekeepingSettings" }
     HousekeepingRunResult:
       type: object
-      required: [properties, updated, reminders, ranAt]
+      required: [properties, updated, reminders, deliveries, ranAt]
       properties:
         properties: { type: integer }
         updated: { type: integer }
         reminders: { type: integer }
+        deliveries:
+          type: object
+          required: [attempted, sent, retried, failed, skipped]
+          properties:
+            attempted: { type: integer }
+            sent: { type: integer }
+            retried: { type: integer }
+            failed: { type: integer }
+            skipped: { type: integer }
         ranAt: { type: string }
     AdminAgent:
       type: object

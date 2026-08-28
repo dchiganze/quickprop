@@ -5,10 +5,12 @@
  * QuickProp Office API
  * OpenAPI spec version: 0.1.0
  */
+import type { HousekeepingRunResultDeliveries } from './housekeepingRunResultDeliveries';
 
 export interface HousekeepingRunResult {
   properties: number;
   updated: number;
   reminders: number;
+  deliveries: HousekeepingRunResultDeliveries;
   ranAt: string;
 }

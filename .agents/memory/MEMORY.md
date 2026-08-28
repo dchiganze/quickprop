@@ -5,3 +5,4 @@
 - [QuickProp Collaboration](quickprop-collaboration.md) — branch boundaries stand in for agencies until an agency data model exists.
 - [QuickProp Merge Recovery](quickprop-merge-recovery.md) — merge recovery checks must use sequential queries within a single PostgreSQL transaction client.
 - [QuickProp Office Bulk Imports](quickprop-office-imports.md) — private sources, draft-only records, explicit duplicate decisions, and Node-safe document parsing are non-negotiable.
+- [OpenAPI Contract Shape](openapi-contract-shape.md) — keep each operation's request and response blocks directly nested under its method so Orval can resolve the spec.

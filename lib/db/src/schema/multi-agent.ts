@@ -109,6 +109,48 @@ export const listingHousekeepingEventsTable = pgTable("listing_housekeeping_even
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+export const listingHousekeepingDeliveriesTable = pgTable(
+  "listing_housekeeping_deliveries",
+  {
+    id: serial("id").primaryKey(),
+    eventId: integer("event_id").notNull().references(() => listingHousekeepingEventsTable.id),
+    userId: integer("user_id").notNull().references(() => usersTable.id),
+    channel: text("channel").notNull(),
+    status: text("status").notNull().default("pending"),
+    attempts: integer("attempts").notNull().default(0),
+    nextAttemptAt: timestamp("next_attempt_at").notNull().defaultNow(),
+    payload: jsonb("payload").notNull(),
+    providerMessageId: text("provider_message_id"),
+    lastError: text("last_error"),
+    sentAt: timestamp("sent_at"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("listing_housekeeping_delivery_event_channel_unique").on(
+      table.eventId,
+      table.userId,
+      table.channel,
+    ),
+  ],
+);
+
+export const userPushTokensTable = pgTable(
+  "user_push_tokens",
+  {
+    id: serial("id").primaryKey(),
+    userId: integer("user_id").notNull().references(() => usersTable.id),
+    token: text("token").notNull(),
+    platform: text("platform").notNull().default("unknown"),
+    active: boolean("active").notNull().default(true),
+    lastSeenAt: timestamp("last_seen_at").notNull().defaultNow(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("user_push_tokens_user_token_unique").on(table.userId, table.token),
+  ],
+);
+
 export const listingHousekeepingSettingsTable = pgTable("listing_housekeeping_settings", {
   id: serial("id").primaryKey(),
   softReminderDays: integer("soft_reminder_days").notNull().default(7),

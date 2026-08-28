@@ -9,6 +9,7 @@ import {
   propertiesTable,
   propertyAgentRelationshipsTable,
   tasksTable,
+  userPushTokensTable,
   type Property,
   type PropertyAgentRelationship,
 } from "@workspace/db";
@@ -333,6 +334,39 @@ router.patch("/listing-housekeeping/preferences", async (req, res): Promise<void
   const [row] = await db.insert(listingHousekeepingPreferencesTable).values(values)
     .onConflictDoUpdate({ target: listingHousekeepingPreferencesTable.userId, set: values }).returning();
   res.json(jsonify(row));
+});
+
+router.post("/listing-housekeeping/push-tokens", async (req, res): Promise<void> => {
+  const user = await currentUser(req);
+  const token = typeof req.body?.token === "string" ? req.body.token.trim() : "";
+  const platform = typeof req.body?.platform === "string" ? req.body.platform.trim() : "unknown";
+  if (!token || token.length > 500) {
+    res.status(400).json({ error: "A valid push token is required" });
+    return;
+  }
+  const [row] = await db.insert(userPushTokensTable).values({
+    userId: user!.id,
+    token,
+    platform: platform || "unknown",
+    active: true,
+    lastSeenAt: new Date(),
+  }).onConflictDoUpdate({
+    target: [userPushTokensTable.userId, userPushTokensTable.token],
+    set: { platform: platform || "unknown", active: true, lastSeenAt: new Date() },
+  }).returning();
+  res.status(201).json(jsonify(row));
+});
+
+router.delete("/listing-housekeeping/push-tokens", async (req, res): Promise<void> => {
+  const user = await currentUser(req);
+  const token = typeof req.body?.token === "string" ? req.body.token.trim() : "";
+  if (!token) {
+    res.status(400).json({ error: "A push token is required" });
+    return;
+  }
+  await db.update(userPushTokensTable).set({ active: false })
+    .where(and(eq(userPushTokensTable.userId, user!.id), eq(userPushTokensTable.token, token)));
+  res.json({ ok: true });
 });
 
 router.get("/admin/listing-health", adminOnly, async (_req, res): Promise<void> => {

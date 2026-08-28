@@ -1,12 +1,15 @@
 import { and, eq, inArray, isNull } from "drizzle-orm";
 import {
   db,
+  listingHousekeepingDeliveriesTable,
   listingHousekeepingEventsTable,
+  listingHousekeepingPreferencesTable,
   listingHousekeepingSettingsTable,
   notificationsTable,
   propertiesTable,
   propertyAgentRelationshipsTable,
   tasksTable,
+  usersTable,
 } from "@workspace/db";
 import {
   calculateFreshness,
@@ -14,6 +17,8 @@ import {
   HOUSEKEEPING_ACTIVE_STATUSES,
   type HousekeepingSettings,
 } from "./housekeeping";
+import { deliverDueHousekeepingReminders, REMINDER_CHANNELS, type ReminderDeliveryPayload } from "./housekeeping-delivery";
+import { logger } from "./logger";
 
 async function getSettings(): Promise<HousekeepingSettings> {
   const [row] = await db.select().from(listingHousekeepingSettingsTable).limit(1);
@@ -119,65 +124,104 @@ export async function runHousekeepingCycle() {
         if (!existingReminder) {
           const agentId = r?.agentId ?? property.agentId!;
           const label = computed.freshnessStatus === "stale" ? "stale" : computed.freshnessStatus.replace("_", " ");
-          await db.insert(listingHousekeepingEventsTable).values({
-            listingId: r?.id ?? property.id,
-            propertyId: property.id,
-            relationshipId: r?.id ?? null,
-            agentId,
-            agencyId: r?.branchId ?? property.branchId,
-            eventType: "reminder",
-            previousStatus,
-            newStatus: computed.freshnessStatus,
+          const deliveryPayload: ReminderDeliveryPayload = {
+            reference: property.reference,
+            title: property.title,
+            freshnessStatus: computed.freshnessStatus,
             reminderKey: computed.reminderKey,
-            source: "system",
-            metadata: { runAt: now.toISOString() },
-          });
-          await db.insert(notificationsTable).values({
-            userId: agentId,
-            type: "listing_housekeeping",
-            title: `Listing ${label}: ${property.reference}`,
-            message: `Confirm availability or update ${property.title} before it becomes stale.`,
-          });
-          const [openTask] = await db.select({ id: tasksTable.id }).from(tasksTable).where(and(
-            eq(tasksTable.propertyId, property.id),
-            eq(tasksTable.assigneeId, agentId),
-            eq(tasksTable.type, "listing_confirmation"),
-            eq(tasksTable.status, "open"),
-          )).limit(1);
-          if (!openTask) {
-            await db.insert(tasksTable).values({
-              title: `Confirm listing: ${property.reference}`,
-              description: `Housekeeping reminder — ${property.title}`,
-              type: "listing_confirmation",
-              assigneeId: agentId,
+            message: `Confirm availability or update ${property.title} (${property.reference}) before it becomes stale.`,
+          };
+          const createdReminder = await db.transaction(async (tx) => {
+            // The event is the source record for all channel deliveries. A retry
+            // only changes its delivery row and never creates another reminder.
+            const [alreadyCreated] = await tx.select({ id: listingHousekeepingEventsTable.id })
+              .from(listingHousekeepingEventsTable).where(and(...eventConditions)).limit(1);
+            if (alreadyCreated) return false;
+
+            const [event] = await tx.insert(listingHousekeepingEventsTable).values({
+              listingId: r?.id ?? property.id,
               propertyId: property.id,
-              dueDate: now.toISOString().slice(0, 10),
-              priority: computed.freshnessStatus === "stale" ? "high" : "medium",
-              status: "open",
+              relationshipId: r?.id ?? null,
+              agentId,
+              agencyId: r?.branchId ?? property.branchId,
+              eventType: "reminder",
+              previousStatus,
+              newStatus: computed.freshnessStatus,
+              reminderKey: computed.reminderKey,
+              source: "system",
+              metadata: { runAt: now.toISOString() },
+            }).returning({ id: listingHousekeepingEventsTable.id });
+            if (!event) throw new Error("Unable to create housekeeping reminder event");
+
+            await tx.insert(notificationsTable).values({
+              userId: agentId,
+              type: "listing_housekeeping",
+              title: `Listing ${label}: ${property.reference}`,
+              message: deliveryPayload.message,
             });
-          }
-          reminders++;
-          if (r) {
-            await db.update(propertyAgentRelationshipsTable).set({
-              lastReminderSentAt: now,
-              reminderCount: previousReminderCount + 1,
-            }).where(eq(propertyAgentRelationshipsTable.id, r.id));
-          } else {
-            await db.update(propertiesTable).set({
-              lastReminderSentAt: now,
-              reminderCount: previousReminderCount + 1,
-            }).where(eq(propertiesTable.id, property.id));
+            const [openTask] = await tx.select({ id: tasksTable.id }).from(tasksTable).where(and(
+              eq(tasksTable.propertyId, property.id),
+              eq(tasksTable.assigneeId, agentId),
+              eq(tasksTable.type, "listing_confirmation"),
+              eq(tasksTable.status, "open"),
+            )).limit(1);
+            if (!openTask) {
+              await tx.insert(tasksTable).values({
+                title: `Confirm listing: ${property.reference}`,
+                description: `Housekeeping reminder — ${property.title}`,
+                type: "listing_confirmation",
+                assigneeId: agentId,
+                propertyId: property.id,
+                dueDate: now.toISOString().slice(0, 10),
+                priority: computed.freshnessStatus === "stale" ? "high" : "medium",
+                status: "open",
+              });
+            }
+
+            const [preferences] = await tx.select().from(listingHousekeepingPreferencesTable)
+              .where(eq(listingHousekeepingPreferencesTable.userId, agentId)).limit(1);
+            const frequency = preferences?.reminderFrequency ?? "smart";
+            const shouldDeliver = frequency !== "never"
+              && (frequency !== "stale_only" || computed.reminderKey === "overdue-30")
+              && (frequency !== "urgent" || ["overdue-14", "overdue-30"].includes(computed.reminderKey ?? ""));
+            if (shouldDeliver) {
+              const enabledChannels = REMINDER_CHANNELS.filter((channel) => preferences?.[`${channel}Enabled`] ?? true);
+              if (enabledChannels.length) {
+                await tx.insert(listingHousekeepingDeliveriesTable).values(enabledChannels.map((channel) => ({
+                  eventId: event.id,
+                  userId: agentId,
+                  channel,
+                  payload: deliveryPayload,
+                })));
+              }
+            }
+            return true;
+          });
+          if (createdReminder) {
+            reminders++;
+            if (r) {
+              await db.update(propertyAgentRelationshipsTable).set({
+                lastReminderSentAt: now,
+                reminderCount: previousReminderCount + 1,
+              }).where(eq(propertyAgentRelationshipsTable.id, r.id));
+            } else {
+              await db.update(propertiesTable).set({
+                lastReminderSentAt: now,
+                reminderCount: previousReminderCount + 1,
+              }).where(eq(propertiesTable.id, property.id));
+            }
           }
         }
       }
     }
   }
-  return { properties: properties.length, updated, reminders, ranAt: now };
+  const deliveries = await deliverDueHousekeepingReminders();
+  return { properties: properties.length, updated, reminders, deliveries, ranAt: now };
 }
 
 export function startHousekeepingScheduler() {
   const run = () => runHousekeepingCycle().catch((error) => {
-    console.error("Listing housekeeping cycle failed", error);
+    logger.error({ error }, "Listing housekeeping cycle failed");
   });
   setTimeout(run, 5_000);
   return setInterval(run, 24 * 60 * 60 * 1000);

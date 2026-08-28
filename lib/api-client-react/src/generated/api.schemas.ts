@@ -1225,6 +1225,10 @@ export interface ListingHousekeepingPreferences {
   reminderFrequency: string;
 }
 
+export interface ListingHousekeepingPushTokenInput {
+  token: string;
+  platform?: string;
+}
 export interface ListingHousekeepingEvent {
   id: number;
   /** @nullable */
@@ -1265,10 +1269,18 @@ export interface AdminListingHealth {
   thresholds: ListingHousekeepingSettings;
 }
 
+export type HousekeepingRunResultDeliveries = {
+  attempted: number;
+  sent: number;
+  retried: number;
+  failed: number;
+  skipped: number;
+};
 export interface HousekeepingRunResult {
   properties: number;
   updated: number;
   reminders: number;
+  deliveries: HousekeepingRunResultDeliveries;
   ranAt: string;
 }
 
@@ -1556,7 +1568,19 @@ limit?: number;
 sort?: string;
 };
 
+export type DeactivateListingHousekeepingPushToken200 = {
+  ok: boolean;
+};
 export type ModerateProperty200 = {
   ok?: boolean;
 };
 
+
+export interface ListingHousekeepingPushToken {
+  id: number;
+  userId: number;
+  token: string;
+  platform: string;
+  active: boolean;
+  lastSeenAt?: string;
+}

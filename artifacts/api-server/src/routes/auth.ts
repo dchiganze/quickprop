@@ -11,6 +11,9 @@ import {
   documentsTable,
   leadTimelineTable,
   leadsTable,
+  listingHousekeepingDeliveriesTable,
+  listingHousekeepingEventsTable,
+  listingHousekeepingPreferencesTable,
   notificationsTable,
   priceHistoryTable,
   propertiesTable,
@@ -182,6 +185,9 @@ router.delete("/auth/account", requireAuth, async (req, res): Promise<void> => {
     // Delete leaf records first. Where a record can reference an owned
     // property or lead, include all such paths before deleting its parent.
     await tx.delete(notificationsTable).where(eq(notificationsTable.userId, user.id));
+    await tx.delete(listingHousekeepingDeliveriesTable).where(eq(listingHousekeepingDeliveriesTable.userId, user.id));
+    await tx.delete(listingHousekeepingPreferencesTable).where(eq(listingHousekeepingPreferencesTable.userId, user.id));
+    await tx.delete(listingHousekeepingEventsTable).where(eq(listingHousekeepingEventsTable.agentId, user.id));
     await tx.delete(auditLogTable).where(eq(auditLogTable.userId, user.id));
     await tx.delete(savedPropertiesTable).where(eq(savedPropertiesTable.userId, user.id));
     await tx.delete(collaborationMatchRequestsTable).where(or(

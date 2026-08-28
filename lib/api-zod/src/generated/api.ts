@@ -133,9 +133,6 @@ export const ListPropertiesResponseItem = zod.object({
 export const ListPropertiesResponse = zod.array(ListPropertiesResponseItem)
 
 
-
-
-
 export const CreatePropertyBody = zod.object({
   "title": zod.string(),
   "description": zod.string().optional(),
@@ -289,8 +286,6 @@ export const GetPropertyResponse = zod.object({
 export const UpdatePropertyParams = zod.object({
   "id": zod.coerce.number()
 })
-
-
 
 
 export const UpdatePropertyBody = zod.object({
@@ -598,7 +593,6 @@ export const ListCollaborationRequestsResponse = zod.array(ListCollaborationRequ
 
 
 export const createCollaborationRequestBodyMessageMax = 2000;
-
 
 
 export const CreateCollaborationRequestBody = zod.object({
@@ -2746,7 +2740,13 @@ export const UpdateListingHousekeepingPreferencesResponse = zod.object({
   "reminderFrequency": zod.string()
 })
 
-
+/**
+ * @summary Register a device push token for listing reminders
+ */
+export const RegisterListingHousekeepingPushTokenBody = zod.object({
+  "token": zod.string(),
+  "platform": zod.string().optional()
+})
 /**
  * @summary Platform listing health and agent freshness scores
  */
@@ -2826,6 +2826,13 @@ export const RunAdminListingHousekeepingResponse = zod.object({
   "properties": zod.number(),
   "updated": zod.number(),
   "reminders": zod.number(),
+  "deliveries": zod.object({
+  "attempted": zod.number(),
+  "sent": zod.number(),
+  "retried": zod.number(),
+  "failed": zod.number(),
+  "skipped": zod.number()
+}),
   "ranAt": zod.string()
 })
 
@@ -3497,7 +3504,6 @@ export const ListImportSessionsResponse = zod.array(ListImportSessionsResponseIt
  */
 
 
-
 export const CreateImportSessionBody = zod.object({
   "files": zod.array(zod.object({
   "fileName": zod.string(),
@@ -3801,3 +3807,23 @@ export const AskImportAssistantResponse = zod.object({
 })
 
 
+export const DeactivateListingHousekeepingPushTokenResponse = zod.object({
+  "ok": zod.boolean()
+})
+
+export const RegisterListingHousekeepingPushTokenResponse = zod.object({
+  "id": zod.number(),
+  "userId": zod.number(),
+  "token": zod.string(),
+  "platform": zod.string(),
+  "active": zod.boolean(),
+  "lastSeenAt": zod.string().optional()
+})
+
+/**
+ * @summary Stop sending reminders to a device
+ */
+export const DeactivateListingHousekeepingPushTokenBody = zod.object({
+  "token": zod.string(),
+  "platform": zod.string().optional()
+})

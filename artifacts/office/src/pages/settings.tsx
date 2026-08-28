@@ -1,12 +1,56 @@
-import React from 'react';
+import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Building2, Palette, Bell } from 'lucide-react';
+import {
+  useGetListingHousekeepingPreferences,
+  useUpdateListingHousekeepingPreferences,
+} from '@workspace/api-client-react';
+
+const DEFAULT_REMINDER_PREFERENCES = {
+  whatsappEnabled: true,
+  pushEnabled: true,
+  emailEnabled: true,
+  reminderFrequency: 'smart',
+};
 
 export default function Settings() {
+  const preferencesQuery = useGetListingHousekeepingPreferences();
+  const updatePreferences = useUpdateListingHousekeepingPreferences();
+  const [reminderPreferences, setReminderPreferences] = useState(DEFAULT_REMINDER_PREFERENCES);
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    if (preferencesQuery.data) {
+      setReminderPreferences({
+        whatsappEnabled: preferencesQuery.data.whatsappEnabled,
+        pushEnabled: preferencesQuery.data.pushEnabled,
+        emailEnabled: preferencesQuery.data.emailEnabled,
+        reminderFrequency: preferencesQuery.data.reminderFrequency,
+      });
+    }
+  }, [preferencesQuery.data]);
+
+  const saveReminderPreferences = () => {
+    setSaved(false);
+    updatePreferences.mutate({
+      data: reminderPreferences,
+    }, {
+      onSuccess: (next) => {
+        setReminderPreferences({
+          whatsappEnabled: next.whatsappEnabled,
+          pushEnabled: next.pushEnabled,
+          emailEnabled: next.emailEnabled,
+          reminderFrequency: next.reminderFrequency,
+        });
+        setSaved(true);
+      },
+    });
+  };
+
   return (
     <div className="p-8 max-w-[1000px] mx-auto space-y-8">
       <div>
@@ -93,6 +137,48 @@ export default function Settings() {
                 <p className="text-sm text-muted-foreground">Receive automated performance summary.</p>
               </div>
               <Switch defaultChecked />
+            </div>
+            <div className="border-t pt-5">
+              <div className="mb-4">
+                <Label className="text-base font-semibold">Listing reminder delivery</Label>
+                <p className="text-sm text-muted-foreground">Choose where due-soon and stale listing reminders are delivered.</p>
+              </div>
+              <div className="space-y-4">
+                {([
+                  ['whatsappEnabled', 'WhatsApp', 'Send reminders to your saved mobile number.'],
+                  ['pushEnabled', 'Push notifications', 'Show reminders on registered QuickProp devices.'],
+                  ['emailEnabled', 'Email', 'Send reminders to your account email address.'],
+                ] as const).map(([key, label, description]) => (
+                  <div className="flex items-center justify-between gap-4" key={key}>
+                    <div>
+                      <Label className="text-sm font-medium">{label}</Label>
+                      <p className="text-xs text-muted-foreground">{description}</p>
+                    </div>
+                    <Switch
+                      checked={reminderPreferences[key]}
+                      onCheckedChange={(checked) => {
+                        setSaved(false);
+                        setReminderPreferences((current) => ({ ...current, [key]: checked }));
+                      }}
+                      disabled={preferencesQuery.isLoading || updatePreferences.isPending}
+                      aria-label={`${label} listing reminders`}
+                    />
+                  </div>
+                ))}
+              </div>
+              <div className="mt-5 flex items-center justify-between gap-3">
+                <p className="text-xs text-muted-foreground">
+                  {preferencesQuery.isError ? 'Could not load saved reminder preferences.' : saved ? 'Reminder preferences saved.' : 'Changes apply to future reminders.'}
+                </p>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={saveReminderPreferences}
+                  disabled={preferencesQuery.isLoading || updatePreferences.isPending}
+                >
+                  {updatePreferences.isPending ? 'Saving…' : 'Save reminder settings'}
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
