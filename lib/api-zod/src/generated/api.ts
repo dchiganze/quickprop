@@ -3699,7 +3699,7 @@ export const BulkImportActionParams = zod.object({
 
 export const BulkImportActionBody = zod.object({
   "recordIds": zod.array(zod.number()),
-  "action": zod.string().describe('approve | reject | assign | mark_duplicate | clear_duplicate'),
+  "action": zod.string().describe('approve | reject | assign | mark_duplicate | link_duplicate | clear_duplicate'),
   "agentId": zod.number().nullish()
 })
 

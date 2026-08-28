@@ -7,6 +7,7 @@ import mammoth from "mammoth";
 import {
   db,
   importChangesTable,
+  importFieldConfidenceTable,
   importFilesTable,
   importRecordsTable,
   importSessionsTable,
@@ -249,9 +250,12 @@ async function processSession(sessionId: number, agencyId: number, mapping: Reco
       const response = await fetch(signedUrl, { signal: AbortSignal.timeout(60_000) });
       if (!response.ok) throw new Error(`Could not download ${file.fileName} from private storage.`);
       const { rows, sourceType } = await extractRows(file.fileName, Buffer.from(await response.arrayBuffer()));
+      const existingRows = await db.select().from(importRecordsTable).where(eq(importRecordsTable.sourceFileId, file.id));
+      const existingByLocation = new Map(existingRows.map((record) => [record.sourceLocation, record]));
       let createdCount = 0;
       for (let rowIndex = 0; rowIndex < rows.length; rowIndex += 1) {
         const rawData = rows[rowIndex];
+        const sourceLocation = sourceType === "spreadsheet" ? `row ${rowIndex + 2}` : `section ${rowIndex + 1}`;
         const data = normaliseRow(rawData, mapping);
         const confidence = confidenceFor(data, sourceType);
         const confidenceValues = Object.values(confidence);
@@ -260,6 +264,7 @@ async function processSession(sessionId: number, agencyId: number, mapping: Reco
         let duplicateStatus = "clear";
         let matchedPropertyId: number | null = null;
         let duplicateMatch: LooseRecord | null = null;
+        let changeSummary: string[] = [];
         if (data.address || data.suburb || data.price) {
           const candidates = await findDuplicateCandidates({
             address: asText(data.address),
@@ -284,25 +289,47 @@ async function processSession(sessionId: number, agencyId: number, mapping: Reco
               confidenceScore: match.confidenceScore,
               matchingFields: match.matchingFields,
             };
+            changeSummary = [
+              "price", "currency", "description", "bedrooms", "bathrooms", "mandateExpiry", "availability",
+            ].filter((field) => data[field] != null && asText(data[field]) !== asText((match.property as LooseRecord)[field]));
           }
         }
         const mandateStatus = mandateState(data.mandateExpiry);
-        await db.insert(importRecordsTable).values({
-          sessionId,
-          sourceFileId: file.id,
-          sourceLocation: sourceType === "spreadsheet" ? `row ${rowIndex + 2}` : `section ${rowIndex + 1}`,
+        const existing = existingByLocation.get(sourceLocation);
+        const recordValues = {
           rawData,
           extractedData: data,
           fieldConfidence: confidence,
           confidenceScore,
-          reviewStatus: "draft",
           duplicateStatus,
           matchedPropertyId,
           validationIssues,
           mandateStatus,
           agentMatchStatus: data.agent ? "suggested" : "unmatched",
-          sourceMetadata: { sourceType, duplicateMatch },
-        });
+          sourceMetadata: { sourceType, duplicateMatch, changeSummary },
+          updatedAt: new Date(),
+        };
+        const [saved] = existing
+          ? await db.update(importRecordsTable).set({
+            ...recordValues,
+            reviewStatus: existing.correctedData ? existing.reviewStatus : "draft",
+          }).where(eq(importRecordsTable.id, existing.id)).returning()
+          : await db.insert(importRecordsTable).values({
+            sessionId,
+            sourceFileId: file.id,
+            sourceLocation,
+            ...recordValues,
+            reviewStatus: "draft",
+          }).returning();
+        await db.delete(importFieldConfidenceTable).where(eq(importFieldConfidenceTable.recordId, saved.id));
+        const confidenceRows = Object.entries(confidence).map(([fieldName, score]) => ({
+          recordId: saved.id,
+          fieldName,
+          extractedValue: data[fieldName] == null ? null : asText(data[fieldName]),
+          confidenceScore: score,
+          sourceReference: `${file.fileName} · ${sourceLocation}`,
+        }));
+        if (confidenceRows.length) await db.insert(importFieldConfidenceTable).values(confidenceRows);
         createdCount += 1;
       }
       await db.update(importFilesTable).set({ processingStatus: "complete", extractedRecordCount: createdCount, updatedAt: new Date() }).where(eq(importFilesTable.id, file.id));
@@ -340,6 +367,9 @@ router.post("/imports/sessions", async (req, res): Promise<void> => {
   if (files.some((file) => !IMPORT_EXTENSIONS.has(extname(asText(file.fileName)).toLowerCase()))) {
     res.status(400).json({ error: "One or more file types are not supported." }); return;
   }
+  if (files.some((file) => !asText(file.storagePath).startsWith(`/objects/uploads/${user.id}/`))) {
+    res.status(403).json({ error: "Source files must belong to the authenticated user." }); return;
+  }
   const agencyId = agencyIdFor(user);
   const [session] = await db.insert(importSessionsTable).values({
     reference: `IMP-${new Date().getFullYear()}-${randomUUID().slice(0, 8).toUpperCase()}`,
@@ -373,6 +403,7 @@ router.post("/imports/sessions/:id/process", async (req, res): Promise<void> => 
   if (!user) { res.status(401).json({ error: "Not authenticated" }); return; }
   const session = await sessionFor(id, agencyIdFor(user));
   if (!session) { res.status(404).json({ error: "Import session not found." }); return; }
+  if (session.status === "published") { res.status(409).json({ error: "Published sessions cannot be reprocessed." }); return; }
   if (req.body?.columnMapping && typeof req.body.columnMapping !== "object") {
     res.status(400).json({ error: "Column mapping must be an object." }); return;
   }
@@ -431,6 +462,12 @@ router.post("/imports/sessions/:id/bulk-action", async (req, res): Promise<void>
   if (action === "approve") update.reviewStatus = "approved";
   else if (action === "reject") update.reviewStatus = "rejected";
   else if (action === "clear_duplicate") update.duplicateStatus = "clear";
+  else if (action === "link_duplicate") {
+    if (records.some((record) => !record.matchedPropertyId)) {
+      res.status(400).json({ error: "Every selected record needs a matched property before it can be linked." }); return;
+    }
+    update.duplicateStatus = "link_existing";
+  }
   else if (action === "mark_duplicate") update.duplicateStatus = "possible";
   else if (action === "assign" && (req.body.agentId === null || Number.isInteger(req.body.agentId))) {
     update.agentId = req.body.agentId;
@@ -454,12 +491,12 @@ router.post("/imports/sessions/:id/publish", async (req, res): Promise<void> => 
   for (const record of records) {
     const data = effectiveData(record);
     const issues = validateData(data, "spreadsheet").filter((issue) => !issue.includes("Image needs"));
-    if (record.reviewStatus !== "approved" || issues.length || (record.duplicateStatus === "possible" && !record.matchedPropertyId)) {
+    if (record.reviewStatus !== "approved" || issues.length || record.duplicateStatus === "possible" || (record.duplicateStatus === "link_existing" && !record.matchedPropertyId)) {
       errors.push(`Record ${record.id}: approve the record and resolve validation or duplicate issues first.`);
       continue;
     }
     try {
-      let propertyId = record.matchedPropertyId;
+      let propertyId = record.duplicateStatus === "link_existing" ? record.matchedPropertyId : null;
       if (!propertyId) {
         const [property] = await db.insert(propertiesTable).values({
           reference: asText(data.reference) || `pending-${randomUUID()}`,

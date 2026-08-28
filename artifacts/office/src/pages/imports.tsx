@@ -32,6 +32,7 @@ import { cn } from '@/lib/utils';
 
 type RouteProps = { params?: { id?: string } };
 type DraftData = Record<string, unknown>;
+const mappingFields = ['reference', 'address', 'suburb', 'city', 'price', 'currency', 'propertyType', 'bedrooms', 'bathrooms', 'description', 'agent', 'mandateType', 'mandateStart', 'mandateExpiry'] as const;
 
 const toRecord = (value: unknown): DraftData => (
   value && typeof value === 'object' && !Array.isArray(value) ? value as DraftData : {}
@@ -94,7 +95,7 @@ function NewImportDialog({ onCreated }: { onCreated: (id: number) => void }) {
 
   const addFiles = (incoming: FileList | null) => {
     if (!incoming) return;
-    const accepted = Array.from(incoming).filter((file) => /\.(csv|xlsx|xls|pdf|docx)$/i.test(file.name));
+    const accepted = Array.from(incoming).filter((file) => /\.(csv|xlsx|xls|pdf|docx|txt|jpg|jpeg|png)$/i.test(file.name));
     setFiles((current) => [...current, ...accepted.filter((file) => !current.some((existing) => existing.name === file.name && existing.size === file.size))]);
   };
 
@@ -147,9 +148,9 @@ function NewImportDialog({ onCreated }: { onCreated: (id: number) => void }) {
           onDrop={(event) => { event.preventDefault(); addFiles(event.dataTransfer.files); }}
         >
           <Upload className="mx-auto mb-3 h-8 w-8 text-primary" />
-          <p className="text-sm font-bold">Drop CSV, Excel, PDF or Word (DOCX) files here</p>
+          <p className="text-sm font-bold">Drop spreadsheets, documents, text or listing images here</p>
           <p className="mt-1 text-xs text-muted-foreground">Multiple files supported · 25 MB per file</p>
-          <input ref={inputRef} type="file" multiple accept=".csv,.xlsx,.xls,.pdf,.docx" className="hidden" onChange={(event) => addFiles(event.target.files)} />
+          <input ref={inputRef} type="file" multiple accept=".csv,.xlsx,.xls,.pdf,.docx,.txt,.jpg,.jpeg,.png" className="hidden" onChange={(event) => addFiles(event.target.files)} />
         </div>
         {files.length > 0 && (
           <div className="space-y-2">
@@ -300,6 +301,8 @@ function ImportDetail({ id }: { id: number }) {
   const [agentId, setAgentId] = useState('');
   const [actionBusy, setActionBusy] = useState(false);
   const [publishError, setPublishError] = useState('');
+  const [mappingOpen, setMappingOpen] = useState(false);
+  const [columnMapping, setColumnMapping] = useState<Record<string, string>>({});
   const { data: detail, isLoading, error, refetch } = useGetImportSession(id, { query: { queryKey: getGetImportSessionQueryKey(id), refetchInterval: (query) => isProcessing(query.state.data) ? 1800 : false } });
   const processSession = useProcessImportSession();
   const updateRecord = useUpdateImportRecord();
@@ -314,11 +317,15 @@ function ImportDetail({ id }: { id: number }) {
     });
   }, [detail?.records]);
 
+  useEffect(() => {
+    if (detail?.columnMapping) setColumnMapping(detail.columnMapping);
+  }, [detail?.columnMapping]);
+
   const records = useMemo(() => {
     const result = (detail?.records || []).filter((record) => {
       const data = toRecord(record.data);
       const haystack = `${data.title || ''} ${data.address || ''} ${data.suburb || ''} ${record.sourceFileName || ''}`.toLowerCase();
-      const filterMatch = filter === 'all' || (filter === 'duplicates' ? record.duplicateStatus !== 'none' : filter === 'review' ? ['needs_review', 'review', 'pending'].includes(record.reviewStatus) : filter === record.reviewStatus);
+      const filterMatch = filter === 'all' || (filter === 'duplicates' ? ['possible', 'link_existing'].includes(record.duplicateStatus) : filter === 'review' ? ['draft', 'needs_review', 'review', 'pending'].includes(record.reviewStatus) : filter === record.reviewStatus);
       return filterMatch && haystack.includes(search.toLowerCase());
     }).sort((a, b) => sort === 'confidence' ? b.confidenceScore - a.confidenceScore : (a.sourceFileName || '').localeCompare(b.sourceFileName || ''));
     return result;
@@ -351,7 +358,7 @@ function ImportDetail({ id }: { id: number }) {
     finally { setActionBusy(false); }
   };
   const startProcessing = async () => {
-    try { await processSession.mutateAsync({ id, data: {} }); queryClient.invalidateQueries({ queryKey: getListImportSessionsQueryKey() }); await refetch(); toast({ title: 'Processing started', description: 'Extraction and duplicate matching are running in the background.' }); }
+    try { await processSession.mutateAsync({ id, data: { columnMapping } }); setMappingOpen(false); queryClient.invalidateQueries({ queryKey: getListImportSessionsQueryKey() }); await refetch(); toast({ title: 'Processing started', description: 'Extraction and duplicate matching are running in the background.' }); }
     catch { toast({ title: 'Processing failed to start', description: 'The source files were not processed. Nothing was published.', variant: 'destructive' }); }
   };
   const publish = async () => {
@@ -385,6 +392,7 @@ function ImportDetail({ id }: { id: number }) {
         <div className="mx-auto flex max-w-[1740px] items-center gap-4">
           <Button variant="ghost" size="icon" onClick={() => setLocation('/imports')} aria-label="Back to imports"><ArrowLeft className="h-4 w-4" /></Button>
           <div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><span className="font-mono text-sm font-bold">{detail.reference}</span><StatusPill value={detail.status} />{processing && <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary"><Loader2 className="h-3.5 w-3.5 animate-spin" /> {titleCase(detail.currentStage || 'processing')}</span>}</div><p className="mt-1 text-xs text-muted-foreground">{detail.totalFiles} sources · last updated {formatDate(detail.updatedAt)} · AI suggestions are draft only</p></div>
+          <Button variant="outline" size="sm" onClick={() => setMappingOpen(true)} className="hidden gap-2 sm:flex"><SlidersHorizontal className="h-3.5 w-3.5" /> Column mapping</Button>
           <Button variant="outline" size="sm" onClick={downloadErrors} className="hidden gap-2 sm:flex"><Download className="h-3.5 w-3.5" /> Error report</Button>
           {processing ? <Button size="sm" variant="outline" onClick={() => refetch()} className="gap-2"><RefreshCw className="h-3.5 w-3.5" /> Poll now</Button> : <Button size="sm" onClick={startProcessing} disabled={processSession.isPending || detail.status === 'published'} className="gap-2">{processSession.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Play className="h-3.5 w-3.5" />}{detail.totalRecords ? 'Re-run processing' : 'Process sources'}</Button>}
         </div>
@@ -401,7 +409,7 @@ function ImportDetail({ id }: { id: number }) {
               <div><CardTitle className="text-base">Review ledger</CardTitle><p className="mt-1 text-xs text-muted-foreground">Edit extracted values, verify provenance, then apply a decision.</p></div>
               <div className="flex flex-wrap items-center gap-2"><div className="relative"><Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" /><Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Find title or source" className="h-8 w-44 pl-8 text-xs" /></div><Select value={filter} onValueChange={setFilter}><SelectTrigger className="h-8 w-[130px] text-xs"><Filter className="mr-1.5 h-3.5 w-3.5" /><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All rows</SelectItem><SelectItem value="review">Needs review</SelectItem><SelectItem value="approved">Approved</SelectItem><SelectItem value="rejected">Rejected</SelectItem><SelectItem value="duplicates">Duplicates</SelectItem></SelectContent></Select><Select value={sort} onValueChange={(value) => setSort(value as 'confidence' | 'source')}><SelectTrigger className="h-8 w-[126px] text-xs"><ArrowUpDown className="mr-1.5 h-3.5 w-3.5" /><SelectValue /></SelectTrigger><SelectContent><SelectItem value="confidence">Confidence</SelectItem><SelectItem value="source">Source file</SelectItem></SelectContent></Select></div>
             </CardHeader>
-            <div className="flex flex-wrap items-center gap-2 border-b bg-muted/30 px-4 py-2.5"><Checkbox checked={records.length > 0 && selected.size === records.length} onCheckedChange={selectAll} aria-label="Select all visible records" /><span className="text-xs font-semibold">{selected.size} selected</span><span className="mx-1 h-4 border-l border-border" /><Button size="sm" variant="outline" className="h-7 gap-1.5 text-[11px]" disabled={!selected.size || actionBusy} onClick={() => runBulk('approve')}><CheckCircle2 className="h-3 w-3 text-emerald-600" /> Approve</Button><Button size="sm" variant="outline" className="h-7 gap-1.5 text-[11px]" disabled={!selected.size || actionBusy} onClick={() => runBulk('reject')}><XCircle className="h-3 w-3 text-red-600" /> Reject</Button><Button size="sm" variant="outline" className="h-7 gap-1.5 text-[11px]" disabled={!selected.size || actionBusy} onClick={() => runBulk('mark_duplicate')}><GitMerge className="h-3 w-3 text-amber-600" /> Mark duplicate</Button><Button size="sm" variant="outline" className="h-7 gap-1.5 text-[11px]" disabled={!selected.size || actionBusy} onClick={() => runBulk('clear_duplicate')}><Check className="h-3 w-3 text-primary" /> Keep separate</Button><div className="ml-auto flex items-center gap-1.5"><Input value={agentId} onChange={(event) => setAgentId(event.target.value)} placeholder="Agent ID" type="number" className="h-7 w-20 text-[11px]" /><Button size="sm" variant="outline" className="h-7 gap-1.5 text-[11px]" disabled={!selected.size || actionBusy} onClick={() => runBulk('assign')}><UserRound className="h-3 w-3" /> Assign</Button></div></div>
+            <div className="flex flex-wrap items-center gap-2 border-b bg-muted/30 px-4 py-2.5"><Checkbox checked={records.length > 0 && selected.size === records.length} onCheckedChange={selectAll} aria-label="Select all visible records" /><span className="text-xs font-semibold">{selected.size} selected</span><span className="mx-1 h-4 border-l border-border" /><Button size="sm" variant="outline" className="h-7 gap-1.5 text-[11px]" disabled={!selected.size || actionBusy} onClick={() => runBulk('approve')}><CheckCircle2 className="h-3 w-3 text-emerald-600" /> Approve</Button><Button size="sm" variant="outline" className="h-7 gap-1.5 text-[11px]" disabled={!selected.size || actionBusy} onClick={() => runBulk('reject')}><XCircle className="h-3 w-3 text-red-600" /> Reject</Button><Button size="sm" variant="outline" className="h-7 gap-1.5 text-[11px]" disabled={!selected.size || actionBusy} onClick={() => runBulk('link_duplicate')}><GitMerge className="h-3 w-3 text-amber-600" /> Link match</Button><Button size="sm" variant="outline" className="h-7 gap-1.5 text-[11px]" disabled={!selected.size || actionBusy} onClick={() => runBulk('clear_duplicate')}><Check className="h-3 w-3 text-primary" /> Keep separate</Button><div className="ml-auto flex items-center gap-1.5"><Input value={agentId} onChange={(event) => setAgentId(event.target.value)} placeholder="Agent ID" type="number" className="h-7 w-20 text-[11px]" /><Button size="sm" variant="outline" className="h-7 gap-1.5 text-[11px]" disabled={!selected.size || actionBusy} onClick={() => runBulk('assign')}><UserRound className="h-3 w-3" /> Assign</Button></div></div>
             <div className="hidden grid-cols-[24px_minmax(160px,1.25fr)_minmax(150px,1fr)_100px_80px_96px_128px] gap-3 bg-slate-50/70 px-4 py-2 text-[10px] font-bold uppercase tracking-[0.11em] text-muted-foreground md:grid"><span /><span>Property identity</span><span>Location</span><span>Price</span><span>Beds</span><span>AI signal</span><span>Decision</span></div>
             {records.length ? records.map((record) => <RecordRow key={record.id} record={record} selected={selected.has(record.id)} onToggle={() => toggle(record.id)} draft={drafts[record.id] || toRecord(record.data)} setDraft={(data) => setDrafts((current) => ({ ...current, [record.id]: data }))} onSave={() => saveRecord(record)} saving={savingId === record.id} />) : <div className="px-6 py-20 text-center"><SlidersHorizontal className="mx-auto mb-3 h-8 w-8 text-muted-foreground/40" /><p className="text-sm font-semibold">No rows match this view</p><p className="mt-1 text-xs text-muted-foreground">Try clearing the search or changing the review filter.</p></div>}
           </Card>
@@ -414,6 +422,26 @@ function ImportDetail({ id }: { id: number }) {
           <Button variant="outline" onClick={downloadErrors} className="w-full gap-2 sm:hidden"><Download className="h-3.5 w-3.5" /> Download error report</Button>
         </aside>
       </div>
+      <Dialog open={mappingOpen} onOpenChange={setMappingOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Column mapping</DialogTitle>
+            <p className="text-sm text-muted-foreground">Enter the exact source heading for any field that QuickProp did not recognise. Reprocessing updates extraction while preserving human corrections.</p>
+          </DialogHeader>
+          <div className="grid max-h-[55vh] grid-cols-1 gap-x-5 gap-y-3 overflow-y-auto py-2 sm:grid-cols-2">
+            {mappingFields.map((field) => (
+              <div key={field} className="space-y-1.5">
+                <Label htmlFor={`mapping-${field}`} className="text-xs">{titleCase(field)}</Label>
+                <Input id={`mapping-${field}`} value={columnMapping[field] || ''} onChange={(event) => setColumnMapping((current) => ({ ...current, [field]: event.target.value }))} placeholder="Source column heading" />
+              </div>
+            ))}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setMappingOpen(false)}>Cancel</Button>
+            <Button onClick={startProcessing} disabled={processSession.isPending}>{processSession.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Save mapping and process</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

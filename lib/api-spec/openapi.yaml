@@ -2952,7 +2952,7 @@ components:
       required: [recordIds, action]
       properties:
         recordIds: { type: array, items: { type: integer } }
-        action: { type: string, description: "approve | reject | assign | mark_duplicate | clear_duplicate" }
+        action: { type: string, description: "approve | reject | assign | mark_duplicate | link_duplicate | clear_duplicate" }
         agentId: { type: ["integer", "null"] }
     PublishImportInput:
       type: object

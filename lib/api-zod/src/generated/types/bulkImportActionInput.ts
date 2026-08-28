@@ -8,7 +8,7 @@
 
 export interface BulkImportActionInput {
   recordIds: number[];
-  /** approve | reject | assign | mark_duplicate | clear_duplicate */
+  /** approve | reject | assign | mark_duplicate | link_duplicate | clear_duplicate */
   action: string;
   /** @nullable */
   agentId?: number | null;
