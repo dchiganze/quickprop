@@ -15,6 +15,9 @@ import { openWhatsAppMessage, shareListingPhotoToWhatsAppStatus } from '@/utils/
 import { getPrimaryListingPhoto } from '@/utils/listingPhoto';
 import { useData } from '@/contexts/DataContext';
 import { Property } from '@/types';
+import { useAuth } from '@/contexts/AuthContext';
+import { getGetMultiAgentPropertyQueryKey, useGetMultiAgentProperty } from '@workspace/api-client-react';
+import { addMyAgencyToProperty } from '@/utils/multiAgent';
 
 function VideoPlayerModal({ uri, onClose }: { uri: string; onClose: () => void }) {
   const player = useVideoPlayer(uri, p => { p.loop = false; p.play(); });
@@ -57,8 +60,36 @@ export default function ListingDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { properties, updateProperty } = useData();
   const property = properties.find(p => p.id === id);
+  const { user } = useAuth();
+  const remotePropertyId = Number(id);
+  const { data: multiAgent } = useGetMultiAgentProperty(remotePropertyId, {
+    query: {
+      enabled: Number.isInteger(remotePropertyId) && remotePropertyId > 0,
+      queryKey: getGetMultiAgentPropertyQueryKey(remotePropertyId),
+    },
+  });
   const [brochureOpen, setBrochureOpen] = useState(false);
   const [videoPlayerVisible, setVideoPlayerVisible] = useState(false);
+
+  const handleAddAgency = async () => {
+    if (!multiAgent || !user || !property) return;
+    try {
+      await addMyAgencyToProperty(multiAgent.propertyId, {
+        askingPrice: property.price,
+        currency: property.currency,
+        mandateType: property.seller.mandateType,
+        terms: property.negotiable ? 'Negotiable' : undefined,
+        description: property.description,
+        contactName: user.name,
+        contactPhone: user.phone,
+        contactEmail: user.email,
+        verificationStatus: 'pending',
+      });
+      Alert.alert('Agency Added', 'Your agency now has its own offer on this canonical property.');
+    } catch (error: any) {
+      Alert.alert('Could Not Add Agency', error?.message ?? 'This agency may already be associated with the property.');
+    }
+  };
 
   if (!property) {
     return (
@@ -367,6 +398,34 @@ export default function ListingDetailScreen() {
             </View>
           </View>
 
+          {multiAgent && multiAgent.offers.length > 0 && (
+            <Section title="MULTI-AGENT PROPERTY">
+              <View style={[styles.multiAgentSummary, { backgroundColor: colors.secondary, borderColor: colors.border }]}>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.multiAgentTitle, { color: colors.foreground }]}>
+                    {multiAgent.agencyCount} agency{multiAgent.agencyCount === 1 ? '' : 'ies'} · lowest {multiAgent.property.currency} {multiAgent.lowestPrice.toLocaleString()}
+                  </Text>
+                  <Text style={{ color: colors.mutedForeground, marginTop: 4 }}>
+                    Independent offers are kept separate on one physical property record.
+                  </Text>
+                </View>
+                <TouchableOpacity style={[styles.agencyButton, { backgroundColor: colors.primary }]} onPress={handleAddAgency}>
+                  <Ionicons name="add" size={16} color="#FFF" />
+                  <Text style={styles.agencyButtonText}>Add my agency</Text>
+                </TouchableOpacity>
+              </View>
+              {multiAgent.offers.map(offer => (
+                <View key={offer.id} style={[styles.offerRow, { borderColor: colors.border }]}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.offerAgency, { color: colors.foreground }]}>{offer.agencyName}</Text>
+                    <Text style={{ color: colors.mutedForeground }}>{offer.agentName} · {offer.verificationStatus}</Text>
+                  </View>
+                  <Text style={[styles.offerPrice, { color: colors.primary }]}>{offer.currency} {offer.askingPrice.toLocaleString()}</Text>
+                </View>
+              ))}
+            </Section>
+          )}
+
           {/* 500 m privacy map */}
           {property.coordinates && (
             <TouchableOpacity
@@ -590,6 +649,13 @@ const styles = StyleSheet.create({
   statusBadge: { position: 'absolute', top: 12, left: 12, paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20 },
   statusText: { color: '#FFF', fontSize: 12, fontWeight: '700' },
   body: { paddingHorizontal: 20, paddingTop: 20, gap: 0 },
+  multiAgentSummary: { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 14, borderWidth: 1, padding: 14, marginBottom: 10 },
+  multiAgentTitle: { fontSize: 14, fontWeight: '800' },
+  agencyButton: { flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 9 },
+  agencyButtonText: { color: '#FFF', fontSize: 11, fontWeight: '800' },
+  offerRow: { flexDirection: 'row', alignItems: 'center', borderBottomWidth: 1, paddingVertical: 12, gap: 12 },
+  offerAgency: { fontSize: 14, fontWeight: '700' },
+  offerPrice: { fontSize: 14, fontWeight: '800' },
   priceRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 4 },
   price: { fontSize: 28, fontWeight: '900', letterSpacing: -0.5 },
   negBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },

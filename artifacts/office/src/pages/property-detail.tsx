@@ -4,6 +4,7 @@ import {
   useGetProperty, useUpdateProperty, useGetPropertyPriceHistory, 
   useGetPropertyActivity, useGetSeller, getGetSellerQueryKey, useListViewings, useListDocuments,
   useGenerateBrochure, useShareProperty 
+  , useGetMultiAgentProperty, useUpdatePropertyHealth
 } from '@workspace/api-client-react';
 import { 
   ArrowLeft, MapPin, Bed, Bath, Car, Square, Building2, Calendar, 
@@ -30,12 +31,14 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
   const { data: priceHistory } = useGetPropertyPriceHistory(propertyId);
   const { data: viewings } = useListViewings({ propertyId });
   const { data: documents } = useListDocuments({ propertyId });
+  const { data: multiAgent } = useGetMultiAgentProperty(propertyId);
   const sellerId = property?.sellerId;
   const { data: seller } = useGetSeller(sellerId || 0, { query: { enabled: !!sellerId, queryKey: getGetSellerQueryKey(sellerId || 0) }});
 
   const updateProperty = useUpdateProperty();
   const generateBrochure = useGenerateBrochure();
   const shareProperty = useShareProperty();
+  const updateHealth = useUpdatePropertyHealth();
 
   const [shareChannel, setShareChannel] = useState('whatsapp');
 
@@ -68,6 +71,13 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
         toast({ title: 'Share link created', description: 'Link copied to clipboard or opened in app.' });
         if (res.url) window.open(res.url, '_blank');
       }
+    });
+  };
+
+  const confirmAvailability = () => {
+    updateHealth.mutate({ id: propertyId, data: { action: 'still_available' } }, {
+      onSuccess: () => toast({ title: 'Availability confirmed', description: 'This property is marked current for today.' }),
+      onError: () => toast({ title: 'Could not confirm availability', variant: 'destructive' }),
     });
   };
 
@@ -179,6 +189,34 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
             </TabsList>
             
             <TabsContent value="overview" className="py-6 space-y-8">
+              {multiAgent && multiAgent.offers.length > 0 && (
+                <Card className="border-primary/20 bg-primary/5">
+                  <CardHeader className="pb-3 flex-row items-center justify-between">
+                    <div>
+                      <CardTitle className="text-base">Multi-agent property</CardTitle>
+                      <CardDescription>{multiAgent.agencyCount} agency offer{multiAgent.agencyCount === 1 ? '' : 's'} · lowest {multiAgent.property.currency} {multiAgent.lowestPrice.toLocaleString()}</CardDescription>
+                    </div>
+                    <Button size="sm" variant="outline" onClick={confirmAvailability} disabled={updateHealth.isPending}>
+                      <CheckCircle2 className="w-4 h-4 mr-2" />
+                      Confirm available
+                    </Button>
+                  </CardHeader>
+                  <CardContent className="grid gap-2 sm:grid-cols-2">
+                    {multiAgent.offers.map((offer) => (
+                      <div key={offer.id} className="rounded-md bg-background border border-border/60 p-3">
+                        <div className="flex justify-between gap-3">
+                          <div>
+                            <p className="font-semibold text-sm">{offer.agencyName}</p>
+                            <p className="text-xs text-muted-foreground">{offer.agentName} · {offer.mandateType.replace('_', ' ')}</p>
+                          </div>
+                          <p className="font-bold text-sm">{offer.currency} {offer.askingPrice.toLocaleString()}</p>
+                        </div>
+                        <p className="mt-2 text-xs text-muted-foreground capitalize">{offer.verificationStatus} verification · {offer.priceStatus ?? 'current'} price</p>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              )}
               {/* Key Features */}
               <div className="flex flex-wrap gap-6 py-4 border-y border-border/50">
                 {property.bedrooms != null && (

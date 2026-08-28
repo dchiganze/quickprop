@@ -147,6 +147,17 @@ export interface Property {
   publishedAt?: string | null;
   createdAt?: string;
   updatedAt?: string;
+  /** @nullable */
+  canonicalPropertyId?: number | null;
+  duplicateStatus?: string;
+  /** @nullable */
+  latitude?: number | null;
+  /** @nullable */
+  longitude?: number | null;
+  /** @nullable */
+  lastAvailabilityConfirmedAt?: string | null;
+  /** @nullable */
+  lastPriceConfirmedAt?: string | null;
 }
 
 export interface PropertyInput {
@@ -760,6 +771,12 @@ export interface PublicProperty {
   /** @nullable */
   publishedAt?: string | null;
   createdAt: string;
+  /** @nullable */
+  canonicalPropertyId?: number | null;
+  agencyCount?: number;
+  lowestPrice?: number;
+  /** @nullable */
+  lastAvailabilityVerification?: string | null;
 }
 
 export interface PublicPropertyList {
@@ -791,9 +808,216 @@ export interface PublicAgentProfile {
   listings: PublicProperty[];
 }
 
+export interface MarketingAsset {
+  id: number;
+  assetType: string;
+  objectPath: string;
+  attributionName: string;
+  approved: boolean;
+}
+
+export interface PublicAgencyOffer {
+  id: number;
+  agentId: number;
+  agentName: string;
+  agencyName: string;
+  /** @nullable */
+  phone?: string | null;
+  /** @nullable */
+  email?: string | null;
+  askingPrice: number;
+  currency: string;
+  priceStatus?: string;
+  mandateType: string;
+  relationshipStatus: string;
+  verificationStatus: string;
+  /** @nullable */
+  terms?: string | null;
+  /** @nullable */
+  description?: string | null;
+  /** @nullable */
+  lastAvailabilityConfirmation?: string | null;
+  lastUpdate?: string;
+  assets?: MarketingAsset[];
+}
+
 export interface PublicPropertyDetail {
   property: PublicProperty;
   agent?: PublicAgent;
+  offers?: PublicAgencyOffer[];
+  agencyCount?: number;
+  lowestPrice?: number;
+  /** @nullable */
+  lastAvailabilityVerification?: string | null;
+}
+
+export interface MultiAgentProperty {
+  property: Property;
+  propertyId: number;
+  offers: PublicAgencyOffer[];
+  agencyCount: number;
+  lowestPrice: number;
+  /** @nullable */
+  lastAvailabilityVerification?: string | null;
+}
+
+export interface DuplicateCheckInput {
+  address?: string;
+  suburb?: string;
+  city?: string;
+  propertyType?: string;
+  bedrooms?: number;
+  bathrooms?: number;
+  landSize?: number;
+  buildingSize?: number;
+  price?: number;
+  description?: string;
+  phone?: string;
+  latitude?: number;
+  longitude?: number;
+  photos?: string[];
+}
+
+export interface DuplicateMatch {
+  id: number;
+  reference: string;
+  title: string;
+  /** @nullable */
+  address?: string | null;
+  suburb?: string;
+  city?: string;
+  propertyType?: string;
+  /** @nullable */
+  bedrooms?: number | null;
+  /** @nullable */
+  bathrooms?: number | null;
+  /** @nullable */
+  landSize?: number | null;
+  /** @nullable */
+  buildingSize?: number | null;
+  price?: number;
+  currency?: string;
+  photos?: string[];
+  status?: string;
+  confidenceScore: number;
+  matchingFields: string[];
+  imageMatches: string[];
+  /** @nullable */
+  agencyName?: string | null;
+  updatedAt?: string;
+}
+
+export type DuplicateCheckResultDecision = typeof DuplicateCheckResultDecision[keyof typeof DuplicateCheckResultDecision];
+
+
+export const DuplicateCheckResultDecision = {
+  high_confidence: 'high_confidence',
+  possible_duplicate: 'possible_duplicate',
+  continue: 'continue',
+} as const;
+
+export interface DuplicateCheckResult {
+  confidenceScore: number;
+  decision: DuplicateCheckResultDecision;
+  matches: DuplicateMatch[];
+}
+
+export interface AgencyRelationshipInput {
+  askingPrice: number;
+  currency?: string;
+  mandateType?: string;
+  terms?: string;
+  description?: string;
+  contactName?: string;
+  contactPhone?: string;
+  contactEmail?: string;
+  verificationStatus?: string;
+}
+
+export interface AgencyRelationship {
+  id: number;
+  propertyId: number;
+  agentId: number;
+  /** @nullable */
+  branchId?: number | null;
+  askingPrice: number;
+  currency: string;
+  mandateType: string;
+  relationshipStatus: string;
+  verificationStatus: string;
+  /** @nullable */
+  terms?: string | null;
+  /** @nullable */
+  description?: string | null;
+  /** @nullable */
+  contactName?: string | null;
+  /** @nullable */
+  contactPhone?: string | null;
+  /** @nullable */
+  contactEmail?: string | null;
+  /** @nullable */
+  lastAvailabilityConfirmation?: string | null;
+  lastUpdate?: string;
+}
+
+export type HealthUpdateInputAction = typeof HealthUpdateInputAction[keyof typeof HealthUpdateInputAction];
+
+
+export const HealthUpdateInputAction = {
+  still_available: 'still_available',
+  update: 'update',
+  sold: 'sold',
+  let: 'let',
+  withdraw: 'withdraw',
+} as const;
+
+export interface HealthUpdateInput {
+  action: HealthUpdateInputAction;
+}
+
+export interface HealthUpdateResult {
+  ok: boolean;
+  status: string;
+  confirmedAt: string;
+}
+
+export interface AdminDuplicateReview {
+  id: number;
+  sourcePropertyId: number;
+  candidatePropertyId: number;
+  confidenceScore: number;
+  matchingFields: string[];
+  imageMatches?: string[];
+  status: string;
+  /** @nullable */
+  notes?: string | null;
+  createdAt: string;
+  sourceProperty?: Property;
+  candidateProperty?: Property;
+}
+
+export interface AdminDuplicateDetail {
+  review: AdminDuplicateReview;
+  sourceProperty: Property;
+  candidateProperty: Property;
+  sourceOffers: PublicAgencyOffer[];
+  candidateOffers: PublicAgencyOffer[];
+}
+
+export type DuplicateReviewActionAction = typeof DuplicateReviewActionAction[keyof typeof DuplicateReviewActionAction];
+
+
+export const DuplicateReviewActionAction = {
+  merge: 'merge',
+  keep_separate: 'keep_separate',
+  request_information: 'request_information',
+  unmerge: 'unmerge',
+} as const;
+
+export interface DuplicateReviewAction {
+  action: DuplicateReviewActionAction;
+  canonicalPropertyId?: number;
+  notes?: string;
 }
 
 export interface EnquiryInput {

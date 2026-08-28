@@ -8,6 +8,8 @@ import {
   useListProperties,
   useOfficeSearch,
   useCreateProperty,
+  useCheckPropertyDuplicate,
+  useAddPropertyAgencyRelationship,
   getListPropertiesQueryKey,
   getOfficeSearchQueryKey,
   getGetPipelineQueryKey,
@@ -48,23 +50,65 @@ function AddPropertyDialog() {
       onError: () => toast({ title: 'Could not create property', variant: 'destructive' }),
     },
   });
+  const duplicateCheck = useCheckPropertyDuplicate();
+  const addAgency = useAddPropertyAgencyRelationship();
 
-  const submit = () => {
+  const submit = async () => {
     if (!form.title || !form.price || !form.suburb) {
       toast({ title: 'Title, price and suburb are required', variant: 'destructive' });
       return;
     }
+    const input = {
+      title: form.title,
+      propertyType: form.propertyType,
+      listingType: form.listingType,
+      price: Number(form.price),
+      suburb: form.suburb,
+      city: form.city || 'Harare',
+      bedrooms: form.bedrooms ? Number(form.bedrooms) : undefined,
+      bathrooms: form.bathrooms ? Number(form.bathrooms) : undefined,
+      description: form.description || undefined,
+    };
+    try {
+      const duplicate = await duplicateCheck.mutateAsync({
+        data: {
+          address: form.suburb,
+          suburb: form.suburb,
+          city: form.city || 'Harare',
+          propertyType: form.propertyType,
+          bedrooms: input.bedrooms,
+          bathrooms: input.bathrooms,
+          price: input.price,
+          description: input.description,
+        },
+      });
+      const match = duplicate.matches[0];
+      if (match && duplicate.decision !== 'continue') {
+        const useExisting = window.confirm(
+          `Possible duplicate (${match.confidenceScore}% match): ${match.title} at ${match.suburb}.\n\nPress OK to add this office as an agency offer, or Cancel to create a separate record for admin review.`
+        );
+        if (useExisting) {
+          await addAgency.mutateAsync({
+            id: match.id,
+            data: {
+              askingPrice: input.price,
+              currency: 'USD',
+              mandateType: 'non_exclusive',
+              description: input.description,
+              verificationStatus: 'pending',
+            },
+          });
+          toast({ title: 'Agency offer added', description: `${match.reference} remains the canonical property.` });
+          setOpen(false);
+          return;
+        }
+      }
+    } catch {
+      // The create request remains available if duplicate checking is temporarily unavailable.
+    }
     createProperty.mutate({
       data: {
-        title: form.title,
-        propertyType: form.propertyType,
-        listingType: form.listingType,
-        price: Number(form.price),
-        suburb: form.suburb,
-        city: form.city || 'Harare',
-        bedrooms: form.bedrooms ? Number(form.bedrooms) : undefined,
-        bathrooms: form.bathrooms ? Number(form.bathrooms) : undefined,
-        description: form.description || undefined,
+        ...input,
       },
     });
   };

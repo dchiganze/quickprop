@@ -5,10 +5,16 @@
  * QuickProp Office API
  * OpenAPI spec version: 0.1.0
  */
+import type { PublicAgencyOffer } from './publicAgencyOffer';
 import type { PublicAgent } from './publicAgent';
 import type { PublicProperty } from './publicProperty';
 
 export interface PublicPropertyDetail {
   property: PublicProperty;
   agent?: PublicAgent;
+  offers?: PublicAgencyOffer[];
+  agencyCount?: number;
+  lowestPrice?: number;
+  /** @nullable */
+  lastAvailabilityVerification?: string | null;
 }

@@ -26,9 +26,13 @@ import type {
   AdminAgency,
   AdminAgent,
   AdminCoverage,
+  AdminDuplicateDetail,
+  AdminDuplicateReview,
   AdminFreshness,
   AdminPlatformCharts,
   AdminPlatformStats,
+  AgencyRelationship,
+  AgencyRelationshipInput,
   AnalyticsSummary,
   AttentionItem,
   AuditEntry,
@@ -49,9 +53,14 @@ import type {
   DashboardSummary,
   Document,
   DocumentInput,
+  DuplicateCheckInput,
+  DuplicateCheckResult,
+  DuplicateReviewAction,
   EnquiryInput,
   EnquiryResult,
   HealthStatus,
+  HealthUpdateInput,
+  HealthUpdateResult,
   Lead,
   LeadInput,
   LeadUpdate,
@@ -71,6 +80,7 @@ import type {
   LoginResult,
   MarketplaceStats,
   ModerateProperty200,
+  MultiAgentProperty,
   Notification,
   OfficeSearchParams,
   PipelineColumn,
@@ -4551,6 +4561,298 @@ export function useOfficeSearch<TData = Awaited<ReturnType<typeof officeSearch>>
 
 
 
+export const getCheckPropertyDuplicateUrl = () => {
+
+
+
+
+  return `/api/properties/duplicate-check`
+}
+
+/**
+ * @summary Check for likely canonical property duplicates before creation
+ */
+export const checkPropertyDuplicate = async (duplicateCheckInput: DuplicateCheckInput, options?: RequestInit): Promise<DuplicateCheckResult> => {
+
+  return customFetch<DuplicateCheckResult>(getCheckPropertyDuplicateUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(duplicateCheckInput)
+  }
+);}
+
+
+
+
+
+export const getCheckPropertyDuplicateMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof checkPropertyDuplicate>>, TError,{data: BodyType<DuplicateCheckInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof checkPropertyDuplicate>>, TError,{data: BodyType<DuplicateCheckInput>}, TContext> => {
+
+const mutationKey = ['checkPropertyDuplicate'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof checkPropertyDuplicate>>, {data: BodyType<DuplicateCheckInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  checkPropertyDuplicate(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CheckPropertyDuplicateMutationResult = NonNullable<Awaited<ReturnType<typeof checkPropertyDuplicate>>>
+    export type CheckPropertyDuplicateMutationBody = BodyType<DuplicateCheckInput>
+    export type CheckPropertyDuplicateMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Check for likely canonical property duplicates before creation
+ */
+export const useCheckPropertyDuplicate = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof checkPropertyDuplicate>>, TError,{data: BodyType<DuplicateCheckInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof checkPropertyDuplicate>>,
+        TError,
+        {data: BodyType<DuplicateCheckInput>},
+        TContext
+      > => {
+      return useMutation(getCheckPropertyDuplicateMutationOptions(options));
+    }
+
+export const getGetMultiAgentPropertyUrl = (id: number,) => {
+
+
+
+
+  return `/api/properties/${id}/multi-agent`
+}
+
+/**
+ * @summary Canonical property with all agency offers
+ */
+export const getMultiAgentProperty = async (id: number, options?: RequestInit): Promise<MultiAgentProperty> => {
+
+  return customFetch<MultiAgentProperty>(getGetMultiAgentPropertyUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetMultiAgentPropertyQueryKey = (id: number,) => {
+    return [
+    `/api/properties/${id}/multi-agent`
+    ] as const;
+    }
+
+
+export const getGetMultiAgentPropertyQueryOptions = <TData = Awaited<ReturnType<typeof getMultiAgentProperty>>, TError = ErrorType<void>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMultiAgentProperty>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMultiAgentPropertyQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMultiAgentProperty>>> = ({ signal }) => getMultiAgentProperty(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMultiAgentProperty>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetMultiAgentPropertyQueryResult = NonNullable<Awaited<ReturnType<typeof getMultiAgentProperty>>>
+export type GetMultiAgentPropertyQueryError = ErrorType<void>
+
+
+/**
+ * @summary Canonical property with all agency offers
+ */
+
+export function useGetMultiAgentProperty<TData = Awaited<ReturnType<typeof getMultiAgentProperty>>, TError = ErrorType<void>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMultiAgentProperty>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetMultiAgentPropertyQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getAddPropertyAgencyRelationshipUrl = (id: number,) => {
+
+
+
+
+  return `/api/properties/${id}/relationships`
+}
+
+/**
+ * @summary Add the signed-in agent's agency to a canonical property
+ */
+export const addPropertyAgencyRelationship = async (id: number,
+    agencyRelationshipInput: AgencyRelationshipInput, options?: RequestInit): Promise<AgencyRelationship> => {
+
+  return customFetch<AgencyRelationship>(getAddPropertyAgencyRelationshipUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(agencyRelationshipInput)
+  }
+);}
+
+
+
+
+
+export const getAddPropertyAgencyRelationshipMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof addPropertyAgencyRelationship>>, TError,{id: number;data: BodyType<AgencyRelationshipInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof addPropertyAgencyRelationship>>, TError,{id: number;data: BodyType<AgencyRelationshipInput>}, TContext> => {
+
+const mutationKey = ['addPropertyAgencyRelationship'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof addPropertyAgencyRelationship>>, {id: number;data: BodyType<AgencyRelationshipInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  addPropertyAgencyRelationship(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AddPropertyAgencyRelationshipMutationResult = NonNullable<Awaited<ReturnType<typeof addPropertyAgencyRelationship>>>
+    export type AddPropertyAgencyRelationshipMutationBody = BodyType<AgencyRelationshipInput>
+    export type AddPropertyAgencyRelationshipMutationError = ErrorType<void>
+
+    /**
+ * @summary Add the signed-in agent's agency to a canonical property
+ */
+export const useAddPropertyAgencyRelationship = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof addPropertyAgencyRelationship>>, TError,{id: number;data: BodyType<AgencyRelationshipInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof addPropertyAgencyRelationship>>,
+        TError,
+        {id: number;data: BodyType<AgencyRelationshipInput>},
+        TContext
+      > => {
+      return useMutation(getAddPropertyAgencyRelationshipMutationOptions(options));
+    }
+
+export const getUpdatePropertyHealthUrl = (id: number,) => {
+
+
+
+
+  return `/api/properties/${id}/health`
+}
+
+/**
+ * @summary Confirm or update listing health
+ */
+export const updatePropertyHealth = async (id: number,
+    healthUpdateInput: HealthUpdateInput, options?: RequestInit): Promise<HealthUpdateResult> => {
+
+  return customFetch<HealthUpdateResult>(getUpdatePropertyHealthUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(healthUpdateInput)
+  }
+);}
+
+
+
+
+
+export const getUpdatePropertyHealthMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updatePropertyHealth>>, TError,{id: number;data: BodyType<HealthUpdateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updatePropertyHealth>>, TError,{id: number;data: BodyType<HealthUpdateInput>}, TContext> => {
+
+const mutationKey = ['updatePropertyHealth'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updatePropertyHealth>>, {id: number;data: BodyType<HealthUpdateInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updatePropertyHealth(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdatePropertyHealthMutationResult = NonNullable<Awaited<ReturnType<typeof updatePropertyHealth>>>
+    export type UpdatePropertyHealthMutationBody = BodyType<HealthUpdateInput>
+    export type UpdatePropertyHealthMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Confirm or update listing health
+ */
+export const useUpdatePropertyHealth = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updatePropertyHealth>>, TError,{id: number;data: BodyType<HealthUpdateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updatePropertyHealth>>,
+        TError,
+        {id: number;data: BodyType<HealthUpdateInput>},
+        TContext
+      > => {
+      return useMutation(getUpdatePropertyHealthMutationOptions(options));
+    }
+
 export const getListPublicPropertiesUrl = (params?: ListPublicPropertiesParams,) => {
   const normalizedParams = new URLSearchParams();
 
@@ -5824,6 +6126,220 @@ export function useGetAdminFreshness<TData = Awaited<ReturnType<typeof getAdminF
 
 
 
+
+export const getListDuplicateReviewsUrl = () => {
+
+
+
+
+  return `/api/admin/duplicates`
+}
+
+/**
+ * @summary List potential duplicate property reviews
+ */
+export const listDuplicateReviews = async ( options?: RequestInit): Promise<AdminDuplicateReview[]> => {
+
+  return customFetch<AdminDuplicateReview[]>(getListDuplicateReviewsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListDuplicateReviewsQueryKey = () => {
+    return [
+    `/api/admin/duplicates`
+    ] as const;
+    }
+
+
+export const getListDuplicateReviewsQueryOptions = <TData = Awaited<ReturnType<typeof listDuplicateReviews>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listDuplicateReviews>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListDuplicateReviewsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listDuplicateReviews>>> = ({ signal }) => listDuplicateReviews({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listDuplicateReviews>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListDuplicateReviewsQueryResult = NonNullable<Awaited<ReturnType<typeof listDuplicateReviews>>>
+export type ListDuplicateReviewsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List potential duplicate property reviews
+ */
+
+export function useListDuplicateReviews<TData = Awaited<ReturnType<typeof listDuplicateReviews>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listDuplicateReviews>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListDuplicateReviewsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetDuplicateReviewUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/duplicates/${id}`
+}
+
+export const getDuplicateReview = async (id: number, options?: RequestInit): Promise<AdminDuplicateDetail> => {
+
+  return customFetch<AdminDuplicateDetail>(getGetDuplicateReviewUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetDuplicateReviewQueryKey = (id: number,) => {
+    return [
+    `/api/admin/duplicates/${id}`
+    ] as const;
+    }
+
+
+export const getGetDuplicateReviewQueryOptions = <TData = Awaited<ReturnType<typeof getDuplicateReview>>, TError = ErrorType<void>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getDuplicateReview>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetDuplicateReviewQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getDuplicateReview>>> = ({ signal }) => getDuplicateReview(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getDuplicateReview>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetDuplicateReviewQueryResult = NonNullable<Awaited<ReturnType<typeof getDuplicateReview>>>
+export type GetDuplicateReviewQueryError = ErrorType<void>
+
+
+
+export function useGetDuplicateReview<TData = Awaited<ReturnType<typeof getDuplicateReview>>, TError = ErrorType<void>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getDuplicateReview>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetDuplicateReviewQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getReviewDuplicateUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/duplicates/${id}`
+}
+
+export const reviewDuplicate = async (id: number,
+    duplicateReviewAction: DuplicateReviewAction, options?: RequestInit): Promise<AdminDuplicateReview> => {
+
+  return customFetch<AdminDuplicateReview>(getReviewDuplicateUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(duplicateReviewAction)
+  }
+);}
+
+
+
+
+
+export const getReviewDuplicateMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reviewDuplicate>>, TError,{id: number;data: BodyType<DuplicateReviewAction>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof reviewDuplicate>>, TError,{id: number;data: BodyType<DuplicateReviewAction>}, TContext> => {
+
+const mutationKey = ['reviewDuplicate'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof reviewDuplicate>>, {id: number;data: BodyType<DuplicateReviewAction>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  reviewDuplicate(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ReviewDuplicateMutationResult = NonNullable<Awaited<ReturnType<typeof reviewDuplicate>>>
+    export type ReviewDuplicateMutationBody = BodyType<DuplicateReviewAction>
+    export type ReviewDuplicateMutationError = ErrorType<unknown>
+
+    export const useReviewDuplicate = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reviewDuplicate>>, TError,{id: number;data: BodyType<DuplicateReviewAction>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof reviewDuplicate>>,
+        TError,
+        {id: number;data: BodyType<DuplicateReviewAction>},
+        TContext
+      > => {
+      return useMutation(getReviewDuplicateMutationOptions(options));
+    }
 
 export const getGetAdminAgentsUrl = () => {
 

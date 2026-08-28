@@ -1,0 +1,1431 @@
+# QuickProp Office — AI Bulk Mandate Import & Listing Creation
+
+Build a desktop-first **QuickProp Office Bulk Mandate Import System** designed specifically for the initial onboarding of estate agencies.
+
+The primary objective is:
+
+> An agency should be able to take its existing mandate/property data in almost any common format, upload it to QuickProp, have the system automatically detect and structure the listings, review them, correct anything necessary, and then publish them in bulk.
+
+The system must dramatically reduce the time required for an agency to onboard its existing property portfolio.
+
+---
+
+# 1. CORE USER JOURNEY
+
+The ideal workflow is:
+
+**Upload existing agency data**
+
+↓
+
+**QuickProp analyses the data**
+
+↓
+
+**QuickProp identifies individual properties/listings**
+
+↓
+
+**AI structures the information**
+
+↓
+
+**Potential duplicates are detected**
+
+↓
+
+**Missing/ambiguous information is flagged**
+
+↓
+
+**Agent reviews the proposed listings**
+
+↓
+
+**Agent edits anything necessary**
+
+↓
+
+**Agent selects listings to publish**
+
+↓
+
+**QuickProp creates/updates canonical property records**
+
+↓
+
+**Listings go live**
+
+The entire process should feel like:
+
+> **"Upload your property database → QuickProp does the work."**
+
+---
+
+# 2. SUPPORTED INPUT FORMATS
+
+Allow agencies to upload:
+
+### Spreadsheet formats
+
+* `.xlsx`
+* `.xls`
+* `.csv`
+
+### Documents
+
+* `.pdf`
+* `.docx`
+* `.txt`
+
+### Images/scans
+
+* `.jpg`
+* `.jpeg`
+* `.png`
+
+Allow multiple files to be uploaded simultaneously.
+
+Example:
+
+An agency may upload:
+
+```text
+Property Portfolio.xlsx
+Mandates.pdf
+Rental Properties.xlsx
+Sales Listings.pdf
+```
+
+QuickProp should process all of them together.
+
+---
+
+# 3. DRAG-AND-DROP INTERFACE
+
+Create a very simple desktop interface:
+
+## Import your property portfolio
+
+> Drag your existing property files here.
+
+Supported:
+
+**Excel • CSV • PDF • Word • Images**
+
+Or:
+
+**Browse files**
+
+Below the upload area:
+
+> You can upload multiple files at once. QuickProp will automatically identify and structure your property information.
+
+Button:
+
+**Analyse Portfolio**
+
+---
+
+# 4. AI DOCUMENT ANALYSIS
+
+Once the agent selects:
+
+**Analyse Portfolio**
+
+the system should:
+
+1. Identify file type.
+2. Extract text.
+3. Detect tables.
+4. Detect columns.
+5. Detect property records.
+6. Detect addresses.
+7. Detect prices.
+8. Detect property types.
+9. Detect bedrooms/bathrooms.
+10. Detect descriptions.
+11. Detect agent information.
+12. Detect agency information.
+13. Detect mandate information.
+14. Detect availability.
+15. Detect listing/reference numbers.
+16. Detect contact information where appropriate.
+17. Detect URLs.
+18. Detect image references.
+19. Detect duplicate records.
+20. Match records across multiple uploaded files.
+
+Do not assume that agencies will use consistent column names.
+
+For example:
+
+```text
+Property
+Address
+Location
+Area
+Asking
+Price
+Selling Price
+Rent
+Beds
+Bedrooms
+No. of Bedrooms
+BR
+```
+
+should all be intelligently mapped to the correct QuickProp fields.
+
+---
+
+# 5. RAW DATA NORMALISATION
+
+The AI should convert messy source data into QuickProp's standard listing structure.
+
+Example input:
+
+```text
+12 Borrowdale Brooke
+Borrowdale
+USD 350k
+4 beds
+3 baths
+House
+Agent: John
+```
+
+Convert to:
+
+```text
+Property type: House
+Address: 12 Borrowdale Brooke
+Location: Borrowdale
+Price: USD 350,000
+Bedrooms: 4
+Bathrooms: 3
+Agent: John
+```
+
+Preserve the original raw value as metadata where useful.
+
+---
+
+# 6. INTELLIGENT COLUMN MAPPING
+
+For Excel/CSV uploads, show the detected mapping.
+
+Example:
+
+| Agency Column | QuickProp Field |
+| ------------- | --------------- |
+| Prop Address  | Address         |
+| Area          | Suburb          |
+| Asking Price  | Price           |
+| Beds          | Bedrooms        |
+| Baths         | Bathrooms       |
+| Type          | Property Type   |
+| Agent         | Listing Agent   |
+
+Allow the agent to modify the mapping before processing.
+
+Example:
+
+**Beds**
+
+→ Bedrooms
+
+Dropdown:
+
+* Bedrooms
+* Bathrooms
+* Garages
+* Other
+* Ignore
+
+---
+
+# 7. AI CONFIDENCE SCORE
+
+Every extracted field should have a confidence level.
+
+Example:
+
+**Address**
+12 Borrowdale Brooke
+
+🟢 99% confidence
+
+**Price**
+$350,000
+
+🟢 98% confidence
+
+**Property Type**
+House
+
+🟢 97% confidence
+
+**Bathrooms**
+3
+
+🟡 76% confidence
+
+If confidence is low, flag the field for review.
+
+Do NOT hide uncertainty from the agent.
+
+---
+
+# 8. BULK REVIEW SCREEN
+
+After analysis, display:
+
+## Portfolio Import Review
+
+**347 properties detected**
+
+### Import summary
+
+🟢 312 ready to publish
+
+🟡 27 need review
+
+🔴 8 potential duplicates
+
+Example:
+
+---
+
+### 12 Borrowdale Brooke
+
+**House • Borrowdale**
+
+$350,000
+
+4 bedrooms
+3 bathrooms
+
+**AI confidence: 98%**
+
+✓ Ready
+
+[Edit]
+
+---
+
+### 18 Fife Avenue
+
+**House • Avenues**
+
+Price: **Missing**
+
+4 bedrooms
+2 bathrooms
+
+⚠ **Price could not be identified**
+
+[Edit]
+
+---
+
+### 25 Samora Machel
+
+Potential duplicate detected.
+
+Existing QuickProp property:
+
+**25 Samora Machel Avenue**
+
+Already listed by:
+
+**ABC Properties**
+
+[Review Match]
+
+---
+
+# 9. BULK EDITING
+
+Agents must be able to edit imported properties without opening each listing individually.
+
+Provide a spreadsheet-style table.
+
+Columns:
+
+* Select
+* Status
+* Address
+* Property type
+* Location
+* Price
+* Bedrooms
+* Bathrooms
+* Agent
+* Availability
+* Confidence
+* Duplicate status
+
+Allow inline editing.
+
+Example:
+
+| ✓ | Address              | Price | Beds | Baths | Status |
+| - | -------------------- | ----: | ---: | ----: | ------ |
+| ✓ | 12 Borrowdale Brooke | $350k |    4 |     3 | Ready  |
+| ✓ | 18 Fife Ave          | $280k |    4 |     2 | Review |
+| ✓ | 21 Avondale          | $190k |    3 |     2 | Ready  |
+
+---
+
+# 10. FILTERS
+
+Allow filtering by:
+
+* Ready
+* Needs review
+* Duplicate
+* Missing price
+* Missing address
+* Missing photos
+* Low confidence
+* Property type
+* Location
+* Agent
+* Sale
+* Rental
+* Available
+* Unavailable
+
+This allows an agency to process hundreds of listings quickly.
+
+---
+
+# 11. BULK ACTIONS
+
+Provide:
+
+**Select all**
+
+**Select filtered**
+
+**Publish selected**
+
+**Assign agent**
+
+**Change property type**
+
+**Change location**
+
+**Change availability**
+
+**Delete import row**
+
+**Ignore duplicate**
+
+**Merge duplicate**
+
+---
+
+# 12. DUPLICATE DETECTION
+
+This system MUST integrate with QuickProp's canonical-property architecture.
+
+Before creating any property:
+
+Check whether QuickProp already has a matching property.
+
+Match using combinations of:
+
+* address
+* GPS/location
+* property reference
+* suburb
+* property characteristics
+* existing images
+* owner/property identifiers where legitimately available
+* fuzzy address matching
+
+Examples:
+
+```text
+12 Borrowdale Brooke
+12 Borrowdale Brooke, Harare
+12 Borrowdale Brooke Estate
+House 12, Borrowdale Brooke
+```
+
+should potentially resolve to the same canonical property.
+
+Do not blindly create four properties.
+
+---
+
+# 13. DUPLICATE MATCH REVIEW
+
+If a possible match is detected:
+
+### Possible match
+
+Imported:
+
+**12 Borrowdale Brooke**
+
+Existing QuickProp:
+
+**12 Borrowdale Brooke**
+
+Match confidence:
+
+**94%**
+
+Buttons:
+
+**Use existing property**
+
+**Create new property**
+
+**Review**
+
+If the agent chooses:
+
+**Use existing property**
+
+create a new **agent-property relationship/listing**, rather than another property record.
+
+This must preserve the canonical-property architecture.
+
+---
+
+# 14. MULTIPLE AGENCY/AGENT RELATIONSHIPS
+
+An imported property may already exist on QuickProp.
+
+Example:
+
+Canonical property:
+
+**12 Borrowdale Brooke**
+
+Existing relationships:
+
+* ABC Properties
+* XYZ Realty
+
+New agency:
+
+**DEF Properties**
+
+imports the same property.
+
+QuickProp should create:
+
+**DEF Properties → 12 Borrowdale Brooke**
+
+as another agent/property relationship.
+
+Do NOT create another canonical property.
+
+---
+
+# 15. AGENT ASSIGNMENT
+
+If the source file contains agents:
+
+```text
+John
+Sarah
+Tendai
+Michelle
+```
+
+automatically assign listings to those agents where they can be confidently matched to QuickProp users.
+
+Example:
+
+**John M. → John Moyo**
+
+🟢 98% match
+
+If no matching QuickProp account exists:
+
+**Agent not found**
+
+[Create/invite agent]
+
+or:
+
+[Assign later]
+
+Do not block the entire import because one agent cannot be matched.
+
+---
+
+# 16. MANDATE DATA
+
+Where the source data contains mandate information, extract it.
+
+Possible fields:
+
+* mandate start date
+* mandate expiry date
+* mandate type
+* exclusive/non-exclusive
+* owner
+* commission/terms where applicable
+* internal reference
+* listing agent
+* agency reference
+
+Do not expose sensitive owner information publicly.
+
+Store appropriate internal information separately from consumer-facing listing data.
+
+---
+
+# 17. MANDATE VALIDATION
+
+Where mandate dates are available, flag:
+
+### Active
+
+Mandate currently valid.
+
+### Expiring soon
+
+Mandate expires within configurable period.
+
+### Expired
+
+Mandate appears to have expired.
+
+### Unknown
+
+No mandate expiry information found.
+
+Do NOT automatically publish an expired mandate unless the agency explicitly confirms it.
+
+---
+
+# 18. IMAGE IMPORT
+
+If images are contained in uploaded documents or spreadsheets, attempt to extract them.
+
+If images are provided separately, allow the system to associate them with listings.
+
+Example:
+
+```text
+12-Borrowdale-1.jpg
+12-Borrowdale-2.jpg
+12-Borrowdale-3.jpg
+```
+
+should potentially be associated with:
+
+**12 Borrowdale Brooke**
+
+using filename/address matching.
+
+Allow manual reassignment.
+
+---
+
+# 19. PDF CATALOGUES
+
+Many agencies will have old PDF property catalogues.
+
+QuickProp should be able to process:
+
+```text
+ABC Properties Portfolio.pdf
+```
+
+and identify multiple properties from the document.
+
+For each property, extract:
+
+* property name/address
+* price
+* description
+* bedrooms
+* bathrooms
+* property type
+* location
+* agent
+* reference number
+* images where technically possible
+
+Separate the PDF into individual listing records.
+
+---
+
+# 20. SCANNED PDF / OCR
+
+If the PDF contains scanned pages rather than selectable text:
+
+Automatically apply OCR.
+
+Show:
+
+> **Scanned document detected — QuickProp is reading the document using OCR.**
+
+Maintain confidence scoring because OCR may introduce errors.
+
+---
+
+# 21. IMPORT PROGRESS
+
+For large portfolios, show progress.
+
+Example:
+
+## Analysing your portfolio
+
+Files:
+
+4
+
+Properties detected:
+
+**287**
+
+Progress:
+
+**73%**
+
+Current step:
+
+**Checking for duplicate properties**
+
+Stages:
+
+✓ Reading files
+✓ Extracting data
+✓ Identifying properties
+✓ Structuring listings
+→ Checking duplicates
+○ Preparing review
+
+Do not freeze the UI.
+
+---
+
+# 22. IMPORT SESSION
+
+Every bulk import should have an import session.
+
+Example:
+
+**Import #QP-2026-00452**
+
+Agency:
+
+ABC Properties
+
+Uploaded:
+
+Portfolio.xlsx
+Mandates.pdf
+
+Created:
+
+28 August 2026
+
+Status:
+
+**Review required**
+
+Allow the agent to leave and return later.
+
+The import should not be lost if the browser closes.
+
+---
+
+# 23. DRAFT STATE
+
+Imported listings must initially be:
+
+**DRAFT**
+
+They must NOT automatically become publicly visible.
+
+The workflow is:
+
+```text
+RAW DATA
+↓
+AI EXTRACTION
+↓
+DRAFT
+↓
+AGENT REVIEW
+↓
+APPROVED
+↓
+PUBLISHED
+```
+
+This is extremely important.
+
+---
+
+# 24. PRE-PUBLISH VALIDATION
+
+Before publishing, QuickProp should perform a final validation.
+
+Check:
+
+* Address exists
+* Property type exists
+* Price exists where required
+* Sale/rental status exists
+* Location exists
+* Agent relationship exists
+* No unresolved critical duplicate
+* No obvious data corruption
+
+Show:
+
+## Ready to publish
+
+**312 listings**
+
+## Need attention
+
+**35 listings**
+
+Do not prevent publishing the 312 clean listings because 35 need attention.
+
+---
+
+# 25. ONE-CLICK BULK PUBLISH
+
+Provide:
+
+# Publish 312 listings
+
+Before final confirmation:
+
+> You're about to publish 312 listings to QuickProp.
+
+> 287 will create new agent/property relationships.
+
+> 25 will be linked to existing QuickProp properties.
+
+> 35 listings remain in draft because they require review.
+
+Buttons:
+
+**Cancel**
+
+**Publish 312 listings**
+
+---
+
+# 26. IMPORT SUMMARY
+
+After completion:
+
+## Portfolio successfully imported
+
+**312 listings published**
+
+**27 drafts require review**
+
+**8 duplicates linked**
+
+**0 records lost**
+
+Provide:
+
+[View listings]
+
+[Review remaining]
+
+[Import another file]
+
+---
+
+# 27. ERROR HANDLING
+
+Never silently discard data.
+
+If something cannot be processed:
+
+Show:
+
+**8 records could not be processed**
+
+Reasons:
+
+* Missing address
+* Corrupt spreadsheet row
+* Unsupported data
+* Ambiguous property
+* Duplicate requires manual confirmation
+
+Allow the agent to download an error report if desired.
+
+---
+
+# 28. SOURCE TRACEABILITY
+
+Every imported field should retain information about where it came from.
+
+Example:
+
+```text
+Price:
+$350,000
+
+Source:
+Portfolio.xlsx
+Row 84
+Column "Asking Price"
+```
+
+For PDF:
+
+```text
+Source:
+Mandates.pdf
+Page 18
+```
+
+This is extremely useful when agents need to verify AI extraction.
+
+---
+
+# 29. ORIGINAL DATA PRESERVATION
+
+Never destroy the original uploaded data.
+
+Store:
+
+* original file
+* import session
+* extracted values
+* transformed values
+* agent corrections
+* final values
+
+This creates an audit trail.
+
+---
+
+# 30. AI SHOULD NEVER OVERRIDE THE AGENT
+
+AI can:
+
+* extract
+* infer
+* normalise
+* match
+* suggest
+* flag
+
+But the agent remains the final authority.
+
+If AI says:
+
+**Property type = House**
+
+and the agent changes it to:
+
+**Townhouse**
+
+the agent's correction becomes the authoritative listing value.
+
+Record the correction.
+
+---
+
+# 31. LEARNING FROM CORRECTIONS
+
+Capture corrections made during imports.
+
+Example:
+
+AI repeatedly interprets:
+
+**"BR"**
+
+incorrectly.
+
+Agents consistently correct:
+
+**BR → Bedrooms**
+
+The system should use these corrections to improve future imports for that agency.
+
+This can be agency-specific mapping.
+
+Example:
+
+**ABC Properties uses "BR" to mean Bedrooms.**
+
+Next time ABC uploads a spreadsheet, QuickProp should automatically recognise it.
+
+---
+
+# 32. REPEAT IMPORTS
+
+The feature should not only work for initial onboarding.
+
+Agencies should be able to periodically upload updated portfolios.
+
+Example:
+
+**Import updated portfolio**
+
+QuickProp compares:
+
+**Previous QuickProp data**
+
+vs.
+
+**New agency data**
+
+and identifies:
+
+* new properties
+* removed properties
+* price changes
+* status changes
+* changed descriptions
+* changed agents
+* changed mandate dates
+
+Show a change summary.
+
+Example:
+
+### Portfolio changes detected
+
+**18 new properties**
+
+**42 price changes**
+
+**9 properties no longer present**
+
+**6 agents reassigned**
+
+**4 possible duplicates**
+
+Allow the agent to review and approve the changes.
+
+---
+
+# 33. CHANGE DETECTION
+
+Example:
+
+Previous:
+
+**$350,000**
+
+New:
+
+**$325,000**
+
+Display:
+
+> Price reduced by $25,000
+
+Allow:
+
+**Apply change**
+
+**Ignore**
+
+Similarly:
+
+Available → Sold
+
+should be flagged as a significant change.
+
+---
+
+# 34. IMPORT HISTORY
+
+Create:
+
+## Import History
+
+Example:
+
+| Date   | File                   | Records | Published | Issues |
+| ------ | ---------------------- | ------: | --------: | -----: |
+| 28 Aug | Portfolio.xlsx         |     350 |       312 |     38 |
+| 15 Sep | Updated Portfolio.xlsx |     364 |       349 |     15 |
+
+Clicking an import should open its review/history.
+
+---
+
+# 35. DESKTOP-FIRST DESIGN
+
+This feature is specifically for **QuickProp Office**.
+
+Prioritise:
+
+* large tables
+* drag-and-drop
+* keyboard shortcuts
+* bulk actions
+* filtering
+* sorting
+* multiple selections
+* side-by-side review
+
+The experience should feel closer to:
+
+**Excel + modern CRM + AI assistant**
+
+than a normal property listing form.
+
+---
+
+# 36. AI ASSISTANT PANEL
+
+Add an optional AI assistant on the right side.
+
+Example:
+
+> **QuickProp AI**
+>
+> I found 347 properties.
+>
+> 312 are ready to publish.
+>
+> 27 need information.
+>
+> 8 may already exist on QuickProp.
+>
+> 14 have ambiguous prices.
+>
+> Would you like me to show the records requiring attention?
+
+Buttons:
+
+**Show issues**
+
+**Show duplicates**
+
+**Show price problems**
+
+---
+
+# 37. IMPORT RULES
+
+Administrators should be able to configure:
+
+* mandatory fields
+* accepted property types
+* supported currencies
+* default listing status
+* duplicate confidence threshold
+* mandate expiry rules
+* freshness rules
+* image limits
+* maximum import size
+
+Do not hard-code these values.
+
+---
+
+# 38. SECURITY
+
+Uploaded agency files may contain sensitive information.
+
+Implement:
+
+* authenticated access
+* agency-level data isolation
+* encryption at rest
+* secure file storage
+* access controls
+* audit logging
+* automatic virus/malware scanning where available
+* configurable file retention
+* no cross-agency exposure
+
+An agency must never be able to access another agency's uploaded source documents.
+
+---
+
+# 39. PERFORMANCE
+
+The system must support large agency portfolios.
+
+Design for at least:
+
+**1,000+ properties per import**
+
+without requiring the browser to remain frozen.
+
+Use background processing/queues for:
+
+* OCR
+* document parsing
+* AI extraction
+* image processing
+* duplicate matching
+
+The UI should show progress in real time.
+
+---
+
+# 40. DATABASE ARCHITECTURE
+
+Use the existing QuickProp canonical property architecture.
+
+Conceptually:
+
+```text
+Agency
+   ↓
+Import Session
+   ↓
+Raw Source Files
+   ↓
+Extracted Records
+   ↓
+Review Records
+   ↓
+Canonical Property
+   ↓
+Agent ↔ Property Relationship
+   ↓
+Published Listing
+```
+
+Do NOT create a new canonical property simply because the imported record looks slightly different from an existing property.
+
+---
+
+# 41. SUGGESTED DATABASE TABLES
+
+Implement or adapt:
+
+```text
+import_sessions
+
+id
+agency_id
+created_by
+status
+total_files
+total_records
+records_ready
+records_needing_review
+records_duplicate
+created_at
+completed_at
+```
+
+```text
+import_files
+
+id
+import_session_id
+file_name
+file_type
+storage_location
+processing_status
+created_at
+```
+
+```text
+import_records
+
+id
+import_session_id
+source_file_id
+source_location
+raw_data
+extracted_data
+confidence_score
+review_status
+duplicate_status
+matched_property_id
+created_at
+updated_at
+```
+
+```text
+import_field_confidence
+
+id
+import_record_id
+field_name
+extracted_value
+confidence_score
+source_reference
+```
+
+```text
+import_changes
+
+id
+import_record_id
+field_name
+old_value
+new_value
+changed_by
+changed_at
+```
+
+Use JSON/JSONB where appropriate for raw/extracted data, while keeping critical searchable fields properly structured.
+
+---
+
+# 42. API / SERVICE ARCHITECTURE
+
+Separate the import pipeline into logical services:
+
+```text
+Upload Service
+      ↓
+File Processing Service
+      ↓
+OCR / Document Extraction
+      ↓
+AI Structuring
+      ↓
+Normalisation
+      ↓
+Duplicate Detection
+      ↓
+Validation
+      ↓
+Review Queue
+      ↓
+Publish Service
+```
+
+All stages should be independently retryable.
+
+A failure in OCR should not crash the entire import.
+
+---
+
+# 43. IMPORTANT: DO NOT PUBLISH DURING AI PROCESSING
+
+AI extraction must NEVER directly publish listings.
+
+There must always be an explicit agent approval step.
+
+The safest architecture is:
+
+```text
+Upload
+↓
+Extract
+↓
+AI interpretation
+↓
+Draft
+↓
+Human review
+↓
+Approval
+↓
+Publish
+```
+
+---
+
+# 44. SUCCESS METRICS
+
+Track:
+
+* average import size
+* time from upload to publish
+* percentage automatically structured
+* percentage requiring review
+* duplicate detection accuracy
+* average agent corrections
+* percentage successfully published
+* failed records
+* most common missing fields
+* most common AI corrections
+
+The ultimate KPI should be:
+
+> **How quickly can a new agency get its existing portfolio live on QuickProp?**
+
+Target:
+
+**100+ listings onboarded in under 30 minutes of agent effort**, where source data is reasonably structured.
+
+---
+
+# 45. FINAL UX GOAL
+
+The experience should feel almost magical.
+
+The agent should think:
+
+> "I already have all my property data. I don't need to enter it again."
+
+They upload:
+
+**Portfolio.xlsx**
+
+QuickProp responds:
+
+> **We found 438 properties.**
+
+Then:
+
+> **391 are ready to publish.**
+
+> **29 need a quick review.**
+
+> **18 appear to already exist on QuickProp.**
+
+The agent reviews the exceptions, clicks:
+
+**Publish**
+
+and their entire portfolio is live.
+
+That is the experience we want.
+
+---
+
+# ACCEPTANCE CRITERIA
+
+The implementation is complete when:
+
+* Agents can upload Excel, CSV, PDF, Word and image files.
+* Multiple files can be uploaded simultaneously.
+* QuickProp can extract structured property information from those files.
+* Excel columns are automatically mapped.
+* Agents can correct column mappings.
+* PDFs can be parsed into individual property records.
+* Scanned PDFs can use OCR.
+* Every imported record starts as a draft.
+* AI confidence scores are displayed.
+* Low-confidence records are flagged.
+* Agents can bulk edit records.
+* Agents can filter and sort imported records.
+* Duplicate properties are detected before creation.
+* Existing canonical properties can be matched.
+* Multiple agent/property relationships are supported.
+* Agent assignments can be detected and reviewed.
+* Mandate information can be extracted and validated.
+* Images can be associated with properties where possible.
+* Agents can bulk approve and publish listings.
+* Critical validation occurs before publishing.
+* Original source files are preserved.
+* Every AI correction and agent correction is auditable.
+* Import sessions can be resumed.
+* Large imports are processed asynchronously.
+* Agencies are completely isolated from each other's data.
+* Repeat imports can detect changes from previous imports.
+* No listing is automatically published without agent approval.
+* No duplicate canonical property is created simply because of an import.
+* The entire workflow is desktop-first and optimised for high-volume agency onboarding.

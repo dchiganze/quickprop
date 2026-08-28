@@ -910,6 +910,73 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/SearchResults" }
+  /properties/duplicate-check:
+    post:
+      operationId: checkPropertyDuplicate
+      tags: [properties]
+      summary: Check for likely canonical property duplicates before creation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DuplicateCheckInput" }
+      responses:
+        "200":
+          description: Duplicate candidates and confidence
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DuplicateCheckResult" }
+  /properties/{id}/multi-agent:
+    get:
+      operationId: getMultiAgentProperty
+      tags: [properties]
+      summary: Canonical property with all agency offers
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "200":
+          description: Multi-agent property detail
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MultiAgentProperty" }
+        "404": { description: Not found }
+  /properties/{id}/relationships:
+    post:
+      operationId: addPropertyAgencyRelationship
+      tags: [properties]
+      summary: Add the signed-in agent's agency to a canonical property
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AgencyRelationshipInput" }
+      responses:
+        "201":
+          description: Agency relationship created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AgencyRelationship" }
+        "409": { description: Agency already associated }
+  /properties/{id}/health:
+    post:
+      operationId: updatePropertyHealth
+      tags: [properties]
+      summary: Confirm or update listing health
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/HealthUpdateInput" }
+      responses:
+        "200":
+          description: Listing health updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/HealthUpdateResult" }
   /public/properties:
     get:
       operationId: listPublicProperties
@@ -1139,6 +1206,48 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/AdminFreshness" }
+  /admin/duplicates:
+    get:
+      operationId: listDuplicateReviews
+      tags: [audit]
+      summary: List potential duplicate property reviews
+      responses:
+        "200":
+          description: Duplicate review queue
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/AdminDuplicateReview" }
+  /admin/duplicates/{id}:
+    get:
+      operationId: getDuplicateReview
+      tags: [audit]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "200":
+          description: Duplicate review detail
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminDuplicateDetail" }
+        "404": { description: Not found }
+    post:
+      operationId: reviewDuplicate
+      tags: [audit]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DuplicateReviewAction" }
+      responses:
+        "200":
+          description: Duplicate review action applied
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminDuplicateReview" }
   /admin/agents:
     get:
       operationId: getAdminAgents
@@ -1315,6 +1424,12 @@ components:
         publishedAt: { type: ["string", "null"] }
         createdAt: { type: string }
         updatedAt: { type: string }
+        canonicalPropertyId: { type: ["integer", "null"] }
+        duplicateStatus: { type: string }
+        latitude: { type: ["number", "null"] }
+        longitude: { type: ["number", "null"] }
+        lastAvailabilityConfirmedAt: { type: ["string", "null"] }
+        lastPriceConfirmedAt: { type: ["string", "null"] }
     PropertyInput:
       type: object
       required: [title, propertyType, listingType, price, suburb, city, photos]
@@ -1903,6 +2018,10 @@ components:
         enquiries: { type: integer }
         publishedAt: { type: ["string", "null"] }
         createdAt: { type: string }
+        canonicalPropertyId: { type: ["integer", "null"] }
+        agencyCount: { type: integer }
+        lowestPrice: { type: number }
+        lastAvailabilityVerification: { type: ["string", "null"] }
     PublicPropertyList:
       type: object
       required: [properties, total, page, limit]
@@ -1940,6 +2059,198 @@ components:
       properties:
         property: { $ref: "#/components/schemas/PublicProperty" }
         agent: { $ref: "#/components/schemas/PublicAgent" }
+        offers:
+          type: array
+          items: { $ref: "#/components/schemas/PublicAgencyOffer" }
+        agencyCount: { type: integer }
+        lowestPrice: { type: number }
+        lastAvailabilityVerification: { type: ["string", "null"] }
+    PublicAgencyOffer:
+      type: object
+      required: [id, agentId, agentName, agencyName, askingPrice, currency, mandateType, relationshipStatus, verificationStatus]
+      properties:
+        id: { type: integer }
+        agentId: { type: integer }
+        agentName: { type: string }
+        agencyName: { type: string }
+        phone: { type: ["string", "null"] }
+        email: { type: ["string", "null"] }
+        askingPrice: { type: number }
+        currency: { type: string }
+        priceStatus: { type: string }
+        mandateType: { type: string }
+        relationshipStatus: { type: string }
+        verificationStatus: { type: string }
+        terms: { type: ["string", "null"] }
+        description: { type: ["string", "null"] }
+        lastAvailabilityConfirmation: { type: ["string", "null"] }
+        lastUpdate: { type: string }
+        assets:
+          type: array
+          items: { $ref: "#/components/schemas/MarketingAsset" }
+    MarketingAsset:
+      type: object
+      required: [id, assetType, objectPath, attributionName, approved]
+      properties:
+        id: { type: integer }
+        assetType: { type: string }
+        objectPath: { type: string }
+        attributionName: { type: string }
+        approved: { type: boolean }
+    MultiAgentProperty:
+      type: object
+      required: [property, propertyId, offers, agencyCount, lowestPrice]
+      properties:
+        property: { $ref: "#/components/schemas/Property" }
+        propertyId: { type: integer }
+        offers:
+          type: array
+          items: { $ref: "#/components/schemas/PublicAgencyOffer" }
+        agencyCount: { type: integer }
+        lowestPrice: { type: number }
+        lastAvailabilityVerification: { type: ["string", "null"] }
+    DuplicateCheckInput:
+      type: object
+      properties:
+        address: { type: string }
+        suburb: { type: string }
+        city: { type: string }
+        propertyType: { type: string }
+        bedrooms: { type: integer }
+        bathrooms: { type: integer }
+        landSize: { type: number }
+        buildingSize: { type: number }
+        price: { type: number }
+        description: { type: string }
+        phone: { type: string }
+        latitude: { type: number }
+        longitude: { type: number }
+        photos:
+          type: array
+          items: { type: string }
+    DuplicateMatch:
+      type: object
+      required: [id, reference, title, confidenceScore, matchingFields, imageMatches]
+      properties:
+        id: { type: integer }
+        reference: { type: string }
+        title: { type: string }
+        address: { type: ["string", "null"] }
+        suburb: { type: string }
+        city: { type: string }
+        propertyType: { type: string }
+        bedrooms: { type: ["integer", "null"] }
+        bathrooms: { type: ["integer", "null"] }
+        landSize: { type: ["number", "null"] }
+        buildingSize: { type: ["number", "null"] }
+        price: { type: number }
+        currency: { type: string }
+        photos:
+          type: array
+          items: { type: string }
+        status: { type: string }
+        confidenceScore: { type: number }
+        matchingFields:
+          type: array
+          items: { type: string }
+        imageMatches:
+          type: array
+          items: { type: string }
+        agencyName: { type: ["string", "null"] }
+        updatedAt: { type: string }
+    DuplicateCheckResult:
+      type: object
+      required: [confidenceScore, decision, matches]
+      properties:
+        confidenceScore: { type: number }
+        decision: { type: string, enum: [high_confidence, possible_duplicate, continue] }
+        matches:
+          type: array
+          items: { $ref: "#/components/schemas/DuplicateMatch" }
+    AgencyRelationshipInput:
+      type: object
+      required: [askingPrice]
+      properties:
+        askingPrice: { type: number }
+        currency: { type: string }
+        mandateType: { type: string }
+        terms: { type: string }
+        description: { type: string }
+        contactName: { type: string }
+        contactPhone: { type: string }
+        contactEmail: { type: string }
+        verificationStatus: { type: string }
+    AgencyRelationship:
+      type: object
+      required: [id, propertyId, agentId, askingPrice, currency, mandateType, relationshipStatus, verificationStatus]
+      properties:
+        id: { type: integer }
+        propertyId: { type: integer }
+        agentId: { type: integer }
+        branchId: { type: ["integer", "null"] }
+        askingPrice: { type: number }
+        currency: { type: string }
+        mandateType: { type: string }
+        relationshipStatus: { type: string }
+        verificationStatus: { type: string }
+        terms: { type: ["string", "null"] }
+        description: { type: ["string", "null"] }
+        contactName: { type: ["string", "null"] }
+        contactPhone: { type: ["string", "null"] }
+        contactEmail: { type: ["string", "null"] }
+        lastAvailabilityConfirmation: { type: ["string", "null"] }
+        lastUpdate: { type: string }
+    HealthUpdateInput:
+      type: object
+      required: [action]
+      properties:
+        action: { type: string, enum: [still_available, update, sold, let, withdraw] }
+    HealthUpdateResult:
+      type: object
+      required: [ok, status, confirmedAt]
+      properties:
+        ok: { type: boolean }
+        status: { type: string }
+        confirmedAt: { type: string }
+    AdminDuplicateReview:
+      type: object
+      required: [id, sourcePropertyId, candidatePropertyId, confidenceScore, matchingFields, status, createdAt]
+      properties:
+        id: { type: integer }
+        sourcePropertyId: { type: integer }
+        candidatePropertyId: { type: integer }
+        confidenceScore: { type: number }
+        matchingFields:
+          type: array
+          items: { type: string }
+        imageMatches:
+          type: array
+          items: { type: string }
+        status: { type: string }
+        notes: { type: ["string", "null"] }
+        createdAt: { type: string }
+        sourceProperty: { $ref: "#/components/schemas/Property" }
+        candidateProperty: { $ref: "#/components/schemas/Property" }
+    AdminDuplicateDetail:
+      type: object
+      required: [review, sourceProperty, candidateProperty, sourceOffers, candidateOffers]
+      properties:
+        review: { $ref: "#/components/schemas/AdminDuplicateReview" }
+        sourceProperty: { $ref: "#/components/schemas/Property" }
+        candidateProperty: { $ref: "#/components/schemas/Property" }
+        sourceOffers:
+          type: array
+          items: { $ref: "#/components/schemas/PublicAgencyOffer" }
+        candidateOffers:
+          type: array
+          items: { $ref: "#/components/schemas/PublicAgencyOffer" }
+    DuplicateReviewAction:
+      type: object
+      required: [action]
+      properties:
+        action: { type: string, enum: [merge, keep_separate, request_information, unmerge] }
+        canonicalPropertyId: { type: integer }
+        notes: { type: string }
     EnquiryInput:
       type: object
       required: [name, message]

@@ -14,6 +14,7 @@ import {
   documentsTable,
   leadsTable,
   collaborationMatchRequestsTable,
+  propertyDuplicateReviewsTable,
 } from "@workspace/db";
 import {
   ListPropertiesQueryParams,
@@ -32,6 +33,7 @@ import {
 } from "@workspace/api-zod";
 import { parseId, logActivity, logAudit, jsonify } from "../lib/helpers";
 import { currentUser } from "./auth";
+import { findDuplicateCandidates, normalizeText } from "../lib/multi-agent";
 
 const router: IRouter = Router();
 
@@ -128,7 +130,12 @@ router.post("/properties", async (req, res): Promise<void> => {
     const temporaryReference = `pending-${randomUUID()}`;
     const [created] = await tx
       .insert(propertiesTable)
-      .values({ ...parsed.data, agentId: user?.id, reference: temporaryReference })
+      .values({
+        ...parsed.data,
+        agentId: user?.id,
+        reference: temporaryReference,
+        normalizedAddress: normalizeText(parsed.data.address),
+      })
       .returning();
     const [row] = await tx
       .update(propertiesTable)
@@ -146,6 +153,30 @@ router.post("/properties", async (req, res): Promise<void> => {
     return { row, created: true };
   });
   if (result.created) {
+    const duplicateMatches = await findDuplicateCandidates({
+      address: result.row.address,
+      suburb: result.row.suburb,
+      city: result.row.city,
+      propertyType: result.row.propertyType,
+      bedrooms: result.row.bedrooms,
+      bathrooms: result.row.bathrooms,
+      landSize: result.row.landSize,
+      buildingSize: result.row.buildingSize,
+      price: result.row.price,
+      description: result.row.description,
+      photos: result.row.photos,
+    }, result.row.id);
+    const possibleDuplicate = duplicateMatches[0];
+    if (possibleDuplicate) {
+      await db.insert(propertyDuplicateReviewsTable).values({
+        sourcePropertyId: result.row.id,
+        candidatePropertyId: possibleDuplicate.property.id,
+        confidenceScore: possibleDuplicate.confidenceScore,
+        matchingFields: possibleDuplicate.matchingFields,
+        imageMatches: possibleDuplicate.imageMatches,
+      });
+      await db.update(propertiesTable).set({ duplicateStatus: "review" }).where(eq(propertiesTable.id, result.row.id));
+    }
     await logActivity("created", `New mandate ${result.row.reference}: ${result.row.title}`, "property", result.row.id, user?.name);
     await logAudit("created", "property", result.row.id, `Created ${result.row.reference}`, user?.id, user?.name);
   }

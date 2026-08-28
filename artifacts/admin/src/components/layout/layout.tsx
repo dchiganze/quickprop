@@ -36,6 +36,7 @@ const NAV: NavSection[] = [
       { href: '/properties', icon: Building2, label: 'Properties' },
       { href: '/coverage', icon: Map, label: 'Coverage' },
       { href: '/freshness', icon: Clock, label: 'Freshness' },
+      { href: '/duplicates', icon: Activity, label: 'Duplicate Review' },
     ],
   },
   {

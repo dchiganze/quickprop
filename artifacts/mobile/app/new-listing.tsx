@@ -15,6 +15,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { FeatureChip } from '@/components/FeatureChip';
 import { StepIndicator } from '@/components/StepIndicator';
 import { PROPERTY_FEATURES, Property } from '@/types';
+import { apiOrigin } from '@/contexts/AuthContext';
+import { addMyAgencyToProperty, findPropertyDuplicates } from '@/utils/multiAgent';
 
 const TOTAL_STEPS = 10;
 const STEP_LABELS = [
@@ -227,6 +229,52 @@ export default function NewListingScreen() {
     }
     setSaving(true);
     try {
+      if (status === 'published' && apiOrigin && user?.id) {
+        const duplicateCheck = await findPropertyDuplicates({
+          address: form.address,
+          suburb: form.suburb,
+          propertyType: form.type,
+          bedrooms: form.bedrooms,
+          bathrooms: form.bathrooms,
+          landSize: parseFloat(form.landSize) || undefined,
+          buildingSize: parseFloat(form.floorArea) || undefined,
+          price: parseFloat(form.price),
+          description: form.description,
+          phone: form.sellerPhone,
+          photos: form.photos,
+        });
+        const likelyMatch = duplicateCheck.matches[0];
+        if (likelyMatch && duplicateCheck.decision !== 'continue') {
+          const action = await new Promise<'agency' | 'continue' | 'cancel'>((resolve) => {
+            Alert.alert(
+              'This property may already exist',
+              `${likelyMatch.title} (${likelyMatch.confidenceScore}% match) is already listed by ${likelyMatch.agencyName ?? 'another agency'}.\n\n${likelyMatch.matchingFields.join(', ')}.`,
+              [
+                { text: 'Cancel', style: 'cancel', onPress: () => resolve('cancel') },
+                { text: "I'm Not Sure", onPress: () => resolve('continue') },
+                { text: 'Add My Agency', onPress: () => resolve('agency') },
+              ],
+            );
+          });
+          if (action === 'cancel') return;
+          if (action === 'agency') {
+            await addMyAgencyToProperty(likelyMatch.id, {
+              askingPrice: parseFloat(form.price),
+              currency: form.currency,
+              mandateType: form.mandateType,
+              terms: form.negotiable ? 'Negotiable' : undefined,
+              description: form.description,
+              contactName: user.name,
+              contactPhone: user.phone,
+              contactEmail: user.email,
+              verificationStatus: 'pending',
+            });
+            Alert.alert('Agency Added', 'Your agency relationship was added to the existing property. No duplicate listing was created.');
+            router.replace('/(tabs)/listings');
+            return;
+          }
+        }
+      }
       const property = await addProperty({
       referenceNumber: form.referenceNumber,
       type: form.type,

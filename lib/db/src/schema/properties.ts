@@ -48,6 +48,15 @@ export const propertiesTable = pgTable("properties", {
   shares: integer("shares").notNull().default(0),
   hasBrochure: boolean("has_brochure").notNull().default(false),
   collaborationEnabled: boolean("collaboration_enabled").notNull().default(false),
+  // Null means this row is the canonical physical property. A non-null value
+  // points at the canonical row after an admin-approved merge.
+  canonicalPropertyId: integer("canonical_property_id").references((): any => propertiesTable.id),
+  normalizedAddress: text("normalized_address"),
+  latitude: doublePrecision("latitude"),
+  longitude: doublePrecision("longitude"),
+  duplicateStatus: text("duplicate_status").notNull().default("clear"),
+  lastAvailabilityConfirmedAt: timestamp("last_availability_confirmed_at"),
+  lastPriceConfirmedAt: timestamp("last_price_confirmed_at"),
   publishedAt: timestamp("published_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),

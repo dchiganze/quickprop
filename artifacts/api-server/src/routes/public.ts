@@ -9,6 +9,7 @@ import {
 } from "@workspace/api-zod";
 import { leadsTable } from "@workspace/db";
 import { ai } from "@workspace/integrations-gemini-ai";
+import { canonicalPropertyId, getCanonicalProperty, getPropertyOffers } from "../lib/multi-agent";
 
 const router: IRouter = Router();
 
@@ -64,7 +65,8 @@ router.get("/public/stats", async (_req, res): Promise<void> => {
   const forSale = all.filter((p) => p.listingType === "sale").length;
   const forRent = all.filter((p) => p.listingType === "rent").length;
   const suburbs = [...new Set(all.map((p) => p.suburb))].sort();
-  res.json({ totalListings: all.length, forSale, forRent, suburbs });
+  const uniqueCount = new Set(all.map((property) => property.canonicalPropertyId ?? property.id)).size;
+  res.json({ totalListings: uniqueCount, forSale, forRent, suburbs });
 });
 
 /* ─── GET /public/properties ───────────────────────────────────────────── */
@@ -100,25 +102,29 @@ router.get("/public/properties", async (req, res): Promise<void> => {
   const limitNum = Math.min(48, Math.max(1, parseInt(limit)));
   const offset = (pageNum - 1) * limitNum;
 
-  const [{ count }] = await db
-    .select({ count: sql<number>`count(*)::int` })
-    .from(propertiesTable)
-    .where(and(...conditions));
-
-  let query = db.select().from(propertiesTable).where(and(...conditions));
-
-  // Apply ordering
-  let ordered;
-  if (sort === "price_asc") {
-    ordered = query.orderBy(propertiesTable.price);
-  } else if (sort === "price_desc") {
-    ordered = query.orderBy(sql`${propertiesTable.price} desc`);
-  } else {
-    ordered = query.orderBy(sql`${propertiesTable.publishedAt} desc nulls last`);
+  const rows = await db.select().from(propertiesTable).where(and(...conditions));
+  const grouped = new Map<number, typeof rows[number]>();
+  for (const row of rows) {
+    const key = row.canonicalPropertyId ?? row.id;
+    const current = grouped.get(key);
+    if (!current || row.id === key || row.updatedAt > current.updatedAt) grouped.set(key, row);
   }
-
-  const rows = await ordered.limit(limitNum).offset(offset);
-  const properties = rows.map(stripPrivate);
+  const groupedRows = [...grouped.values()];
+  if (sort === "price_asc") groupedRows.sort((a, b) => a.price - b.price);
+  else if (sort === "price_desc") groupedRows.sort((a, b) => b.price - a.price);
+  else groupedRows.sort((a, b) => (b.publishedAt?.getTime() ?? 0) - (a.publishedAt?.getTime() ?? 0));
+  const count = groupedRows.length;
+  const pageRows = groupedRows.slice(offset, offset + limitNum);
+  const properties = await Promise.all(pageRows.map(async (row) => {
+    const offers = await getPropertyOffers(row.id);
+    return {
+      ...stripPrivate(row),
+      canonicalPropertyId: row.canonicalPropertyId ?? row.id,
+      agencyCount: new Set(offers.map((offer) => offer.agencyName)).size || 1,
+      lowestPrice: offers.length ? Math.min(...offers.map((offer) => offer.askingPrice)) : row.price,
+      lastAvailabilityVerification: offers.map((offer) => offer.lastAvailabilityConfirmation).filter(Boolean).sort().at(-1) ?? row.lastAvailabilityConfirmedAt,
+    };
+  }));
 
   res.json({
     properties: jsonify(properties),
@@ -135,16 +141,29 @@ router.get("/public/properties/:id", async (req, res): Promise<void> => {
   const propertyIdentifier = /^\d+$/.test(rawIdentifier)
     ? eq(propertiesTable.id, numericId)
     : eq(propertiesTable.reference, rawIdentifier.toUpperCase());
-  const [prop] = await db.select().from(propertiesTable).where(
-    and(propertyIdentifier, inArray(propertiesTable.status, PUBLIC_STATUSES))
-  );
-  if (!prop) { res.status(404).json({ error: "Not found" }); return; }
+  const [found] = await db.select().from(propertiesTable).where(propertyIdentifier);
+  const prop = found ? await getCanonicalProperty(found.id) : null;
+  if (!prop || !PUBLIC_STATUSES.includes(prop.status)) { res.status(404).json({ error: "Not found" }); return; }
 
   // Increment views
   await db.update(propertiesTable).set({ views: (prop.views ?? 0) + 1 }).where(eq(propertiesTable.id, prop.id));
 
   const agent = await agentWithBranch(prop.agentId);
-  res.json({ property: jsonify(stripPrivate(prop)), agent: jsonify(agent) });
+  const offers = await getPropertyOffers(prop.id);
+  res.json(jsonify({
+    property: {
+      ...stripPrivate(prop),
+      canonicalPropertyId: prop.id,
+      agencyCount: new Set(offers.map((offer) => offer.agencyName)).size || 1,
+      lowestPrice: offers.length ? Math.min(...offers.map((offer) => offer.askingPrice)) : prop.price,
+      lastAvailabilityVerification: offers.map((offer) => offer.lastAvailabilityConfirmation).filter(Boolean).sort().at(-1) ?? prop.lastAvailabilityConfirmedAt,
+    },
+    agent,
+    offers,
+    agencyCount: new Set(offers.map((offer) => offer.agencyName)).size || 1,
+    lowestPrice: offers.length ? Math.min(...offers.map((offer) => offer.askingPrice)) : prop.price,
+    lastAvailabilityVerification: offers.map((offer) => offer.lastAvailabilityConfirmation).filter(Boolean).sort().at(-1) ?? prop.lastAvailabilityConfirmedAt,
+  }));
 });
 
 /* ─── GET /public/agents ───────────────────────────────────────────────── */
@@ -225,6 +244,7 @@ router.post("/public/enquiries", async (req, res): Promise<void> => {
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
 
   const { name, email, phone, message, propertyId, agentId, enquiryType } = parsed.data;
+  const canonicalId = propertyId ? await canonicalPropertyId(propertyId) : null;
 
   // Create lead
   const [lead] = await db
@@ -235,17 +255,17 @@ router.post("/public/enquiries", async (req, res): Promise<void> => {
       email: email ?? null,
       source: "website",
       stage: "new",
-      propertyId: propertyId ?? null,
+      propertyId: canonicalId,
       agentId: agentId ?? null,
       notes: `Enquiry type: ${enquiryType ?? "general"}\n\n${message}`,
     })
     .returning();
 
   // Increment enquiries on property
-  if (propertyId) {
-    const [prop] = await db.select().from(propertiesTable).where(eq(propertiesTable.id, propertyId));
+  if (canonicalId) {
+    const [prop] = await db.select().from(propertiesTable).where(eq(propertiesTable.id, canonicalId));
     if (prop) {
-      await db.update(propertiesTable).set({ enquiries: (prop.enquiries ?? 0) + 1 }).where(eq(propertiesTable.id, propertyId));
+      await db.update(propertiesTable).set({ enquiries: (prop.enquiries ?? 0) + 1 }).where(eq(propertiesTable.id, canonicalId));
     }
   }
 

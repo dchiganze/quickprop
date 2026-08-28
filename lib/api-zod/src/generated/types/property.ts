@@ -73,4 +73,15 @@ export interface Property {
   publishedAt?: string | null;
   createdAt?: string;
   updatedAt?: string;
+  /** @nullable */
+  canonicalPropertyId?: number | null;
+  duplicateStatus?: string;
+  /** @nullable */
+  latitude?: number | null;
+  /** @nullable */
+  longitude?: number | null;
+  /** @nullable */
+  lastAvailabilityConfirmedAt?: string | null;
+  /** @nullable */
+  lastPriceConfirmedAt?: string | null;
 }

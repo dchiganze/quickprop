@@ -42,4 +42,10 @@ export interface PublicProperty {
   /** @nullable */
   publishedAt?: string | null;
   createdAt: string;
+  /** @nullable */
+  canonicalPropertyId?: number | null;
+  agencyCount?: number;
+  lowestPrice?: number;
+  /** @nullable */
+  lastAvailabilityVerification?: string | null;
 }

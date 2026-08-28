@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatPrice } from "@/lib/utils";
 import { useParams } from "wouter";
-import { Bed, Bath, Car, Maximize, MapPin, Share2, Heart, MessageSquare, Phone, Building, CheckCircle2 } from "lucide-react";
+import { Bed, Bath, Car, Maximize, MapPin, Share2, Heart, MessageSquare, Phone, Building, CheckCircle2, Users, ShieldCheck } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -119,7 +119,7 @@ export default function PropertyDetail() {
     </Layout>
   );
 
-  const { property, agent } = data;
+  const { property, agent, offers = [] } = data;
   const allImages = property.photos || [];
   if (property.coverImage && !allImages.includes(property.coverImage)) {
     allImages.unshift(property.coverImage);
@@ -186,9 +186,18 @@ export default function PropertyDetail() {
               </p>
 
               <div className="text-3xl font-bold text-primary mb-8">
-                {formatPrice(property.price, property.currency)}
+                {formatPrice(property.lowestPrice ?? property.price, property.currency)}
                 {property.listingType === 'rent' && <span className="text-lg text-gray-500 font-normal"> / month</span>}
               </div>
+              {(data.agencyCount ?? property.agencyCount ?? 1) > 1 && (
+                <div className="mb-8 flex items-center gap-3 rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-emerald-800">
+                  <Users className="h-5 w-5 shrink-0" />
+                  <div>
+                    <p className="font-semibold">{data.agencyCount} agencies represent this property</p>
+                    <p className="text-sm text-emerald-700">Compare independent prices, terms and availability below.</p>
+                  </div>
+                </div>
+              )}
 
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 py-6 border-y border-gray-100">
                 {property.bedrooms != null && (
@@ -242,6 +251,36 @@ export default function PropertyDetail() {
                       <CheckCircle2 className="h-5 w-5 text-emerald-500 flex-shrink-0" />
                       <span>{feature}</span>
                     </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {offers.length > 0 && (
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-2xl font-bold text-gray-900">Agency offers</h2>
+                  <span className="text-sm text-gray-500">{offers.length} active offer{offers.length === 1 ? '' : 's'}</span>
+                </div>
+                <div className="grid gap-3">
+                  {offers.map((offer) => (
+                    <Card key={offer.id} className="border-gray-100">
+                      <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-bold text-gray-900">{offer.agencyName}</h3>
+                            {offer.verificationStatus === 'verified' && <ShieldCheck className="h-4 w-4 text-emerald-600" aria-label="Verified availability" />}
+                          </div>
+                          <p className="text-sm text-gray-500">{offer.agentName} · {offer.mandateType.replace('_', ' ')}</p>
+                          {offer.terms && <p className="text-sm text-gray-600 mt-1">{offer.terms}</p>}
+                        </div>
+                        <div className="text-left sm:text-right">
+                          <p className="font-bold text-primary">{formatPrice(offer.askingPrice, offer.currency)}</p>
+                          <p className="text-xs text-gray-500 capitalize">{offer.priceStatus ?? 'current'} price</p>
+                          {offer.phone && <a className="text-sm text-primary hover:underline" href={`tel:${offer.phone}`}>Contact agency</a>}
+                        </div>
+                      </CardContent>
+                    </Card>
                   ))}
                 </div>
               </div>

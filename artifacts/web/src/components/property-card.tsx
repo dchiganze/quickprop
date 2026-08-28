@@ -1,7 +1,7 @@
 import { PublicProperty } from "@workspace/api-client-react";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { formatPrice } from "@/lib/utils";
-import { Bed, Bath, Car, Maximize, MapPin, Building, Activity } from "lucide-react";
+import { Bed, Bath, Car, Maximize, MapPin, Building, Activity, Users } from "lucide-react";
 import { Link } from "wouter";
 import { Badge } from "@/components/ui/badge";
 
@@ -38,7 +38,7 @@ export function PropertyCard({ property }: { property: PublicProperty }) {
         <CardContent className="p-5 flex-1 flex flex-col">
           <div className="mb-2">
             <h3 className="font-bold text-xl text-primary tracking-tight">
-              {formatPrice(property.price, property.currency)}
+              {formatPrice(property.lowestPrice ?? property.price, property.currency)}
             </h3>
             {property.listingType === 'rent' && <span className="text-xs text-gray-500 uppercase tracking-wider font-medium ml-1">/ month</span>}
           </div>
@@ -47,6 +47,12 @@ export function PropertyCard({ property }: { property: PublicProperty }) {
             <MapPin className="h-3.5 w-3.5 flex-shrink-0" />
             {property.suburb}, {property.city}
           </p>
+          {(property.agencyCount ?? 1) > 1 && (
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-700">
+              <Users className="h-3.5 w-3.5" />
+              {property.agencyCount} agencies · compare offers
+            </div>
+          )}
         </CardContent>
         <CardFooter className="px-5 py-4 border-t bg-gray-50/50 flex flex-wrap gap-4 text-gray-600 text-sm">
           {property.bedrooms != null && property.bedrooms > 0 && (

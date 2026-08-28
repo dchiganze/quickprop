@@ -18,6 +18,7 @@ import Coverage from '@/pages/coverage';
 import Freshness from '@/pages/freshness';
 import Audit from '@/pages/audit';
 import Settings from '@/pages/settings';
+import Duplicates from '@/pages/duplicates';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -61,6 +62,7 @@ function AppRouter() {
       <ProtectedRoute path="/leads" component={Leads} />
       <ProtectedRoute path="/coverage" component={Coverage} />
       <ProtectedRoute path="/freshness" component={Freshness} />
+      <ProtectedRoute path="/duplicates" component={Duplicates} />
       <ProtectedRoute path="/audit" component={Audit} />
       <ProtectedRoute path="/settings" component={Settings} />
       <Route component={NotFound} />
