@@ -1,0 +1,1042 @@
+# QuickProp — Listing Housekeeping & Freshness System
+
+Implement a comprehensive **Listing Housekeeping / Listing Freshness System** for QuickProp.
+
+The objective is to ensure that listings on QuickProp remain accurate, current and trustworthy, while requiring as little manual work from agents as possible.
+
+The system should continuously monitor listing freshness and prompt agents to confirm or update listings when necessary.
+
+---
+
+## 1. CORE PRINCIPLE
+
+Every QuickProp listing should have a clear **Freshness Status**.
+
+A listing should never silently remain online for months without confirmation from the agent.
+
+The system should distinguish between:
+
+* Newly Listed
+* Fresh
+* Due for Confirmation
+* Update Required
+* Potentially Stale
+* Stale
+* Inactive / Removed
+* Sold / Let / Withdrawn
+
+The consumer should ultimately see reliable listings rather than a large number of outdated properties.
+
+---
+
+# 2. LISTING FRESHNESS TIMER
+
+Every listing must have:
+
+* `created_at`
+* `last_updated_at`
+* `last_confirmed_at`
+* `next_confirmation_at`
+* `listing_status`
+* `freshness_status`
+* `days_since_confirmation`
+
+Important distinction:
+
+### Listing update
+
+Something about the listing has actually changed.
+
+Examples:
+
+* price changed
+* photos changed
+* description changed
+* availability changed
+* property details changed
+
+### Listing confirmation
+
+The agent confirms that the existing information is still accurate.
+
+An agent should be able to press:
+
+**"Everything is still correct"**
+
+without having to edit the listing.
+
+This should reset the freshness timer.
+
+---
+
+# 3. DEFAULT HOUSEKEEPING SCHEDULE
+
+Use the following default schedule.
+
+### Day 0 — Listing created
+
+Status:
+
+**NEW**
+
+Listing goes live immediately.
+
+Set:
+
+`next_confirmation_at = created_at + 14 days`
+
+---
+
+### Day 7 — Soft reminder
+
+Send the agent a lightweight notification:
+
+> "Quick check: Is your property at [Property Name] still available?"
+
+Buttons:
+
+**Yes, still available**
+
+**Update listing**
+
+**No longer available**
+
+Do NOT require the agent to do anything if the listing is obviously new.
+
+This is primarily a gentle reminder.
+
+---
+
+### Day 14 — First confirmation
+
+If the agent has not updated or confirmed the listing:
+
+Display an in-app task:
+
+**"Please confirm this listing is still accurate."**
+
+Options:
+
+**✓ Still accurate**
+
+**Edit listing**
+
+**Mark unavailable**
+
+If they confirm:
+
+* update `last_confirmed_at`
+* reset `next_confirmation_at`
+* return listing to **FRESH**
+
+---
+
+# 4. RECURRING CONFIRMATION
+
+After the first confirmation, repeat the process every:
+
+**30 days**
+
+This means that an actively maintained listing should generally receive a monthly confirmation request.
+
+However, do not annoy agents unnecessarily.
+
+If an agent has recently made a meaningful update to a listing, automatically reset the confirmation timer.
+
+For example:
+
+Agent changes price on August 20.
+
+Set:
+
+`last_updated_at = August 20`
+
+and:
+
+`next_confirmation_at = September 19`
+
+---
+
+# 5. INTELLIGENT REMINDERS
+
+Do not simply send the same notification every month.
+
+Use escalating reminders.
+
+### 7 days before due date
+
+Soft notification:
+
+> "Your QuickProp listing for [Property] is due for a quick availability check."
+
+Buttons:
+
+**Confirm listing**
+
+**Update**
+
+---
+
+### Due date
+
+Notification:
+
+> "Please confirm whether [Property] is still available."
+
+Buttons:
+
+**Still available**
+
+**Update listing**
+
+**No longer available**
+
+---
+
+### 7 days overdue
+
+Notification:
+
+> "Your listing for [Property] hasn't been confirmed recently. Please update it so buyers know the information is current."
+
+The listing remains visible.
+
+Freshness status becomes:
+
+**UPDATE REQUIRED**
+
+---
+
+### 14 days overdue
+
+Notification:
+
+> "This listing hasn't been confirmed for 14 days. Please confirm its availability."
+
+Status becomes:
+
+**POTENTIALLY STALE**
+
+Consider displaying a reduced freshness indicator internally.
+
+---
+
+### 30 days overdue
+
+The listing should automatically become:
+
+**STALE**
+
+Do not necessarily delete it.
+
+Instead:
+
+* keep it in the agent's dashboard
+* reduce its ranking in consumer search
+* display a freshness warning internally
+* prompt the agent strongly to confirm it
+
+Depending on product policy, stale listings may either remain searchable or be excluded from default search.
+
+---
+
+# 6. IMPORTANT: DO NOT DELETE LISTINGS AUTOMATICALLY
+
+Never permanently delete a listing simply because the agent has failed to confirm it.
+
+Instead, transition it through statuses.
+
+Example:
+
+`ACTIVE → DUE → UPDATE REQUIRED → POTENTIALLY STALE → STALE`
+
+This preserves the property's history and allows the agent to reactivate it.
+
+---
+
+# 7. AUTOMATIC LISTING HEALTH SCORE
+
+Create a simple internal **Listing Health Score**.
+
+Example:
+
+### 90–100
+
+Excellent
+
+Listing recently updated/confirmed.
+
+### 70–89
+
+Good
+
+Listing is current but approaching confirmation date.
+
+### 50–69
+
+Needs attention
+
+Listing requires confirmation.
+
+### 25–49
+
+Potentially stale
+
+Listing overdue.
+
+### 0–24
+
+Stale
+
+Listing has not been confirmed for an extended period.
+
+The score should be visible to the agent but should not overwhelm consumers.
+
+---
+
+# 8. AGENT DASHBOARD
+
+Add a dedicated:
+
+## "Listing Housekeeping"
+
+section to the agent dashboard.
+
+Show:
+
+**Listings requiring attention**
+
+Example:
+
+> 🔴 3 listings need attention
+> 🟠 7 listings due soon
+> 🟢 42 listings up to date
+
+Then display cards:
+
+---
+
+### 12 Borrowdale Road
+
+**House for Sale**
+
+$250,000
+
+🟠 Confirmation due
+
+**Last confirmed: 24 days ago**
+
+Buttons:
+
+**Confirm**
+
+**Edit**
+
+**Mark unavailable**
+
+---
+
+### 8 Milton Park
+
+**Apartment for Rent**
+
+$850/month
+
+🟢 Up to date
+
+**Confirmed 6 days ago**
+
+---
+
+# 9. ONE-TAP CONFIRMATION
+
+Make housekeeping extremely easy.
+
+An agent should be able to confirm a listing with **one tap**.
+
+Example:
+
+**Is this property still available at the current price?**
+
+[ YES — CONFIRM ]
+
+[ Update details ]
+
+[ No longer available ]
+
+If YES is selected:
+
+* update confirmation timestamp
+* update freshness status
+* reset reminder timer
+* record the agent and timestamp in the audit log
+
+Do not force the agent into the full listing editor.
+
+---
+
+# 10. SMART QUESTIONS
+
+When appropriate, ask targeted questions rather than forcing a full listing review.
+
+For example:
+
+> "Is the asking price still $250,000?"
+
+**Yes**
+
+**Change price**
+
+Or:
+
+> "Is this property still available?"
+
+**Yes**
+
+**No**
+
+If a listing has historically changed price frequently, prioritize asking about price.
+
+If it has frequent availability changes, prioritize availability.
+
+The system should gradually learn which fields require attention.
+
+---
+
+# 11. PRICE CHANGE DETECTION
+
+If the agent changes the price:
+
+Automatically record:
+
+* previous price
+* new price
+* date changed
+* agent who changed it
+
+Example:
+
+`$300,000 → $285,000`
+
+The system should automatically update:
+
+`last_updated_at`
+
+and reset the freshness timer.
+
+---
+
+# 12. AVAILABILITY STATUS
+
+Every listing must have an explicit availability state:
+
+* Available
+* Under Offer
+* Sold
+* Let
+* Withdrawn
+* Temporarily Unavailable
+
+When an agent selects:
+
+**Sold**
+
+or
+
+**Let**
+
+the system should immediately remove the property from standard consumer search.
+
+Do not delete the property record.
+
+Change its status to inactive while retaining the historical record.
+
+---
+
+# 13. MULTI-AGENT LISTINGS
+
+This must work with QuickProp's canonical-property architecture.
+
+A single property can have multiple agent relationships.
+
+Therefore housekeeping must exist at TWO LEVELS:
+
+### Property level
+
+The canonical property record contains:
+
+* address
+* property characteristics
+* canonical photos/details where applicable
+* property identity
+
+### Agent relationship level
+
+Each agent relationship contains:
+
+* agent's asking price
+* agent's availability
+* agent's marketing description
+* agent's marketing assets
+* agent's terms
+* agent-specific status
+* agent-specific last confirmation
+* agent-specific last update
+
+IMPORTANT:
+
+**One agent confirming a listing must NOT automatically confirm another agent's listing relationship.**
+
+Example:
+
+Property X is represented by:
+
+Agent A
+Agent B
+Agent C
+
+Agent A confirms their listing.
+
+Only Agent A's relationship gets:
+
+`last_confirmed_at = today`
+
+Agent B and Agent C remain on their own housekeeping schedules.
+
+---
+
+# 14. DUPLICATE / CANONICAL PROPERTY ARCHITECTURE
+
+Do not create duplicate properties simply because an agent updates a listing.
+
+Housekeeping must operate against the existing canonical property record.
+
+Example:
+
+Property:
+
+**12 Borrowdale Road**
+
+Agent A updates price.
+
+The system should update Agent A's relationship, not create:
+
+**12 Borrowdale Road #2**
+
+This is critical.
+
+---
+
+# 15. CONSUMER-FACING FRESHNESS
+
+Consumers should be able to see a simple freshness indicator.
+
+Examples:
+
+**Updated today**
+
+**Updated 3 days ago**
+
+**Updated 2 weeks ago**
+
+Avoid exposing complicated internal health scores.
+
+If appropriate, display:
+
+> ✓ Recently confirmed
+
+or:
+
+> Listing information last confirmed 4 days ago
+
+For stale listings, consider displaying:
+
+> **Availability should be confirmed with the agent**
+
+---
+
+# 16. SEARCH RANKING
+
+Listing freshness should become a ranking signal.
+
+All else equal:
+
+**Fresh listing > older listing > stale listing**
+
+For example:
+
+Freshness score can contribute approximately:
+
+* Fresh: +10
+* Recently updated: +8
+* Due soon: +3
+* Update required: 0
+* Potentially stale: -5
+* Stale: -15
+
+Do not make freshness the only ranking factor.
+
+Other factors should include:
+
+* relevance
+* location
+* price
+* property type
+* completeness
+* quality of photos
+* agent quality
+* engagement
+
+---
+
+# 17. AGENT INCENTIVES
+
+Create a positive incentive for agents who maintain their listings.
+
+For example:
+
+**"Your listings are 96% up to date."**
+
+Agents with consistently fresh listings could receive:
+
+* better listing ranking
+* "Active Agent" badge
+* higher visibility
+* better analytics
+* potentially preferred-agent status
+
+Do not punish agents excessively for occasional missed confirmations.
+
+The objective is to improve data quality, not frustrate agents.
+
+---
+
+# 18. BULK HOUSEKEEPING
+
+Agents may have dozens or hundreds of listings.
+
+Do NOT require them to confirm listings individually.
+
+Add:
+
+## "Confirm all"
+
+Example:
+
+> **18 listings need confirmation**
+
+[ Confirm all 18 ]
+
+Before confirming, display:
+
+> "Confirm that these properties are still available and their displayed information is accurate."
+
+The agent can confirm all in one action.
+
+Also provide:
+
+**Confirm selected**
+
+so agents can choose specific listings.
+
+---
+
+# 19. WHATSAPP HOUSEKEEPING
+
+Because QuickProp should be heavily integrated with WhatsApp, allow housekeeping through WhatsApp where possible.
+
+Example:
+
+> **QuickProp Listing Check**
+>
+> 12 Borrowdale Road — $250,000
+>
+> Is this property still available?
+>
+> 1️⃣ Yes, still available
+> 2️⃣ Update price/details
+> 3️⃣ Sold
+> 4️⃣ Withdrawn
+
+If the agent replies:
+
+**1**
+
+automatically confirm the listing.
+
+This should be one of the easiest ways for agents to keep listings fresh.
+
+---
+
+# 20. MOBILE APP
+
+The agent mobile app should show a housekeeping notification prominently.
+
+Example:
+
+### Good morning 👋
+
+**3 listings need attention**
+
+[ Review listings ]
+
+Then:
+
+### Your listings
+
+🟢 42 Up to date
+🟠 7 Due soon
+🔴 3 Need attention
+
+Keep the workflow extremely fast.
+
+The agent should be able to process several listings in seconds.
+
+---
+
+# 21. AUTOMATED HOUSEKEEPING JOB
+
+Create a scheduled backend job that runs at least once per day.
+
+The job should:
+
+1. Find listings approaching confirmation date.
+2. Generate reminder notifications.
+3. Find overdue listings.
+4. Update freshness status.
+5. Send escalation notifications.
+6. Recalculate listing health scores.
+7. Update search-ranking freshness signals.
+8. Identify listings that have become stale.
+9. Create agent dashboard tasks.
+10. Log all automated actions.
+
+Use idempotent jobs so the same notification is not accidentally sent multiple times.
+
+---
+
+# 22. NOTIFICATION CHANNELS
+
+Support:
+
+* In-app notifications
+* Push notifications
+* WhatsApp
+* Email where available
+
+Use intelligent notification frequency.
+
+Do not send the same reminder through every channel simultaneously.
+
+Suggested priority:
+
+**WhatsApp → Push → Email**
+
+depending on the agent's preferred communication channel.
+
+---
+
+# 23. NOTIFICATION SETTINGS
+
+Agents should be able to configure:
+
+* WhatsApp notifications
+* Push notifications
+* Email notifications
+* reminder frequency
+
+However, essential listing-quality notifications should remain enabled.
+
+---
+
+# 24. AUDIT LOG
+
+Every housekeeping event should be recorded.
+
+Example:
+
+```text
+Listing ID: LP-12345
+
+Aug 01
+Agent created listing
+
+Aug 14
+Agent confirmed listing
+
+Sep 13
+Reminder sent
+
+Sep 20
+Agent changed price
+$300,000 → $285,000
+
+Oct 20
+Confirmation requested
+
+Oct 21
+Agent confirmed listing
+```
+
+Store:
+
+* event type
+* timestamp
+* user/agent
+* previous value
+* new value
+* source (app / web / WhatsApp / API / system)
+
+---
+
+# 25. ADMIN DASHBOARD
+
+Create an admin view showing overall marketplace health.
+
+Example:
+
+### Marketplace Listing Health
+
+**Total active listings:** 8,452
+
+🟢 Fresh: 6,921
+🟠 Due soon: 1,021
+🟡 Update required: 352
+🔴 Potentially stale: 121
+⚫ Stale: 37
+
+Also show:
+
+* agencies with highest stale-listing percentage
+* agents with highest stale-listing percentage
+* properties with multiple stale relationships
+* listings with repeated price changes
+* listings repeatedly marked available/unavailable
+* average listing freshness
+
+---
+
+# 26. AGENCY-LEVEL HOUSEKEEPING
+
+For agencies, provide a manager dashboard.
+
+Example:
+
+**ABC Properties**
+
+125 active listings
+
+**112 Fresh**
+**8 Due**
+**4 Update Required**
+**1 Stale**
+
+Agency managers should be able to see which agents have neglected listings.
+
+Allow managers to send:
+
+**"Request all agents to update their listings."**
+
+---
+
+# 27. LISTING QUALITY CHECK
+
+Housekeeping should also identify incomplete listings.
+
+For example:
+
+* no photos
+* only one photo
+* missing price
+* missing location
+* missing property type
+* missing bedrooms
+* missing bathrooms
+* missing description
+* suspiciously old photos
+
+Create:
+
+**Listing Quality Score**
+
+Separate this from:
+
+**Listing Freshness Score**
+
+Do not confuse "complete" with "fresh."
+
+A listing can be:
+
+**Complete but stale**
+
+or:
+
+**Fresh but incomplete.**
+
+---
+
+# 28. AUTOMATED DATA QUALITY FLAGS
+
+Flag suspicious listings such as:
+
+* extremely old listing
+* repeated confirmation without meaningful engagement
+* identical photos across many unrelated properties
+* unusually large price changes
+* missing critical information
+* property marked available for an unusually long period
+* agent repeatedly failing to confirm
+
+These should go into an admin review queue rather than automatically being deleted.
+
+---
+
+# 29. REACTIVATION
+
+A stale listing should be extremely easy to reactivate.
+
+Example:
+
+> **This listing is stale**
+>
+> Last confirmed 47 days ago.
+>
+> Is it still available?
+
+[ Yes — Reactivate ]
+
+[ Update details ]
+
+[ Mark unavailable ]
+
+If the agent confirms:
+
+* listing becomes active
+* freshness timer resets
+* ranking is restored
+* `last_confirmed_at` updates
+
+---
+
+# 30. DATABASE DESIGN
+
+Add appropriate fields/tables to support this.
+
+Suggested listing fields:
+
+```text
+listing_id
+property_id
+agent_id
+agency_id
+listing_status
+freshness_status
+created_at
+last_updated_at
+last_confirmed_at
+next_confirmation_at
+days_since_confirmation
+freshness_score
+quality_score
+last_reminder_sent_at
+reminder_count
+stale_since
+```
+
+Create a separate housekeeping event table:
+
+```text
+listing_housekeeping_events
+
+id
+listing_id
+property_id
+agent_id
+agency_id
+event_type
+previous_status
+new_status
+timestamp
+source
+metadata
+```
+
+Use the existing canonical property + agent relationship architecture.
+
+---
+
+# 31. IMPORTANT UX PRINCIPLE
+
+The system should never feel like QuickProp is constantly nagging agents.
+
+The experience should be:
+
+### First:
+
+"Quick check — is this still available?"
+
+### Then:
+
+One tap.
+
+### Only if ignored:
+
+Escalate reminders.
+
+The objective is:
+
+**Maximum listing freshness with minimum agent effort.**
+
+---
+
+# 32. FINAL ACCEPTANCE CRITERIA
+
+The implementation is complete when:
+
+* Every listing has a freshness timer.
+* Every listing has a last-confirmed timestamp.
+* Agents can confirm a listing with one tap.
+* Updates automatically reset the freshness timer.
+* Reminders are automatically generated.
+* Reminder frequency escalates intelligently.
+* Stale listings are not automatically deleted.
+* Stale listings can be reactivated instantly.
+* Multiple agents can independently maintain the same canonical property.
+* One agent confirming a property does not confirm another agent's relationship.
+* Agents can bulk-confirm listings.
+* WhatsApp confirmation is supported where WhatsApp integration exists.
+* Search ranking incorporates listing freshness.
+* Consumers can see simple freshness information.
+* Agents can see listing-health statistics.
+* Agencies can monitor team listing health.
+* Admins can monitor marketplace-wide listing freshness.
+* All housekeeping events are logged.
+* The system is idempotent and safe to run automatically every day.
+* The UI is fast and mobile-first.
+* Housekeeping requires as few taps as possible.
+
+---
+
+## RECOMMENDED DEFAULT LOGIC
+
+Implement this initial schedule:
+
+**Day 0:** Listing created
+↓
+**Day 7:** Soft reminder
+↓
+**Day 14:** Confirmation required
+↓
+**Day 30:** First monthly cycle
+↓
+**Every 30 days:** Confirmation
+↓
+**7 days overdue:** Update Required
+↓
+**14 days overdue:** Potentially Stale
+↓
+**30+ days overdue:** Stale / ranking penalty
+↓
+**Agent confirms:** Immediately return to Fresh
+
+Allow these thresholds to be configured by administrators without changing code.
