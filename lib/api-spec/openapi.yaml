@@ -1206,6 +1206,152 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/AdminFreshness" }
+  /listing-housekeeping:
+    get:
+      operationId: getListingHousekeeping
+      tags: [listing-housekeeping]
+      summary: Agent listing housekeeping queue and freshness summary
+      responses:
+        "200":
+          description: Listing freshness queue
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ListingHousekeepingResponse" }
+  /listing-housekeeping/confirm:
+    post:
+      operationId: confirmListingHousekeeping
+      tags: [listing-housekeeping]
+      summary: Confirm listing availability
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ListingHousekeepingActionInput" }
+      responses:
+        "200":
+          description: Listing confirmed
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ListingHousekeepingMutationResponse" }
+  /listing-housekeeping/bulk-confirm:
+    post:
+      operationId: bulkConfirmListingHousekeeping
+      tags: [listing-housekeeping]
+      summary: Confirm multiple listings at once
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/BulkListingHousekeepingInput" }
+      responses:
+        "200":
+          description: Listings confirmed
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BulkListingHousekeepingResponse" }
+  /listing-housekeeping/action:
+    post:
+      operationId: applyListingHousekeepingAction
+      tags: [listing-housekeeping]
+      summary: Change listing availability or reactivate it
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ListingHousekeepingActionInput" }
+      responses:
+        "200":
+          description: Housekeeping action applied
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ListingHousekeepingMutationResponse" }
+  /listing-housekeeping/preferences:
+    get:
+      operationId: getListingHousekeepingPreferences
+      tags: [listing-housekeeping]
+      summary: Get listing reminder preferences
+      responses:
+        "200":
+          description: Reminder preferences
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ListingHousekeepingPreferences" }
+    patch:
+      operationId: updateListingHousekeepingPreferences
+      tags: [listing-housekeeping]
+      summary: Update listing reminder preferences
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ListingHousekeepingPreferences" }
+      responses:
+        "200":
+          description: Updated preferences
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ListingHousekeepingPreferences" }
+  /admin/listing-health:
+    get:
+      operationId: getAdminListingHealth
+      tags: [admin-portal]
+      summary: Platform listing health and agent freshness scores
+      responses:
+        "200":
+          description: Listing health report
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminListingHealth" }
+  /admin/listing-health/events:
+    get:
+      operationId: getAdminListingHealthEvents
+      tags: [admin-portal]
+      summary: Listing housekeeping audit events
+      responses:
+        "200":
+          description: Housekeeping events
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/ListingHousekeepingEvent" }
+  /admin/listing-health/run:
+    post:
+      operationId: runAdminListingHousekeeping
+      tags: [admin-portal]
+      summary: Run the idempotent listing housekeeping job now
+      responses:
+        "200":
+          description: Housekeeping run result
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/HousekeepingRunResult" }
+  /admin/listing-housekeeping/settings:
+    get:
+      operationId: getAdminListingHousekeepingSettings
+      tags: [admin-portal]
+      summary: Get freshness thresholds
+      responses:
+        "200":
+          description: Freshness thresholds
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ListingHousekeepingSettings" }
+    patch:
+      operationId: updateAdminListingHousekeepingSettings
+      tags: [admin-portal]
+      summary: Update freshness thresholds
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ListingHousekeepingSettings" }
+      responses:
+        "200":
+          description: Updated freshness thresholds
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ListingHousekeepingSettings" }
   /admin/duplicates:
     get:
       operationId: listDuplicateReviews
@@ -1430,6 +1576,15 @@ components:
         longitude: { type: ["number", "null"] }
         lastAvailabilityConfirmedAt: { type: ["string", "null"] }
         lastPriceConfirmedAt: { type: ["string", "null"] }
+        freshnessStatus: { type: string }
+        availabilityStatus: { type: string }
+        nextConfirmationAt: { type: ["string", "null"] }
+        daysSinceConfirmation: { type: integer }
+        freshnessScore: { type: integer }
+        qualityScore: { type: integer }
+        lastReminderSentAt: { type: ["string", "null"] }
+        reminderCount: { type: integer }
+        staleSince: { type: ["string", "null"] }
     PropertyInput:
       type: object
       required: [title, propertyType, listingType, price, suburb, city, photos]
@@ -2022,6 +2177,10 @@ components:
         agencyCount: { type: integer }
         lowestPrice: { type: number }
         lastAvailabilityVerification: { type: ["string", "null"] }
+        freshnessStatus: { type: string }
+        freshnessLabel: { type: string }
+        freshnessScore: { type: integer }
+        qualityScore: { type: integer }
     PublicPropertyList:
       type: object
       required: [properties, total, page, limit]
@@ -2382,6 +2541,135 @@ components:
         stale90:
           type: array
           items: { $ref: "#/components/schemas/FreshnessEntry" }
+    ListingHousekeepingSettings:
+      type: object
+      required: [softReminderDays, firstConfirmationDays, recurringConfirmationDays, updateRequiredOverdueDays, potentiallyStaleOverdueDays, staleOverdueDays]
+      properties:
+        softReminderDays: { type: integer }
+        firstConfirmationDays: { type: integer }
+        recurringConfirmationDays: { type: integer }
+        updateRequiredOverdueDays: { type: integer }
+        potentiallyStaleOverdueDays: { type: integer }
+        staleOverdueDays: { type: integer }
+    ListingHousekeepingItem:
+      type: object
+      required: [id, propertyId, reference, title, suburb, city, status, availabilityStatus, freshnessStatus, freshnessLabel, freshnessScore, qualityScore, daysSinceConfirmation]
+      properties:
+        id: { type: integer }
+        propertyId: { type: integer }
+        relationshipId: { type: ["integer", "null"] }
+        agentId: { type: ["integer", "null"] }
+        agencyId: { type: ["integer", "null"] }
+        reference: { type: string }
+        title: { type: string }
+        suburb: { type: string }
+        city: { type: string }
+        price: { type: number }
+        currency: { type: string }
+        status: { type: string }
+        availabilityStatus: { type: string }
+        freshnessStatus: { type: string }
+        freshnessLabel: { type: string }
+        lastConfirmedAt: { type: ["string", "null"] }
+        lastUpdate: { type: ["string", "null"] }
+        nextConfirmationAt: { type: ["string", "null"] }
+        daysSinceConfirmation: { type: integer }
+        freshnessScore: { type: integer }
+        qualityScore: { type: integer }
+        reminderCount: { type: integer }
+        staleSince: { type: ["string", "null"] }
+        photos: { type: array, items: { type: string } }
+        bedrooms: { type: ["integer", "null"] }
+        bathrooms: { type: ["integer", "null"] }
+    ListingHousekeepingResponse:
+      type: object
+      required: [summary, listings, thresholds]
+      properties:
+        summary:
+          type: object
+          additionalProperties: { type: integer }
+        listings:
+          type: array
+          items: { $ref: "#/components/schemas/ListingHousekeepingItem" }
+        thresholds: { $ref: "#/components/schemas/ListingHousekeepingSettings" }
+    ListingHousekeepingActionInput:
+      type: object
+      properties:
+        propertyId: { type: integer }
+        relationshipId: { type: integer }
+        action: { type: string, description: "update | confirm | mark_unavailable | temporarily_unavailable | under_offer | sold | let | withdrawn | reactivate" }
+    BulkListingHousekeepingInput:
+      type: object
+      properties:
+        propertyIds: { type: array, items: { type: integer } }
+        relationshipIds: { type: array, items: { type: integer } }
+    ListingHousekeepingMutationResponse:
+      type: object
+      required: [ok]
+      properties:
+        ok: { type: boolean }
+        confirmedAt: { type: ["string", "null"] }
+        nextConfirmationAt: { type: ["string", "null"] }
+        listing: { $ref: "#/components/schemas/ListingHousekeepingItem" }
+    BulkListingHousekeepingResponse:
+      type: object
+      required: [ok, confirmed]
+      properties:
+        ok: { type: boolean }
+        confirmed: { type: integer }
+    ListingHousekeepingPreferences:
+      type: object
+      required: [whatsappEnabled, pushEnabled, emailEnabled, reminderFrequency]
+      properties:
+        userId: { type: integer }
+        whatsappEnabled: { type: boolean }
+        pushEnabled: { type: boolean }
+        emailEnabled: { type: boolean }
+        reminderFrequency: { type: string }
+    ListingHousekeepingEvent:
+      type: object
+      required: [id, propertyId, eventType, source, createdAt]
+      properties:
+        id: { type: integer }
+        listingId: { type: ["integer", "null"] }
+        propertyId: { type: integer }
+        relationshipId: { type: ["integer", "null"] }
+        agentId: { type: ["integer", "null"] }
+        agencyId: { type: ["integer", "null"] }
+        eventType: { type: string }
+        previousStatus: { type: ["string", "null"] }
+        newStatus: { type: ["string", "null"] }
+        reminderKey: { type: ["string", "null"] }
+        source: { type: string }
+        metadata: {}
+        createdAt: { type: string }
+    AdminListingHealth:
+      type: object
+      required: [summary, listings, agents, thresholds]
+      properties:
+        summary: { type: object, additionalProperties: { type: integer } }
+        listings:
+          type: array
+          items: { $ref: "#/components/schemas/ListingHousekeepingItem" }
+        agents:
+          type: array
+          items:
+            type: object
+            properties:
+              agentId: { type: integer }
+              total: { type: integer }
+              stale: { type: integer }
+              due: { type: integer }
+              averageFreshnessScore: { type: integer }
+        thresholds: { $ref: "#/components/schemas/ListingHousekeepingSettings" }
+    HousekeepingRunResult:
+      type: object
+      required: [properties, updated, reminders, ranAt]
+      properties:
+        properties: { type: integer }
+        updated: { type: integer }
+        reminders: { type: integer }
+        ranAt: { type: string }
     AdminAgent:
       type: object
       required: [id, name, email, role, status, activeListings, totalListings, totalLeads, openLeads]

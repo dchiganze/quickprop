@@ -87,6 +87,7 @@ export default function Search() {
                 <SelectItem value="newest">Newest First</SelectItem>
                 <SelectItem value="price_asc">Price: Low → High</SelectItem>
                 <SelectItem value="price_desc">Price: High → Low</SelectItem>
+                <SelectItem value="freshness">Recently verified</SelectItem>
               </SelectContent>
             </Select>
           </div>

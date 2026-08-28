@@ -4,7 +4,7 @@ import { useLogout, useGetCurrentUser } from '@workspace/api-client-react';
 import {
   LayoutDashboard, Building2, Users, UserCheck, ShoppingBag,
   Target, Map, Clock, Shield, Settings, LogOut, ChevronRight,
-  Bell, Search, Activity
+  Bell, Search, Activity, ShieldCheck
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -36,6 +36,7 @@ const NAV: NavSection[] = [
       { href: '/properties', icon: Building2, label: 'Properties' },
       { href: '/coverage', icon: Map, label: 'Coverage' },
       { href: '/freshness', icon: Clock, label: 'Freshness' },
+      { href: '/listing-health', icon: ShieldCheck, label: 'Listing Health' },
       { href: '/duplicates', icon: Activity, label: 'Duplicate Review' },
     ],
   },

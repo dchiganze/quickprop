@@ -48,4 +48,8 @@ export interface PublicProperty {
   lowestPrice?: number;
   /** @nullable */
   lastAvailabilityVerification?: string | null;
+  freshnessStatus?: string;
+  freshnessLabel?: string;
+  freshnessScore?: number;
+  qualityScore?: number;
 }

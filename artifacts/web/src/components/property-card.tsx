@@ -34,6 +34,11 @@ export function PropertyCard({ property }: { property: PublicProperty }) {
               </Badge>
             )}
           </div>
+          {property.freshnessLabel && (
+            <div className="absolute bottom-3 left-3 rounded-full bg-white/95 px-2.5 py-1 text-[10px] font-semibold text-emerald-800 shadow-sm backdrop-blur-sm">
+              {property.freshnessLabel}
+            </div>
+          )}
         </div>
         <CardContent className="p-5 flex-1 flex flex-col">
           <div className="mb-2">

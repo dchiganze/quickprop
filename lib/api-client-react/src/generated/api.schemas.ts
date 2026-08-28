@@ -158,6 +158,18 @@ export interface Property {
   lastAvailabilityConfirmedAt?: string | null;
   /** @nullable */
   lastPriceConfirmedAt?: string | null;
+  freshnessStatus?: string;
+  availabilityStatus?: string;
+  /** @nullable */
+  nextConfirmationAt?: string | null;
+  daysSinceConfirmation?: number;
+  freshnessScore?: number;
+  qualityScore?: number;
+  /** @nullable */
+  lastReminderSentAt?: string | null;
+  reminderCount?: number;
+  /** @nullable */
+  staleSince?: string | null;
 }
 
 export interface PropertyInput {
@@ -777,6 +789,10 @@ export interface PublicProperty {
   lowestPrice?: number;
   /** @nullable */
   lastAvailabilityVerification?: string | null;
+  freshnessStatus?: string;
+  freshnessLabel?: string;
+  freshnessScore?: number;
+  qualityScore?: number;
 }
 
 export interface PublicPropertyList {
@@ -1118,6 +1134,142 @@ export interface AdminFreshness {
   stale30: FreshnessEntry[];
   stale60: FreshnessEntry[];
   stale90: FreshnessEntry[];
+}
+
+export interface ListingHousekeepingSettings {
+  softReminderDays: number;
+  firstConfirmationDays: number;
+  recurringConfirmationDays: number;
+  updateRequiredOverdueDays: number;
+  potentiallyStaleOverdueDays: number;
+  staleOverdueDays: number;
+}
+
+export interface ListingHousekeepingItem {
+  id: number;
+  propertyId: number;
+  /** @nullable */
+  relationshipId?: number | null;
+  /** @nullable */
+  agentId?: number | null;
+  /** @nullable */
+  agencyId?: number | null;
+  reference: string;
+  title: string;
+  suburb: string;
+  city: string;
+  price?: number;
+  currency?: string;
+  status: string;
+  availabilityStatus: string;
+  freshnessStatus: string;
+  freshnessLabel: string;
+  /** @nullable */
+  lastConfirmedAt?: string | null;
+  /** @nullable */
+  lastUpdate?: string | null;
+  /** @nullable */
+  nextConfirmationAt?: string | null;
+  daysSinceConfirmation: number;
+  freshnessScore: number;
+  qualityScore: number;
+  reminderCount?: number;
+  /** @nullable */
+  staleSince?: string | null;
+  photos?: string[];
+  /** @nullable */
+  bedrooms?: number | null;
+  /** @nullable */
+  bathrooms?: number | null;
+}
+
+export type ListingHousekeepingResponseSummary = {[key: string]: number};
+
+export interface ListingHousekeepingResponse {
+  summary: ListingHousekeepingResponseSummary;
+  listings: ListingHousekeepingItem[];
+  thresholds: ListingHousekeepingSettings;
+}
+
+export interface ListingHousekeepingActionInput {
+  propertyId?: number;
+  relationshipId?: number;
+  /** update | confirm | mark_unavailable | temporarily_unavailable | under_offer | sold | let | withdrawn | reactivate */
+  action?: string;
+}
+
+export interface BulkListingHousekeepingInput {
+  propertyIds?: number[];
+  relationshipIds?: number[];
+}
+
+export interface ListingHousekeepingMutationResponse {
+  ok: boolean;
+  /** @nullable */
+  confirmedAt?: string | null;
+  /** @nullable */
+  nextConfirmationAt?: string | null;
+  listing?: ListingHousekeepingItem;
+}
+
+export interface BulkListingHousekeepingResponse {
+  ok: boolean;
+  confirmed: number;
+}
+
+export interface ListingHousekeepingPreferences {
+  userId?: number;
+  whatsappEnabled: boolean;
+  pushEnabled: boolean;
+  emailEnabled: boolean;
+  reminderFrequency: string;
+}
+
+export interface ListingHousekeepingEvent {
+  id: number;
+  /** @nullable */
+  listingId?: number | null;
+  propertyId: number;
+  /** @nullable */
+  relationshipId?: number | null;
+  /** @nullable */
+  agentId?: number | null;
+  /** @nullable */
+  agencyId?: number | null;
+  eventType: string;
+  /** @nullable */
+  previousStatus?: string | null;
+  /** @nullable */
+  newStatus?: string | null;
+  /** @nullable */
+  reminderKey?: string | null;
+  source: string;
+  metadata?: unknown;
+  createdAt: string;
+}
+
+export type AdminListingHealthSummary = {[key: string]: number};
+
+export type AdminListingHealthAgentsItem = {
+  agentId?: number;
+  total?: number;
+  stale?: number;
+  due?: number;
+  averageFreshnessScore?: number;
+};
+
+export interface AdminListingHealth {
+  summary: AdminListingHealthSummary;
+  listings: ListingHousekeepingItem[];
+  agents: AdminListingHealthAgentsItem[];
+  thresholds: ListingHousekeepingSettings;
+}
+
+export interface HousekeepingRunResult {
+  properties: number;
+  updated: number;
+  reminders: number;
+  ranAt: string;
 }
 
 export interface AdminAgent {

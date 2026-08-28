@@ -12,6 +12,7 @@ import dashboardRouter from "./dashboard";
 import storageRouter from "./storage";
 import collaborationRouter from "./collaboration";
 import multiAgentRouter from "./multi-agent";
+import housekeepingRouter from "./housekeeping";
 
 const router: IRouter = Router();
 
@@ -25,6 +26,7 @@ router.use(publicRouter);
 // All business routes below require a logged-in user.
 router.use(requireAuth);
 router.use(multiAgentRouter);
+router.use(housekeepingRouter);
 router.use(propertiesRouter);
 router.use(collaborationRouter);
 router.use(peopleRouter);

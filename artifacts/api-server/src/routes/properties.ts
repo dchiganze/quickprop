@@ -33,6 +33,7 @@ import {
 } from "@workspace/api-zod";
 import { parseId, logActivity, logAudit, jsonify } from "../lib/helpers";
 import { currentUser } from "./auth";
+import { DEFAULT_HOUSEKEEPING_SETTINGS } from "../lib/housekeeping";
 import { findDuplicateCandidates, normalizeText } from "../lib/multi-agent";
 
 const router: IRouter = Router();
@@ -219,6 +220,14 @@ router.patch("/properties/:id", async (req, res): Promise<void> => {
     return;
   }
   const update: Record<string, unknown> = { ...parsed.data, updatedAt: new Date() };
+  const meaningfulFields = ["title", "description", "price", "photos", "features", "address", "suburb", "bedrooms", "bathrooms", "buildingSize", "landSize"];
+  if (meaningfulFields.some((field) => field in parsed.data)) {
+    update.nextConfirmationAt = new Date(Date.now() + DEFAULT_HOUSEKEEPING_SETTINGS.recurringConfirmationDays * 86400000);
+    update.freshnessStatus = "fresh";
+    update.freshnessScore = 100;
+    update.daysSinceConfirmation = 0;
+    update.staleSince = null;
+  }
   if (parsed.data.status === "public" && existing.status !== "public") {
     update.publishedAt = new Date();
   }

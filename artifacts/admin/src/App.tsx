@@ -16,6 +16,7 @@ import Buyers from '@/pages/buyers';
 import Leads from '@/pages/leads';
 import Coverage from '@/pages/coverage';
 import Freshness from '@/pages/freshness';
+import ListingHealth from '@/pages/listing-health';
 import Audit from '@/pages/audit';
 import Settings from '@/pages/settings';
 import Duplicates from '@/pages/duplicates';
@@ -62,6 +63,7 @@ function AppRouter() {
       <ProtectedRoute path="/leads" component={Leads} />
       <ProtectedRoute path="/coverage" component={Coverage} />
       <ProtectedRoute path="/freshness" component={Freshness} />
+      <ProtectedRoute path="/listing-health" component={ListingHealth} />
       <ProtectedRoute path="/duplicates" component={Duplicates} />
       <ProtectedRoute path="/audit" component={Audit} />
       <ProtectedRoute path="/settings" component={Settings} />

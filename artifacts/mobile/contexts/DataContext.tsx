@@ -167,6 +167,12 @@ function toMobileProperty(property: ApiProperty): Property {
     agentId: String(property.agentId ?? ''),
     createdAt: property.createdAt ?? now(),
     updatedAt: property.updatedAt ?? property.createdAt ?? now(),
+    freshnessStatus: property.freshnessStatus as Property['freshnessStatus'],
+    availabilityStatus: property.availabilityStatus as Property['availabilityStatus'],
+    lastConfirmedAt: property.lastAvailabilityConfirmedAt,
+    nextConfirmationAt: property.nextConfirmationAt,
+    freshnessScore: property.freshnessScore,
+    qualityScore: property.qualityScore,
   };
 }
 

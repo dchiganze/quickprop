@@ -119,7 +119,16 @@ export const ListPropertiesResponseItem = zod.object({
   "latitude": zod.number().nullish(),
   "longitude": zod.number().nullish(),
   "lastAvailabilityConfirmedAt": zod.string().nullish(),
-  "lastPriceConfirmedAt": zod.string().nullish()
+  "lastPriceConfirmedAt": zod.string().nullish(),
+  "freshnessStatus": zod.string().optional(),
+  "availabilityStatus": zod.string().optional(),
+  "nextConfirmationAt": zod.string().nullish(),
+  "daysSinceConfirmation": zod.number().optional(),
+  "freshnessScore": zod.number().optional(),
+  "qualityScore": zod.number().optional(),
+  "lastReminderSentAt": zod.string().nullish(),
+  "reminderCount": zod.number().optional(),
+  "staleSince": zod.string().nullish()
 })
 export const ListPropertiesResponse = zod.array(ListPropertiesResponseItem)
 
@@ -203,7 +212,16 @@ export const CreatePropertyResponse = zod.object({
   "latitude": zod.number().nullish(),
   "longitude": zod.number().nullish(),
   "lastAvailabilityConfirmedAt": zod.string().nullish(),
-  "lastPriceConfirmedAt": zod.string().nullish()
+  "lastPriceConfirmedAt": zod.string().nullish(),
+  "freshnessStatus": zod.string().optional(),
+  "availabilityStatus": zod.string().optional(),
+  "nextConfirmationAt": zod.string().nullish(),
+  "daysSinceConfirmation": zod.number().optional(),
+  "freshnessScore": zod.number().optional(),
+  "qualityScore": zod.number().optional(),
+  "lastReminderSentAt": zod.string().nullish(),
+  "reminderCount": zod.number().optional(),
+  "staleSince": zod.string().nullish()
 })
 
 
@@ -255,7 +273,16 @@ export const GetPropertyResponse = zod.object({
   "latitude": zod.number().nullish(),
   "longitude": zod.number().nullish(),
   "lastAvailabilityConfirmedAt": zod.string().nullish(),
-  "lastPriceConfirmedAt": zod.string().nullish()
+  "lastPriceConfirmedAt": zod.string().nullish(),
+  "freshnessStatus": zod.string().optional(),
+  "availabilityStatus": zod.string().optional(),
+  "nextConfirmationAt": zod.string().nullish(),
+  "daysSinceConfirmation": zod.number().optional(),
+  "freshnessScore": zod.number().optional(),
+  "qualityScore": zod.number().optional(),
+  "lastReminderSentAt": zod.string().nullish(),
+  "reminderCount": zod.number().optional(),
+  "staleSince": zod.string().nullish()
 })
 
 
@@ -342,7 +369,16 @@ export const UpdatePropertyResponse = zod.object({
   "latitude": zod.number().nullish(),
   "longitude": zod.number().nullish(),
   "lastAvailabilityConfirmedAt": zod.string().nullish(),
-  "lastPriceConfirmedAt": zod.string().nullish()
+  "lastPriceConfirmedAt": zod.string().nullish(),
+  "freshnessStatus": zod.string().optional(),
+  "availabilityStatus": zod.string().optional(),
+  "nextConfirmationAt": zod.string().nullish(),
+  "daysSinceConfirmation": zod.number().optional(),
+  "freshnessScore": zod.number().optional(),
+  "qualityScore": zod.number().optional(),
+  "lastReminderSentAt": zod.string().nullish(),
+  "reminderCount": zod.number().optional(),
+  "staleSince": zod.string().nullish()
 })
 
 
@@ -469,7 +505,16 @@ export const ListCollaborationDiscoveryResponseItem = zod.object({
   "latitude": zod.number().nullish(),
   "longitude": zod.number().nullish(),
   "lastAvailabilityConfirmedAt": zod.string().nullish(),
-  "lastPriceConfirmedAt": zod.string().nullish()
+  "lastPriceConfirmedAt": zod.string().nullish(),
+  "freshnessStatus": zod.string().optional(),
+  "availabilityStatus": zod.string().optional(),
+  "nextConfirmationAt": zod.string().nullish(),
+  "daysSinceConfirmation": zod.number().optional(),
+  "freshnessScore": zod.number().optional(),
+  "qualityScore": zod.number().optional(),
+  "lastReminderSentAt": zod.string().nullish(),
+  "reminderCount": zod.number().optional(),
+  "staleSince": zod.string().nullish()
 })
 export const ListCollaborationDiscoveryResponse = zod.array(ListCollaborationDiscoveryResponseItem)
 
@@ -533,7 +578,16 @@ export const ListCollaborationRequestsResponseItem = zod.object({
   "latitude": zod.number().nullish(),
   "longitude": zod.number().nullish(),
   "lastAvailabilityConfirmedAt": zod.string().nullish(),
-  "lastPriceConfirmedAt": zod.string().nullish()
+  "lastPriceConfirmedAt": zod.string().nullish(),
+  "freshnessStatus": zod.string().optional(),
+  "availabilityStatus": zod.string().optional(),
+  "nextConfirmationAt": zod.string().nullish(),
+  "daysSinceConfirmation": zod.number().optional(),
+  "freshnessScore": zod.number().optional(),
+  "qualityScore": zod.number().optional(),
+  "lastReminderSentAt": zod.string().nullish(),
+  "reminderCount": zod.number().optional(),
+  "staleSince": zod.string().nullish()
 }),
   "requesterName": zod.string(),
   "requesterPhone": zod.string().nullish(),
@@ -606,7 +660,16 @@ export const CreateCollaborationRequestResponse = zod.object({
   "latitude": zod.number().nullish(),
   "longitude": zod.number().nullish(),
   "lastAvailabilityConfirmedAt": zod.string().nullish(),
-  "lastPriceConfirmedAt": zod.string().nullish()
+  "lastPriceConfirmedAt": zod.string().nullish(),
+  "freshnessStatus": zod.string().optional(),
+  "availabilityStatus": zod.string().optional(),
+  "nextConfirmationAt": zod.string().nullish(),
+  "daysSinceConfirmation": zod.number().optional(),
+  "freshnessScore": zod.number().optional(),
+  "qualityScore": zod.number().optional(),
+  "lastReminderSentAt": zod.string().nullish(),
+  "reminderCount": zod.number().optional(),
+  "staleSince": zod.string().nullish()
 }),
   "requesterName": zod.string(),
   "requesterPhone": zod.string().nullish(),
@@ -677,7 +740,16 @@ export const UpdateCollaborationRequestResponse = zod.object({
   "latitude": zod.number().nullish(),
   "longitude": zod.number().nullish(),
   "lastAvailabilityConfirmedAt": zod.string().nullish(),
-  "lastPriceConfirmedAt": zod.string().nullish()
+  "lastPriceConfirmedAt": zod.string().nullish(),
+  "freshnessStatus": zod.string().optional(),
+  "availabilityStatus": zod.string().optional(),
+  "nextConfirmationAt": zod.string().nullish(),
+  "daysSinceConfirmation": zod.number().optional(),
+  "freshnessScore": zod.number().optional(),
+  "qualityScore": zod.number().optional(),
+  "lastReminderSentAt": zod.string().nullish(),
+  "reminderCount": zod.number().optional(),
+  "staleSince": zod.string().nullish()
 }),
   "requesterName": zod.string(),
   "requesterPhone": zod.string().nullish(),
@@ -735,7 +807,16 @@ export const GetPipelineResponseItem = zod.object({
   "latitude": zod.number().nullish(),
   "longitude": zod.number().nullish(),
   "lastAvailabilityConfirmedAt": zod.string().nullish(),
-  "lastPriceConfirmedAt": zod.string().nullish()
+  "lastPriceConfirmedAt": zod.string().nullish(),
+  "freshnessStatus": zod.string().optional(),
+  "availabilityStatus": zod.string().optional(),
+  "nextConfirmationAt": zod.string().nullish(),
+  "daysSinceConfirmation": zod.number().optional(),
+  "freshnessScore": zod.number().optional(),
+  "qualityScore": zod.number().optional(),
+  "lastReminderSentAt": zod.string().nullish(),
+  "reminderCount": zod.number().optional(),
+  "staleSince": zod.string().nullish()
 }))
 })
 export const GetPipelineResponse = zod.array(GetPipelineResponseItem)
@@ -996,7 +1077,16 @@ export const GetBuyerMatchesResponseItem = zod.object({
   "latitude": zod.number().nullish(),
   "longitude": zod.number().nullish(),
   "lastAvailabilityConfirmedAt": zod.string().nullish(),
-  "lastPriceConfirmedAt": zod.string().nullish()
+  "lastPriceConfirmedAt": zod.string().nullish(),
+  "freshnessStatus": zod.string().optional(),
+  "availabilityStatus": zod.string().optional(),
+  "nextConfirmationAt": zod.string().nullish(),
+  "daysSinceConfirmation": zod.number().optional(),
+  "freshnessScore": zod.number().optional(),
+  "qualityScore": zod.number().optional(),
+  "lastReminderSentAt": zod.string().nullish(),
+  "reminderCount": zod.number().optional(),
+  "staleSince": zod.string().nullish()
 }),
   "matchPercent": zod.number(),
   "reasons": zod.array(zod.string())
@@ -1127,7 +1217,16 @@ export const GetBuyerRequestMatchesResponseItem = zod.object({
   "latitude": zod.number().nullish(),
   "longitude": zod.number().nullish(),
   "lastAvailabilityConfirmedAt": zod.string().nullish(),
-  "lastPriceConfirmedAt": zod.string().nullish()
+  "lastPriceConfirmedAt": zod.string().nullish(),
+  "freshnessStatus": zod.string().optional(),
+  "availabilityStatus": zod.string().optional(),
+  "nextConfirmationAt": zod.string().nullish(),
+  "daysSinceConfirmation": zod.number().optional(),
+  "freshnessScore": zod.number().optional(),
+  "qualityScore": zod.number().optional(),
+  "lastReminderSentAt": zod.string().nullish(),
+  "reminderCount": zod.number().optional(),
+  "staleSince": zod.string().nullish()
 }),
   "matchPercent": zod.number(),
   "reasons": zod.array(zod.string())
@@ -1743,7 +1842,16 @@ export const OfficeSearchResponse = zod.object({
   "latitude": zod.number().nullish(),
   "longitude": zod.number().nullish(),
   "lastAvailabilityConfirmedAt": zod.string().nullish(),
-  "lastPriceConfirmedAt": zod.string().nullish()
+  "lastPriceConfirmedAt": zod.string().nullish(),
+  "freshnessStatus": zod.string().optional(),
+  "availabilityStatus": zod.string().optional(),
+  "nextConfirmationAt": zod.string().nullish(),
+  "daysSinceConfirmation": zod.number().optional(),
+  "freshnessScore": zod.number().optional(),
+  "qualityScore": zod.number().optional(),
+  "lastReminderSentAt": zod.string().nullish(),
+  "reminderCount": zod.number().optional(),
+  "staleSince": zod.string().nullish()
 })),
   "buyers": zod.array(zod.object({
   "id": zod.number(),
@@ -1889,7 +1997,16 @@ export const GetMultiAgentPropertyResponse = zod.object({
   "latitude": zod.number().nullish(),
   "longitude": zod.number().nullish(),
   "lastAvailabilityConfirmedAt": zod.string().nullish(),
-  "lastPriceConfirmedAt": zod.string().nullish()
+  "lastPriceConfirmedAt": zod.string().nullish(),
+  "freshnessStatus": zod.string().optional(),
+  "availabilityStatus": zod.string().optional(),
+  "nextConfirmationAt": zod.string().nullish(),
+  "daysSinceConfirmation": zod.number().optional(),
+  "freshnessScore": zod.number().optional(),
+  "qualityScore": zod.number().optional(),
+  "lastReminderSentAt": zod.string().nullish(),
+  "reminderCount": zod.number().optional(),
+  "staleSince": zod.string().nullish()
 }),
   "propertyId": zod.number(),
   "offers": zod.array(zod.object({
@@ -2028,7 +2145,11 @@ export const ListPublicPropertiesResponse = zod.object({
   "canonicalPropertyId": zod.number().nullish(),
   "agencyCount": zod.number().optional(),
   "lowestPrice": zod.number().optional(),
-  "lastAvailabilityVerification": zod.string().nullish()
+  "lastAvailabilityVerification": zod.string().nullish(),
+  "freshnessStatus": zod.string().optional(),
+  "freshnessLabel": zod.string().optional(),
+  "freshnessScore": zod.number().optional(),
+  "qualityScore": zod.number().optional()
 })),
   "total": zod.number(),
   "page": zod.number(),
@@ -2073,7 +2194,11 @@ export const GetPublicPropertyResponse = zod.object({
   "canonicalPropertyId": zod.number().nullish(),
   "agencyCount": zod.number().optional(),
   "lowestPrice": zod.number().optional(),
-  "lastAvailabilityVerification": zod.string().nullish()
+  "lastAvailabilityVerification": zod.string().nullish(),
+  "freshnessStatus": zod.string().optional(),
+  "freshnessLabel": zod.string().optional(),
+  "freshnessScore": zod.number().optional(),
+  "qualityScore": zod.number().optional()
 }),
   "agent": zod.object({
   "id": zod.number(),
@@ -2182,7 +2307,11 @@ export const GetPublicAgentResponse = zod.object({
   "canonicalPropertyId": zod.number().nullish(),
   "agencyCount": zod.number().optional(),
   "lowestPrice": zod.number().optional(),
-  "lastAvailabilityVerification": zod.string().nullish()
+  "lastAvailabilityVerification": zod.string().nullish(),
+  "freshnessStatus": zod.string().optional(),
+  "freshnessLabel": zod.string().optional(),
+  "freshnessScore": zod.number().optional(),
+  "qualityScore": zod.number().optional()
 }))
 })
 
@@ -2289,7 +2418,11 @@ export const ListSavedPropertiesResponseItem = zod.object({
   "canonicalPropertyId": zod.number().nullish(),
   "agencyCount": zod.number().optional(),
   "lowestPrice": zod.number().optional(),
-  "lastAvailabilityVerification": zod.string().nullish()
+  "lastAvailabilityVerification": zod.string().nullish(),
+  "freshnessStatus": zod.string().optional(),
+  "freshnessLabel": zod.string().optional(),
+  "freshnessScore": zod.number().optional(),
+  "qualityScore": zod.number().optional()
 })
 export const ListSavedPropertiesResponse = zod.array(ListSavedPropertiesResponseItem)
 
@@ -2437,6 +2570,302 @@ export const GetAdminFreshnessResponse = zod.object({
 
 
 /**
+ * @summary Agent listing housekeeping queue and freshness summary
+ */
+export const GetListingHousekeepingResponse = zod.object({
+  "summary": zod.record(zod.string(), zod.number()),
+  "listings": zod.array(zod.object({
+  "id": zod.number(),
+  "propertyId": zod.number(),
+  "relationshipId": zod.number().nullish(),
+  "agentId": zod.number().nullish(),
+  "agencyId": zod.number().nullish(),
+  "reference": zod.string(),
+  "title": zod.string(),
+  "suburb": zod.string(),
+  "city": zod.string(),
+  "price": zod.number().optional(),
+  "currency": zod.string().optional(),
+  "status": zod.string(),
+  "availabilityStatus": zod.string(),
+  "freshnessStatus": zod.string(),
+  "freshnessLabel": zod.string(),
+  "lastConfirmedAt": zod.string().nullish(),
+  "lastUpdate": zod.string().nullish(),
+  "nextConfirmationAt": zod.string().nullish(),
+  "daysSinceConfirmation": zod.number(),
+  "freshnessScore": zod.number(),
+  "qualityScore": zod.number(),
+  "reminderCount": zod.number().optional(),
+  "staleSince": zod.string().nullish(),
+  "photos": zod.array(zod.string()).optional(),
+  "bedrooms": zod.number().nullish(),
+  "bathrooms": zod.number().nullish()
+})),
+  "thresholds": zod.object({
+  "softReminderDays": zod.number(),
+  "firstConfirmationDays": zod.number(),
+  "recurringConfirmationDays": zod.number(),
+  "updateRequiredOverdueDays": zod.number(),
+  "potentiallyStaleOverdueDays": zod.number(),
+  "staleOverdueDays": zod.number()
+})
+})
+
+
+/**
+ * @summary Confirm listing availability
+ */
+export const ConfirmListingHousekeepingBody = zod.object({
+  "propertyId": zod.number().optional(),
+  "relationshipId": zod.number().optional(),
+  "action": zod.string().optional().describe('update | confirm | mark_unavailable | temporarily_unavailable | under_offer | sold | let | withdrawn | reactivate')
+})
+
+export const ConfirmListingHousekeepingResponse = zod.object({
+  "ok": zod.boolean(),
+  "confirmedAt": zod.string().nullish(),
+  "nextConfirmationAt": zod.string().nullish(),
+  "listing": zod.object({
+  "id": zod.number(),
+  "propertyId": zod.number(),
+  "relationshipId": zod.number().nullish(),
+  "agentId": zod.number().nullish(),
+  "agencyId": zod.number().nullish(),
+  "reference": zod.string(),
+  "title": zod.string(),
+  "suburb": zod.string(),
+  "city": zod.string(),
+  "price": zod.number().optional(),
+  "currency": zod.string().optional(),
+  "status": zod.string(),
+  "availabilityStatus": zod.string(),
+  "freshnessStatus": zod.string(),
+  "freshnessLabel": zod.string(),
+  "lastConfirmedAt": zod.string().nullish(),
+  "lastUpdate": zod.string().nullish(),
+  "nextConfirmationAt": zod.string().nullish(),
+  "daysSinceConfirmation": zod.number(),
+  "freshnessScore": zod.number(),
+  "qualityScore": zod.number(),
+  "reminderCount": zod.number().optional(),
+  "staleSince": zod.string().nullish(),
+  "photos": zod.array(zod.string()).optional(),
+  "bedrooms": zod.number().nullish(),
+  "bathrooms": zod.number().nullish()
+}).optional()
+})
+
+
+/**
+ * @summary Confirm multiple listings at once
+ */
+export const BulkConfirmListingHousekeepingBody = zod.object({
+  "propertyIds": zod.array(zod.number()).optional(),
+  "relationshipIds": zod.array(zod.number()).optional()
+})
+
+export const BulkConfirmListingHousekeepingResponse = zod.object({
+  "ok": zod.boolean(),
+  "confirmed": zod.number()
+})
+
+
+/**
+ * @summary Change listing availability or reactivate it
+ */
+export const ApplyListingHousekeepingActionBody = zod.object({
+  "propertyId": zod.number().optional(),
+  "relationshipId": zod.number().optional(),
+  "action": zod.string().optional().describe('update | confirm | mark_unavailable | temporarily_unavailable | under_offer | sold | let | withdrawn | reactivate')
+})
+
+export const ApplyListingHousekeepingActionResponse = zod.object({
+  "ok": zod.boolean(),
+  "confirmedAt": zod.string().nullish(),
+  "nextConfirmationAt": zod.string().nullish(),
+  "listing": zod.object({
+  "id": zod.number(),
+  "propertyId": zod.number(),
+  "relationshipId": zod.number().nullish(),
+  "agentId": zod.number().nullish(),
+  "agencyId": zod.number().nullish(),
+  "reference": zod.string(),
+  "title": zod.string(),
+  "suburb": zod.string(),
+  "city": zod.string(),
+  "price": zod.number().optional(),
+  "currency": zod.string().optional(),
+  "status": zod.string(),
+  "availabilityStatus": zod.string(),
+  "freshnessStatus": zod.string(),
+  "freshnessLabel": zod.string(),
+  "lastConfirmedAt": zod.string().nullish(),
+  "lastUpdate": zod.string().nullish(),
+  "nextConfirmationAt": zod.string().nullish(),
+  "daysSinceConfirmation": zod.number(),
+  "freshnessScore": zod.number(),
+  "qualityScore": zod.number(),
+  "reminderCount": zod.number().optional(),
+  "staleSince": zod.string().nullish(),
+  "photos": zod.array(zod.string()).optional(),
+  "bedrooms": zod.number().nullish(),
+  "bathrooms": zod.number().nullish()
+}).optional()
+})
+
+
+/**
+ * @summary Get listing reminder preferences
+ */
+export const GetListingHousekeepingPreferencesResponse = zod.object({
+  "userId": zod.number().optional(),
+  "whatsappEnabled": zod.boolean(),
+  "pushEnabled": zod.boolean(),
+  "emailEnabled": zod.boolean(),
+  "reminderFrequency": zod.string()
+})
+
+
+/**
+ * @summary Update listing reminder preferences
+ */
+export const UpdateListingHousekeepingPreferencesBody = zod.object({
+  "userId": zod.number().optional(),
+  "whatsappEnabled": zod.boolean(),
+  "pushEnabled": zod.boolean(),
+  "emailEnabled": zod.boolean(),
+  "reminderFrequency": zod.string()
+})
+
+export const UpdateListingHousekeepingPreferencesResponse = zod.object({
+  "userId": zod.number().optional(),
+  "whatsappEnabled": zod.boolean(),
+  "pushEnabled": zod.boolean(),
+  "emailEnabled": zod.boolean(),
+  "reminderFrequency": zod.string()
+})
+
+
+/**
+ * @summary Platform listing health and agent freshness scores
+ */
+export const GetAdminListingHealthResponse = zod.object({
+  "summary": zod.record(zod.string(), zod.number()),
+  "listings": zod.array(zod.object({
+  "id": zod.number(),
+  "propertyId": zod.number(),
+  "relationshipId": zod.number().nullish(),
+  "agentId": zod.number().nullish(),
+  "agencyId": zod.number().nullish(),
+  "reference": zod.string(),
+  "title": zod.string(),
+  "suburb": zod.string(),
+  "city": zod.string(),
+  "price": zod.number().optional(),
+  "currency": zod.string().optional(),
+  "status": zod.string(),
+  "availabilityStatus": zod.string(),
+  "freshnessStatus": zod.string(),
+  "freshnessLabel": zod.string(),
+  "lastConfirmedAt": zod.string().nullish(),
+  "lastUpdate": zod.string().nullish(),
+  "nextConfirmationAt": zod.string().nullish(),
+  "daysSinceConfirmation": zod.number(),
+  "freshnessScore": zod.number(),
+  "qualityScore": zod.number(),
+  "reminderCount": zod.number().optional(),
+  "staleSince": zod.string().nullish(),
+  "photos": zod.array(zod.string()).optional(),
+  "bedrooms": zod.number().nullish(),
+  "bathrooms": zod.number().nullish()
+})),
+  "agents": zod.array(zod.object({
+  "agentId": zod.number().optional(),
+  "total": zod.number().optional(),
+  "stale": zod.number().optional(),
+  "due": zod.number().optional(),
+  "averageFreshnessScore": zod.number().optional()
+})),
+  "thresholds": zod.object({
+  "softReminderDays": zod.number(),
+  "firstConfirmationDays": zod.number(),
+  "recurringConfirmationDays": zod.number(),
+  "updateRequiredOverdueDays": zod.number(),
+  "potentiallyStaleOverdueDays": zod.number(),
+  "staleOverdueDays": zod.number()
+})
+})
+
+
+/**
+ * @summary Listing housekeeping audit events
+ */
+export const GetAdminListingHealthEventsResponseItem = zod.object({
+  "id": zod.number(),
+  "listingId": zod.number().nullish(),
+  "propertyId": zod.number(),
+  "relationshipId": zod.number().nullish(),
+  "agentId": zod.number().nullish(),
+  "agencyId": zod.number().nullish(),
+  "eventType": zod.string(),
+  "previousStatus": zod.string().nullish(),
+  "newStatus": zod.string().nullish(),
+  "reminderKey": zod.string().nullish(),
+  "source": zod.string(),
+  "metadata": zod.unknown().optional(),
+  "createdAt": zod.string()
+})
+export const GetAdminListingHealthEventsResponse = zod.array(GetAdminListingHealthEventsResponseItem)
+
+
+/**
+ * @summary Run the idempotent listing housekeeping job now
+ */
+export const RunAdminListingHousekeepingResponse = zod.object({
+  "properties": zod.number(),
+  "updated": zod.number(),
+  "reminders": zod.number(),
+  "ranAt": zod.string()
+})
+
+
+/**
+ * @summary Get freshness thresholds
+ */
+export const GetAdminListingHousekeepingSettingsResponse = zod.object({
+  "softReminderDays": zod.number(),
+  "firstConfirmationDays": zod.number(),
+  "recurringConfirmationDays": zod.number(),
+  "updateRequiredOverdueDays": zod.number(),
+  "potentiallyStaleOverdueDays": zod.number(),
+  "staleOverdueDays": zod.number()
+})
+
+
+/**
+ * @summary Update freshness thresholds
+ */
+export const UpdateAdminListingHousekeepingSettingsBody = zod.object({
+  "softReminderDays": zod.number(),
+  "firstConfirmationDays": zod.number(),
+  "recurringConfirmationDays": zod.number(),
+  "updateRequiredOverdueDays": zod.number(),
+  "potentiallyStaleOverdueDays": zod.number(),
+  "staleOverdueDays": zod.number()
+})
+
+export const UpdateAdminListingHousekeepingSettingsResponse = zod.object({
+  "softReminderDays": zod.number(),
+  "firstConfirmationDays": zod.number(),
+  "recurringConfirmationDays": zod.number(),
+  "updateRequiredOverdueDays": zod.number(),
+  "potentiallyStaleOverdueDays": zod.number(),
+  "staleOverdueDays": zod.number()
+})
+
+
+/**
  * @summary List potential duplicate property reviews
  */
 export const ListDuplicateReviewsResponseItem = zod.object({
@@ -2493,7 +2922,16 @@ export const ListDuplicateReviewsResponseItem = zod.object({
   "latitude": zod.number().nullish(),
   "longitude": zod.number().nullish(),
   "lastAvailabilityConfirmedAt": zod.string().nullish(),
-  "lastPriceConfirmedAt": zod.string().nullish()
+  "lastPriceConfirmedAt": zod.string().nullish(),
+  "freshnessStatus": zod.string().optional(),
+  "availabilityStatus": zod.string().optional(),
+  "nextConfirmationAt": zod.string().nullish(),
+  "daysSinceConfirmation": zod.number().optional(),
+  "freshnessScore": zod.number().optional(),
+  "qualityScore": zod.number().optional(),
+  "lastReminderSentAt": zod.string().nullish(),
+  "reminderCount": zod.number().optional(),
+  "staleSince": zod.string().nullish()
 }).optional(),
   "candidateProperty": zod.object({
   "id": zod.number(),
@@ -2539,7 +2977,16 @@ export const ListDuplicateReviewsResponseItem = zod.object({
   "latitude": zod.number().nullish(),
   "longitude": zod.number().nullish(),
   "lastAvailabilityConfirmedAt": zod.string().nullish(),
-  "lastPriceConfirmedAt": zod.string().nullish()
+  "lastPriceConfirmedAt": zod.string().nullish(),
+  "freshnessStatus": zod.string().optional(),
+  "availabilityStatus": zod.string().optional(),
+  "nextConfirmationAt": zod.string().nullish(),
+  "daysSinceConfirmation": zod.number().optional(),
+  "freshnessScore": zod.number().optional(),
+  "qualityScore": zod.number().optional(),
+  "lastReminderSentAt": zod.string().nullish(),
+  "reminderCount": zod.number().optional(),
+  "staleSince": zod.string().nullish()
 }).optional()
 })
 export const ListDuplicateReviewsResponse = zod.array(ListDuplicateReviewsResponseItem)
@@ -2604,7 +3051,16 @@ export const GetDuplicateReviewResponse = zod.object({
   "latitude": zod.number().nullish(),
   "longitude": zod.number().nullish(),
   "lastAvailabilityConfirmedAt": zod.string().nullish(),
-  "lastPriceConfirmedAt": zod.string().nullish()
+  "lastPriceConfirmedAt": zod.string().nullish(),
+  "freshnessStatus": zod.string().optional(),
+  "availabilityStatus": zod.string().optional(),
+  "nextConfirmationAt": zod.string().nullish(),
+  "daysSinceConfirmation": zod.number().optional(),
+  "freshnessScore": zod.number().optional(),
+  "qualityScore": zod.number().optional(),
+  "lastReminderSentAt": zod.string().nullish(),
+  "reminderCount": zod.number().optional(),
+  "staleSince": zod.string().nullish()
 }).optional(),
   "candidateProperty": zod.object({
   "id": zod.number(),
@@ -2650,7 +3106,16 @@ export const GetDuplicateReviewResponse = zod.object({
   "latitude": zod.number().nullish(),
   "longitude": zod.number().nullish(),
   "lastAvailabilityConfirmedAt": zod.string().nullish(),
-  "lastPriceConfirmedAt": zod.string().nullish()
+  "lastPriceConfirmedAt": zod.string().nullish(),
+  "freshnessStatus": zod.string().optional(),
+  "availabilityStatus": zod.string().optional(),
+  "nextConfirmationAt": zod.string().nullish(),
+  "daysSinceConfirmation": zod.number().optional(),
+  "freshnessScore": zod.number().optional(),
+  "qualityScore": zod.number().optional(),
+  "lastReminderSentAt": zod.string().nullish(),
+  "reminderCount": zod.number().optional(),
+  "staleSince": zod.string().nullish()
 }).optional()
 }),
   "sourceProperty": zod.object({
@@ -2697,7 +3162,16 @@ export const GetDuplicateReviewResponse = zod.object({
   "latitude": zod.number().nullish(),
   "longitude": zod.number().nullish(),
   "lastAvailabilityConfirmedAt": zod.string().nullish(),
-  "lastPriceConfirmedAt": zod.string().nullish()
+  "lastPriceConfirmedAt": zod.string().nullish(),
+  "freshnessStatus": zod.string().optional(),
+  "availabilityStatus": zod.string().optional(),
+  "nextConfirmationAt": zod.string().nullish(),
+  "daysSinceConfirmation": zod.number().optional(),
+  "freshnessScore": zod.number().optional(),
+  "qualityScore": zod.number().optional(),
+  "lastReminderSentAt": zod.string().nullish(),
+  "reminderCount": zod.number().optional(),
+  "staleSince": zod.string().nullish()
 }),
   "candidateProperty": zod.object({
   "id": zod.number(),
@@ -2743,7 +3217,16 @@ export const GetDuplicateReviewResponse = zod.object({
   "latitude": zod.number().nullish(),
   "longitude": zod.number().nullish(),
   "lastAvailabilityConfirmedAt": zod.string().nullish(),
-  "lastPriceConfirmedAt": zod.string().nullish()
+  "lastPriceConfirmedAt": zod.string().nullish(),
+  "freshnessStatus": zod.string().optional(),
+  "availabilityStatus": zod.string().optional(),
+  "nextConfirmationAt": zod.string().nullish(),
+  "daysSinceConfirmation": zod.number().optional(),
+  "freshnessScore": zod.number().optional(),
+  "qualityScore": zod.number().optional(),
+  "lastReminderSentAt": zod.string().nullish(),
+  "reminderCount": zod.number().optional(),
+  "staleSince": zod.string().nullish()
 }),
   "sourceOffers": zod.array(zod.object({
   "id": zod.number(),
@@ -2862,7 +3345,16 @@ export const ReviewDuplicateResponse = zod.object({
   "latitude": zod.number().nullish(),
   "longitude": zod.number().nullish(),
   "lastAvailabilityConfirmedAt": zod.string().nullish(),
-  "lastPriceConfirmedAt": zod.string().nullish()
+  "lastPriceConfirmedAt": zod.string().nullish(),
+  "freshnessStatus": zod.string().optional(),
+  "availabilityStatus": zod.string().optional(),
+  "nextConfirmationAt": zod.string().nullish(),
+  "daysSinceConfirmation": zod.number().optional(),
+  "freshnessScore": zod.number().optional(),
+  "qualityScore": zod.number().optional(),
+  "lastReminderSentAt": zod.string().nullish(),
+  "reminderCount": zod.number().optional(),
+  "staleSince": zod.string().nullish()
 }).optional(),
   "candidateProperty": zod.object({
   "id": zod.number(),
@@ -2908,7 +3400,16 @@ export const ReviewDuplicateResponse = zod.object({
   "latitude": zod.number().nullish(),
   "longitude": zod.number().nullish(),
   "lastAvailabilityConfirmedAt": zod.string().nullish(),
-  "lastPriceConfirmedAt": zod.string().nullish()
+  "lastPriceConfirmedAt": zod.string().nullish(),
+  "freshnessStatus": zod.string().optional(),
+  "availabilityStatus": zod.string().optional(),
+  "nextConfirmationAt": zod.string().nullish(),
+  "daysSinceConfirmation": zod.number().optional(),
+  "freshnessScore": zod.number().optional(),
+  "qualityScore": zod.number().optional(),
+  "lastReminderSentAt": zod.string().nullish(),
+  "reminderCount": zod.number().optional(),
+  "staleSince": zod.string().nullish()
 }).optional()
 })
 

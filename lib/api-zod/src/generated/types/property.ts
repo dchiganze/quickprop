@@ -84,4 +84,16 @@ export interface Property {
   lastAvailabilityConfirmedAt?: string | null;
   /** @nullable */
   lastPriceConfirmedAt?: string | null;
+  freshnessStatus?: string;
+  availabilityStatus?: string;
+  /** @nullable */
+  nextConfirmationAt?: string | null;
+  daysSinceConfirmation?: number;
+  freshnessScore?: number;
+  qualityScore?: number;
+  /** @nullable */
+  lastReminderSentAt?: string | null;
+  reminderCount?: number;
+  /** @nullable */
+  staleSince?: string | null;
 }

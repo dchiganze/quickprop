@@ -10,6 +10,7 @@ import {
 import { leadsTable } from "@workspace/db";
 import { ai } from "@workspace/integrations-gemini-ai";
 import { canonicalPropertyId, getCanonicalProperty, getPropertyOffers } from "../lib/multi-agent";
+import { calculateFreshness, freshnessRankBonus, publicFreshnessLabel } from "../lib/housekeeping";
 
 const router: IRouter = Router();
 
@@ -120,6 +121,7 @@ router.get("/public/properties", async (req, res): Promise<void> => {
   ));
   if (sort === "price_asc") groupedRows.sort((a, b) => a.price - b.price);
   else if (sort === "price_desc") groupedRows.sort((a, b) => b.price - a.price);
+  else if (sort === "freshness") groupedRows.sort((a, b) => freshnessRankBonus(b.freshnessStatus) - freshnessRankBonus(a.freshnessStatus));
   else groupedRows.sort((a, b) => (b.publishedAt?.getTime() ?? 0) - (a.publishedAt?.getTime() ?? 0));
   const count = groupedRows.length;
   const pageRows = groupedRows.slice(offset, offset + limitNum);
@@ -131,6 +133,10 @@ router.get("/public/properties", async (req, res): Promise<void> => {
       agencyCount: new Set(offers.map((offer) => offer.agencyName)).size || 1,
       lowestPrice: offers.length ? Math.min(...offers.map((offer) => offer.askingPrice)) : row.price,
       lastAvailabilityVerification: offers.map((offer) => offer.lastAvailabilityConfirmation).filter(Boolean).sort().at(-1) ?? row.lastAvailabilityConfirmedAt,
+      freshnessStatus: row.freshnessStatus,
+      freshnessLabel: publicFreshnessLabel(row.freshnessStatus, row.lastAvailabilityConfirmedAt, row.updatedAt),
+      freshnessScore: row.freshnessScore,
+      qualityScore: row.qualityScore,
     };
   }));
 
@@ -165,6 +171,10 @@ router.get("/public/properties/:id", async (req, res): Promise<void> => {
       agencyCount: new Set(offers.map((offer) => offer.agencyName)).size || 1,
       lowestPrice: offers.length ? Math.min(...offers.map((offer) => offer.askingPrice)) : prop.price,
       lastAvailabilityVerification: offers.map((offer) => offer.lastAvailabilityConfirmation).filter(Boolean).sort().at(-1) ?? prop.lastAvailabilityConfirmedAt,
+      freshnessStatus: prop.freshnessStatus,
+      freshnessLabel: publicFreshnessLabel(prop.freshnessStatus, prop.lastAvailabilityConfirmedAt, prop.updatedAt),
+      freshnessScore: prop.freshnessScore,
+      qualityScore: prop.qualityScore,
     },
     agent,
     offers,

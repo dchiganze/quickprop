@@ -29,6 +29,7 @@ import type {
   AdminDuplicateDetail,
   AdminDuplicateReview,
   AdminFreshness,
+  AdminListingHealth,
   AdminPlatformCharts,
   AdminPlatformStats,
   AgencyRelationship,
@@ -39,6 +40,8 @@ import type {
   Branch,
   BranchInput,
   BrochureResult,
+  BulkListingHousekeepingInput,
+  BulkListingHousekeepingResponse,
   Buyer,
   BuyerInput,
   BuyerRegistration,
@@ -61,6 +64,7 @@ import type {
   HealthStatus,
   HealthUpdateInput,
   HealthUpdateResult,
+  HousekeepingRunResult,
   Lead,
   LeadInput,
   LeadUpdate,
@@ -76,6 +80,12 @@ import type {
   ListSellersParams,
   ListTasksParams,
   ListViewingsParams,
+  ListingHousekeepingActionInput,
+  ListingHousekeepingEvent,
+  ListingHousekeepingMutationResponse,
+  ListingHousekeepingPreferences,
+  ListingHousekeepingResponse,
+  ListingHousekeepingSettings,
   LoginInput,
   LoginResult,
   MarketplaceStats,
@@ -6126,6 +6136,817 @@ export function useGetAdminFreshness<TData = Awaited<ReturnType<typeof getAdminF
 
 
 
+
+export const getGetListingHousekeepingUrl = () => {
+
+
+
+
+  return `/api/listing-housekeeping`
+}
+
+/**
+ * @summary Agent listing housekeeping queue and freshness summary
+ */
+export const getListingHousekeeping = async ( options?: RequestInit): Promise<ListingHousekeepingResponse> => {
+
+  return customFetch<ListingHousekeepingResponse>(getGetListingHousekeepingUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetListingHousekeepingQueryKey = () => {
+    return [
+    `/api/listing-housekeeping`
+    ] as const;
+    }
+
+
+export const getGetListingHousekeepingQueryOptions = <TData = Awaited<ReturnType<typeof getListingHousekeeping>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getListingHousekeeping>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetListingHousekeepingQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getListingHousekeeping>>> = ({ signal }) => getListingHousekeeping({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getListingHousekeeping>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetListingHousekeepingQueryResult = NonNullable<Awaited<ReturnType<typeof getListingHousekeeping>>>
+export type GetListingHousekeepingQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Agent listing housekeeping queue and freshness summary
+ */
+
+export function useGetListingHousekeeping<TData = Awaited<ReturnType<typeof getListingHousekeeping>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getListingHousekeeping>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetListingHousekeepingQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getConfirmListingHousekeepingUrl = () => {
+
+
+
+
+  return `/api/listing-housekeeping/confirm`
+}
+
+/**
+ * @summary Confirm listing availability
+ */
+export const confirmListingHousekeeping = async (listingHousekeepingActionInput: ListingHousekeepingActionInput, options?: RequestInit): Promise<ListingHousekeepingMutationResponse> => {
+
+  return customFetch<ListingHousekeepingMutationResponse>(getConfirmListingHousekeepingUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(listingHousekeepingActionInput)
+  }
+);}
+
+
+
+
+
+export const getConfirmListingHousekeepingMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof confirmListingHousekeeping>>, TError,{data: BodyType<ListingHousekeepingActionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof confirmListingHousekeeping>>, TError,{data: BodyType<ListingHousekeepingActionInput>}, TContext> => {
+
+const mutationKey = ['confirmListingHousekeeping'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof confirmListingHousekeeping>>, {data: BodyType<ListingHousekeepingActionInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  confirmListingHousekeeping(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ConfirmListingHousekeepingMutationResult = NonNullable<Awaited<ReturnType<typeof confirmListingHousekeeping>>>
+    export type ConfirmListingHousekeepingMutationBody = BodyType<ListingHousekeepingActionInput>
+    export type ConfirmListingHousekeepingMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Confirm listing availability
+ */
+export const useConfirmListingHousekeeping = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof confirmListingHousekeeping>>, TError,{data: BodyType<ListingHousekeepingActionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof confirmListingHousekeeping>>,
+        TError,
+        {data: BodyType<ListingHousekeepingActionInput>},
+        TContext
+      > => {
+      return useMutation(getConfirmListingHousekeepingMutationOptions(options));
+    }
+
+export const getBulkConfirmListingHousekeepingUrl = () => {
+
+
+
+
+  return `/api/listing-housekeeping/bulk-confirm`
+}
+
+/**
+ * @summary Confirm multiple listings at once
+ */
+export const bulkConfirmListingHousekeeping = async (bulkListingHousekeepingInput: BulkListingHousekeepingInput, options?: RequestInit): Promise<BulkListingHousekeepingResponse> => {
+
+  return customFetch<BulkListingHousekeepingResponse>(getBulkConfirmListingHousekeepingUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(bulkListingHousekeepingInput)
+  }
+);}
+
+
+
+
+
+export const getBulkConfirmListingHousekeepingMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof bulkConfirmListingHousekeeping>>, TError,{data: BodyType<BulkListingHousekeepingInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof bulkConfirmListingHousekeeping>>, TError,{data: BodyType<BulkListingHousekeepingInput>}, TContext> => {
+
+const mutationKey = ['bulkConfirmListingHousekeeping'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof bulkConfirmListingHousekeeping>>, {data: BodyType<BulkListingHousekeepingInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  bulkConfirmListingHousekeeping(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type BulkConfirmListingHousekeepingMutationResult = NonNullable<Awaited<ReturnType<typeof bulkConfirmListingHousekeeping>>>
+    export type BulkConfirmListingHousekeepingMutationBody = BodyType<BulkListingHousekeepingInput>
+    export type BulkConfirmListingHousekeepingMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Confirm multiple listings at once
+ */
+export const useBulkConfirmListingHousekeeping = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof bulkConfirmListingHousekeeping>>, TError,{data: BodyType<BulkListingHousekeepingInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof bulkConfirmListingHousekeeping>>,
+        TError,
+        {data: BodyType<BulkListingHousekeepingInput>},
+        TContext
+      > => {
+      return useMutation(getBulkConfirmListingHousekeepingMutationOptions(options));
+    }
+
+export const getApplyListingHousekeepingActionUrl = () => {
+
+
+
+
+  return `/api/listing-housekeeping/action`
+}
+
+/**
+ * @summary Change listing availability or reactivate it
+ */
+export const applyListingHousekeepingAction = async (listingHousekeepingActionInput: ListingHousekeepingActionInput, options?: RequestInit): Promise<ListingHousekeepingMutationResponse> => {
+
+  return customFetch<ListingHousekeepingMutationResponse>(getApplyListingHousekeepingActionUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(listingHousekeepingActionInput)
+  }
+);}
+
+
+
+
+
+export const getApplyListingHousekeepingActionMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof applyListingHousekeepingAction>>, TError,{data: BodyType<ListingHousekeepingActionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof applyListingHousekeepingAction>>, TError,{data: BodyType<ListingHousekeepingActionInput>}, TContext> => {
+
+const mutationKey = ['applyListingHousekeepingAction'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof applyListingHousekeepingAction>>, {data: BodyType<ListingHousekeepingActionInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  applyListingHousekeepingAction(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ApplyListingHousekeepingActionMutationResult = NonNullable<Awaited<ReturnType<typeof applyListingHousekeepingAction>>>
+    export type ApplyListingHousekeepingActionMutationBody = BodyType<ListingHousekeepingActionInput>
+    export type ApplyListingHousekeepingActionMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Change listing availability or reactivate it
+ */
+export const useApplyListingHousekeepingAction = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof applyListingHousekeepingAction>>, TError,{data: BodyType<ListingHousekeepingActionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof applyListingHousekeepingAction>>,
+        TError,
+        {data: BodyType<ListingHousekeepingActionInput>},
+        TContext
+      > => {
+      return useMutation(getApplyListingHousekeepingActionMutationOptions(options));
+    }
+
+export const getGetListingHousekeepingPreferencesUrl = () => {
+
+
+
+
+  return `/api/listing-housekeeping/preferences`
+}
+
+/**
+ * @summary Get listing reminder preferences
+ */
+export const getListingHousekeepingPreferences = async ( options?: RequestInit): Promise<ListingHousekeepingPreferences> => {
+
+  return customFetch<ListingHousekeepingPreferences>(getGetListingHousekeepingPreferencesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetListingHousekeepingPreferencesQueryKey = () => {
+    return [
+    `/api/listing-housekeeping/preferences`
+    ] as const;
+    }
+
+
+export const getGetListingHousekeepingPreferencesQueryOptions = <TData = Awaited<ReturnType<typeof getListingHousekeepingPreferences>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getListingHousekeepingPreferences>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetListingHousekeepingPreferencesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getListingHousekeepingPreferences>>> = ({ signal }) => getListingHousekeepingPreferences({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getListingHousekeepingPreferences>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetListingHousekeepingPreferencesQueryResult = NonNullable<Awaited<ReturnType<typeof getListingHousekeepingPreferences>>>
+export type GetListingHousekeepingPreferencesQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get listing reminder preferences
+ */
+
+export function useGetListingHousekeepingPreferences<TData = Awaited<ReturnType<typeof getListingHousekeepingPreferences>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getListingHousekeepingPreferences>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetListingHousekeepingPreferencesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getUpdateListingHousekeepingPreferencesUrl = () => {
+
+
+
+
+  return `/api/listing-housekeeping/preferences`
+}
+
+/**
+ * @summary Update listing reminder preferences
+ */
+export const updateListingHousekeepingPreferences = async (listingHousekeepingPreferences: ListingHousekeepingPreferences, options?: RequestInit): Promise<ListingHousekeepingPreferences> => {
+
+  return customFetch<ListingHousekeepingPreferences>(getUpdateListingHousekeepingPreferencesUrl(),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(listingHousekeepingPreferences)
+  }
+);}
+
+
+
+
+
+export const getUpdateListingHousekeepingPreferencesMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateListingHousekeepingPreferences>>, TError,{data: BodyType<ListingHousekeepingPreferences>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateListingHousekeepingPreferences>>, TError,{data: BodyType<ListingHousekeepingPreferences>}, TContext> => {
+
+const mutationKey = ['updateListingHousekeepingPreferences'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateListingHousekeepingPreferences>>, {data: BodyType<ListingHousekeepingPreferences>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  updateListingHousekeepingPreferences(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateListingHousekeepingPreferencesMutationResult = NonNullable<Awaited<ReturnType<typeof updateListingHousekeepingPreferences>>>
+    export type UpdateListingHousekeepingPreferencesMutationBody = BodyType<ListingHousekeepingPreferences>
+    export type UpdateListingHousekeepingPreferencesMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Update listing reminder preferences
+ */
+export const useUpdateListingHousekeepingPreferences = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateListingHousekeepingPreferences>>, TError,{data: BodyType<ListingHousekeepingPreferences>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateListingHousekeepingPreferences>>,
+        TError,
+        {data: BodyType<ListingHousekeepingPreferences>},
+        TContext
+      > => {
+      return useMutation(getUpdateListingHousekeepingPreferencesMutationOptions(options));
+    }
+
+export const getGetAdminListingHealthUrl = () => {
+
+
+
+
+  return `/api/admin/listing-health`
+}
+
+/**
+ * @summary Platform listing health and agent freshness scores
+ */
+export const getAdminListingHealth = async ( options?: RequestInit): Promise<AdminListingHealth> => {
+
+  return customFetch<AdminListingHealth>(getGetAdminListingHealthUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminListingHealthQueryKey = () => {
+    return [
+    `/api/admin/listing-health`
+    ] as const;
+    }
+
+
+export const getGetAdminListingHealthQueryOptions = <TData = Awaited<ReturnType<typeof getAdminListingHealth>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminListingHealth>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminListingHealthQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminListingHealth>>> = ({ signal }) => getAdminListingHealth({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminListingHealth>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAdminListingHealthQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminListingHealth>>>
+export type GetAdminListingHealthQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Platform listing health and agent freshness scores
+ */
+
+export function useGetAdminListingHealth<TData = Awaited<ReturnType<typeof getAdminListingHealth>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminListingHealth>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAdminListingHealthQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetAdminListingHealthEventsUrl = () => {
+
+
+
+
+  return `/api/admin/listing-health/events`
+}
+
+/**
+ * @summary Listing housekeeping audit events
+ */
+export const getAdminListingHealthEvents = async ( options?: RequestInit): Promise<ListingHousekeepingEvent[]> => {
+
+  return customFetch<ListingHousekeepingEvent[]>(getGetAdminListingHealthEventsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminListingHealthEventsQueryKey = () => {
+    return [
+    `/api/admin/listing-health/events`
+    ] as const;
+    }
+
+
+export const getGetAdminListingHealthEventsQueryOptions = <TData = Awaited<ReturnType<typeof getAdminListingHealthEvents>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminListingHealthEvents>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminListingHealthEventsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminListingHealthEvents>>> = ({ signal }) => getAdminListingHealthEvents({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminListingHealthEvents>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAdminListingHealthEventsQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminListingHealthEvents>>>
+export type GetAdminListingHealthEventsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Listing housekeeping audit events
+ */
+
+export function useGetAdminListingHealthEvents<TData = Awaited<ReturnType<typeof getAdminListingHealthEvents>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminListingHealthEvents>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAdminListingHealthEventsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getRunAdminListingHousekeepingUrl = () => {
+
+
+
+
+  return `/api/admin/listing-health/run`
+}
+
+/**
+ * @summary Run the idempotent listing housekeeping job now
+ */
+export const runAdminListingHousekeeping = async ( options?: RequestInit): Promise<HousekeepingRunResult> => {
+
+  return customFetch<HousekeepingRunResult>(getRunAdminListingHousekeepingUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getRunAdminListingHousekeepingMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof runAdminListingHousekeeping>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof runAdminListingHousekeeping>>, TError,void, TContext> => {
+
+const mutationKey = ['runAdminListingHousekeeping'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof runAdminListingHousekeeping>>, void> = () => {
+
+
+          return  runAdminListingHousekeeping(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RunAdminListingHousekeepingMutationResult = NonNullable<Awaited<ReturnType<typeof runAdminListingHousekeeping>>>
+
+    export type RunAdminListingHousekeepingMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Run the idempotent listing housekeeping job now
+ */
+export const useRunAdminListingHousekeeping = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof runAdminListingHousekeeping>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof runAdminListingHousekeeping>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getRunAdminListingHousekeepingMutationOptions(options));
+    }
+
+export const getGetAdminListingHousekeepingSettingsUrl = () => {
+
+
+
+
+  return `/api/admin/listing-housekeeping/settings`
+}
+
+/**
+ * @summary Get freshness thresholds
+ */
+export const getAdminListingHousekeepingSettings = async ( options?: RequestInit): Promise<ListingHousekeepingSettings> => {
+
+  return customFetch<ListingHousekeepingSettings>(getGetAdminListingHousekeepingSettingsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminListingHousekeepingSettingsQueryKey = () => {
+    return [
+    `/api/admin/listing-housekeeping/settings`
+    ] as const;
+    }
+
+
+export const getGetAdminListingHousekeepingSettingsQueryOptions = <TData = Awaited<ReturnType<typeof getAdminListingHousekeepingSettings>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminListingHousekeepingSettings>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminListingHousekeepingSettingsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminListingHousekeepingSettings>>> = ({ signal }) => getAdminListingHousekeepingSettings({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminListingHousekeepingSettings>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAdminListingHousekeepingSettingsQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminListingHousekeepingSettings>>>
+export type GetAdminListingHousekeepingSettingsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get freshness thresholds
+ */
+
+export function useGetAdminListingHousekeepingSettings<TData = Awaited<ReturnType<typeof getAdminListingHousekeepingSettings>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminListingHousekeepingSettings>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAdminListingHousekeepingSettingsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getUpdateAdminListingHousekeepingSettingsUrl = () => {
+
+
+
+
+  return `/api/admin/listing-housekeeping/settings`
+}
+
+/**
+ * @summary Update freshness thresholds
+ */
+export const updateAdminListingHousekeepingSettings = async (listingHousekeepingSettings: ListingHousekeepingSettings, options?: RequestInit): Promise<ListingHousekeepingSettings> => {
+
+  return customFetch<ListingHousekeepingSettings>(getUpdateAdminListingHousekeepingSettingsUrl(),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(listingHousekeepingSettings)
+  }
+);}
+
+
+
+
+
+export const getUpdateAdminListingHousekeepingSettingsMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAdminListingHousekeepingSettings>>, TError,{data: BodyType<ListingHousekeepingSettings>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateAdminListingHousekeepingSettings>>, TError,{data: BodyType<ListingHousekeepingSettings>}, TContext> => {
+
+const mutationKey = ['updateAdminListingHousekeepingSettings'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateAdminListingHousekeepingSettings>>, {data: BodyType<ListingHousekeepingSettings>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  updateAdminListingHousekeepingSettings(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateAdminListingHousekeepingSettingsMutationResult = NonNullable<Awaited<ReturnType<typeof updateAdminListingHousekeepingSettings>>>
+    export type UpdateAdminListingHousekeepingSettingsMutationBody = BodyType<ListingHousekeepingSettings>
+    export type UpdateAdminListingHousekeepingSettingsMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Update freshness thresholds
+ */
+export const useUpdateAdminListingHousekeepingSettings = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAdminListingHousekeepingSettings>>, TError,{data: BodyType<ListingHousekeepingSettings>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateAdminListingHousekeepingSettings>>,
+        TError,
+        {data: BodyType<ListingHousekeepingSettings>},
+        TContext
+      > => {
+      return useMutation(getUpdateAdminListingHousekeepingSettingsMutationOptions(options));
+    }
 
 export const getListDuplicateReviewsUrl = () => {
 

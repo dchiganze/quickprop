@@ -49,6 +49,12 @@ export interface Property {
   agentId: string;
   createdAt: string;
   updatedAt: string;
+  freshnessStatus?: 'new' | 'fresh' | 'due' | 'update_required' | 'potentially_stale' | 'stale' | 'inactive';
+  availabilityStatus?: 'available' | 'under_offer' | 'sold' | 'let' | 'withdrawn' | 'temporarily_unavailable';
+  lastConfirmedAt?: string | null;
+  nextConfirmationAt?: string | null;
+  freshnessScore?: number;
+  qualityScore?: number;
 }
 
 export type CollaborationRequestStatus = 'pending' | 'approved' | 'declined' | 'cancelled';
