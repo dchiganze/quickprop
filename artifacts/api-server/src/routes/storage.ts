@@ -37,6 +37,14 @@ async function signedObjectUrl(objectName: string, method: "GET" | "PUT"): Promi
   return data.signed_url;
 }
 
+export async function getPrivateObjectDownloadUrl(objectPath: string): Promise<string> {
+  const objectName = objectPath.replace(/^\/objects\//, "");
+  if (!/^uploads\/\d+\/[a-f0-9-]+\.[a-z0-9]{1,8}$/i.test(objectName)) {
+    throw new Error("Invalid private object path.");
+  }
+  return signedObjectUrl(objectName, "GET");
+}
+
 // Files are sent directly from the device to object storage. The API only
 // grants short-lived PUT URLs, so image bytes never pass through the server.
 router.post("/storage/uploads/request-url", async (req, res): Promise<void> => {
@@ -51,9 +59,11 @@ router.post("/storage/uploads/request-url", async (req, res): Promise<void> => {
     typeof name !== "string" || name.trim().length === 0 ||
     typeof size !== "number" || !Number.isInteger(size) || size < 1 ||
     typeof contentType !== "string" ||
-    (contentType.startsWith("image/") ? size > MAX_UPLOAD_BYTES : !VIDEO_MIME_TYPES.has(contentType) || size > MAX_VIDEO_UPLOAD_BYTES)
+    (contentType.startsWith("image/") || contentType === "text/plain" || contentType === "text/csv" || contentType === "application/csv" || contentType === "application/pdf" || contentType === "application/vnd.ms-excel" || contentType === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" || contentType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+      ? size > MAX_UPLOAD_BYTES
+      : !VIDEO_MIME_TYPES.has(contentType) || size > MAX_VIDEO_UPLOAD_BYTES)
   ) {
-    res.status(400).json({ error: "Upload must be an image under 25 MB or an MP4, MOV, or WebM video under 100 MB." });
+    res.status(400).json({ error: "Upload must be an image or import document under 25 MB, or an MP4, MOV, or WebM video under 100 MB." });
     return;
   }
 

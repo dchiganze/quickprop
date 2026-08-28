@@ -13,6 +13,7 @@ import storageRouter from "./storage";
 import collaborationRouter from "./collaboration";
 import multiAgentRouter from "./multi-agent";
 import housekeepingRouter from "./housekeeping";
+import importsRouter from "./imports";
 
 const router: IRouter = Router();
 
@@ -27,6 +28,7 @@ router.use(publicRouter);
 router.use(requireAuth);
 router.use(multiAgentRouter);
 router.use(housekeepingRouter);
+router.use(importsRouter);
 router.use(propertiesRouter);
 router.use(collaborationRouter);
 router.use(peopleRouter);

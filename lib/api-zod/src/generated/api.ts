@@ -3469,3 +3469,335 @@ export const ModeratePropertyResponse = zod.object({
 })
 
 
+/**
+ * @summary List agency bulk import sessions
+ */
+export const ListImportSessionsResponseItem = zod.object({
+  "id": zod.number(),
+  "reference": zod.string(),
+  "status": zod.string(),
+  "totalFiles": zod.number(),
+  "totalRecords": zod.number(),
+  "recordsReady": zod.number(),
+  "recordsNeedingReview": zod.number(),
+  "recordsDuplicate": zod.number(),
+  "recordsPublished": zod.number(),
+  "recordsFailed": zod.number(),
+  "currentStage": zod.string(),
+  "progress": zod.number(),
+  "lastError": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+export const ListImportSessionsResponse = zod.array(ListImportSessionsResponseItem)
+
+
+/**
+ * @summary Create a draft bulk import session from uploaded source files
+ */
+
+
+
+export const CreateImportSessionBody = zod.object({
+  "files": zod.array(zod.object({
+  "fileName": zod.string(),
+  "fileType": zod.string(),
+  "sizeBytes": zod.number(),
+  "storagePath": zod.string()
+})).min(1)
+})
+
+export const CreateImportSessionResponse = zod.object({
+  "id": zod.number(),
+  "reference": zod.string(),
+  "status": zod.string(),
+  "totalFiles": zod.number(),
+  "totalRecords": zod.number(),
+  "recordsReady": zod.number(),
+  "recordsNeedingReview": zod.number(),
+  "recordsDuplicate": zod.number(),
+  "recordsPublished": zod.number(),
+  "recordsFailed": zod.number(),
+  "currentStage": zod.string(),
+  "progress": zod.number(),
+  "lastError": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+}).and(zod.object({
+  "files": zod.array(zod.object({
+  "id": zod.number(),
+  "fileName": zod.string(),
+  "fileType": zod.string(),
+  "sizeBytes": zod.number(),
+  "processingStatus": zod.string(),
+  "extractedRecordCount": zod.number(),
+  "error": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string().optional()
+})),
+  "records": zod.array(zod.object({
+  "id": zod.number(),
+  "sourceFileId": zod.number(),
+  "sourceFileName": zod.string().optional(),
+  "sourceLocation": zod.string().nullish(),
+  "rawData": zod.unknown().optional(),
+  "data": zod.unknown(),
+  "fieldConfidence": zod.record(zod.string(), zod.number()),
+  "confidenceScore": zod.number(),
+  "reviewStatus": zod.string(),
+  "duplicateStatus": zod.string(),
+  "matchedPropertyId": zod.number().nullish(),
+  "match": zod.record(zod.string(), zod.unknown()).nullish(),
+  "validationIssues": zod.array(zod.string()),
+  "mandateStatus": zod.string(),
+  "agentMatchStatus": zod.string(),
+  "agentId": zod.number().nullish(),
+  "agentName": zod.string().nullish(),
+  "sourceMetadata": zod.unknown().optional(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})),
+  "columnMapping": zod.record(zod.string(), zod.string())
+}))
+
+
+/**
+ * @summary Get a bulk import session with files and records
+ */
+export const GetImportSessionParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const GetImportSessionResponse = zod.object({
+  "id": zod.number(),
+  "reference": zod.string(),
+  "status": zod.string(),
+  "totalFiles": zod.number(),
+  "totalRecords": zod.number(),
+  "recordsReady": zod.number(),
+  "recordsNeedingReview": zod.number(),
+  "recordsDuplicate": zod.number(),
+  "recordsPublished": zod.number(),
+  "recordsFailed": zod.number(),
+  "currentStage": zod.string(),
+  "progress": zod.number(),
+  "lastError": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+}).and(zod.object({
+  "files": zod.array(zod.object({
+  "id": zod.number(),
+  "fileName": zod.string(),
+  "fileType": zod.string(),
+  "sizeBytes": zod.number(),
+  "processingStatus": zod.string(),
+  "extractedRecordCount": zod.number(),
+  "error": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string().optional()
+})),
+  "records": zod.array(zod.object({
+  "id": zod.number(),
+  "sourceFileId": zod.number(),
+  "sourceFileName": zod.string().optional(),
+  "sourceLocation": zod.string().nullish(),
+  "rawData": zod.unknown().optional(),
+  "data": zod.unknown(),
+  "fieldConfidence": zod.record(zod.string(), zod.number()),
+  "confidenceScore": zod.number(),
+  "reviewStatus": zod.string(),
+  "duplicateStatus": zod.string(),
+  "matchedPropertyId": zod.number().nullish(),
+  "match": zod.record(zod.string(), zod.unknown()).nullish(),
+  "validationIssues": zod.array(zod.string()),
+  "mandateStatus": zod.string(),
+  "agentMatchStatus": zod.string(),
+  "agentId": zod.number().nullish(),
+  "agentName": zod.string().nullish(),
+  "sourceMetadata": zod.unknown().optional(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})),
+  "columnMapping": zod.record(zod.string(), zod.string())
+}))
+
+
+/**
+ * @summary Start or resume source extraction and duplicate matching
+ */
+export const ProcessImportSessionParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const ProcessImportSessionBody = zod.object({
+  "columnMapping": zod.record(zod.string(), zod.string()).optional()
+})
+
+export const ProcessImportSessionResponse = zod.object({
+  "id": zod.number(),
+  "reference": zod.string(),
+  "status": zod.string(),
+  "totalFiles": zod.number(),
+  "totalRecords": zod.number(),
+  "recordsReady": zod.number(),
+  "recordsNeedingReview": zod.number(),
+  "recordsDuplicate": zod.number(),
+  "recordsPublished": zod.number(),
+  "recordsFailed": zod.number(),
+  "currentStage": zod.string(),
+  "progress": zod.number(),
+  "lastError": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+
+
+/**
+ * @summary Correct an extracted import record
+ */
+export const UpdateImportRecordParams = zod.object({
+  "id": zod.coerce.number(),
+  "recordId": zod.coerce.number()
+})
+
+export const UpdateImportRecordBody = zod.object({
+  "data": zod.record(zod.string(), zod.unknown()),
+  "reviewStatus": zod.string().optional(),
+  "agentId": zod.number().nullish()
+})
+
+export const UpdateImportRecordResponse = zod.object({
+  "id": zod.number(),
+  "sourceFileId": zod.number(),
+  "sourceFileName": zod.string().optional(),
+  "sourceLocation": zod.string().nullish(),
+  "rawData": zod.unknown().optional(),
+  "data": zod.unknown(),
+  "fieldConfidence": zod.record(zod.string(), zod.number()),
+  "confidenceScore": zod.number(),
+  "reviewStatus": zod.string(),
+  "duplicateStatus": zod.string(),
+  "matchedPropertyId": zod.number().nullish(),
+  "match": zod.record(zod.string(), zod.unknown()).nullish(),
+  "validationIssues": zod.array(zod.string()),
+  "mandateStatus": zod.string(),
+  "agentMatchStatus": zod.string(),
+  "agentId": zod.number().nullish(),
+  "agentName": zod.string().nullish(),
+  "sourceMetadata": zod.unknown().optional(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+
+
+/**
+ * @summary Apply a review action to selected import records
+ */
+export const BulkImportActionParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const BulkImportActionBody = zod.object({
+  "recordIds": zod.array(zod.number()),
+  "action": zod.string().describe('approve | reject | assign | mark_duplicate | clear_duplicate'),
+  "agentId": zod.number().nullish()
+})
+
+export const BulkImportActionResponse = zod.object({
+  "id": zod.number(),
+  "reference": zod.string(),
+  "status": zod.string(),
+  "totalFiles": zod.number(),
+  "totalRecords": zod.number(),
+  "recordsReady": zod.number(),
+  "recordsNeedingReview": zod.number(),
+  "recordsDuplicate": zod.number(),
+  "recordsPublished": zod.number(),
+  "recordsFailed": zod.number(),
+  "currentStage": zod.string(),
+  "progress": zod.number(),
+  "lastError": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+}).and(zod.object({
+  "files": zod.array(zod.object({
+  "id": zod.number(),
+  "fileName": zod.string(),
+  "fileType": zod.string(),
+  "sizeBytes": zod.number(),
+  "processingStatus": zod.string(),
+  "extractedRecordCount": zod.number(),
+  "error": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string().optional()
+})),
+  "records": zod.array(zod.object({
+  "id": zod.number(),
+  "sourceFileId": zod.number(),
+  "sourceFileName": zod.string().optional(),
+  "sourceLocation": zod.string().nullish(),
+  "rawData": zod.unknown().optional(),
+  "data": zod.unknown(),
+  "fieldConfidence": zod.record(zod.string(), zod.number()),
+  "confidenceScore": zod.number(),
+  "reviewStatus": zod.string(),
+  "duplicateStatus": zod.string(),
+  "matchedPropertyId": zod.number().nullish(),
+  "match": zod.record(zod.string(), zod.unknown()).nullish(),
+  "validationIssues": zod.array(zod.string()),
+  "mandateStatus": zod.string(),
+  "agentMatchStatus": zod.string(),
+  "agentId": zod.number().nullish(),
+  "agentName": zod.string().nullish(),
+  "sourceMetadata": zod.unknown().optional(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})),
+  "columnMapping": zod.record(zod.string(), zod.string())
+}))
+
+
+/**
+ * @summary Validate and publish approved import records
+ */
+export const PublishImportSessionParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const PublishImportSessionBody = zod.object({
+  "recordIds": zod.array(zod.number())
+})
+
+export const PublishImportSessionResponse = zod.object({
+  "published": zod.number(),
+  "linked": zod.number(),
+  "created": zod.number(),
+  "failed": zod.number(),
+  "errors": zod.array(zod.string())
+})
+
+
+/**
+ * @summary Download import validation errors
+ */
+export const GetImportErrorReportParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const GetImportErrorReportResponse = zod.unknown()
+
+
+/**
+ * @summary Ask the import assistant about corrections or mappings
+ */
+export const AskImportAssistantBody = zod.object({
+  "sessionId": zod.number(),
+  "prompt": zod.string()
+})
+
+export const AskImportAssistantResponse = zod.object({
+  "message": zod.string(),
+  "suggestions": zod.array(zod.string())
+})
+
+

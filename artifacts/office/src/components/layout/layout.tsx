@@ -4,7 +4,7 @@ import { useLogout, useGetCurrentUser, useListNotifications, useMarkNotification
 import { 
   Building2, LayoutDashboard, Database, KanbanSquare, Users, MessageSquare, 
   Target, CheckSquare, Calendar, FileText, Briefcase, BarChart3, Settings, 
-  ShieldAlert, UserCircle, Bell, Search, LogOut, Loader2, Sparkles
+  ShieldAlert, UserCircle, Bell, Search, LogOut, Loader2, Sparkles, UploadCloud
 } from 'lucide-react';
 import { QuickShareDialog } from '@/components/QuickShareDialog';
 import { BrochureCatalogDialog } from '@/components/BrochureCatalogDialog';
@@ -132,6 +132,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
               <NavItem href="/inventory" icon={Database} label="Inventory" exact />
               <NavItem href="/inventory/pipeline" icon={KanbanSquare} label="Pipeline" />
               <NavItem href="/housekeeping" icon={Sparkles} label="Listing Housekeeping" />
+              <NavItem href="/imports" icon={UploadCloud} label="Bulk Imports" />
               <NavItem href="/calendar" icon={Calendar} label="Viewings" />
             </div>
 

@@ -1312,6 +1312,138 @@ export interface PropertyModerationInput {
   reason?: string;
 }
 
+export interface ImportFileInput {
+  fileName: string;
+  fileType: string;
+  sizeBytes: number;
+  storagePath: string;
+}
+
+export interface CreateImportSessionInput {
+  /** @minItems 1 */
+  files: ImportFileInput[];
+}
+
+export interface ImportFile {
+  id: number;
+  fileName: string;
+  fileType: string;
+  sizeBytes: number;
+  processingStatus: string;
+  extractedRecordCount: number;
+  /** @nullable */
+  error?: string | null;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export type ImportRecordFieldConfidence = {[key: string]: number};
+
+/**
+ * @nullable
+ */
+export type ImportRecordMatch = { [key: string]: unknown } | null;
+
+export interface ImportRecord {
+  id: number;
+  sourceFileId: number;
+  sourceFileName?: string;
+  /** @nullable */
+  sourceLocation?: string | null;
+  rawData?: unknown;
+  data: unknown;
+  fieldConfidence: ImportRecordFieldConfidence;
+  confidenceScore: number;
+  reviewStatus: string;
+  duplicateStatus: string;
+  /** @nullable */
+  matchedPropertyId?: number | null;
+  /** @nullable */
+  match?: ImportRecordMatch;
+  validationIssues: string[];
+  mandateStatus: string;
+  agentMatchStatus: string;
+  /** @nullable */
+  agentId?: number | null;
+  /** @nullable */
+  agentName?: string | null;
+  sourceMetadata?: unknown;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ImportSession {
+  id: number;
+  reference: string;
+  status: string;
+  totalFiles: number;
+  totalRecords: number;
+  recordsReady: number;
+  recordsNeedingReview: number;
+  recordsDuplicate: number;
+  recordsPublished: number;
+  recordsFailed: number;
+  currentStage: string;
+  progress: number;
+  /** @nullable */
+  lastError?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type ImportSessionDetailColumnMapping = {[key: string]: string};
+
+export type ImportSessionDetail = ImportSession & {
+  files: ImportFile[];
+  records: ImportRecord[];
+  columnMapping: ImportSessionDetailColumnMapping;
+};
+
+export type ProcessImportInputColumnMapping = {[key: string]: string};
+
+export interface ProcessImportInput {
+  columnMapping?: ProcessImportInputColumnMapping;
+}
+
+export type UpdateImportRecordInputData = { [key: string]: unknown };
+
+export interface UpdateImportRecordInput {
+  data: UpdateImportRecordInputData;
+  reviewStatus?: string;
+  /** @nullable */
+  agentId?: number | null;
+}
+
+export interface BulkImportActionInput {
+  recordIds: number[];
+  /** approve | reject | assign | mark_duplicate | clear_duplicate */
+  action: string;
+  /** @nullable */
+  agentId?: number | null;
+}
+
+export interface PublishImportInput {
+  recordIds: number[];
+}
+
+export interface PublishImportResult {
+  published: number;
+  linked: number;
+  created: number;
+  failed: number;
+  errors: string[];
+}
+
+export interface ImportAssistantInput {
+  sessionId: number;
+  prompt: string;
+}
+
+export interface ImportAssistantResponse {
+  message: string;
+  suggestions: string[];
+}
+
 export type ListPropertiesParams = {
 status?: string;
 pipelineStage?: string;

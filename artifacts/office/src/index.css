@@ -74,57 +74,57 @@
   --elevate-1: rgba(0, 0, 0, 0.03);
   --elevate-2: rgba(0, 0, 0, 0.08);
 
-  /* Light Theme based on Navy + Emerald */
-  --background: 210 20% 98%;
-  --foreground: 220 30% 15%;
-  --border: 215 15% 90%;
+  /* Office theme: a cool paper ledger with mineral green and ink navy */
+  --background: 210 26% 96%;
+  --foreground: 215 38% 17%;
+  --border: 213 20% 86%;
   
-  --card: 0 0% 100%;
-  --card-foreground: 220 30% 15%;
-  --card-border: 215 15% 90%;
+  --card: 210 32% 99%;
+  --card-foreground: 215 38% 17%;
+  --card-border: 213 20% 86%;
 
-  --sidebar: 216 62% 27%;
-  --sidebar-foreground: 210 20% 98%;
-  --sidebar-border: 216 62% 24%;
-  --sidebar-primary: 160 84% 39%;
-  --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 216 50% 35%;
-  --sidebar-accent-foreground: 0 0% 100%;
-  --sidebar-ring: 160 84% 39%;
+  --sidebar: 215 42% 19%;
+  --sidebar-foreground: 210 32% 96%;
+  --sidebar-border: 215 35% 25%;
+  --sidebar-primary: 161 48% 54%;
+  --sidebar-primary-foreground: 215 42% 15%;
+  --sidebar-accent: 215 34% 27%;
+  --sidebar-accent-foreground: 210 32% 96%;
+  --sidebar-ring: 161 48% 54%;
 
   --popover: 0 0% 100%;
   --popover-foreground: 220 30% 15%;
   --popover-border: 215 15% 90%;
 
-  --primary: 160 84% 39%; /* Emerald */
-  --primary-foreground: 0 0% 100%;
+  --primary: 161 55% 37%;
+  --primary-foreground: 210 32% 98%;
 
-  --secondary: 216 20% 94%;
-  --secondary-foreground: 216 62% 27%;
+  --secondary: 210 25% 91%;
+  --secondary-foreground: 215 42% 22%;
 
-  --muted: 215 15% 94%;
-  --muted-foreground: 215 15% 45%;
+  --muted: 210 24% 92%;
+  --muted-foreground: 215 18% 46%;
 
-  --accent: 216 20% 94%;
-  --accent-foreground: 216 62% 27%;
+  --accent: 40 88% 93%;
+  --accent-foreground: 32 64% 28%;
 
-  --destructive: 0 84% 60%;
-  --destructive-foreground: 0 0% 100%;
+  --destructive: 4 68% 48%;
+  --destructive-foreground: 210 32% 98%;
 
-  --input: 215 15% 85%;
-  --ring: 160 84% 39%;
+  --input: 213 20% 80%;
+  --ring: 161 55% 37%;
 
-  --chart-1: 160 84% 39%;
-  --chart-2: 216 62% 27%;
-  --chart-3: 35 90% 60%;
-  --chart-4: 280 80% 60%;
-  --chart-5: 200 90% 50%;
+  --chart-1: 161 55% 37%;
+  --chart-2: 215 42% 27%;
+  --chart-3: 39 82% 55%;
+  --chart-4: 4 68% 48%;
+  --chart-5: 190 46% 42%;
 
   --app-font-sans: 'Plus Jakarta Sans', sans-serif;
   --app-font-serif: Georgia, serif;
   --app-font-mono: 'JetBrains Mono', monospace;
   
-  --radius: 0.375rem; /* tight, fast -> crisp corners */
+  --radius: 0.4rem; /* tight, fast -> crisp corners */
 
   --shadow-2xs: 0px 1px 2px 0px rgba(26, 60, 110, 0.05);
   --shadow-xs: 0px 2px 4px 0px rgba(26, 60, 110, 0.05);
@@ -233,4 +233,9 @@
   .hover-elevate:hover:not(.no-default-hover-elevate)::after, .active-elevate:active:not(.no-default-active-elevate)::after { background-color: var(--elevate-1); }
   .hover-elevate-2:hover:not(.no-default-hover-elevate)::after, .active-elevate-2:active:not(.no-default-active-elevate)::after { background-color: var(--elevate-2); }
   .border.hover-elevate:not(.no-hover-interaction-elevate)::after, .border.active-elevate:not(.no-active-interaction-elevate)::after, .border.hover-elevate-2:not(.no-hover-interaction-elevate)::after, .border.active-elevate-2:not(.no-active-interaction-elevate)::after { inset: -1px; }
+  .ledger-grid {
+    background-image: linear-gradient(to right, hsl(var(--border) / 0.28) 1px, transparent 1px), linear-gradient(to bottom, hsl(var(--border) / 0.28) 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+  .text-balance { text-wrap: balance; }
 }

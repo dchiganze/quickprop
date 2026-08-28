@@ -40,6 +40,7 @@ import type {
   Branch,
   BranchInput,
   BrochureResult,
+  BulkImportActionInput,
   BulkListingHousekeepingInput,
   BulkListingHousekeepingResponse,
   Buyer,
@@ -52,6 +53,7 @@ import type {
   CollaborationMatchRequest,
   CollaborationRequestInput,
   CollaborationRequestStatusUpdate,
+  CreateImportSessionInput,
   DashboardCharts,
   DashboardSummary,
   Document,
@@ -65,6 +67,11 @@ import type {
   HealthUpdateInput,
   HealthUpdateResult,
   HousekeepingRunResult,
+  ImportAssistantInput,
+  ImportAssistantResponse,
+  ImportRecord,
+  ImportSession,
+  ImportSessionDetail,
   Lead,
   LeadInput,
   LeadUpdate,
@@ -95,6 +102,7 @@ import type {
   OfficeSearchParams,
   PipelineColumn,
   PriceHistoryEntry,
+  ProcessImportInput,
   Property,
   PropertyInput,
   PropertyMatch,
@@ -106,6 +114,8 @@ import type {
   PublicProperty,
   PublicPropertyDetail,
   PublicPropertyList,
+  PublishImportInput,
+  PublishImportResult,
   SavedResult,
   SearchResults,
   Seller,
@@ -118,6 +128,7 @@ import type {
   TaskUpdate,
   TimelineEntry,
   TimelineEntryInput,
+  UpdateImportRecordInput,
   User,
   UserInput,
   UserUpdate,
@@ -7386,5 +7397,668 @@ export const useModerateProperty = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getModeratePropertyMutationOptions(options));
+    }
+
+export const getListImportSessionsUrl = () => {
+
+
+
+
+  return `/api/imports/sessions`
+}
+
+/**
+ * @summary List agency bulk import sessions
+ */
+export const listImportSessions = async ( options?: RequestInit): Promise<ImportSession[]> => {
+
+  return customFetch<ImportSession[]>(getListImportSessionsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListImportSessionsQueryKey = () => {
+    return [
+    `/api/imports/sessions`
+    ] as const;
+    }
+
+
+export const getListImportSessionsQueryOptions = <TData = Awaited<ReturnType<typeof listImportSessions>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listImportSessions>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListImportSessionsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listImportSessions>>> = ({ signal }) => listImportSessions({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listImportSessions>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListImportSessionsQueryResult = NonNullable<Awaited<ReturnType<typeof listImportSessions>>>
+export type ListImportSessionsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List agency bulk import sessions
+ */
+
+export function useListImportSessions<TData = Awaited<ReturnType<typeof listImportSessions>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listImportSessions>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListImportSessionsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateImportSessionUrl = () => {
+
+
+
+
+  return `/api/imports/sessions`
+}
+
+/**
+ * @summary Create a draft bulk import session from uploaded source files
+ */
+export const createImportSession = async (createImportSessionInput: CreateImportSessionInput, options?: RequestInit): Promise<ImportSessionDetail> => {
+
+  return customFetch<ImportSessionDetail>(getCreateImportSessionUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(createImportSessionInput)
+  }
+);}
+
+
+
+
+
+export const getCreateImportSessionMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createImportSession>>, TError,{data: BodyType<CreateImportSessionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createImportSession>>, TError,{data: BodyType<CreateImportSessionInput>}, TContext> => {
+
+const mutationKey = ['createImportSession'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createImportSession>>, {data: BodyType<CreateImportSessionInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createImportSession(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateImportSessionMutationResult = NonNullable<Awaited<ReturnType<typeof createImportSession>>>
+    export type CreateImportSessionMutationBody = BodyType<CreateImportSessionInput>
+    export type CreateImportSessionMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Create a draft bulk import session from uploaded source files
+ */
+export const useCreateImportSession = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createImportSession>>, TError,{data: BodyType<CreateImportSessionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createImportSession>>,
+        TError,
+        {data: BodyType<CreateImportSessionInput>},
+        TContext
+      > => {
+      return useMutation(getCreateImportSessionMutationOptions(options));
+    }
+
+export const getGetImportSessionUrl = (id: number,) => {
+
+
+
+
+  return `/api/imports/sessions/${id}`
+}
+
+/**
+ * @summary Get a bulk import session with files and records
+ */
+export const getImportSession = async (id: number, options?: RequestInit): Promise<ImportSessionDetail> => {
+
+  return customFetch<ImportSessionDetail>(getGetImportSessionUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetImportSessionQueryKey = (id: number,) => {
+    return [
+    `/api/imports/sessions/${id}`
+    ] as const;
+    }
+
+
+export const getGetImportSessionQueryOptions = <TData = Awaited<ReturnType<typeof getImportSession>>, TError = ErrorType<unknown>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getImportSession>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetImportSessionQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getImportSession>>> = ({ signal }) => getImportSession(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getImportSession>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetImportSessionQueryResult = NonNullable<Awaited<ReturnType<typeof getImportSession>>>
+export type GetImportSessionQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get a bulk import session with files and records
+ */
+
+export function useGetImportSession<TData = Awaited<ReturnType<typeof getImportSession>>, TError = ErrorType<unknown>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getImportSession>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetImportSessionQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getProcessImportSessionUrl = (id: number,) => {
+
+
+
+
+  return `/api/imports/sessions/${id}/process`
+}
+
+/**
+ * @summary Start or resume source extraction and duplicate matching
+ */
+export const processImportSession = async (id: number,
+    processImportInput?: ProcessImportInput, options?: RequestInit): Promise<ImportSession> => {
+
+  return customFetch<ImportSession>(getProcessImportSessionUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(processImportInput)
+  }
+);}
+
+
+
+
+
+export const getProcessImportSessionMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof processImportSession>>, TError,{id: number;data?: BodyType<ProcessImportInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof processImportSession>>, TError,{id: number;data?: BodyType<ProcessImportInput>}, TContext> => {
+
+const mutationKey = ['processImportSession'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof processImportSession>>, {id: number;data?: BodyType<ProcessImportInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  processImportSession(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ProcessImportSessionMutationResult = NonNullable<Awaited<ReturnType<typeof processImportSession>>>
+    export type ProcessImportSessionMutationBody = BodyType<ProcessImportInput> | undefined
+    export type ProcessImportSessionMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Start or resume source extraction and duplicate matching
+ */
+export const useProcessImportSession = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof processImportSession>>, TError,{id: number;data?: BodyType<ProcessImportInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof processImportSession>>,
+        TError,
+        {id: number;data?: BodyType<ProcessImportInput>},
+        TContext
+      > => {
+      return useMutation(getProcessImportSessionMutationOptions(options));
+    }
+
+export const getUpdateImportRecordUrl = (id: number,
+    recordId: number,) => {
+
+
+
+
+  return `/api/imports/sessions/${id}/records/${recordId}`
+}
+
+/**
+ * @summary Correct an extracted import record
+ */
+export const updateImportRecord = async (id: number,
+    recordId: number,
+    updateImportRecordInput: UpdateImportRecordInput, options?: RequestInit): Promise<ImportRecord> => {
+
+  return customFetch<ImportRecord>(getUpdateImportRecordUrl(id,recordId),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(updateImportRecordInput)
+  }
+);}
+
+
+
+
+
+export const getUpdateImportRecordMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateImportRecord>>, TError,{id: number;recordId: number;data: BodyType<UpdateImportRecordInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateImportRecord>>, TError,{id: number;recordId: number;data: BodyType<UpdateImportRecordInput>}, TContext> => {
+
+const mutationKey = ['updateImportRecord'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateImportRecord>>, {id: number;recordId: number;data: BodyType<UpdateImportRecordInput>}> = (props) => {
+          const {id,recordId,data} = props ?? {};
+
+          return  updateImportRecord(id,recordId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateImportRecordMutationResult = NonNullable<Awaited<ReturnType<typeof updateImportRecord>>>
+    export type UpdateImportRecordMutationBody = BodyType<UpdateImportRecordInput>
+    export type UpdateImportRecordMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Correct an extracted import record
+ */
+export const useUpdateImportRecord = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateImportRecord>>, TError,{id: number;recordId: number;data: BodyType<UpdateImportRecordInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateImportRecord>>,
+        TError,
+        {id: number;recordId: number;data: BodyType<UpdateImportRecordInput>},
+        TContext
+      > => {
+      return useMutation(getUpdateImportRecordMutationOptions(options));
+    }
+
+export const getBulkImportActionUrl = (id: number,) => {
+
+
+
+
+  return `/api/imports/sessions/${id}/bulk-action`
+}
+
+/**
+ * @summary Apply a review action to selected import records
+ */
+export const bulkImportAction = async (id: number,
+    bulkImportActionInput: BulkImportActionInput, options?: RequestInit): Promise<ImportSessionDetail> => {
+
+  return customFetch<ImportSessionDetail>(getBulkImportActionUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(bulkImportActionInput)
+  }
+);}
+
+
+
+
+
+export const getBulkImportActionMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof bulkImportAction>>, TError,{id: number;data: BodyType<BulkImportActionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof bulkImportAction>>, TError,{id: number;data: BodyType<BulkImportActionInput>}, TContext> => {
+
+const mutationKey = ['bulkImportAction'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof bulkImportAction>>, {id: number;data: BodyType<BulkImportActionInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  bulkImportAction(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type BulkImportActionMutationResult = NonNullable<Awaited<ReturnType<typeof bulkImportAction>>>
+    export type BulkImportActionMutationBody = BodyType<BulkImportActionInput>
+    export type BulkImportActionMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Apply a review action to selected import records
+ */
+export const useBulkImportAction = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof bulkImportAction>>, TError,{id: number;data: BodyType<BulkImportActionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof bulkImportAction>>,
+        TError,
+        {id: number;data: BodyType<BulkImportActionInput>},
+        TContext
+      > => {
+      return useMutation(getBulkImportActionMutationOptions(options));
+    }
+
+export const getPublishImportSessionUrl = (id: number,) => {
+
+
+
+
+  return `/api/imports/sessions/${id}/publish`
+}
+
+/**
+ * @summary Validate and publish approved import records
+ */
+export const publishImportSession = async (id: number,
+    publishImportInput: PublishImportInput, options?: RequestInit): Promise<PublishImportResult> => {
+
+  return customFetch<PublishImportResult>(getPublishImportSessionUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(publishImportInput)
+  }
+);}
+
+
+
+
+
+export const getPublishImportSessionMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof publishImportSession>>, TError,{id: number;data: BodyType<PublishImportInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof publishImportSession>>, TError,{id: number;data: BodyType<PublishImportInput>}, TContext> => {
+
+const mutationKey = ['publishImportSession'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof publishImportSession>>, {id: number;data: BodyType<PublishImportInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  publishImportSession(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PublishImportSessionMutationResult = NonNullable<Awaited<ReturnType<typeof publishImportSession>>>
+    export type PublishImportSessionMutationBody = BodyType<PublishImportInput>
+    export type PublishImportSessionMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Validate and publish approved import records
+ */
+export const usePublishImportSession = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof publishImportSession>>, TError,{id: number;data: BodyType<PublishImportInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof publishImportSession>>,
+        TError,
+        {id: number;data: BodyType<PublishImportInput>},
+        TContext
+      > => {
+      return useMutation(getPublishImportSessionMutationOptions(options));
+    }
+
+export const getGetImportErrorReportUrl = (id: number,) => {
+
+
+
+
+  return `/api/imports/sessions/${id}/error-report`
+}
+
+/**
+ * @summary Download import validation errors
+ */
+export const getImportErrorReport = async (id: number, options?: RequestInit): Promise<string> => {
+
+  return customFetch<string>(getGetImportErrorReportUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetImportErrorReportQueryKey = (id: number,) => {
+    return [
+    `/api/imports/sessions/${id}/error-report`
+    ] as const;
+    }
+
+
+export const getGetImportErrorReportQueryOptions = <TData = Awaited<ReturnType<typeof getImportErrorReport>>, TError = ErrorType<unknown>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getImportErrorReport>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetImportErrorReportQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getImportErrorReport>>> = ({ signal }) => getImportErrorReport(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getImportErrorReport>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetImportErrorReportQueryResult = NonNullable<Awaited<ReturnType<typeof getImportErrorReport>>>
+export type GetImportErrorReportQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Download import validation errors
+ */
+
+export function useGetImportErrorReport<TData = Awaited<ReturnType<typeof getImportErrorReport>>, TError = ErrorType<unknown>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getImportErrorReport>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetImportErrorReportQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getAskImportAssistantUrl = () => {
+
+
+
+
+  return `/api/imports/assistant`
+}
+
+/**
+ * @summary Ask the import assistant about corrections or mappings
+ */
+export const askImportAssistant = async (importAssistantInput: ImportAssistantInput, options?: RequestInit): Promise<ImportAssistantResponse> => {
+
+  return customFetch<ImportAssistantResponse>(getAskImportAssistantUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(importAssistantInput)
+  }
+);}
+
+
+
+
+
+export const getAskImportAssistantMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof askImportAssistant>>, TError,{data: BodyType<ImportAssistantInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof askImportAssistant>>, TError,{data: BodyType<ImportAssistantInput>}, TContext> => {
+
+const mutationKey = ['askImportAssistant'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof askImportAssistant>>, {data: BodyType<ImportAssistantInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  askImportAssistant(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AskImportAssistantMutationResult = NonNullable<Awaited<ReturnType<typeof askImportAssistant>>>
+    export type AskImportAssistantMutationBody = BodyType<ImportAssistantInput>
+    export type AskImportAssistantMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Ask the import assistant about corrections or mappings
+ */
+export const useAskImportAssistant = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof askImportAssistant>>, TError,{data: BodyType<ImportAssistantInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof askImportAssistant>>,
+        TError,
+        {data: BodyType<ImportAssistantInput>},
+        TContext
+      > => {
+      return useMutation(getAskImportAssistantMutationOptions(options));
     }
 

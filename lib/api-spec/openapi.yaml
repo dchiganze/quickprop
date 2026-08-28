@@ -1441,6 +1441,149 @@ paths:
                 type: object
                 properties:
                   ok: { type: boolean }
+  /imports/sessions:
+    get:
+      operationId: listImportSessions
+      tags: [office-imports]
+      summary: List agency bulk import sessions
+      responses:
+        "200":
+          description: Import sessions
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/ImportSession" }
+    post:
+      operationId: createImportSession
+      tags: [office-imports]
+      summary: Create a draft bulk import session from uploaded source files
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateImportSessionInput" }
+      responses:
+        "201":
+          description: Import session created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ImportSessionDetail" }
+  /imports/sessions/{id}:
+    get:
+      operationId: getImportSession
+      tags: [office-imports]
+      summary: Get a bulk import session with files and records
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "200":
+          description: Import session detail
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ImportSessionDetail" }
+  /imports/sessions/{id}/process:
+    post:
+      operationId: processImportSession
+      tags: [office-imports]
+      summary: Start or resume source extraction and duplicate matching
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ProcessImportInput" }
+      responses:
+        "202":
+          description: Processing started
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ImportSession" }
+  /imports/sessions/{id}/records/{recordId}:
+    patch:
+      operationId: updateImportRecord
+      tags: [office-imports]
+      summary: Correct an extracted import record
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+        - { name: recordId, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UpdateImportRecordInput" }
+      responses:
+        "200":
+          description: Updated import record
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ImportRecord" }
+  /imports/sessions/{id}/bulk-action:
+    post:
+      operationId: bulkImportAction
+      tags: [office-imports]
+      summary: Apply a review action to selected import records
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/BulkImportActionInput" }
+      responses:
+        "200":
+          description: Updated session
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ImportSessionDetail" }
+  /imports/sessions/{id}/publish:
+    post:
+      operationId: publishImportSession
+      tags: [office-imports]
+      summary: Validate and publish approved import records
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PublishImportInput" }
+      responses:
+        "200":
+          description: Publish result
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PublishImportResult" }
+  /imports/sessions/{id}/error-report:
+    get:
+      operationId: getImportErrorReport
+      tags: [office-imports]
+      summary: Download import validation errors
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "200":
+          description: CSV error report
+          content:
+            text/csv:
+              schema: { type: string }
+  /imports/assistant:
+    post:
+      operationId: askImportAssistant
+      tags: [office-imports]
+      summary: Ask the import assistant about corrections or mappings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ImportAssistantInput" }
+      responses:
+        "200":
+          description: Assistant guidance
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ImportAssistantResponse" }
 components:
   schemas:
     HealthStatus:
@@ -2706,3 +2849,134 @@ components:
       properties:
         action: { type: string, description: "approve | hide | flag | expire | restore" }
         reason: { type: string }
+    ImportFileInput:
+      type: object
+      required: [fileName, fileType, sizeBytes, storagePath]
+      properties:
+        fileName: { type: string }
+        fileType: { type: string }
+        sizeBytes: { type: integer }
+        storagePath: { type: string }
+    CreateImportSessionInput:
+      type: object
+      required: [files]
+      properties:
+        files:
+          type: array
+          minItems: 1
+          items: { $ref: "#/components/schemas/ImportFileInput" }
+    ImportFile:
+      type: object
+      required: [id, fileName, fileType, sizeBytes, processingStatus, extractedRecordCount, createdAt]
+      properties:
+        id: { type: integer }
+        fileName: { type: string }
+        fileType: { type: string }
+        sizeBytes: { type: integer }
+        processingStatus: { type: string }
+        extractedRecordCount: { type: integer }
+        error: { type: ["string", "null"] }
+        createdAt: { type: string }
+        updatedAt: { type: string }
+    ImportRecord:
+      type: object
+      required: [id, sourceFileId, data, fieldConfidence, confidenceScore, reviewStatus, duplicateStatus, validationIssues, mandateStatus, agentMatchStatus, createdAt, updatedAt]
+      properties:
+        id: { type: integer }
+        sourceFileId: { type: integer }
+        sourceFileName: { type: string }
+        sourceLocation: { type: ["string", "null"] }
+        rawData: {}
+        data: {}
+        fieldConfidence: { type: object, additionalProperties: { type: integer } }
+        confidenceScore: { type: integer }
+        reviewStatus: { type: string }
+        duplicateStatus: { type: string }
+        matchedPropertyId: { type: ["integer", "null"] }
+        match:
+          type: ["object", "null"]
+          additionalProperties: true
+        validationIssues: { type: array, items: { type: string } }
+        mandateStatus: { type: string }
+        agentMatchStatus: { type: string }
+        agentId: { type: ["integer", "null"] }
+        agentName: { type: ["string", "null"] }
+        sourceMetadata: {}
+        createdAt: { type: string }
+        updatedAt: { type: string }
+    ImportSession:
+      type: object
+      required: [id, reference, status, totalFiles, totalRecords, recordsReady, recordsNeedingReview, recordsDuplicate, recordsPublished, recordsFailed, currentStage, progress, createdAt, updatedAt]
+      properties:
+        id: { type: integer }
+        reference: { type: string }
+        status: { type: string }
+        totalFiles: { type: integer }
+        totalRecords: { type: integer }
+        recordsReady: { type: integer }
+        recordsNeedingReview: { type: integer }
+        recordsDuplicate: { type: integer }
+        recordsPublished: { type: integer }
+        recordsFailed: { type: integer }
+        currentStage: { type: string }
+        progress: { type: integer }
+        lastError: { type: ["string", "null"] }
+        createdAt: { type: string }
+        updatedAt: { type: string }
+    ImportSessionDetail:
+      allOf:
+        - $ref: "#/components/schemas/ImportSession"
+        - type: object
+          required: [files, records, columnMapping]
+          properties:
+            files:
+              type: array
+              items: { $ref: "#/components/schemas/ImportFile" }
+            records:
+              type: array
+              items: { $ref: "#/components/schemas/ImportRecord" }
+            columnMapping: { type: object, additionalProperties: { type: string } }
+    ProcessImportInput:
+      type: object
+      properties:
+        columnMapping: { type: object, additionalProperties: { type: string } }
+    UpdateImportRecordInput:
+      type: object
+      required: [data]
+      properties:
+        data: { type: object, additionalProperties: true }
+        reviewStatus: { type: string }
+        agentId: { type: ["integer", "null"] }
+    BulkImportActionInput:
+      type: object
+      required: [recordIds, action]
+      properties:
+        recordIds: { type: array, items: { type: integer } }
+        action: { type: string, description: "approve | reject | assign | mark_duplicate | clear_duplicate" }
+        agentId: { type: ["integer", "null"] }
+    PublishImportInput:
+      type: object
+      required: [recordIds]
+      properties:
+        recordIds: { type: array, items: { type: integer } }
+    PublishImportResult:
+      type: object
+      required: [published, linked, created, failed, errors]
+      properties:
+        published: { type: integer }
+        linked: { type: integer }
+        created: { type: integer }
+        failed: { type: integer }
+        errors: { type: array, items: { type: string } }
+    ImportAssistantInput:
+      type: object
+      required: [sessionId, prompt]
+      properties:
+        sessionId: { type: integer }
+        prompt: { type: string }
+    ImportAssistantResponse:
+      type: object
+      required: [message, suggestions]
+      properties:
+        message: { type: string }
+        suggestions: { type: array, items: { type: string } }

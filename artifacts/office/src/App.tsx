@@ -27,6 +27,7 @@ import Users from '@/pages/users';
 import Audit from '@/pages/audit';
 import Settings from '@/pages/settings';
 import Housekeeping from '@/pages/housekeeping';
+import Imports from '@/pages/imports';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -86,6 +87,8 @@ function AppRouter() {
       <ProtectedRoute path="/inventory" component={Inventory} />
       <ProtectedRoute path="/inventory/pipeline" component={Pipeline} />
       <ProtectedRoute path="/housekeeping" component={Housekeeping} />
+      <ProtectedRoute path="/imports" component={Imports} />
+      <ProtectedRoute path="/imports/:id" component={Imports} />
       <ProtectedBarePage path="/brochure-catalog" component={BrochureCatalog} />
       <ProtectedBarePage path="/property/:id/brochure" component={PropertyBrochure} />
       <ProtectedRoute path="/property/:id" component={PropertyDetail} />
