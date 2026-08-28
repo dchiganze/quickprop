@@ -18,10 +18,18 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        postgres-version: ["15", "16", "17"]
+        include:
+          # Keep these manifest digests aligned with the major-version labels.
+          # Digest changes are intentional release-maintenance updates.
+          - postgres-version: "15"
+            postgres-image: postgres@sha256:9b1d34adbce1dd07ee6e94b4a2cf698884b89bd44a6c9c12f5da8f3acbfe4957
+          - postgres-version: "16"
+            postgres-image: postgres@sha256:f1c3376c26f2609ab9f29f71f824103fe2fcd8ee0346485cb6122a4f93df6f94
+          - postgres-version: "17"
+            postgres-image: postgres@sha256:67f41722b7a8cbdb868a44a4995c846eddfdc2973bccb291ce937dce88ad5675
     services:
       postgres:
-        image: postgres:${{ matrix.postgres-version }}
+        image: ${{ matrix.postgres-image }}
         env:
           POSTGRES_DB: quickprop_test
           POSTGRES_USER: quickprop_test
