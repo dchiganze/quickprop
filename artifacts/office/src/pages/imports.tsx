@@ -4,7 +4,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import {
   AlertCircle, ArrowLeft, ArrowUpDown, Bot, Check, CheckCircle2, ChevronRight, CircleHelp,
   CloudUpload, Download, FileArchive, FileSpreadsheet, FileText, Filter, GitMerge,
-  Loader2, Play, RefreshCw, Search, Send, ShieldCheck, SlidersHorizontal, Upload,
+  Loader2, Play, RefreshCw, ScanText, Search, Send, ShieldCheck, SlidersHorizontal, Upload,
   UserRound, X, XCircle, Zap,
 } from 'lucide-react';
 import {
@@ -32,7 +32,8 @@ import { cn } from '@/lib/utils';
 
 type RouteProps = { params?: { id?: string } };
 type DraftData = Record<string, unknown>;
-const mappingFields = ['reference', 'address', 'suburb', 'city', 'price', 'currency', 'propertyType', 'bedrooms', 'bathrooms', 'description', 'agent', 'mandateType', 'mandateStart', 'mandateExpiry'] as const;
+type VisionFieldSource = { confidence?: number; evidence?: string; method?: string };
+const mappingFields = ['title', 'reference', 'address', 'suburb', 'city', 'price', 'currency', 'propertyType', 'bedrooms', 'bathrooms', 'description', 'agent', 'mandateType', 'mandateStart', 'mandateExpiry'] as const;
 
 const toRecord = (value: unknown): DraftData => (
   value && typeof value === 'object' && !Array.isArray(value) ? value as DraftData : {}
@@ -242,6 +243,10 @@ function MatchPanel({ record }: { record: ImportRecord }) {
 function RecordRow({ record, selected, onToggle, draft, setDraft, onSave, saving }: { record: ImportRecord; selected: boolean; onToggle: () => void; draft: DraftData; setDraft: (data: DraftData) => void; onSave: () => void; saving: boolean }) {
   const field = (key: string) => draft[key];
   const update = (key: string, value: string, numeric = false) => setDraft({ ...draft, [key]: numeric && value !== '' ? Number(value) : value });
+  const sourceMetadata = toRecord(record.sourceMetadata);
+  const visionSources = toRecord(sourceMetadata.fieldSources) as Record<string, VisionFieldSource>;
+  const reviewFlags = Array.isArray(sourceMetadata.reviewFlags) ? sourceMetadata.reviewFlags.map(String).filter(Boolean) : [];
+  const isVision = sourceMetadata.extractionMethod === 'gemini-vision';
   return (
     <div className={cn('border-b border-border/80 px-4 py-4 transition-colors', selected && 'bg-primary/[0.035]')}>
       <div className="grid grid-cols-[24px_minmax(160px,1.25fr)_minmax(150px,1fr)_100px_80px_96px_128px] items-end gap-3">
@@ -253,7 +258,26 @@ function RecordRow({ record, selected, onToggle, draft, setDraft, onSave, saving
         <div><span className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Confidence</span><Confidence score={record.confidenceScore} compact /></div>
         <div className="flex items-center justify-end gap-1.5"><StatusPill value={record.reviewStatus} /><Button size="sm" variant="outline" className="h-8 px-2 text-[11px]" onClick={onSave} disabled={saving}>{saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}<span className="sr-only">Save row</span></Button></div>
       </div>
-      <div className="mt-3 flex items-center gap-3 pl-9 text-[11px] text-muted-foreground"><span className="inline-flex items-center gap-1"><FileText className="h-3 w-3" /> {record.sourceFileName || `Source file #${record.sourceFileId}`}</span><span className="text-border">/</span><span>Source location {record.sourceLocation || 'not supplied'}</span>{record.validationIssues.length > 0 && <span className="inline-flex items-center gap-1 font-semibold text-red-700"><AlertCircle className="h-3 w-3" /> {record.validationIssues.length} validation issue{record.validationIssues.length === 1 ? '' : 's'}</span>}<span className="ml-auto font-mono text-[10px] text-muted-foreground/70">record:{record.id}</span></div>
+      <div className="mt-3 flex items-center gap-3 pl-9 text-[11px] text-muted-foreground"><span className="inline-flex items-center gap-1">{isVision ? <ScanText className="h-3 w-3 text-primary" /> : <FileText className="h-3 w-3" />} {record.sourceFileName || `Source file #${record.sourceFileId}`}</span><span className="text-border">/</span><span>Source location {record.sourceLocation || 'not supplied'}</span>{isVision && <span className="rounded bg-primary/10 px-1.5 py-0.5 font-semibold text-primary">Vision extracted</span>}{record.validationIssues.length > 0 && <span className="inline-flex items-center gap-1 font-semibold text-red-700"><AlertCircle className="h-3 w-3" /> {record.validationIssues.length} validation issue{record.validationIssues.length === 1 ? '' : 's'}</span>}<span className="ml-auto font-mono text-[10px] text-muted-foreground/70">record:{record.id}</span></div>
+      {isVision && (
+        <div className="ml-9 mt-2 rounded-md border border-primary/15 bg-primary/[0.025] p-2.5">
+          <div className="flex flex-wrap gap-1.5">
+            {Object.entries(record.fieldConfidence).map(([fieldName, score]) => {
+              const source = visionSources[fieldName];
+              return (
+                <span
+                  key={fieldName}
+                  title={`${source?.evidence || 'Read from uploaded image'} · ${record.sourceFileName || `source #${record.sourceFileId}`} · ${record.sourceLocation || 'image'}`}
+                  className={cn('rounded border px-1.5 py-0.5 text-[10px] font-semibold', score >= 70 ? 'border-slate-200 bg-white text-slate-700' : 'border-amber-200 bg-amber-50 text-amber-800')}
+                >
+                  {titleCase(fieldName)} {Math.round(score)}%
+                </span>
+              );
+            })}
+          </div>
+          {reviewFlags.length > 0 && <p className="mt-2 flex items-start gap-1.5 text-[10px] font-medium text-amber-800"><AlertCircle className="mt-0.5 h-3 w-3 shrink-0" /> {reviewFlags.join(' · ')}</p>}
+        </div>
+      )}
       <div className="pl-9"><MatchPanel record={record} /></div>
     </div>
   );
@@ -358,7 +382,7 @@ function ImportDetail({ id }: { id: number }) {
     finally { setActionBusy(false); }
   };
   const startProcessing = async () => {
-    try { await processSession.mutateAsync({ id, data: { columnMapping } }); setMappingOpen(false); queryClient.invalidateQueries({ queryKey: getListImportSessionsQueryKey() }); await refetch(); toast({ title: 'Processing started', description: 'Extraction and duplicate matching are running in the background.' }); }
+    try { await processSession.mutateAsync({ id, data: { columnMapping } }); setMappingOpen(false); queryClient.invalidateQueries({ queryKey: getListImportSessionsQueryKey() }); await refetch(); toast({ title: 'Processing started', description: 'Text, spreadsheet and image vision extraction are running in the background.' }); }
     catch { toast({ title: 'Processing failed to start', description: 'The source files were not processed. Nothing was published.', variant: 'destructive' }); }
   };
   const publish = async () => {
@@ -385,6 +409,7 @@ function ImportDetail({ id }: { id: number }) {
   if (error || !detail) return <div className="p-8"><Alert variant="destructive"><AlertCircle className="h-4 w-4" /><AlertTitle>Import session unavailable</AlertTitle><AlertDescription className="flex items-center justify-between">This session could not be loaded. <Button variant="outline" onClick={() => refetch()}>Retry</Button></AlertDescription></Alert></div>;
 
   const approvedCount = detail.records.filter((record) => record.reviewStatus === 'approved').length;
+  const failedSourceCount = detail.files.filter((file) => file.processingStatus === 'failed').length;
   const processing = isProcessing(detail);
   return (
     <div className="min-h-full bg-background">
@@ -394,7 +419,7 @@ function ImportDetail({ id }: { id: number }) {
           <div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><span className="font-mono text-sm font-bold">{detail.reference}</span><StatusPill value={detail.status} />{processing && <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary"><Loader2 className="h-3.5 w-3.5 animate-spin" /> {titleCase(detail.currentStage || 'processing')}</span>}</div><p className="mt-1 text-xs text-muted-foreground">{detail.totalFiles} sources · last updated {formatDate(detail.updatedAt)} · AI suggestions are draft only</p></div>
           <Button variant="outline" size="sm" onClick={() => setMappingOpen(true)} className="hidden gap-2 sm:flex"><SlidersHorizontal className="h-3.5 w-3.5" /> Column mapping</Button>
           <Button variant="outline" size="sm" onClick={downloadErrors} className="hidden gap-2 sm:flex"><Download className="h-3.5 w-3.5" /> Error report</Button>
-          {processing ? <Button size="sm" variant="outline" onClick={() => refetch()} className="gap-2"><RefreshCw className="h-3.5 w-3.5" /> Poll now</Button> : <Button size="sm" onClick={startProcessing} disabled={processSession.isPending || detail.status === 'published'} className="gap-2">{processSession.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Play className="h-3.5 w-3.5" />}{detail.totalRecords ? 'Re-run processing' : 'Process sources'}</Button>}
+          {processing ? <Button size="sm" variant="outline" onClick={() => refetch()} className="gap-2"><RefreshCw className="h-3.5 w-3.5" /> Poll now</Button> : <Button size="sm" onClick={startProcessing} disabled={processSession.isPending || detail.status === 'published'} className="gap-2">{processSession.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : failedSourceCount ? <RefreshCw className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}{failedSourceCount ? `Retry ${failedSourceCount} failed source${failedSourceCount === 1 ? '' : 's'}` : detail.totalRecords ? 'Re-run processing' : 'Process sources'}</Button>}
         </div>
       </div>
       <div className="mx-auto grid max-w-[1740px] grid-cols-1 gap-6 p-5 md:p-8 xl:grid-cols-[minmax(0,1fr)_292px]">
@@ -416,7 +441,7 @@ function ImportDetail({ id }: { id: number }) {
           <div className="flex flex-col gap-3 rounded-lg border border-primary/20 bg-primary/[0.035] p-4 md:flex-row md:items-center"><ShieldCheck className="h-6 w-6 shrink-0 text-primary" /><div className="flex-1"><p className="text-sm font-bold">Publishing is a deliberate hand-off</p><p className="mt-0.5 text-xs text-muted-foreground">{approvedCount} approved row{approvedCount === 1 ? '' : 's'} will be published. Rejected, unresolved and unreviewed records stay in this session.</p></div><Button onClick={publish} disabled={!approvedCount || publishSession.isPending || processing} className="gap-2">{publishSession.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />} Publish approved only</Button></div>
         </main>
         <aside className="space-y-5">
-          <Card className="border-border/80 shadow-none"><CardHeader className="border-b px-4 py-3"><CardTitle className="flex items-center gap-2 text-sm"><FileArchive className="h-4 w-4 text-primary" /> Source traceability</CardTitle></CardHeader><CardContent className="space-y-3 p-4">{detail.files.map((file) => <div key={file.id} className="rounded border bg-muted/25 p-3"><div className="flex items-start gap-2"><FileText className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" /><div className="min-w-0"><p className="truncate text-xs font-bold">{file.fileName}</p><p className="mt-1 text-[10px] text-muted-foreground">{file.extractedRecordCount} extracted rows · {(file.sizeBytes / 1024 / 1024).toFixed(1)} MB</p></div></div><div className="mt-2 flex items-center justify-between"><StatusPill value={file.processingStatus} /><span className="font-mono text-[10px] text-muted-foreground">#{file.id}</span></div>{file.error && <p className="mt-2 text-[10px] text-red-700">{file.error}</p>}</div>)}</CardContent></Card>
+          <Card className="border-border/80 shadow-none"><CardHeader className="border-b px-4 py-3"><CardTitle className="flex items-center gap-2 text-sm"><FileArchive className="h-4 w-4 text-primary" /> Source traceability</CardTitle></CardHeader><CardContent className="space-y-3 p-4">{detail.files.map((file) => { const imageSource = /\.(jpg|jpeg|png)$/i.test(file.fileName); return <div key={file.id} className="rounded border bg-muted/25 p-3"><div className="flex items-start gap-2">{imageSource ? <ScanText className="mt-0.5 h-4 w-4 shrink-0 text-primary" /> : <FileText className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />}<div className="min-w-0"><p className="truncate text-xs font-bold">{file.fileName}</p><p className="mt-1 text-[10px] text-muted-foreground">{file.extractedRecordCount} extracted candidate{file.extractedRecordCount === 1 ? '' : 's'} · {(file.sizeBytes / 1024 / 1024).toFixed(1)} MB{imageSource ? ' · Vision OCR' : ''}</p></div></div><div className="mt-2 flex items-center justify-between"><StatusPill value={file.processingStatus} /><span className="font-mono text-[10px] text-muted-foreground">#{file.id}</span></div>{file.error && <p className="mt-2 text-[10px] text-red-700">{file.error} Use the retry action above to process this source again.</p>}</div>; })}</CardContent></Card>
           <Assistant sessionId={id} />
           <Card className="border-amber-200 bg-amber-50/60 shadow-none"><CardContent className="p-4"><div className="flex items-start gap-2"><CircleHelp className="mt-0.5 h-4 w-4 shrink-0 text-amber-700" /><div><p className="text-xs font-bold text-amber-900">Review standard</p><p className="mt-1 text-[11px] leading-relaxed text-amber-900/75">Confidence is a sorting aid, not approval. Check the original file location and duplicate evidence for every row you publish.</p></div></div></CardContent></Card>
           <Button variant="outline" onClick={downloadErrors} className="w-full gap-2 sm:hidden"><Download className="h-3.5 w-3.5" /> Download error report</Button>

@@ -1,9 +1,11 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { extname } from "node:path";
 import { Router, type IRouter } from "express";
 import { and, desc, eq, inArray, ne } from "drizzle-orm";
 import * as XLSX from "xlsx";
 import mammoth from "mammoth";
+import { ai } from "@workspace/integrations-gemini-ai";
+import { batchProcess } from "@workspace/integrations-gemini-ai/batch";
 import {
   db,
   importChangesTable,
@@ -23,15 +25,41 @@ import { jsonify, logAudit } from "../lib/helpers";
 const router: IRouter = Router();
 const IMPORT_EXTENSIONS = new Set([".xlsx", ".xls", ".csv", ".pdf", ".docx", ".txt", ".jpg", ".jpeg", ".png"]);
 const IMPORT_FIELDS = [
-  "reference", "address", "suburb", "city", "price", "currency", "propertyType",
+  "title", "reference", "address", "suburb", "city", "price", "currency", "propertyType",
   "bedrooms", "bathrooms", "description", "agent", "agency", "mandateType",
   "mandateStart", "mandateExpiry", "availability", "contactName", "contactPhone",
   "contactEmail", "photos", "listingUrl",
 ] as const;
 type ImportField = typeof IMPORT_FIELDS[number];
 type LooseRecord = Record<string, unknown>;
+type VisionFieldSource = {
+  confidence: number;
+  evidence: string;
+  method: "gemini-vision";
+};
+type ExtractionResult = {
+  rows: LooseRecord[];
+  sourceType: string;
+  fieldConfidence?: Record<string, number>[];
+  fieldSources?: Record<string, VisionFieldSource>[];
+  reviewFlags?: string[][];
+  sourceIdentities?: string[];
+};
+type ImageExtractionResult = {
+  fileId: number;
+  extraction?: ExtractionResult;
+  error?: string;
+};
+
+const IMAGE_MIME_TYPES: Record<string, string> = {
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".png": "image/png",
+};
+const VISION_REVIEW_THRESHOLD = 70;
 
 const fieldAliases: Record<ImportField, string[]> = {
+  title: ["title", "listing title", "property title", "headline", "name"],
   reference: ["reference", "ref", "listing reference", "property reference", "mandate reference"],
   address: ["address", "street", "street address", "property address", "physical address"],
   suburb: ["suburb", "neighbourhood", "neighborhood", "area"],
@@ -89,7 +117,9 @@ function normaliseRow(row: LooseRecord, mapping: Record<string, string>): LooseR
     const value = findSourceValue(row, field, mapping);
     if (value == null || asText(value) === "") continue;
     if (["price", "bedrooms", "bathrooms"].includes(field)) data[field] = numberValue(value);
-    else if (field === "photos") data[field] = asText(value).split(/[,\n;]/).map((item) => item.trim()).filter(Boolean);
+    else if (field === "photos") data[field] = Array.isArray(value)
+      ? value.map(asText).filter(Boolean)
+      : asText(value).split(/[,\n;]/).map((item) => item.trim()).filter(Boolean);
     else data[field] = asText(value);
   }
   return data;
@@ -108,7 +138,204 @@ function labelledTextToRow(text: string): LooseRecord[] {
   return records.length ? records : [{ description: text }];
 }
 
-async function extractRows(fileName: string, bytes: Buffer): Promise<{ rows: LooseRecord[]; sourceType: string }> {
+function parseJsonResponse(raw: string): LooseRecord {
+  const withoutFence = raw.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "");
+  try {
+    return JSON.parse(withoutFence) as LooseRecord;
+  } catch {
+    const start = withoutFence.indexOf("{");
+    const end = withoutFence.lastIndexOf("}");
+    if (start >= 0 && end > start) {
+      try { return JSON.parse(withoutFence.slice(start, end + 1)) as LooseRecord; } catch { /* handled below */ }
+    }
+    throw new Error("Vision extraction returned invalid JSON.");
+  }
+}
+
+function confidenceValue(value: unknown, fallback = 0): number {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.max(0, Math.min(100, Math.round(parsed <= 1 ? parsed * 100 : parsed)));
+}
+
+function normaliseVisionRows(parsed: LooseRecord): {
+  rows: LooseRecord[];
+  fieldConfidence: Record<string, number>[];
+  fieldSources: Record<string, VisionFieldSource>[];
+  reviewFlags: string[][];
+  sourceIdentities: string[];
+} {
+  const candidates = Array.isArray(parsed.records)
+    ? parsed.records
+    : parsed.fields && typeof parsed.fields === "object"
+      ? [parsed]
+      : [parsed];
+  const rows: LooseRecord[] = [];
+  const fieldConfidence: Record<string, number>[] = [];
+  const fieldSources: Record<string, VisionFieldSource>[] = [];
+  const reviewFlags: string[][] = [];
+  const sourceIdentities: string[] = [];
+
+  for (const candidateValue of candidates) {
+    if (!candidateValue || typeof candidateValue !== "object" || Array.isArray(candidateValue)) continue;
+    const candidate = candidateValue as LooseRecord;
+    const rawFields = candidate.fields && typeof candidate.fields === "object" && !Array.isArray(candidate.fields)
+      ? candidate.fields as LooseRecord
+      : candidate;
+    const rawConfidence = candidate.fieldConfidence && typeof candidate.fieldConfidence === "object"
+      ? candidate.fieldConfidence as LooseRecord
+      : {};
+    const rawEvidence = candidate.fieldEvidence && typeof candidate.fieldEvidence === "object"
+      ? candidate.fieldEvidence as LooseRecord
+      : {};
+    const row: LooseRecord = {};
+    const confidence: Record<string, number> = {};
+    const sources: Record<string, VisionFieldSource> = {};
+
+    for (const field of IMPORT_FIELDS) {
+      const value = rawFields[field];
+      if (value == null || asText(value) === "") continue;
+      row[field] = value;
+      const score = confidenceValue(rawConfidence[field], 55);
+      confidence[field] = score;
+      sources[field] = {
+        confidence: score,
+        evidence: asText(rawEvidence[field]) || "Value read from the uploaded image.",
+        method: "gemini-vision",
+      };
+    }
+
+    if (Object.keys(row).length) {
+      rows.push(row);
+      fieldConfidence.push(confidence);
+      fieldSources.push(sources);
+      const identityText = (value: unknown) => asText(value).toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+      const reference = identityText(row.reference);
+      const address = identityText(row.address);
+      const rawBoundingBox = Array.isArray(candidate.boundingBox)
+        ? candidate.boundingBox.slice(0, 4).map(Number)
+        : [];
+      const boundingBox = rawBoundingBox.length === 4 && rawBoundingBox.every(Number.isFinite)
+        ? rawBoundingBox.map((value) => Math.round(value / 25) * 25).join(",")
+        : "";
+      const fallbackFacts = IMPORT_FIELDS.map((field) => identityText(row[field])).filter(Boolean).join("|");
+      const identityBasis = reference
+        ? `reference:${reference}`
+        : address
+          ? `address:${address}`
+          : boundingBox && boundingBox !== "0,0,0,0"
+            ? `region:${boundingBox}`
+            : `facts:${fallbackFacts}`;
+      sourceIdentities.push(`vision:${createHash("sha256").update(identityBasis).digest("hex").slice(0, 24)}`);
+      const flags = Array.isArray(candidate.reviewFlags)
+        ? candidate.reviewFlags.map(asText).filter(Boolean)
+        : [];
+      const lowConfidenceFields = Object.entries(confidence)
+        .filter(([, score]) => score < VISION_REVIEW_THRESHOLD)
+        .map(([field]) => field);
+      if (lowConfidenceFields.length) {
+        flags.push(`Low-confidence vision fields: ${lowConfidenceFields.join(", ")}`);
+      }
+      reviewFlags.push([...new Set(flags)]);
+    }
+  }
+
+  if (!rows.length) throw new Error("Vision extraction found no listing fields in the image.");
+  return { rows, fieldConfidence, fieldSources, reviewFlags, sourceIdentities };
+}
+
+async function withRetries<T>(operation: () => Promise<T>, attempts = 3): Promise<T> {
+  let lastError: unknown;
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    try {
+      return await operation();
+    } catch (error) {
+      lastError = error;
+      if (attempt === attempts - 1) break;
+      await new Promise((resolve) => setTimeout(resolve, 500 * (2 ** attempt)));
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error(String(lastError));
+}
+
+async function extractImageRows(fileName: string, bytes: Buffer): Promise<ExtractionResult> {
+  const extension = extname(fileName).toLowerCase();
+  const mimeType = IMAGE_MIME_TYPES[extension];
+  if (!mimeType) throw new Error("Only JPG, JPEG and PNG files can be vision processed.");
+  const response = await withRetries(() => ai.models.generateContent({
+    model: "gemini-2.5-flash",
+    contents: [{
+      role: "user",
+      parts: [
+        {
+          inlineData: {
+            data: bytes.toString("base64"),
+            mimeType,
+          },
+        },
+        {
+          text: `Extract real-estate listing candidates from this agency image. It may be a scanned flyer, screenshot, or property photograph with overlaid text.
+
+Return raw JSON only in this shape:
+{
+  "records": [
+    {
+      "fields": {
+        "title": "string or null",
+        "reference": "string or null",
+        "address": "string or null",
+        "suburb": "string or null",
+        "city": "string or null",
+        "price": "number or null",
+        "currency": "string or null",
+        "propertyType": "string or null",
+        "bedrooms": "number or null",
+        "bathrooms": "number or null",
+        "description": "string or null",
+        "agent": "string or null",
+        "agency": "string or null",
+        "mandateType": "string or null",
+        "mandateStart": "string or null",
+        "mandateExpiry": "string or null",
+        "availability": "string or null",
+        "contactName": "string or null",
+        "contactPhone": "string or null",
+        "contactEmail": "string or null",
+        "photos": [],
+        "listingUrl": "string or null"
+      },
+      "fieldConfidence": { "fieldName": 0 },
+      "fieldEvidence": { "fieldName": "short visible text or location in image" },
+      "boundingBox": [0, 0, 1000, 1000],
+      "reviewFlags": ["optional reason for human review"]
+    }
+  ]
+}
+
+Rules:
+- Only include values visibly present or strongly legible in the image. Never invent missing values.
+- Use null for absent values and confidence 0-100 for each included field.
+- Preserve phone numbers, references, currency and dates exactly when legible.
+- boundingBox is the approximate [top, left, bottom, right] region containing this listing, using integer coordinates from 0 to 1000.
+- Do not turn the uploaded image into a photo URL. The source image is tracked by QuickProp.
+- Use one record per distinct listing visible in the image.`,
+        },
+      ],
+    }],
+    config: {
+      responseMimeType: "application/json",
+      maxOutputTokens: 8192,
+    },
+  }), 3);
+  const parsed = parseJsonResponse(response.text?.trim() ?? "");
+  const normalised = normaliseVisionRows(parsed);
+  return {
+    ...normalised,
+    sourceType: "image",
+  };
+}
+
+async function extractRows(fileName: string, bytes: Buffer): Promise<ExtractionResult> {
   const extension = extname(fileName).toLowerCase();
   if (extension === ".xlsx" || extension === ".xls" || extension === ".csv") {
     const workbook = XLSX.read(bytes, { type: "buffer", cellDates: true });
@@ -135,7 +362,7 @@ async function extractRows(fileName: string, bytes: Buffer): Promise<{ rows: Loo
     return { rows: labelledTextToRow(result.value), sourceType: "document" };
   }
   if (extension === ".txt") return { rows: labelledTextToRow(bytes.toString("utf8")), sourceType: "text" };
-  return { rows: [{ description: "", sourceFormat: "image" }], sourceType: "image" };
+  return extractImageRows(fileName, bytes);
 }
 
 function mandateState(value: unknown): string {
@@ -146,22 +373,28 @@ function mandateState(value: unknown): string {
   return days < 0 ? "expired" : days <= 30 ? "expiring_soon" : "active";
 }
 
-function validateData(data: LooseRecord, sourceType: string): string[] {
+function validateData(data: LooseRecord, sourceType: string, confidence: Record<string, number> = {}): string[] {
   const issues: string[] = [];
   if (!data.address) issues.push("Address is missing");
   if (!data.suburb) issues.push("Suburb is missing");
   if (!data.city) issues.push("City is missing");
   if (!data.propertyType) issues.push("Property type is missing");
   if (data.price == null) issues.push("Price is missing");
-  if (sourceType === "image") issues.push("Image needs manual transcription or OCR review");
+  if (sourceType === "image") {
+    const lowConfidenceFields = Object.entries(confidence)
+      .filter(([, score]) => score < VISION_REVIEW_THRESHOLD)
+      .map(([field]) => field);
+    if (lowConfidenceFields.length) issues.push(`Vision confidence is below ${VISION_REVIEW_THRESHOLD}% for: ${lowConfidenceFields.join(", ")}`);
+    if (!Object.keys(data).length) issues.push("Vision extraction found no listing fields.");
+  }
   return issues;
 }
 
-function confidenceFor(data: LooseRecord, sourceType: string): Record<string, number> {
+function confidenceFor(data: LooseRecord, sourceType: string, extracted?: Record<string, number>): Record<string, number> {
   const confidence: Record<string, number> = {};
   for (const field of IMPORT_FIELDS) {
     if (data[field] == null || asText(data[field]) === "") continue;
-    confidence[field] = sourceType === "spreadsheet" ? 92 : sourceType === "image" ? 24 : 72;
+    confidence[field] = extracted?.[field] ?? (sourceType === "spreadsheet" ? 92 : sourceType === "image" ? 24 : 72);
   }
   if (data.address) confidence.address = Math.min(98, (confidence.address ?? 50) + 4);
   if (data.price != null) confidence.price = Math.min(98, (confidence.price ?? 50) + 3);
@@ -241,107 +474,254 @@ async function processSession(sessionId: number, agencyId: number, mapping: Reco
     lastError: null,
     updatedAt: new Date(),
   }).where(eq(importSessionsTable.id, sessionId));
-  const files = await db.select().from(importFilesTable).where(eq(importFilesTable.sessionId, sessionId));
+  const fileFailures: string[] = [];
   try {
+    const files = await db.select().from(importFilesTable).where(eq(importFilesTable.sessionId, sessionId));
+    const imageFiles = files.filter((file) => Boolean(IMAGE_MIME_TYPES[extname(file.fileName).toLowerCase()]));
+    const imageResults = new Map<number, ImageExtractionResult>();
+    if (imageFiles.length) {
+      const results = await batchProcess(
+        imageFiles,
+        async (file): Promise<ImageExtractionResult> => {
+          try {
+            const signedUrl = await getPrivateObjectDownloadUrl(file.storagePath);
+            const response = await fetch(signedUrl, { signal: AbortSignal.timeout(60_000) });
+            if (!response.ok) throw new Error(`Could not download ${file.fileName} from private storage.`);
+            const extraction = await extractImageRows(file.fileName, Buffer.from(await response.arrayBuffer()));
+            return { fileId: file.id, extraction };
+          } catch (error) {
+            return {
+              fileId: file.id,
+              error: error instanceof Error ? error.message : "Vision extraction failed.",
+            };
+          }
+        },
+        {
+          concurrency: 2,
+          retries: 3,
+        },
+      );
+      results.forEach((result) => imageResults.set(result.fileId, result));
+    }
+
     for (let fileIndex = 0; fileIndex < files.length; fileIndex += 1) {
       const file = files[fileIndex];
       await db.update(importFilesTable).set({ processingStatus: "processing", error: null, updatedAt: new Date() }).where(eq(importFilesTable.id, file.id));
-      const signedUrl = await getPrivateObjectDownloadUrl(file.storagePath);
-      const response = await fetch(signedUrl, { signal: AbortSignal.timeout(60_000) });
-      if (!response.ok) throw new Error(`Could not download ${file.fileName} from private storage.`);
-      const { rows, sourceType } = await extractRows(file.fileName, Buffer.from(await response.arrayBuffer()));
-      const existingRows = await db.select().from(importRecordsTable).where(eq(importRecordsTable.sourceFileId, file.id));
-      const existingByLocation = new Map(existingRows.map((record) => [record.sourceLocation, record]));
-      let createdCount = 0;
-      for (let rowIndex = 0; rowIndex < rows.length; rowIndex += 1) {
-        const rawData = rows[rowIndex];
-        const sourceLocation = sourceType === "spreadsheet" ? `row ${rowIndex + 2}` : `section ${rowIndex + 1}`;
-        const data = normaliseRow(rawData, mapping);
-        const confidence = confidenceFor(data, sourceType);
-        const confidenceValues = Object.values(confidence);
-        const confidenceScore = confidenceValues.length ? Math.round(confidenceValues.reduce((sum, value) => sum + value, 0) / confidenceValues.length) : 0;
-        const validationIssues = validateData(data, sourceType);
-        let duplicateStatus = "clear";
-        let matchedPropertyId: number | null = null;
-        let duplicateMatch: LooseRecord | null = null;
-        let changeSummary: string[] = [];
-        if (data.address || data.suburb || data.price) {
-          const candidates = await findDuplicateCandidates({
-            address: asText(data.address),
-            suburb: asText(data.suburb),
-            city: asText(data.city),
-            propertyType: asText(data.propertyType),
-            bedrooms: numberValue(data.bedrooms),
-            bathrooms: numberValue(data.bathrooms),
-            price: numberValue(data.price),
-            description: asText(data.description),
-          });
-          const scoped = candidates.filter((candidate) => candidate.property.branchId === agencyId);
-          const match = scoped[0];
-          if (match && match.confidenceScore >= 70) {
-            duplicateStatus = "possible";
-            matchedPropertyId = match.property.id;
-            duplicateMatch = {
-              id: match.property.id,
-              reference: match.property.reference,
-              title: match.property.title,
-              address: match.property.address,
-              confidenceScore: match.confidenceScore,
-              matchingFields: match.matchingFields,
-            };
-            changeSummary = [
-              "price", "currency", "description", "bedrooms", "bathrooms", "mandateExpiry", "availability",
-            ].filter((field) => data[field] != null && asText(data[field]) !== asText((match.property as LooseRecord)[field]));
-          }
-        }
-        const mandateStatus = mandateState(data.mandateExpiry);
-        const existing = existingByLocation.get(sourceLocation);
-        const recordValues = {
-          rawData,
-          extractedData: data,
-          fieldConfidence: confidence,
-          confidenceScore,
-          duplicateStatus,
-          matchedPropertyId,
-          validationIssues,
-          mandateStatus,
-          agentMatchStatus: data.agent ? "suggested" : "unmatched",
-          sourceMetadata: { sourceType, duplicateMatch, changeSummary },
+      const imageResult = imageResults.get(file.id);
+      if (imageResult?.error) {
+        fileFailures.push(`${file.fileName}: ${imageResult.error}`);
+        await db.update(importFilesTable).set({
+          processingStatus: "failed",
+          error: imageResult.error,
           updatedAt: new Date(),
-        };
-        const [saved] = existing
-          ? await db.update(importRecordsTable).set({
-            ...recordValues,
-            reviewStatus: existing.correctedData ? existing.reviewStatus : "draft",
-          }).where(eq(importRecordsTable.id, existing.id)).returning()
-          : await db.insert(importRecordsTable).values({
-            sessionId,
-            sourceFileId: file.id,
-            sourceLocation,
-            ...recordValues,
-            reviewStatus: "draft",
-          }).returning();
-        await db.delete(importFieldConfidenceTable).where(eq(importFieldConfidenceTable.recordId, saved.id));
-        const confidenceRows = Object.entries(confidence).map(([fieldName, score]) => ({
-          recordId: saved.id,
-          fieldName,
-          extractedValue: data[fieldName] == null ? null : asText(data[fieldName]),
-          confidenceScore: score,
-          sourceReference: `${file.fileName} · ${sourceLocation}`,
-        }));
-        if (confidenceRows.length) await db.insert(importFieldConfidenceTable).values(confidenceRows);
-        createdCount += 1;
+        }).where(eq(importFilesTable.id, file.id));
+        continue;
       }
-      await db.update(importFilesTable).set({ processingStatus: "complete", extractedRecordCount: createdCount, updatedAt: new Date() }).where(eq(importFilesTable.id, file.id));
+      let extraction: ExtractionResult;
+      try {
+        if (imageResult?.extraction) {
+          extraction = imageResult.extraction;
+        } else {
+          const signedUrl = await getPrivateObjectDownloadUrl(file.storagePath);
+          const response = await fetch(signedUrl, { signal: AbortSignal.timeout(60_000) });
+          if (!response.ok) throw new Error(`Could not download ${file.fileName} from private storage.`);
+          extraction = await extractRows(file.fileName, Buffer.from(await response.arrayBuffer()));
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Source extraction failed.";
+        fileFailures.push(`${file.fileName}: ${message}`);
+        await db.update(importFilesTable).set({
+          processingStatus: "failed",
+          error: message,
+          updatedAt: new Date(),
+        }).where(eq(importFilesTable.id, file.id));
+        continue;
+      }
+      try {
+        const { rows, sourceType } = extraction;
+        await db.transaction(async (tx) => {
+          const existingRows = await tx.select().from(importRecordsTable).where(eq(importRecordsTable.sourceFileId, file.id));
+          const replaceableImageRows = sourceType === "image"
+            ? existingRows.filter((record) => record.correctedData == null && ["draft", "needs_review"].includes(record.reviewStatus))
+            : [];
+          if (replaceableImageRows.length) {
+            const replaceableIds = replaceableImageRows.map((record) => record.id);
+            await tx.delete(importFieldConfidenceTable).where(inArray(importFieldConfidenceTable.recordId, replaceableIds));
+            await tx.delete(importRecordsTable).where(inArray(importRecordsTable.id, replaceableIds));
+          }
+          const retainedRows = replaceableImageRows.length
+            ? existingRows.filter((record) => !replaceableImageRows.some((replaceable) => replaceable.id === record.id))
+            : existingRows;
+          const updatableRows = retainedRows.filter((record) => (
+            record.reviewStatus !== "published"
+            && (sourceType !== "image" || record.correctedData != null)
+          ));
+          const existingByLocation = new Map(updatableRows.map((record) => [record.sourceLocation, record]));
+          const existingByIdentity = new Map<string, (typeof updatableRows)[number]>();
+          for (const record of updatableRows) {
+            const identity = asText((record.sourceMetadata as LooseRecord)?.sourceIdentity);
+            if (identity) existingByIdentity.set(identity, record);
+          }
+          const protectedIdentities = new Set(
+            retainedRows
+              .filter((record) => !updatableRows.some((updatable) => updatable.id === record.id))
+              .map((record) => asText((record.sourceMetadata as LooseRecord)?.sourceIdentity))
+              .filter(Boolean),
+          );
+          let createdCount = 0;
+
+          for (let rowIndex = 0; rowIndex < rows.length; rowIndex += 1) {
+            const rawData = rows[rowIndex];
+            const sourceLocation = sourceType === "spreadsheet"
+              ? `row ${rowIndex + 2}`
+              : sourceType === "image"
+                ? `image region ${rowIndex + 1}`
+                : `section ${rowIndex + 1}`;
+            const sourceIdentity = extraction.sourceIdentities?.[rowIndex];
+            if (sourceType === "image" && sourceIdentity && protectedIdentities.has(sourceIdentity)) {
+              createdCount += 1;
+              continue;
+            }
+            const data = normaliseRow(rawData, mapping);
+            const confidence = confidenceFor(data, sourceType, extraction.fieldConfidence?.[rowIndex]);
+            const confidenceValues = Object.values(confidence);
+            const confidenceScore = confidenceValues.length ? Math.round(confidenceValues.reduce((sum, value) => sum + value, 0) / confidenceValues.length) : 0;
+            const validationIssues = validateData(data, sourceType, confidence);
+            const lowConfidence = confidenceScore < VISION_REVIEW_THRESHOLD;
+            if (sourceType === "image" && lowConfidence) {
+              validationIssues.push(`Overall vision confidence is ${confidenceScore}%; review before approval.`);
+            }
+            const fieldSources = Object.fromEntries(Object.entries(confidence).map(([field, score]) => [
+              field,
+              extraction.fieldSources?.[rowIndex]?.[field] ?? {
+                confidence: score,
+                evidence: "Value read from the uploaded image.",
+                method: "gemini-vision" as const,
+              },
+            ]));
+            const reviewFlags = [
+              ...(extraction.reviewFlags?.[rowIndex] ?? []),
+              ...(validationIssues.filter((issue) => issue.toLowerCase().includes("vision"))),
+            ];
+            let duplicateStatus = "clear";
+            let matchedPropertyId: number | null = null;
+            let duplicateMatch: LooseRecord | null = null;
+            let changeSummary: string[] = [];
+            if (data.address || data.suburb || data.price) {
+              const candidates = await findDuplicateCandidates({
+                address: asText(data.address),
+                suburb: asText(data.suburb),
+                city: asText(data.city),
+                propertyType: asText(data.propertyType),
+                bedrooms: numberValue(data.bedrooms),
+                bathrooms: numberValue(data.bathrooms),
+                price: numberValue(data.price),
+                description: asText(data.description),
+              });
+              const scoped = candidates.filter((candidate) => candidate.property.branchId === agencyId);
+              const match = scoped[0];
+              if (match && match.confidenceScore >= 70) {
+                duplicateStatus = "possible";
+                matchedPropertyId = match.property.id;
+                duplicateMatch = {
+                  id: match.property.id,
+                  reference: match.property.reference,
+                  title: match.property.title,
+                  address: match.property.address,
+                  confidenceScore: match.confidenceScore,
+                  matchingFields: match.matchingFields,
+                };
+                changeSummary = [
+                  "price", "currency", "description", "bedrooms", "bathrooms", "mandateExpiry", "availability",
+                ].filter((field) => data[field] != null && asText(data[field]) !== asText((match.property as LooseRecord)[field]));
+              }
+            }
+            const mandateStatus = mandateState(data.mandateExpiry);
+            const existing = sourceType === "image" && sourceIdentity
+              ? existingByIdentity.get(sourceIdentity)
+              : existingByLocation.get(sourceLocation);
+            const recordValues = {
+              rawData,
+              extractedData: data,
+              fieldConfidence: confidence,
+              confidenceScore,
+              duplicateStatus,
+              matchedPropertyId,
+              validationIssues,
+              mandateStatus,
+              agentMatchStatus: data.agent ? "suggested" : "unmatched",
+              sourceMetadata: {
+                sourceType,
+                extractionMethod: sourceType === "image" ? "gemini-vision" : sourceType,
+                sourceFileName: file.fileName,
+                sourceLocation,
+                sourceIdentity,
+                fieldSources,
+                reviewFlags: [...new Set(reviewFlags)],
+                duplicateMatch,
+                changeSummary,
+              },
+              updatedAt: new Date(),
+            };
+            const [saved] = existing
+              ? await tx.update(importRecordsTable).set({
+                ...recordValues,
+                reviewStatus: existing.reviewStatus,
+              }).where(eq(importRecordsTable.id, existing.id)).returning()
+              : await tx.insert(importRecordsTable).values({
+                sessionId,
+                sourceFileId: file.id,
+                sourceLocation,
+                ...recordValues,
+                reviewStatus: "draft",
+              }).returning();
+            await tx.delete(importFieldConfidenceTable).where(eq(importFieldConfidenceTable.recordId, saved.id));
+            const confidenceRows = Object.entries(confidence).map(([fieldName, score]) => ({
+              recordId: saved.id,
+              fieldName,
+              extractedValue: data[fieldName] == null ? null : asText(data[fieldName]),
+              confidenceScore: score,
+              sourceReference: `${file.fileName} · ${sourceLocation}`,
+            }));
+            if (confidenceRows.length) await tx.insert(importFieldConfidenceTable).values(confidenceRows);
+            createdCount += 1;
+          }
+          await tx.update(importFilesTable).set({
+            processingStatus: "complete",
+            extractedRecordCount: createdCount,
+            error: null,
+            updatedAt: new Date(),
+          }).where(eq(importFilesTable.id, file.id));
+        });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Source records could not be saved.";
+        fileFailures.push(`${file.fileName}: ${message}`);
+        await db.update(importFilesTable).set({
+          processingStatus: "failed",
+          error: message,
+          updatedAt: new Date(),
+        }).where(eq(importFilesTable.id, file.id));
+        continue;
+      }
       await db.update(importSessionsTable).set({
-        currentStage: "review",
+        currentStage: fileFailures.length ? "review" : "extract",
         progress: Math.min(90, Math.round(((fileIndex + 1) / files.length) * 85) + 5),
         updatedAt: new Date(),
       }).where(eq(importSessionsTable.id, sessionId));
     }
     await updateCounters(sessionId);
-    await db.update(importSessionsTable).set({ status: "review", currentStage: "review", progress: 100, updatedAt: new Date() }).where(eq(importSessionsTable.id, sessionId));
-    await logAudit("import_processed", "import_session", sessionId, `Extracted ${files.length} source file(s)`, session.createdBy);
+    const hasSuccessfulFile = files.length > fileFailures.length;
+    const lastError = fileFailures.length
+      ? `${fileFailures.length} source file${fileFailures.length === 1 ? "" : "s"} failed. Retry processing to try them again. ${fileFailures.join(" ")}`
+      : null;
+    await db.update(importSessionsTable).set({
+      status: hasSuccessfulFile ? "review" : "failed",
+      currentStage: hasSuccessfulFile ? "review" : "error",
+      progress: 100,
+      lastError,
+      updatedAt: new Date(),
+    }).where(eq(importSessionsTable.id, sessionId));
+    await logAudit("import_processed", "import_session", sessionId, `Extracted ${files.length - fileFailures.length} source file(s)${fileFailures.length ? `; ${fileFailures.length} failed` : ""}`, session.createdBy);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Import processing failed.";
     await db.update(importSessionsTable).set({ status: "failed", currentStage: "error", lastError: message, updatedAt: new Date() }).where(eq(importSessionsTable.id, sessionId));
@@ -408,8 +788,25 @@ router.post("/imports/sessions/:id/process", async (req, res): Promise<void> => 
     res.status(400).json({ error: "Column mapping must be an object." }); return;
   }
   const mapping = (req.body?.columnMapping ?? session.columnMapping) as Record<string, string>;
+  const [claimed] = await db.update(importSessionsTable).set({
+    status: "processing",
+    currentStage: "extract",
+    progress: 5,
+    columnMapping: mapping,
+    lastError: null,
+    updatedAt: new Date(),
+  }).where(and(
+    eq(importSessionsTable.id, id),
+    eq(importSessionsTable.agencyId, agencyIdFor(user)),
+    ne(importSessionsTable.status, "processing"),
+    ne(importSessionsTable.status, "published"),
+  )).returning();
+  if (!claimed) {
+    res.status(409).json({ error: "This import session is already processing or has been published." });
+    return;
+  }
   void processSession(id, agencyIdFor(user), mapping);
-  res.status(202).json(jsonify({ ...session, status: "processing", currentStage: "extract", progress: 5, columnMapping: mapping }));
+  res.status(202).json(jsonify(claimed));
 });
 
 router.patch("/imports/sessions/:id/records/:recordId", async (req, res): Promise<void> => {
@@ -569,13 +966,24 @@ router.get("/imports/sessions/:id/error-report", async (req, res): Promise<void>
   if (!user) { res.status(401).json({ error: "Not authenticated" }); return; }
   const session = await sessionFor(sessionId, agencyIdFor(user));
   if (!session) { res.status(404).send("Import session not found."); return; }
+  const files = await db.select().from(importFilesTable).where(eq(importFilesTable.sessionId, sessionId));
   const records = await db.select().from(importRecordsTable).where(and(eq(importRecordsTable.sessionId, sessionId), ne(importRecordsTable.reviewStatus, "published")));
-  const csv = ["record_id,source_location,issues,review_status", ...records.map((record) => [
+  const csvEscape = (value: unknown) => JSON.stringify(value == null ? "" : String(value));
+  const fileRows = files.filter((file) => file.error || file.processingStatus === "failed").map((file) => [
+    `file:${file.id}`,
+    csvEscape(file.fileName),
+    csvEscape(""),
+    csvEscape(file.error || "Source processing failed."),
+    file.processingStatus,
+  ].join(","));
+  const recordRows = records.map((record) => [
     record.id,
-    JSON.stringify(record.sourceLocation ?? ""),
-    JSON.stringify((record.validationIssues as string[]).join("; ")),
+    csvEscape(files.find((file) => file.id === record.sourceFileId)?.fileName ?? "Source file"),
+    csvEscape(record.sourceLocation ?? ""),
+    csvEscape((record.validationIssues as string[]).join("; ")),
     record.reviewStatus,
-  ].join(","))].join("\n");
+  ].join(","));
+  const csv = ["record_id,source_file,source_location,issues,review_status", ...fileRows, ...recordRows].join("\n");
   res.type("text/csv").attachment(`${session.reference}-errors.csv`).send(csv);
 });
 
