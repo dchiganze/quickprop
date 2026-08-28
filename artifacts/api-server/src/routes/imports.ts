@@ -108,6 +108,7 @@ function normalizeHeader(value: string): string {
 function findSourceValue(row: LooseRecord, field: ImportField, mapping: Record<string, string>): unknown {
   const explicitlyMapped = mapping[field];
   if (explicitlyMapped && explicitlyMapped in row) return row[explicitlyMapped];
+  if (field in row) return row[field];
   const entries = Object.entries(row);
   const aliases = new Set(fieldAliases[field].map(normalizeHeader));
   const match = entries.find(([key]) => aliases.has(normalizeHeader(key)));

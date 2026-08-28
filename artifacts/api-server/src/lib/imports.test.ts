@@ -1,19 +1,33 @@
 import assert from "node:assert/strict";
-import { mock, test } from "node:test";
+import { after, mock, test } from "node:test";
 import { and, eq, inArray } from "drizzle-orm";
 
 const testDatabaseUrl = process.env.TEST_DATABASE_URL;
+const releaseValidation = process.env.RELEASE_VALIDATION === "1";
+const databaseTestSkip = testDatabaseUrl
+  ? false
+  : releaseValidation
+    ? false
+    : "requires an isolated database configured through TEST_DATABASE_URL";
+let databasePool: { end: () => Promise<void> } | null = null;
+
+after(async () => {
+  await databasePool?.end();
+});
 
 test(
   "requires an explicit duplicate decision before publishing imported listings",
   {
-    skip: testDatabaseUrl
-      ? false
-      : "requires an isolated database configured through TEST_DATABASE_URL",
+    skip: databaseTestSkip,
   },
   async () => {
+    assert.ok(
+      testDatabaseUrl,
+      "release validation requires an isolated database configured through TEST_DATABASE_URL",
+    );
     process.env.DATABASE_URL = testDatabaseUrl;
     const database = await import("@workspace/db");
+    databasePool ??= database.pool;
     const { default: app } = await import("../app");
     const {
       auditLogTable,
@@ -324,7 +338,6 @@ test(
       if (fixture.branchIds.length) {
         await db.delete(branchesTable).where(inArray(branchesTable.id, fixture.branchIds));
       }
-      await database.pool.end();
     }
   },
 );
@@ -332,13 +345,16 @@ test(
 test(
   "image imports are mocked, confidence-aware, and safe to retry after human decisions",
   {
-    skip: testDatabaseUrl
-      ? false
-      : "requires an isolated database configured through TEST_DATABASE_URL",
+    skip: databaseTestSkip,
   },
   async () => {
+    assert.ok(
+      testDatabaseUrl,
+      "release validation requires an isolated database configured through TEST_DATABASE_URL",
+    );
     process.env.DATABASE_URL = testDatabaseUrl;
     const database = await import("@workspace/db");
+    databasePool ??= database.pool;
     const { default: app } = await import("../app");
     const { ai } = await import("@workspace/integrations-gemini-ai");
     const {
@@ -539,13 +555,16 @@ test(
       }).returning({ id: importSessionsTable.id });
       assert.ok(session);
       fixture.sessionIds.push(session.id);
-      const files = await db.insert(importFilesTable).values(fileNames.map((fileName) => ({
-        sessionId: session.id,
-        fileName,
-        fileType: fileName.endsWith(".png") ? "image/png" : "image/jpeg",
-        sizeBytes: 16,
-        storagePath: `/objects/uploads/${userId}/${reference}-${fileName}`,
-      }))).returning({ id: importFilesTable.id });
+      const files = await db.insert(importFilesTable).values(fileNames.map((fileName, index) => {
+        const extension = fileName.slice(fileName.lastIndexOf(".") + 1).toLowerCase();
+        return {
+          sessionId: session.id,
+          fileName,
+          fileType: fileName.endsWith(".png") ? "image/png" : "image/jpeg",
+          sizeBytes: 16,
+          storagePath: `/objects/uploads/${userId}/a${userId}${branchId}${index + 1}.${extension}`,
+        };
+      })).returning({ id: importFilesTable.id });
       fixture.fileIds.push(...files.map((file) => file.id));
       return session.id;
     }
@@ -872,6 +891,11 @@ test(
         (db as unknown as { transaction: typeof db.transaction }).transaction = originalTransaction;
       }
 
+      providerResponses.push(imageResponse([{
+        reference: "PERSIST-1",
+        title: "Retryable home",
+        address: "30 Persistence Street",
+      }]));
       const persistenceRetryProcess = await api(
         `/imports/sessions/${persistenceFailureSessionId}/process`,
         agent.id,
@@ -910,7 +934,6 @@ test(
       if (fixture.branchIds.length) {
         await db.delete(branchesTable).where(inArray(branchesTable.id, fixture.branchIds));
       }
-      await database.pool.end();
     }
   },
 );
