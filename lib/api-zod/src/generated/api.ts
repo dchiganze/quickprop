@@ -133,6 +133,9 @@ export const ListPropertiesResponseItem = zod.object({
 export const ListPropertiesResponse = zod.array(ListPropertiesResponseItem)
 
 
+
+
+
 export const CreatePropertyBody = zod.object({
   "title": zod.string(),
   "description": zod.string().optional(),
@@ -286,6 +289,8 @@ export const GetPropertyResponse = zod.object({
 export const UpdatePropertyParams = zod.object({
   "id": zod.coerce.number()
 })
+
+
 
 
 export const UpdatePropertyBody = zod.object({
@@ -593,6 +598,7 @@ export const ListCollaborationRequestsResponse = zod.array(ListCollaborationRequ
 
 
 export const createCollaborationRequestBodyMessageMax = 2000;
+
 
 
 export const CreateCollaborationRequestBody = zod.object({
@@ -2740,6 +2746,7 @@ export const UpdateListingHousekeepingPreferencesResponse = zod.object({
   "reminderFrequency": zod.string()
 })
 
+
 /**
  * @summary Register a device push token for listing reminders
  */
@@ -2747,6 +2754,30 @@ export const RegisterListingHousekeepingPushTokenBody = zod.object({
   "token": zod.string(),
   "platform": zod.string().optional()
 })
+
+export const RegisterListingHousekeepingPushTokenResponse = zod.object({
+  "id": zod.number(),
+  "userId": zod.number(),
+  "token": zod.string(),
+  "platform": zod.string(),
+  "active": zod.boolean(),
+  "lastSeenAt": zod.string().optional()
+})
+
+
+/**
+ * @summary Stop sending reminders to a device
+ */
+export const DeactivateListingHousekeepingPushTokenBody = zod.object({
+  "token": zod.string(),
+  "platform": zod.string().optional()
+})
+
+export const DeactivateListingHousekeepingPushTokenResponse = zod.object({
+  "ok": zod.boolean()
+})
+
+
 /**
  * @summary Platform listing health and agent freshness scores
  */
@@ -3493,6 +3524,10 @@ export const ListImportSessionsResponseItem = zod.object({
   "currentStage": zod.string(),
   "progress": zod.number(),
   "lastError": zod.string().nullish(),
+  "processingAttempt": zod.number(),
+  "processingStartedAt": zod.string().nullable(),
+  "processingHeartbeatAt": zod.string().nullable(),
+  "completedAt": zod.string().nullable(),
   "createdAt": zod.string(),
   "updatedAt": zod.string()
 })
@@ -3502,6 +3537,7 @@ export const ListImportSessionsResponse = zod.array(ListImportSessionsResponseIt
 /**
  * @summary Create a draft bulk import session from uploaded source files
  */
+
 
 
 export const CreateImportSessionBody = zod.object({
@@ -3527,6 +3563,10 @@ export const CreateImportSessionResponse = zod.object({
   "currentStage": zod.string(),
   "progress": zod.number(),
   "lastError": zod.string().nullish(),
+  "processingAttempt": zod.number(),
+  "processingStartedAt": zod.string().nullable(),
+  "processingHeartbeatAt": zod.string().nullable(),
+  "completedAt": zod.string().nullable(),
   "createdAt": zod.string(),
   "updatedAt": zod.string()
 }).and(zod.object({
@@ -3536,8 +3576,11 @@ export const CreateImportSessionResponse = zod.object({
   "fileType": zod.string(),
   "sizeBytes": zod.number(),
   "processingStatus": zod.string(),
+  "processingAttempt": zod.number(),
+  "processingStartedAt": zod.string().nullish(),
   "extractedRecordCount": zod.number(),
   "error": zod.string().nullish(),
+  "completedAt": zod.string().nullish(),
   "createdAt": zod.string(),
   "updatedAt": zod.string().optional()
 })),
@@ -3588,6 +3631,10 @@ export const GetImportSessionResponse = zod.object({
   "currentStage": zod.string(),
   "progress": zod.number(),
   "lastError": zod.string().nullish(),
+  "processingAttempt": zod.number(),
+  "processingStartedAt": zod.string().nullable(),
+  "processingHeartbeatAt": zod.string().nullable(),
+  "completedAt": zod.string().nullable(),
   "createdAt": zod.string(),
   "updatedAt": zod.string()
 }).and(zod.object({
@@ -3597,8 +3644,11 @@ export const GetImportSessionResponse = zod.object({
   "fileType": zod.string(),
   "sizeBytes": zod.number(),
   "processingStatus": zod.string(),
+  "processingAttempt": zod.number(),
+  "processingStartedAt": zod.string().nullish(),
   "extractedRecordCount": zod.number(),
   "error": zod.string().nullish(),
+  "completedAt": zod.string().nullish(),
   "createdAt": zod.string(),
   "updatedAt": zod.string().optional()
 })),
@@ -3653,6 +3703,10 @@ export const ProcessImportSessionResponse = zod.object({
   "currentStage": zod.string(),
   "progress": zod.number(),
   "lastError": zod.string().nullish(),
+  "processingAttempt": zod.number(),
+  "processingStartedAt": zod.string().nullable(),
+  "processingHeartbeatAt": zod.string().nullable(),
+  "completedAt": zod.string().nullable(),
   "createdAt": zod.string(),
   "updatedAt": zod.string()
 })
@@ -3723,6 +3777,10 @@ export const BulkImportActionResponse = zod.object({
   "currentStage": zod.string(),
   "progress": zod.number(),
   "lastError": zod.string().nullish(),
+  "processingAttempt": zod.number(),
+  "processingStartedAt": zod.string().nullable(),
+  "processingHeartbeatAt": zod.string().nullable(),
+  "completedAt": zod.string().nullable(),
   "createdAt": zod.string(),
   "updatedAt": zod.string()
 }).and(zod.object({
@@ -3732,8 +3790,11 @@ export const BulkImportActionResponse = zod.object({
   "fileType": zod.string(),
   "sizeBytes": zod.number(),
   "processingStatus": zod.string(),
+  "processingAttempt": zod.number(),
+  "processingStartedAt": zod.string().nullish(),
   "extractedRecordCount": zod.number(),
   "error": zod.string().nullish(),
+  "completedAt": zod.string().nullish(),
   "createdAt": zod.string(),
   "updatedAt": zod.string().optional()
 })),
@@ -3804,26 +3865,4 @@ export const AskImportAssistantBody = zod.object({
 export const AskImportAssistantResponse = zod.object({
   "message": zod.string(),
   "suggestions": zod.array(zod.string())
-})
-
-
-export const DeactivateListingHousekeepingPushTokenResponse = zod.object({
-  "ok": zod.boolean()
-})
-
-export const RegisterListingHousekeepingPushTokenResponse = zod.object({
-  "id": zod.number(),
-  "userId": zod.number(),
-  "token": zod.string(),
-  "platform": zod.string(),
-  "active": zod.boolean(),
-  "lastSeenAt": zod.string().optional()
-})
-
-/**
- * @summary Stop sending reminders to a device
- */
-export const DeactivateListingHousekeepingPushTokenBody = zod.object({
-  "token": zod.string(),
-  "platform": zod.string().optional()
 })

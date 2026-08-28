@@ -12,9 +12,14 @@ export interface ImportFile {
   fileType: string;
   sizeBytes: number;
   processingStatus: string;
+  processingAttempt: number;
+  /** @nullable */
+  processingStartedAt?: string | null;
   extractedRecordCount: number;
   /** @nullable */
   error?: string | null;
+  /** @nullable */
+  completedAt?: string | null;
   createdAt: string;
   updatedAt?: string;
 }

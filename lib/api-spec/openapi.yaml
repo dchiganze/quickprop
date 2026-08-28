@@ -2924,15 +2924,18 @@ components:
           items: { $ref: "#/components/schemas/ImportFileInput" }
     ImportFile:
       type: object
-      required: [id, fileName, fileType, sizeBytes, processingStatus, extractedRecordCount, createdAt]
+      required: [id, fileName, fileType, sizeBytes, processingStatus, processingAttempt, extractedRecordCount, createdAt]
       properties:
         id: { type: integer }
         fileName: { type: string }
         fileType: { type: string }
         sizeBytes: { type: integer }
         processingStatus: { type: string }
+        processingAttempt: { type: integer }
+        processingStartedAt: { type: ["string", "null"] }
         extractedRecordCount: { type: integer }
         error: { type: ["string", "null"] }
+        completedAt: { type: ["string", "null"] }
         createdAt: { type: string }
         updatedAt: { type: string }
     ImportRecord:
@@ -2963,7 +2966,7 @@ components:
         updatedAt: { type: string }
     ImportSession:
       type: object
-      required: [id, reference, status, totalFiles, totalRecords, recordsReady, recordsNeedingReview, recordsDuplicate, recordsPublished, recordsFailed, currentStage, progress, createdAt, updatedAt]
+      required: [id, reference, status, totalFiles, totalRecords, recordsReady, recordsNeedingReview, recordsDuplicate, recordsPublished, recordsFailed, currentStage, progress, processingAttempt, processingStartedAt, processingHeartbeatAt, completedAt, createdAt, updatedAt]
       properties:
         id: { type: integer }
         reference: { type: string }
@@ -2978,6 +2981,10 @@ components:
         currentStage: { type: string }
         progress: { type: integer }
         lastError: { type: ["string", "null"] }
+        processingAttempt: { type: integer }
+        processingStartedAt: { type: ["string", "null"] }
+        processingHeartbeatAt: { type: ["string", "null"] }
+        completedAt: { type: ["string", "null"] }
         createdAt: { type: string }
         updatedAt: { type: string }
     ImportSessionDetail:

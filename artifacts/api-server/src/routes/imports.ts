@@ -1,7 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import { extname } from "node:path";
 import { Router, type IRouter } from "express";
-import { and, desc, eq, inArray, ne } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, lt, ne, or, sql } from "drizzle-orm";
 import * as XLSX from "xlsx";
 import mammoth from "mammoth";
 import { ai } from "@workspace/integrations-gemini-ai";
@@ -21,6 +21,7 @@ import { currentUser } from "./auth";
 import { getPrivateObjectDownloadUrl } from "./storage";
 import { findDuplicateCandidates, normalizeText } from "../lib/multi-agent";
 import { jsonify, logAudit } from "../lib/helpers";
+import { logger } from "../lib/logger";
 
 const router: IRouter = Router();
 const IMPORT_EXTENSIONS = new Set([".xlsx", ".xls", ".csv", ".pdf", ".docx", ".txt", ".jpg", ".jpeg", ".png"]);
@@ -57,6 +58,8 @@ const IMAGE_MIME_TYPES: Record<string, string> = {
   ".png": "image/png",
 };
 const VISION_REVIEW_THRESHOLD = 70;
+const IMPORT_WORKER_ID = randomUUID();
+const IMPORT_LEASE_MS = 15 * 60 * 1000;
 
 const fieldAliases: Record<ImportField, string[]> = {
   title: ["title", "listing title", "property title", "headline", "name"],
@@ -463,21 +466,70 @@ async function updateCounters(sessionId: number) {
   await db.update(importSessionsTable).set({ ...counts, updatedAt: new Date() }).where(eq(importSessionsTable.id, sessionId));
 }
 
-async function processSession(sessionId: number, agencyId: number, mapping: Record<string, string>) {
+function workerLeaseUntil(now = new Date()): Date {
+  return new Date(now.getTime() + IMPORT_LEASE_MS);
+}
+
+function ownedSessionWhere(sessionId: number, agencyId: number) {
+  return and(
+    eq(importSessionsTable.id, sessionId),
+    eq(importSessionsTable.agencyId, agencyId),
+    eq(importSessionsTable.processingWorkerId, IMPORT_WORKER_ID),
+    eq(importSessionsTable.status, "processing"),
+  );
+}
+
+type ProcessOptions = {
+  resumeOnly?: boolean;
+};
+
+async function processSession(
+  sessionId: number,
+  agencyId: number,
+  mapping: Record<string, string>,
+  options: ProcessOptions = {},
+) {
   const session = await sessionFor(sessionId, agencyId);
   if (!session) return;
-  await db.update(importSessionsTable).set({
-    status: "processing",
-    currentStage: "extract",
-    progress: 5,
+  const [started] = await db.update(importSessionsTable).set({
     columnMapping: mapping,
     lastError: null,
+    processingHeartbeatAt: new Date(),
+    processingLeaseUntil: workerLeaseUntil(),
     updatedAt: new Date(),
-  }).where(eq(importSessionsTable.id, sessionId));
+  }).where(ownedSessionWhere(sessionId, agencyId)).returning({ id: importSessionsTable.id });
+  if (!started) return;
   const fileFailures: string[] = [];
+  let heartbeatTimer: NodeJS.Timeout | undefined;
   try {
-    const files = await db.select().from(importFilesTable).where(eq(importFilesTable.sessionId, sessionId));
+    const allFiles = await db.select().from(importFilesTable).where(eq(importFilesTable.sessionId, sessionId));
+    const files = options.resumeOnly
+      ? allFiles.filter((file) => file.processingStatus !== "complete")
+      : allFiles;
     const imageFiles = files.filter((file) => Boolean(IMAGE_MIME_TYPES[extname(file.fileName).toLowerCase()]));
+    const completedBefore = allFiles.length - files.length;
+    heartbeatTimer = setInterval(() => {
+      void db.update(importSessionsTable).set({
+        processingHeartbeatAt: new Date(),
+        processingLeaseUntil: workerLeaseUntil(),
+        updatedAt: new Date(),
+      }).where(ownedSessionWhere(sessionId, agencyId)).catch(() => undefined);
+    }, 30_000);
+    await db.update(importSessionsTable).set({
+      currentStage: "extract",
+      progress: Math.max(session.progress, files.length ? Math.min(90, Math.round((completedBefore / allFiles.length) * 85) + 5) : 90),
+      updatedAt: new Date(),
+    }).where(ownedSessionWhere(sessionId, agencyId));
+    if (imageFiles.length) {
+      await db.update(importFilesTable).set({
+        processingStatus: "processing",
+        processingAttempt: sql`${importFilesTable.processingAttempt} + 1`,
+        processingStartedAt: new Date(),
+        error: null,
+        completedAt: null,
+        updatedAt: new Date(),
+      }).where(inArray(importFilesTable.id, imageFiles.map((file) => file.id)));
+    }
     const imageResults = new Map<number, ImageExtractionResult>();
     if (imageFiles.length) {
       const results = await batchProcess(
@@ -506,13 +558,23 @@ async function processSession(sessionId: number, agencyId: number, mapping: Reco
 
     for (let fileIndex = 0; fileIndex < files.length; fileIndex += 1) {
       const file = files[fileIndex];
-      await db.update(importFilesTable).set({ processingStatus: "processing", error: null, updatedAt: new Date() }).where(eq(importFilesTable.id, file.id));
+      if (!imageFiles.some((imageFile) => imageFile.id === file.id)) {
+        await db.update(importFilesTable).set({
+          processingStatus: "processing",
+          processingAttempt: sql`${importFilesTable.processingAttempt} + 1`,
+          processingStartedAt: new Date(),
+          error: null,
+          completedAt: null,
+          updatedAt: new Date(),
+        }).where(eq(importFilesTable.id, file.id));
+      }
       const imageResult = imageResults.get(file.id);
       if (imageResult?.error) {
         fileFailures.push(`${file.fileName}: ${imageResult.error}`);
         await db.update(importFilesTable).set({
           processingStatus: "failed",
           error: imageResult.error,
+          completedAt: null,
           updatedAt: new Date(),
         }).where(eq(importFilesTable.id, file.id));
         continue;
@@ -533,6 +595,7 @@ async function processSession(sessionId: number, agencyId: number, mapping: Reco
         await db.update(importFilesTable).set({
           processingStatus: "failed",
           error: message,
+          completedAt: null,
           updatedAt: new Date(),
         }).where(eq(importFilesTable.id, file.id));
         continue;
@@ -690,6 +753,7 @@ async function processSession(sessionId: number, agencyId: number, mapping: Reco
             processingStatus: "complete",
             extractedRecordCount: createdCount,
             error: null,
+            completedAt: new Date(),
             updatedAt: new Date(),
           }).where(eq(importFilesTable.id, file.id));
         });
@@ -699,18 +763,21 @@ async function processSession(sessionId: number, agencyId: number, mapping: Reco
         await db.update(importFilesTable).set({
           processingStatus: "failed",
           error: message,
+          completedAt: null,
           updatedAt: new Date(),
         }).where(eq(importFilesTable.id, file.id));
         continue;
       }
       await db.update(importSessionsTable).set({
         currentStage: fileFailures.length ? "review" : "extract",
-        progress: Math.min(90, Math.round(((fileIndex + 1) / files.length) * 85) + 5),
+        progress: Math.min(90, Math.round(((completedBefore + fileIndex + 1) / allFiles.length) * 85) + 5),
+        processingHeartbeatAt: new Date(),
+        processingLeaseUntil: workerLeaseUntil(),
         updatedAt: new Date(),
-      }).where(eq(importSessionsTable.id, sessionId));
+      }).where(ownedSessionWhere(sessionId, agencyId));
     }
     await updateCounters(sessionId);
-    const hasSuccessfulFile = files.length > fileFailures.length;
+    const hasSuccessfulFile = allFiles.length > fileFailures.length;
     const lastError = fileFailures.length
       ? `${fileFailures.length} source file${fileFailures.length === 1 ? "" : "s"} failed. Retry processing to try them again. ${fileFailures.join(" ")}`
       : null;
@@ -719,13 +786,85 @@ async function processSession(sessionId: number, agencyId: number, mapping: Reco
       currentStage: hasSuccessfulFile ? "review" : "error",
       progress: 100,
       lastError,
+      processingHeartbeatAt: new Date(),
+      processingWorkerId: null,
+      processingLeaseUntil: null,
+      completedAt: new Date(),
       updatedAt: new Date(),
-    }).where(eq(importSessionsTable.id, sessionId));
+    }).where(ownedSessionWhere(sessionId, agencyId));
     await logAudit("import_processed", "import_session", sessionId, `Extracted ${files.length - fileFailures.length} source file(s)${fileFailures.length ? `; ${fileFailures.length} failed` : ""}`, session.createdBy);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Import processing failed.";
-    await db.update(importSessionsTable).set({ status: "failed", currentStage: "error", lastError: message, updatedAt: new Date() }).where(eq(importSessionsTable.id, sessionId));
+    await db.update(importSessionsTable).set({
+      status: "failed",
+      currentStage: "error",
+      lastError: message,
+      processingHeartbeatAt: new Date(),
+      processingWorkerId: null,
+      processingLeaseUntil: null,
+      completedAt: new Date(),
+      updatedAt: new Date(),
+    }).where(ownedSessionWhere(sessionId, agencyId));
+  } finally {
+    if (heartbeatTimer) clearInterval(heartbeatTimer);
   }
+}
+
+async function claimRecoverySession(sessionId: number, agencyId: number) {
+  const now = new Date();
+  const [claimed] = await db.update(importSessionsTable).set({
+    processingWorkerId: IMPORT_WORKER_ID,
+    processingAttempt: sql`${importSessionsTable.processingAttempt} + 1`,
+    processingStartedAt: now,
+    processingHeartbeatAt: now,
+    processingLeaseUntil: workerLeaseUntil(now),
+    updatedAt: now,
+  }).where(and(
+    eq(importSessionsTable.id, sessionId),
+    eq(importSessionsTable.agencyId, agencyId),
+    eq(importSessionsTable.status, "processing"),
+    or(
+      isNull(importSessionsTable.processingWorkerId),
+      ne(importSessionsTable.processingWorkerId, IMPORT_WORKER_ID),
+      isNull(importSessionsTable.processingLeaseUntil),
+      lt(importSessionsTable.processingLeaseUntil, now),
+    ),
+  )).returning();
+  return claimed;
+}
+
+/**
+ * Recover sessions that were processing when the API stopped. File statuses
+ * are the durable checkpoint: completed files are skipped and uploaded,
+ * failed, or interrupted files are safe to retry.
+ */
+export async function resumeImportSessions(): Promise<number> {
+  const sessions = await db.select({
+    id: importSessionsTable.id,
+    agencyId: importSessionsTable.agencyId,
+    columnMapping: importSessionsTable.columnMapping,
+  }).from(importSessionsTable).where(eq(importSessionsTable.status, "processing"));
+  let resumed = 0;
+  for (const session of sessions) {
+    const claimed = await claimRecoverySession(session.id, session.agencyId);
+    if (!claimed) continue;
+    resumed += 1;
+    void processSession(
+      session.id,
+      session.agencyId,
+      (session.columnMapping ?? {}) as Record<string, string>,
+      { resumeOnly: true },
+    );
+  }
+  return resumed;
+}
+
+export function startImportRecoveryWorker() {
+  const run = () => resumeImportSessions().catch((error) => {
+    logger.error({ error }, "Import recovery worker failed");
+  });
+  setTimeout(run, 5_000);
+  return setInterval(run, 60_000);
 }
 
 router.get("/imports/sessions", async (req, res): Promise<void> => {
@@ -788,13 +927,20 @@ router.post("/imports/sessions/:id/process", async (req, res): Promise<void> => 
     res.status(400).json({ error: "Column mapping must be an object." }); return;
   }
   const mapping = (req.body?.columnMapping ?? session.columnMapping) as Record<string, string>;
+  const now = new Date();
   const [claimed] = await db.update(importSessionsTable).set({
     status: "processing",
     currentStage: "extract",
     progress: 5,
     columnMapping: mapping,
     lastError: null,
-    updatedAt: new Date(),
+    processingWorkerId: IMPORT_WORKER_ID,
+    processingAttempt: sql`${importSessionsTable.processingAttempt} + 1`,
+    processingStartedAt: now,
+    processingHeartbeatAt: now,
+    processingLeaseUntil: workerLeaseUntil(now),
+    completedAt: null,
+    updatedAt: now,
   }).where(and(
     eq(importSessionsTable.id, id),
     eq(importSessionsTable.agencyId, agencyIdFor(user)),

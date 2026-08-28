@@ -1229,6 +1229,16 @@ export interface ListingHousekeepingPushTokenInput {
   token: string;
   platform?: string;
 }
+
+export interface ListingHousekeepingPushToken {
+  id: number;
+  userId: number;
+  token: string;
+  platform: string;
+  active: boolean;
+  lastSeenAt?: string;
+}
+
 export interface ListingHousekeepingEvent {
   id: number;
   /** @nullable */
@@ -1276,6 +1286,7 @@ export type HousekeepingRunResultDeliveries = {
   failed: number;
   skipped: number;
 };
+
 export interface HousekeepingRunResult {
   properties: number;
   updated: number;
@@ -1342,9 +1353,14 @@ export interface ImportFile {
   fileType: string;
   sizeBytes: number;
   processingStatus: string;
+  processingAttempt: number;
+  /** @nullable */
+  processingStartedAt?: string | null;
   extractedRecordCount: number;
   /** @nullable */
   error?: string | null;
+  /** @nullable */
+  completedAt?: string | null;
   createdAt: string;
   updatedAt?: string;
 }
@@ -1399,6 +1415,13 @@ export interface ImportSession {
   progress: number;
   /** @nullable */
   lastError?: string | null;
+  processingAttempt: number;
+  /** @nullable */
+  processingStartedAt: string | null;
+  /** @nullable */
+  processingHeartbeatAt: string | null;
+  /** @nullable */
+  completedAt: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -1571,16 +1594,7 @@ sort?: string;
 export type DeactivateListingHousekeepingPushToken200 = {
   ok: boolean;
 };
+
 export type ModerateProperty200 = {
   ok?: boolean;
 };
-
-
-export interface ListingHousekeepingPushToken {
-  id: number;
-  userId: number;
-  token: string;
-  platform: string;
-  active: boolean;
-  lastSeenAt?: string;
-}

@@ -21,6 +21,13 @@ export interface ImportSession {
   progress: number;
   /** @nullable */
   lastError?: string | null;
+  processingAttempt: number;
+  /** @nullable */
+  processingStartedAt: string | null;
+  /** @nullable */
+  processingHeartbeatAt: string | null;
+  /** @nullable */
+  completedAt: string | null;
   createdAt: string;
   updatedAt: string;
 }
