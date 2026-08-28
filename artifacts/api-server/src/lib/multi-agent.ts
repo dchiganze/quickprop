@@ -196,16 +196,20 @@ export async function getCanonicalProperty(propertyId: number) {
 
 export async function getPropertyOffers(propertyId: number) {
   const canonicalId = await canonicalPropertyId(propertyId);
-  const relationships = await db.select().from(propertyAgentRelationshipsTable)
-    .where(and(eq(propertyAgentRelationshipsTable.propertyId, canonicalId), eq(propertyAgentRelationshipsTable.relationshipStatus, "active")));
   const relatedRows = await db.select().from(propertiesTable).where(or(
     eq(propertiesTable.id, canonicalId),
     eq(propertiesTable.canonicalPropertyId, canonicalId),
   ));
+  const relatedPropertyIds = [...new Set(relatedRows.map((row) => row.id))];
+  const relationships = await db.select().from(propertyAgentRelationshipsTable)
+    .where(and(
+      inArray(propertyAgentRelationshipsTable.propertyId, relatedPropertyIds),
+      eq(propertyAgentRelationshipsTable.relationshipStatus, "active"),
+    ));
   const [users, branches, assets] = await Promise.all([
     db.select().from(usersTable),
     db.select().from(branchesTable),
-    db.select().from(propertyMarketingAssetsTable).where(eq(propertyMarketingAssetsTable.propertyId, canonicalId)),
+    db.select().from(propertyMarketingAssetsTable).where(inArray(propertyMarketingAssetsTable.propertyId, relatedPropertyIds)),
   ]);
   const offers = relationships.map((relationship) => {
     const agent = users.find((user) => user.id === relationship.agentId);

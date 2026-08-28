@@ -43,7 +43,8 @@ export default function PropertyDetail() {
 
   const [activeImage, setActiveImage] = useState(0);
 
-  const isSaved = savedProperties?.some(p => p.id === id);
+  const resolvedPropertyId = data?.property?.id ?? id;
+  const isSaved = savedProperties?.some(p => p.id === resolvedPropertyId);
 
   const form = useForm<z.infer<typeof enquirySchema>>({
     resolver: zodResolver(enquirySchema),
@@ -59,7 +60,7 @@ export default function PropertyDetail() {
     submitEnquiry.mutate({
       data: {
         ...values,
-        propertyId: id,
+        propertyId: resolvedPropertyId,
         agentId: data?.agent?.id,
         enquiryType: "viewing"
       }
@@ -83,14 +84,14 @@ export default function PropertyDetail() {
 
   const handleSaveToggle = () => {
     if (isSaved) {
-      unsaveProperty.mutate({ propertyId: id }, {
+      unsaveProperty.mutate({ propertyId: resolvedPropertyId }, {
         onSuccess: () => {
           queryClient.invalidateQueries({ queryKey: getListSavedPropertiesQueryKey() });
           toast({ description: "Property removed from saved list" });
         }
       });
     } else {
-      saveProperty.mutate({ propertyId: id }, {
+      saveProperty.mutate({ propertyId: resolvedPropertyId }, {
         onSuccess: () => {
           queryClient.invalidateQueries({ queryKey: getListSavedPropertiesQueryKey() });
           toast({ description: "Property saved successfully" });

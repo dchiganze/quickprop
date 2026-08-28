@@ -109,7 +109,15 @@ router.get("/public/properties", async (req, res): Promise<void> => {
     const current = grouped.get(key);
     if (!current || row.id === key || row.updatedAt > current.updatedAt) grouped.set(key, row);
   }
-  const groupedRows = [...grouped.values()];
+  // A source row can be the only public row that matches a filter while its
+  // canonical row has a different status or was not returned by the query.
+  // Resolve every group before returning it so a public link never points at
+  // the archived duplicate.
+  const groupedRows = (await Promise.all(
+    [...grouped.values()].map(async (row) => getCanonicalProperty(row.id)),
+  )).filter((property): property is NonNullable<typeof property> => (
+    property != null && PUBLIC_STATUSES.includes(property.status)
+  ));
   if (sort === "price_asc") groupedRows.sort((a, b) => a.price - b.price);
   else if (sort === "price_desc") groupedRows.sort((a, b) => b.price - a.price);
   else groupedRows.sort((a, b) => (b.publishedAt?.getTime() ?? 0) - (a.publishedAt?.getTime() ?? 0));
@@ -347,7 +355,12 @@ router.get("/public/saved", async (req, res): Promise<void> => {
     .innerJoin(propertiesTable, eq(savedPropertiesTable.propertyId, propertiesTable.id))
     .where(eq(savedPropertiesTable.userId, user.id));
 
-  res.json(jsonify(saved.map((s) => stripPrivate(s.property))));
+  const canonicalProperties = await Promise.all(saved.map((s) => getCanonicalProperty(s.property.id)));
+  const uniquePublicProperties = new Map<number, NonNullable<typeof canonicalProperties[number]>>();
+  for (const property of canonicalProperties) {
+    if (property && PUBLIC_STATUSES.includes(property.status)) uniquePublicProperties.set(property.id, property);
+  }
+  res.json(jsonify([...uniquePublicProperties.values()].map(stripPrivate)));
 });
 
 /* ─── POST /public/saved/:propertyId ─────────────────────────────────── */
@@ -357,13 +370,14 @@ router.post("/public/saved/:propertyId", async (req, res): Promise<void> => {
 
   const propertyId = parseInt(req.params.propertyId ?? "", 10);
   if (!propertyId) { res.status(400).json({ error: "Invalid property" }); return; }
+  const canonicalId = await canonicalPropertyId(propertyId);
 
   await db
     .insert(savedPropertiesTable)
-    .values({ userId: user.id, propertyId })
+    .values({ userId: user.id, propertyId: canonicalId })
     .onConflictDoNothing();
 
-  res.status(201).json({ saved: true, propertyId });
+  res.status(201).json({ saved: true, propertyId: canonicalId });
 });
 
 /* ─── DELETE /public/saved/:propertyId ───────────────────────────────── */
@@ -373,10 +387,11 @@ router.delete("/public/saved/:propertyId", async (req, res): Promise<void> => {
 
   const propertyId = parseInt(req.params.propertyId ?? "", 10);
   if (!propertyId) { res.status(400).json({ error: "Invalid property" }); return; }
+  const canonicalId = await canonicalPropertyId(propertyId);
 
   await db
     .delete(savedPropertiesTable)
-    .where(and(eq(savedPropertiesTable.userId, user.id), eq(savedPropertiesTable.propertyId, propertyId)));
+    .where(and(eq(savedPropertiesTable.userId, user.id), eq(savedPropertiesTable.propertyId, canonicalId)));
 
   res.status(204).send();
 });
