@@ -11,6 +11,7 @@ import {
   useListProperties,
   useGetCurrentUser,
   Property,
+  getListPropertiesQueryKey,
 } from '@workspace/api-client-react';
 
 type CatalogMode = 'company' | 'agent';
@@ -75,11 +76,11 @@ export function QuickShareDialog() {
 
   const { data: user } = useGetCurrentUser();
   const { data: allProps } = useListProperties(undefined, {
-    query: { enabled: open },
+    query: { enabled: open, queryKey: getListPropertiesQueryKey() },
   });
   const { data: myProps } = useListProperties(
     user?.id ? { agentId: user.id } : undefined,
-    { query: { enabled: open && !!user?.id } },
+    { query: { enabled: open && !!user?.id, queryKey: getListPropertiesQueryKey(user?.id ? { agentId: user.id } : undefined) } },
   );
 
   const properties = (mode === 'agent' ? myProps : allProps) ?? [];

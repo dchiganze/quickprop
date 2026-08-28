@@ -124,6 +124,10 @@ export default function PropertyDetail() {
   if (property.coverImage && !allImages.includes(property.coverImage)) {
     allImages.unshift(property.coverImage);
   }
+  const activeImageAttribution = offers
+    .flatMap((offer) => offer.assets ?? [])
+    .find((asset) => asset.objectPath === allImages[activeImage])
+    ?.attributionName;
 
   return (
     <Layout>
@@ -132,6 +136,10 @@ export default function PropertyDetail() {
         {allImages.length > 0 ? (
           <>
             <img src={allImages[activeImage]} className="object-contain w-full h-full" alt={property.title} />
+             <div className="absolute bottom-4 right-4 rounded-md bg-black/60 px-3 py-1.5 text-right text-[11px] font-semibold text-white backdrop-blur">
+               <div>QuickProp</div>
+               {activeImageAttribution && <div className="font-normal text-white/80">{activeImageAttribution}</div>}
+             </div>
             {allImages.length > 1 && (
               <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-2 px-4 overflow-x-auto">
                 {allImages.map((img, idx) => (
@@ -273,6 +281,9 @@ export default function PropertyDetail() {
                           </div>
                           <p className="text-sm text-gray-500">{offer.agentName} · {offer.mandateType.replace('_', ' ')}</p>
                           {offer.terms && <p className="text-sm text-gray-600 mt-1">{offer.terms}</p>}
+                           {offer.assets?.[0]?.attributionName && (
+                             <p className="mt-2 text-xs text-gray-500">Media: {offer.assets[0].attributionName}</p>
+                           )}
                         </div>
                         <div className="text-left sm:text-right">
                           <p className="font-bold text-primary">{formatPrice(offer.askingPrice, offer.currency)}</p>

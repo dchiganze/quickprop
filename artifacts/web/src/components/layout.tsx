@@ -1,6 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { useGetPublicMe, useLogoutBuyer } from "@workspace/api-client-react";
+import { useGetPublicMe, useLogoutBuyer, getGetPublicMeQueryKey } from "@workspace/api-client-react";
 import { User, LogOut, Menu, Search } from "lucide-react";
 import { useState } from "react";
 import {
@@ -12,7 +12,7 @@ import {
 import { QuickSearchDialog } from "@/components/QuickSearchDialog";
 
 export function Layout({ children }: { children: React.ReactNode }) {
-  const { data: user } = useGetPublicMe({ query: { retry: false } });
+  const { data: user } = useGetPublicMe({ query: { retry: false, queryKey: getGetPublicMeQueryKey() } });
   const logout = useLogoutBuyer();
   const [, setLocation] = useLocation();
   const [quickSearchOpen, setQuickSearchOpen] = useState(false);

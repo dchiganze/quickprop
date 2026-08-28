@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useListBuyers } from '@workspace/api-client-react';
+import { useListBuyers, useUpdateBuyer } from '@workspace/api-client-react';
 import { Search, MoreHorizontal, ShieldOff, ShieldCheck, Mail, Phone } from 'lucide-react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';

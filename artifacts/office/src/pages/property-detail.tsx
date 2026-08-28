@@ -212,6 +212,9 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
                           <p className="font-bold text-sm">{offer.currency} {offer.askingPrice.toLocaleString()}</p>
                         </div>
                         <p className="mt-2 text-xs text-muted-foreground capitalize">{offer.verificationStatus} verification · {offer.priceStatus ?? 'current'} price</p>
+                         {offer.assets?.[0]?.attributionName && (
+                           <p className="mt-2 text-xs text-muted-foreground">Media attributed to {offer.assets[0].attributionName}</p>
+                         )}
                       </div>
                     ))}
                   </CardContent>

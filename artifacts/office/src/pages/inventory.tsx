@@ -34,7 +34,7 @@ function AddPropertyDialog() {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
     title: '', propertyType: 'house', listingType: 'sale', price: '', suburb: '', city: 'Harare',
-    bedrooms: '', bathrooms: '', description: '',
+    bedrooms: '', bathrooms: '', description: '', photoUrl: '',
   });
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -45,7 +45,7 @@ function AddPropertyDialog() {
         queryClient.invalidateQueries({ queryKey: getGetPipelineQueryKey() });
         toast({ title: 'Mandate created', description: `${created.reference} — ${created.title}` });
         setOpen(false);
-        setForm({ title: '', propertyType: 'house', listingType: 'sale', price: '', suburb: '', city: 'Harare', bedrooms: '', bathrooms: '', description: '' });
+        setForm({ title: '', propertyType: 'house', listingType: 'sale', price: '', suburb: '', city: 'Harare', bedrooms: '', bathrooms: '', description: '', photoUrl: '' });
       },
       onError: () => toast({ title: 'Could not create property', variant: 'destructive' }),
     },
@@ -54,8 +54,8 @@ function AddPropertyDialog() {
   const addAgency = useAddPropertyAgencyRelationship();
 
   const submit = async () => {
-    if (!form.title || !form.price || !form.suburb) {
-      toast({ title: 'Title, price and suburb are required', variant: 'destructive' });
+    if (!form.title || !form.price || !form.suburb || !form.photoUrl) {
+      toast({ title: 'Title, price, suburb and a photo URL are required', variant: 'destructive' });
       return;
     }
     const input = {
@@ -68,6 +68,7 @@ function AddPropertyDialog() {
       bedrooms: form.bedrooms ? Number(form.bedrooms) : undefined,
       bathrooms: form.bathrooms ? Number(form.bathrooms) : undefined,
       description: form.description || undefined,
+      photos: [form.photoUrl],
     };
     try {
       const duplicate = await duplicateCheck.mutateAsync({
@@ -180,6 +181,10 @@ function AddPropertyDialog() {
           <div className="grid gap-2">
             <Label htmlFor="np-desc">Description</Label>
             <Textarea id="np-desc" rows={3} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="np-photo">Primary photo URL</Label>
+            <Input id="np-photo" type="url" value={form.photoUrl} onChange={(e) => setForm({ ...form, photoUrl: e.target.value })} placeholder="https://…" />
           </div>
         </div>
         <DialogFooter>

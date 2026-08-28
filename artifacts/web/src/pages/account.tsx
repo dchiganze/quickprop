@@ -1,4 +1,4 @@
-import { useGetPublicMe, useListSavedProperties } from "@workspace/api-client-react";
+import { useGetPublicMe, useListSavedProperties, getGetPublicMeQueryKey, getListSavedPropertiesQueryKey } from "@workspace/api-client-react";
 import { Layout } from "@/components/layout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PropertyCard } from "@/components/property-card";
@@ -9,8 +9,8 @@ import { Heart, User } from "lucide-react";
 
 export default function Account() {
   const [, setLocation] = useLocation();
-  const { data: user, isLoading: userLoading, error } = useGetPublicMe({ query: { retry: false } });
-  const { data: savedProperties, isLoading: savedLoading } = useListSavedProperties({ query: { enabled: !!user } });
+  const { data: user, isLoading: userLoading, error } = useGetPublicMe({ query: { retry: false, queryKey: getGetPublicMeQueryKey() } });
+  const { data: savedProperties, isLoading: savedLoading } = useListSavedProperties({ query: { enabled: !!user, queryKey: getListSavedPropertiesQueryKey() } });
 
   useEffect(() => {
     // If auth fails, redirect to login

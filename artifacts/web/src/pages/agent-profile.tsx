@@ -1,4 +1,4 @@
-import { useGetPublicAgent } from "@workspace/api-client-react";
+import { useGetPublicAgent, getGetPublicAgentQueryKey } from "@workspace/api-client-react";
 import { Layout } from "@/components/layout";
 import { PropertyCard } from "@/components/property-card";
 import { useParams } from "wouter";
@@ -9,7 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 export default function AgentProfile() {
   const params = useParams();
   const id = parseInt(params.id || "0");
-  const { data, isLoading } = useGetPublicAgent(id, { query: { enabled: !!id } });
+  const { data, isLoading } = useGetPublicAgent(id, { query: { enabled: !!id, queryKey: getGetPublicAgentQueryKey(id) } });
 
   if (isLoading || !data) {
     return (

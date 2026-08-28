@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { useListUsers, useGetCurrentUser, useListProperties } from '@workspace/api-client-react';
+import { useListUsers, useGetCurrentUser, useListProperties, getListUsersQueryKey, getListPropertiesQueryKey } from '@workspace/api-client-react';
 
 type BrochureMode = 'my' | 'company' | 'custom';
 
@@ -23,8 +23,8 @@ export function BrochureCatalogDialog() {
   const [expandedAgents, setExpandedAgents] = useState<Set<number>>(new Set());
 
   const { data: currentUser } = useGetCurrentUser();
-  const { data: users } = useListUsers({ query: { enabled: open } });
-  const { data: allPropsData } = useListProperties(undefined, { query: { enabled: open } });
+  const { data: users } = useListUsers({ query: { enabled: open, queryKey: getListUsersQueryKey() } });
+  const { data: allPropsData } = useListProperties(undefined, { query: { enabled: open, queryKey: getListPropertiesQueryKey() } });
 
   const agents = useMemo(
     () => (users ?? []).filter(u => u.role === 'agent' || u.role === 'admin'),
