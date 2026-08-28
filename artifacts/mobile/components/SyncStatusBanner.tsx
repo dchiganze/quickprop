@@ -2,7 +2,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Animated, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useColors } from '@/hooks/useColors';
-import { useData } from '@/contexts/DataContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { useNetworkStatus } from '@/contexts/ConnectivityContext';
 
 type BannerState = 'offline' | 'online' | null;
 
@@ -11,7 +12,8 @@ const BANNER_HEIGHT = 40;
 export function SyncStatusBanner() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { cloudSyncEnabled, cloudSyncState } = useData();
+  const { user } = useAuth();
+  const { isOnline, isOffline: networkIsOffline } = useNetworkStatus();
   const [bannerState, setBannerState] = useState<BannerState>(null);
   const wasOffline = useRef(false);
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -52,6 +54,7 @@ export function SyncStatusBanner() {
   useEffect(() => {
     clearHideTimer();
 
+    const cloudSyncEnabled = Boolean(user?.id && /^\d+$/.test(user.id));
     if (!cloudSyncEnabled) {
       wasOffline.current = false;
       translateY.stopAnimation();
@@ -60,7 +63,7 @@ export function SyncStatusBanner() {
       return;
     }
 
-    if (cloudSyncState === 'offline') {
+    if (networkIsOffline) {
       wasOffline.current = true;
       if (bannerState !== 'offline') {
         textOpacity.setValue(1);
@@ -70,7 +73,7 @@ export function SyncStatusBanner() {
       return;
     }
 
-    if (cloudSyncState === 'synced' && wasOffline.current) {
+    if (isOnline && wasOffline.current) {
       wasOffline.current = false;
       swapMessage('online');
       hideTimer.current = setTimeout(() => {
@@ -83,7 +86,7 @@ export function SyncStatusBanner() {
         });
       }, 2600);
     }
-  }, [cloudSyncEnabled, cloudSyncState]);
+  }, [user?.id, networkIsOffline, isOnline]);
 
   useEffect(() => () => {
     clearHideTimer();
@@ -91,8 +94,8 @@ export function SyncStatusBanner() {
 
   if (!bannerState) return null;
 
-  const isOffline = bannerState === 'offline';
-  const label = isOffline ? "You're offline" : "You're back online";
+  const isOfflineBanner = bannerState === 'offline';
+  const label = isOfflineBanner ? "You're offline" : "You're back online";
 
   return (
     <Animated.View

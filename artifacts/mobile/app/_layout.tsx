@@ -9,6 +9,7 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { DataProvider } from '@/contexts/DataContext';
+import { ConnectivityProvider } from '@/contexts/ConnectivityContext';
 import { useColors } from '@/hooks/useColors';
 import { SplashScreenView } from '@/components/SplashScreenView';
 import * as Sentry from '@sentry/react-native';
@@ -88,11 +89,13 @@ function RootLayout() {
       <ErrorBoundary>
         <QueryClientProvider client={queryClient}>
           <GestureHandlerRootView style={{ flex: 1 }}>
-            <AuthProvider>
-              <DataProvider>
-                <RootLayoutNav />
-              </DataProvider>
-            </AuthProvider>
+            <ConnectivityProvider>
+              <AuthProvider>
+                <DataProvider>
+                  <RootLayoutNav />
+                </DataProvider>
+              </AuthProvider>
+            </ConnectivityProvider>
           </GestureHandlerRootView>
         </QueryClientProvider>
       </ErrorBoundary>

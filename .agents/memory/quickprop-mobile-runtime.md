@@ -15,6 +15,12 @@ Pin Reanimated 3.19.1 or newer when the app stays on the legacy architecture wit
 
 **How to apply:** If the app remains on JSC with the New Architecture disabled, do not downgrade Reanimated below the compatible 3.19 line without validating a production Android build.
 
+Expo Go can report a generic HostFunction error while loading this project because Expo Go enables the New Architecture even when the app config disables it.
+
+**Why:** Expo Go's native container does not match the project's standalone-build architecture settings, so a preview failure at an unrelated import does not by itself prove the production binary is broken.
+
+**How to apply:** Treat this as a preview-environment limitation, keep the configured standalone architecture unchanged unless intentionally migrating, and validate the actual Expo Launch build on a device.
+
 Treat Expo Go success as insufficient validation for outbound third-party URL schemes on iOS.
 
 **Why:** Expo Go supplies its own native container, while TestFlight uses the app's generated Info.plist. A scheme can work in Expo Go but be unavailable to the standalone app unless explicitly queried in production configuration.

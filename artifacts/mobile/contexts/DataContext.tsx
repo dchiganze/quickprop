@@ -3,6 +3,7 @@ import { AppState } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Property, Lead, BuyerMatch, Task, PropertyAlert } from '@/types';
 import { registerDataReset } from './dataReset';
+import { useNetworkStatus } from './ConnectivityContext';
 import { apiBaseUrl, apiOrigin, getStoredAccessToken, useAuth } from './AuthContext';
 import {
   createProperty, createTask, createViewing, deleteProperty as deleteRemoteProperty,
@@ -61,7 +62,12 @@ const ALERTS_KEY = '@qp_alerts';
 const VIEWINGS_KEY = '@qp_viewings';
 const PENDING_SYNC_KEY = '@qp_pending_sync';
 
-type PendingSync =
+type PendingSyncMetadata = {
+  retryCount?: number;
+  retryAt?: number;
+};
+
+type PendingSync = PendingSyncMetadata & (
   | { kind: 'property-create'; localId: string; property: Property }
   | { kind: 'property-update'; localId: string; updates: Partial<Property> }
   | { kind: 'property-delete'; localId: string }
@@ -70,7 +76,8 @@ type PendingSync =
   | { kind: 'task-delete'; localId: string }
   | { kind: 'viewing-create'; localId: string; mutationKey: string; viewing: ViewingInput }
   | { kind: 'viewing-update'; localId: string; updates: ViewingUpdate }
-  | { kind: 'viewing-delete'; localId: string };
+  | { kind: 'viewing-delete'; localId: string }
+);
 
 export function propertyMatchesAlert(p: Property, alert: PropertyAlert): boolean {
   if (alert.type && p.type !== alert.type) return false;
@@ -412,6 +419,7 @@ const DataContext = createContext<DataContextType>({} as DataContextType);
 
 export function DataProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
+  const { isOnline, isOffline } = useNetworkStatus();
   const cloudSyncEnabled = remoteEnabled(user?.id);
   const [properties, setProperties] = useState<Property[]>([]);
   const [leads, setLeads] = useState<Lead[]>([]);
@@ -441,6 +449,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const pendingSyncRef = useRef<PendingSync[]>([]);
   const syncedPropertyResultsRef = useRef(new Map<string, Property>());
   const flushingRef = useRef(false);
+  const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const syncNowRef = useRef<() => Promise<void>>(() => Promise.resolve());
 
   useEffect(() => registerDataReset(() => {
     // Invalidate a pending hydration before clearing every in-memory collection.
@@ -572,6 +582,21 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     await AsyncStorage.setItem(PENDING_SYNC_KEY, JSON.stringify(pendingSyncRef.current));
   };
 
+  const clearRetryTimer = () => {
+    if (retryTimerRef.current) {
+      clearTimeout(retryTimerRef.current);
+      retryTimerRef.current = null;
+    }
+  };
+
+  const scheduleRetry = (delayMs: number) => {
+    if (retryTimerRef.current) return;
+    retryTimerRef.current = setTimeout(() => {
+      retryTimerRef.current = null;
+      syncNowRef.current().catch(() => {});
+    }, delayMs);
+  };
+
   const flushPendingSync = useCallback(async () => {
     if (!remoteEnabled(user?.id) || flushingRef.current) return;
     flushingRef.current = true;
@@ -580,6 +605,12 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     try {
       while (pendingSyncRef.current.length > 0) {
         const operation = pendingSyncRef.current[0];
+        const retryDelay = (operation.retryAt ?? 0) - Date.now();
+        if (retryDelay > 0) {
+          setCloudSyncState('pending');
+          scheduleRetry(retryDelay);
+          return;
+        }
         const resolveId = (id: string) => idMap.get(id) ?? id;
 
         if (operation.kind === 'property-create') {
@@ -669,6 +700,18 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       // The local mutation has already been saved. Leave this operation and the
       // remaining order intact so it retries after the connection returns.
+      const operation = pendingSyncRef.current[0];
+      if (operation) {
+        const retryCount = (operation.retryCount ?? 0) + 1;
+        const retryDelay = Math.min(60_000, 1_000 * (2 ** Math.min(retryCount - 1, 6)));
+        pendingSyncRef.current[0] = {
+          ...operation,
+          retryCount,
+          retryAt: Date.now() + retryDelay,
+        };
+        await persistPending();
+        scheduleRetry(retryDelay);
+      }
       if (isConnectivityError(error)) {
         setLastSyncError(null);
         setCloudSyncState('offline');
@@ -795,23 +838,35 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       setCloudSyncState('offline');
       return;
     }
+    if (isOffline) {
+      setCloudSyncState('offline');
+      return;
+    }
     await flushPendingSync();
     await syncFromServer();
-  }, [user?.id, flushPendingSync, syncFromServer]);
+  }, [user?.id, isOffline, flushPendingSync, syncFromServer]);
 
   useEffect(() => {
-    if (!user?.id || isLoading) return;
+    syncNowRef.current = syncNow;
+  }, [syncNow]);
+
+  useEffect(() => () => {
+    clearRetryTimer();
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (!user?.id || isLoading || !isOnline) return;
     syncNow().catch(() => {});
-  }, [user?.id, isLoading, syncNow]);
+  }, [user?.id, isLoading, isOnline, syncNow]);
 
   useEffect(() => {
     const subscription = AppState.addEventListener('change', state => {
-      if (state === 'active') {
+      if (state === 'active' && isOnline) {
         syncNow().catch(() => {});
       }
     });
     return () => subscription.remove();
-  }, [syncNow]);
+  }, [isOnline, syncNow]);
 
   // A second agent can make changes while this app stays in the foreground.
   // Refresh periodically so active devices converge without waiting for an
@@ -819,12 +874,12 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!remoteEnabled(user?.id) || isLoading) return;
     const interval = setInterval(() => {
-      if (AppState.currentState === 'active') {
+      if (AppState.currentState === 'active' && isOnline) {
         syncNow().catch(() => {});
       }
     }, 30_000);
     return () => clearInterval(interval);
-  }, [user?.id, isLoading, syncNow]);
+  }, [user?.id, isLoading, isOnline, syncNow]);
 
   // Compute which published properties match each alert and haven't been dismissed
   const alertMatches = useMemo<AlertMatch[]>(() => {
