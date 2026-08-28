@@ -12,12 +12,16 @@ on:
 
 jobs:
   api-import-regressions:
-    name: API import regressions
+    name: API import regressions (PostgreSQL ${{ matrix.postgres-version }})
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        postgres-version: ["15", "16", "17"]
     services:
       postgres:
-        image: postgres:16
+        image: postgres:${{ matrix.postgres-version }}
         env:
           POSTGRES_DB: quickprop_test
           POSTGRES_USER: quickprop_test
