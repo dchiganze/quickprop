@@ -18,6 +18,7 @@ import {
   type HousekeepingSettings,
 } from "./housekeeping";
 import { deliverDueHousekeepingReminders, REMINDER_CHANNELS, type ReminderDeliveryPayload } from "./housekeeping-delivery";
+import { planHousekeepingActions } from "./housekeeping-planner";
 import { logger } from "./logger";
 
 async function getSettings(): Promise<HousekeepingSettings> {
@@ -78,6 +79,15 @@ export async function runHousekeepingCycle() {
       }, now, houseSettings);
       const previousStatus = r?.freshnessStatus ?? property.freshnessStatus;
       const previousReminderCount = r?.reminderCount ?? property.reminderCount;
+      const agentId = r?.agentId ?? property.agentId;
+      const initialPlan = planHousekeepingActions({
+        previousStatus,
+        nextStatus: computed.freshnessStatus,
+        reminderKey: computed.reminderKey,
+        agentId,
+        existingReminder: false,
+        hasOpenTask: false,
+      });
       if (r) {
         await db.update(propertyAgentRelationshipsTable).set({
           freshnessStatus: computed.freshnessStatus,
@@ -97,7 +107,7 @@ export async function runHousekeepingCycle() {
           staleSince: computed.staleSince,
         }).where(eq(propertiesTable.id, property.id));
       }
-      if (previousStatus !== computed.freshnessStatus) {
+      if (initialPlan.statusEvent) {
         updated++;
         await db.insert(listingHousekeepingEventsTable).values({
           listingId: r?.id ?? property.id,
@@ -112,7 +122,7 @@ export async function runHousekeepingCycle() {
           metadata: { runAt: now.toISOString() },
         });
       }
-      if (computed.reminderKey && (r?.agentId ?? property.agentId)) {
+      if (computed.reminderKey && agentId) {
         const eventConditions = [
           eq(listingHousekeepingEventsTable.propertyId, property.id),
           eq(listingHousekeepingEventsTable.eventType, "reminder"),
@@ -121,8 +131,15 @@ export async function runHousekeepingCycle() {
         ];
         const [existingReminder] = await db.select({ id: listingHousekeepingEventsTable.id })
           .from(listingHousekeepingEventsTable).where(and(...eventConditions)).limit(1);
-        if (!existingReminder) {
-          const agentId = r?.agentId ?? property.agentId!;
+        const reminderPlan = planHousekeepingActions({
+          previousStatus,
+          nextStatus: computed.freshnessStatus,
+          reminderKey: computed.reminderKey,
+          agentId,
+          existingReminder: Boolean(existingReminder),
+          hasOpenTask: false,
+        });
+        if (reminderPlan.reminderEvent) {
           const label = computed.freshnessStatus === "stale" ? "stale" : computed.freshnessStatus.replace("_", " ");
           const deliveryPayload: ReminderDeliveryPayload = {
             reference: property.reference,
@@ -165,7 +182,15 @@ export async function runHousekeepingCycle() {
               eq(tasksTable.type, "listing_confirmation"),
               eq(tasksTable.status, "open"),
             )).limit(1);
-            if (!openTask) {
+            const transactionPlan = planHousekeepingActions({
+              previousStatus,
+              nextStatus: computed.freshnessStatus,
+              reminderKey: computed.reminderKey,
+              agentId,
+              existingReminder: false,
+              hasOpenTask: Boolean(openTask),
+            });
+            if (transactionPlan.task) {
               await tx.insert(tasksTable).values({
                 title: `Confirm listing: ${property.reference}`,
                 description: `Housekeeping reminder — ${property.title}`,

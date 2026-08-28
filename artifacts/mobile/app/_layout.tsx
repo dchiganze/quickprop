@@ -2,7 +2,6 @@ import React, { useEffect } from 'react';
 import { Appearance } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { Stack } from 'expo-router';
@@ -89,15 +88,13 @@ function RootLayout() {
     <SafeAreaProvider>
       <ErrorBoundary>
         <QueryClientProvider client={queryClient}>
-          <GestureHandlerRootView style={{ flex: 1 }}>
-            <ConnectivityProvider>
-              <AuthProvider>
-                <DataProvider>
-                  <RootLayoutNav />
-                </DataProvider>
-              </AuthProvider>
-            </ConnectivityProvider>
-          </GestureHandlerRootView>
+          <ConnectivityProvider>
+            <AuthProvider>
+              <DataProvider>
+                <RootLayoutNav />
+              </DataProvider>
+            </AuthProvider>
+          </ConnectivityProvider>
         </QueryClientProvider>
       </ErrorBoundary>
     </SafeAreaProvider>
