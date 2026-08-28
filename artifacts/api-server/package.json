@@ -8,7 +8,7 @@
     "build": "node ./build.mjs",
     "start": "node --enable-source-maps ./dist/index.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "../../scripts/node_modules/.bin/tsx --test src/lib/housekeeping.test.ts src/lib/housekeeping-job-planner.test.ts",
+    "test": "../../scripts/node_modules/.bin/tsx --test src/lib/housekeeping.test.ts src/lib/housekeeping-job-planner.test.ts src/lib/imports.test.ts",
     "test:integration": "../../scripts/node_modules/.bin/tsx --test src/lib/housekeeping-job.test.ts src/lib/imports.test.ts"
   },
   "dependencies": {
