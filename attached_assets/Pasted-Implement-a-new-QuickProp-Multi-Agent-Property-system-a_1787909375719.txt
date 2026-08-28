@@ -1,0 +1,375 @@
+Implement a new QuickProp “Multi-Agent Property” system across the existing shared backend, CRM and website. This must be a clean MVP implementation with production-ready architecture, not a separate prototype. Preserve all existing QuickProp functionality and styling.
+
+CORE PRINCIPLE:
+One physical property = ONE canonical property record. Multiple registered estate agents/agencies can be associated with that same property without creating duplicate search results. Each agent retains their own marketing relationship, price, terms, description and media attribution.
+
+1. DUPLICATE DETECTION BEFORE LISTING CREATION
+When an agent begins uploading a property, perform duplicate detection BEFORE creating the new property record.
+
+Compare:
+- normalized address
+- suburb/location
+- GPS coordinates where available
+- property type
+- bedrooms/bathrooms
+- land/building size
+- price
+- description similarity
+- phone/contact information where appropriate
+- image similarity where possible
+
+Return a confidence score.
+
+If a likely duplicate is detected, show a professional modal:
+
+“Possible existing property detected”
+
+14 Borrowdale Brooke
+4 bedrooms • 3 bathrooms • 2,000 sqm
+Currently listed by ABC Properties
+Current asking price: US$475,000
+Last verified: 4 days ago
+
+“Is this the same property?”
+
+[ YES — ADD MY AGENCY ]
+[ NO — CREATE NEW PROPERTY ]
+[ I’M NOT SURE ]
+
+Do NOT block the agent unnecessarily. If they select “I’m not sure”, allow the upload to continue but flag it for admin duplicate review.
+
+Use sensible confidence thresholds:
+- >95% = high-confidence duplicate
+- 80–95% = possible duplicate
+- <80% = do not interrupt the upload unless other strong signals exist
+
+2. ONE CANONICAL PROPERTY RECORD
+Create a single canonical Property entity/record with a unique Property ID.
+
+Store common physical property information once:
+- address
+- location/suburb
+- GPS
+- property type
+- bedrooms
+- bathrooms
+- land size
+- building size
+- features
+- property status
+- canonical property history
+- duplicate/merge history
+
+Do NOT create a second property record simply because another agency markets it.
+
+3. MULTIPLE AGENT RELATIONSHIPS
+Create a separate PropertyAgentRelationship / AgencyListing relationship.
+
+A property can have multiple authorised agents/agencies.
+
+Each relationship should contain:
+- agent
+- agency
+- mandate type: Sole / Exclusive, Non-exclusive, Collaboration
+- relationship status
+- date added
+- verification status
+- asking price
+- price status
+- terms
+- agent-specific description
+- agent-specific contact details
+- agent-specific marketing assets
+- last availability confirmation
+- last update
+- collaboration information if applicable
+
+4. DIFFERENT PRICES AND TERMS
+Do NOT force multiple agents to use one price.
+
+Example:
+
+ABC Properties
+US$475,000
+Cash / Negotiable
+
+XYZ Realty
+US$450,000
+Terms Accepted
+
+These are separate agent offers against the SAME canonical property.
+
+On the consumer page display:
+“From US$450,000”
+and clearly show the individual agent offers and terms.
+
+Flag significant price discrepancies internally for admin review rather than automatically overwriting one agent’s price.
+
+5. MARKETING ASSET OWNERSHIP AND ATTRIBUTION
+Each agent retains ownership/attribution of their uploaded:
+- photos
+- videos
+- descriptions
+- floorplans
+- marketing content
+
+All approved agency photos may be displayed on the canonical property page.
+
+Every photo must have a subtle professional agency watermark/attribution overlay, e.g.:
+“ABC PROPERTIES”
+
+Do not make the watermark intrusive.
+
+Store which agency uploaded each asset and never silently transfer asset ownership when properties are merged.
+
+6. CONSUMER PROPERTY PAGE
+Create a polished, modern consumer-facing property page for a property marketed by multiple agencies.
+
+The page should show:
+
+PROPERTY:
+14 Borrowdale Brooke
+4 Bedrooms
+3 Bathrooms
+2,000 sqm
+US$450,000+
+
+Show a clear badge:
+“2 Agencies Marketing This Property”
+
+Show a professional photo gallery containing approved photos from all participating agencies. Clearly attribute each photo with a subtle agency watermark.
+
+Below the property information show:
+
+“Choose an Agent”
+
+ABC Properties
+US$475,000
+Cash / Negotiable
+Agent: Jane Smith
+[ CONTACT AGENT ]
+
+XYZ Realty
+US$450,000
+Terms Available
+Agent: John Moyo
+[ CONTACT AGENT ]
+
+Make it immediately obvious that these are different agents marketing the SAME property, not duplicate listings.
+
+Also display:
+- Last availability verification
+- property status
+- property ID
+- key features
+- location
+- enquiry button
+- save property
+- share property
+- report incorrect information
+
+7. NO DUPLICATE SEARCH RESULTS
+Search results must return the canonical property only ONCE.
+
+If three agencies market the same property, search results should show:
+
+14 Borrowdale Brooke
+4 bed • 3 bath • 2,000 sqm
+From US$450,000
+2 agencies marketing
+Verified 4 days ago
+
+NOT three separate search cards.
+
+Allow the consumer to open the property and choose which agency to contact.
+
+8. “ADD MY AGENCY” FLOW
+When an agent confirms a detected duplicate:
+
+Show:
+
+“This property already exists on QuickProp.”
+
+“Add your agency to the existing property?”
+
+[ CONTINUE ]
+
+Then collect:
+- mandate type
+- asking price
+- terms
+- agent-specific description
+- photos/media
+- agent contact details
+
+Clearly explain:
+“Your agency will be added to the existing property. Your price, terms and marketing content will remain attributed to your agency.”
+
+Make this a maximum 2–3 step process.
+
+9. “I’M NOT SURE” FLOW
+If the agent selects “I’m not sure”:
+
+Allow them to continue.
+
+Create a “Potential Duplicate” admin flag containing:
+- both property records
+- duplicate confidence score
+- matching fields
+- images for comparison
+- agencies involved
+
+Admin can later:
+[ MERGE ]
+[ KEEP SEPARATE ]
+[ REQUEST INFORMATION ]
+
+10. ADMIN MERGE / UNMERGE
+Add functionality to the QuickProp Admin Portal.
+
+Admins can:
+- view potential duplicates
+- compare properties side-by-side
+- compare photos
+- compare agencies
+- compare prices
+- merge duplicate property records
+- keep records separate
+- unmerge a mistaken merge
+
+When merging:
+- select canonical property record
+- preserve ALL agent relationships
+- preserve ALL marketing assets and attribution
+- preserve enquiries/leads
+- preserve analytics
+- preserve property history
+- preserve audit trail
+
+Never delete historical information.
+
+11. MULTI-AGENT PROPERTY UI
+Create a clean, premium UI for multi-agent properties.
+
+Use clear visual hierarchy:
+PROPERTY
+→ PROPERTY FACTS
+→ PHOTO GALLERY
+→ PRICE / STATUS
+→ AGENTS MARKETING THIS PROPERTY
+→ CONTACT AGENT
+
+Use badges such as:
+“Verified”
+“2 Agencies”
+“Exclusive Mandate”
+“Last verified 4 days ago”
+
+Do not make the interface feel cluttered.
+
+12. LISTING HEALTH
+Add a lightweight Listing Health system.
+
+Track:
+- last availability confirmation
+- last price confirmation
+- last update
+- stale status
+- duplicate status
+- verification status
+
+Show agents:
+“Your listing is healthy”
+or
+“Availability confirmation required”
+
+Allow one-tap:
+[ STILL AVAILABLE ]
+[ UPDATE ]
+[ SOLD / LET ]
+[ WITHDRAW ]
+
+13. AUDIT TRAIL
+Maintain a property history showing:
+- property created
+- agency added
+- agency removed
+- price changes
+- status changes
+- duplicate detected
+- merged
+- unmerged
+- availability confirmed
+
+Include timestamps and responsible agent/admin.
+
+14. MOCK DATA / DEMO
+Create a polished working mock-up using ONE property marketed by THREE different agencies:
+
+PROPERTY:
+14 Borrowdale Brooke, Harare
+4 bedrooms
+3 bathrooms
+2,000 sqm
+Residential House
+
+Agency 1:
+Pam Golding Properties
+Agent: Anne Smith
+Price: US$475,000
+Terms: Cash / Negotiable
+Professional photos
+
+Agency 2:
+ABC Properties
+Agent: Brian Moyo
+Price: US$460,000
+Terms: Seller open to reasonable offers
+Different photos
+
+Agency 3:
+Harare Property Group
+Agent: Sarah Chigumba
+Price: US$450,000
+Terms: Terms may be considered
+Different photos
+
+Make the demo clearly show:
+- duplicate detection during upload
+- existing canonical property
+- adding a second/third agency
+- different prices and terms
+- all agency photos with subtle agency watermarks
+- one consumer search result
+- one canonical property page
+- three agent options
+- admin duplicate review
+- merge/unmerge functionality
+
+15. SHARED ARCHITECTURE
+This must use the EXISTING QuickProp shared backend/database/API used by:
+- QuickProp Agent Mobile App
+- QuickProp CRM
+- QuickProp Website
+- QuickProp Admin Portal
+
+Do not create a separate database or isolated mock backend.
+
+Ensure changes made in the CRM appear on the website and mobile app, and vice versa, through the shared canonical property record.
+
+Use reusable components and APIs so the same property data model is used everywhere.
+
+16. MOBILE-FIRST UX
+The agent upload and duplicate detection flow must be extremely fast and mobile-friendly.
+
+An agent should be able to:
+Upload → detect duplicate → confirm relationship → add price/photos → publish
+
+with minimal typing and no unnecessary screens.
+
+The entire experience should feel like QuickProp is helping the agent rather than creating additional administration.
+
+IMPORTANT:
+Do not over-engineer the interface. Prioritise speed, clarity, trust, duplicate prevention and ease of use.
+
+Build the database/schema, backend logic, API endpoints, frontend components and demo data required for this feature. Ensure existing QuickProp functionality is not broken.
