@@ -7,23 +7,37 @@ import { useNetworkStatus } from '@/contexts/ConnectivityContext';
 
 type BannerState = 'offline' | 'online' | null;
 
-const BANNER_HEIGHT = 40;
+export const SYNC_STATUS_BANNER_HEIGHT = 40;
 
-export function SyncStatusBanner() {
+interface SyncStatusBannerProps {
+  onVisibilityChange?: (visible: boolean) => void;
+}
+
+export function SyncStatusBanner({ onVisibilityChange }: SyncStatusBannerProps) {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const { isOnline, isOffline: networkIsOffline } = useNetworkStatus();
   const [bannerState, setBannerState] = useState<BannerState>(null);
+  const [offlineBackgroundVisible, setOfflineBackgroundVisible] = useState(true);
   const wasOffline = useRef(false);
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const translateY = useRef(new Animated.Value(BANNER_HEIGHT)).current;
+  const offlineFadeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const translateY = useRef(new Animated.Value(SYNC_STATUS_BANNER_HEIGHT)).current;
   const textOpacity = useRef(new Animated.Value(1)).current;
+  const bannerHeight = SYNC_STATUS_BANNER_HEIGHT + insets.bottom;
 
   const clearHideTimer = () => {
     if (hideTimer.current) {
       clearTimeout(hideTimer.current);
       hideTimer.current = null;
+    }
+  };
+
+  const clearOfflineFadeTimer = () => {
+    if (offlineFadeTimer.current) {
+      clearTimeout(offlineFadeTimer.current);
+      offlineFadeTimer.current = null;
     }
   };
 
@@ -52,13 +66,25 @@ export function SyncStatusBanner() {
   };
 
   useEffect(() => {
+    onVisibilityChange?.(Boolean(bannerState));
+  }, [bannerState, onVisibilityChange]);
+
+  useEffect(() => {
+    if (!bannerState) {
+      translateY.setValue(bannerHeight);
+    }
+  }, [bannerHeight, bannerState, translateY]);
+
+  useEffect(() => {
     clearHideTimer();
 
     const cloudSyncEnabled = Boolean(user?.id && /^\d+$/.test(user.id));
     if (!cloudSyncEnabled) {
       wasOffline.current = false;
+      clearOfflineFadeTimer();
+      setOfflineBackgroundVisible(true);
       translateY.stopAnimation();
-      translateY.setValue(BANNER_HEIGHT);
+      translateY.setValue(bannerHeight);
       setBannerState(null);
       return;
     }
@@ -67,7 +93,14 @@ export function SyncStatusBanner() {
       wasOffline.current = true;
       if (bannerState !== 'offline') {
         textOpacity.setValue(1);
+        setOfflineBackgroundVisible(true);
         setBannerState('offline');
+      }
+      if (!offlineFadeTimer.current) {
+        offlineFadeTimer.current = setTimeout(() => {
+          offlineFadeTimer.current = null;
+          setOfflineBackgroundVisible(false);
+        }, 5000);
       }
       slideIn();
       return;
@@ -75,10 +108,12 @@ export function SyncStatusBanner() {
 
     if (isOnline && wasOffline.current) {
       wasOffline.current = false;
+      clearOfflineFadeTimer();
+      setOfflineBackgroundVisible(true);
       swapMessage('online');
       hideTimer.current = setTimeout(() => {
         Animated.timing(translateY, {
-          toValue: BANNER_HEIGHT,
+          toValue: bannerHeight,
           duration: 260,
           useNativeDriver: true,
         }).start(({ finished }) => {
@@ -86,10 +121,11 @@ export function SyncStatusBanner() {
         });
       }, 2600);
     }
-  }, [user?.id, networkIsOffline, isOnline]);
+  }, [bannerHeight, bannerState, user?.id, networkIsOffline, isOnline]);
 
   useEffect(() => () => {
     clearHideTimer();
+    clearOfflineFadeTimer();
   }, []);
 
   if (!bannerState) return null;
@@ -105,8 +141,12 @@ export function SyncStatusBanner() {
       style={[
         styles.banner,
         {
-          bottom: 56 + insets.bottom,
-          backgroundColor: colors.info,
+          bottom: 0,
+          minHeight: bannerHeight,
+          paddingBottom: insets.bottom,
+          backgroundColor: isOfflineBanner && !offlineBackgroundVisible
+            ? 'transparent'
+            : colors.info,
           transform: [{ translateY }],
         },
       ]}
@@ -121,7 +161,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     right: 0,
-    minHeight: BANNER_HEIGHT,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 16,
