@@ -16,7 +16,7 @@ import PropertyDetail from '@/pages/property-detail';
 import PropertyBrochure from '@/pages/property-brochure';
 import BrochureCatalog from '@/pages/brochure-catalog';
 import Buyers from '@/pages/buyers';
-import BuyerRequests from '@/pages/buyer-requests';
+import Matches from '@/pages/matches';
 import Leads from '@/pages/leads';
 import Tasks from '@/pages/tasks';
 import CalendarPage from '@/pages/calendar';
@@ -93,7 +93,8 @@ function AppRouter() {
       <ProtectedBarePage path="/property/:id/brochure" component={PropertyBrochure} />
       <ProtectedRoute path="/property/:id" component={PropertyDetail} />
       <ProtectedRoute path="/buyers" component={Buyers} />
-      <ProtectedRoute path="/buyer-requests" component={BuyerRequests} />
+      <ProtectedRoute path="/matches" component={Matches} />
+      <ProtectedRoute path="/buyer-requests" component={() => <Redirect to="/matches" />} />
       <ProtectedRoute path="/leads" component={Leads} />
       <ProtectedRoute path="/tasks" component={Tasks} />
       <ProtectedRoute path="/calendar" component={CalendarPage} />

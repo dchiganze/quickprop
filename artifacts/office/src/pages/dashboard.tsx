@@ -83,7 +83,7 @@ function AttentionPanel({ items, isLoading }: { items?: AttentionItem[], isLoadi
   const getLink = (key: string) => {
     if (key === 'awaiting_photos') return '/inventory?status=draft';
     if (key === 'mandates_expiring') return '/inventory';
-    if (key === 'unmatched_requests') return '/buyer-requests';
+    if (key === 'unmatched_requests') return '/matches';
     if (key === 'leads_awaiting_response') return '/leads?stage=new';
     return '/';
   };

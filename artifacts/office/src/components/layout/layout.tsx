@@ -2,7 +2,7 @@ import React from 'react';
 import { Link, useLocation } from 'wouter';
 import { useLogout, useGetCurrentUser, useListNotifications, useMarkNotificationRead } from '@workspace/api-client-react';
 import { 
-  Building2, LayoutDashboard, Database, KanbanSquare, Users, MessageSquare, 
+  Building2, LayoutDashboard, Database, KanbanSquare, Users, MessageSquare, Handshake,
   Target, CheckSquare, Calendar, FileText, Briefcase, BarChart3, Settings, 
   ShieldAlert, UserCircle, Bell, Search, LogOut, Loader2, Sparkles, UploadCloud
 } from 'lucide-react';
@@ -139,7 +139,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <div className="space-y-1">
               <div className="px-3 text-xs font-semibold tracking-wider text-sidebar-foreground/40 uppercase mb-2">People</div>
               <NavItem href="/leads" icon={Target} label="Leads Pipeline" />
-              <NavItem href="/buyer-requests" icon={MessageSquare} label="Buyer Requests" />
+              <NavItem href="/matches" icon={Handshake} label="Matches" />
               <NavItem href="/buyers" icon={Users} label="Buyers" />
               <NavItem href="/sellers" icon={Briefcase} label="Sellers" />
             </div>

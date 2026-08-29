@@ -91,7 +91,7 @@ router.get("/dashboard/command-centre", async (_req, res): Promise<void> => {
     { key: "mandates_expiring", label: "Mandates expiring in 30 days", count: expiring, severity: expiring > 10 ? "critical" : expiring > 0 ? "warning" : "info" },
     { key: "leads_awaiting_response", label: "New leads awaiting response", count: newLeadsAwaiting, severity: newLeadsAwaiting > 10 ? "critical" : newLeadsAwaiting > 0 ? "warning" : "info" },
     { key: "awaiting_photos", label: "Listings awaiting photos", count: awaitingPhotos, severity: awaitingPhotos > 0 ? "warning" : "info" },
-    { key: "unmatched_requests", label: "Buyer requests with no match", count: unmatched, severity: unmatched > 5 ? "critical" : unmatched > 0 ? "warning" : "info" },
+    { key: "unmatched_requests", label: "Buyer demand without a match", count: unmatched, severity: unmatched > 5 ? "critical" : unmatched > 0 ? "warning" : "info" },
     { key: "missing_brochures", label: "Listings missing brochures", count: missingBrochures, severity: missingBrochures > 0 ? "warning" : "info" },
     { key: "price_review", label: "Price reductions recommended", count: priceReview, severity: priceReview > 0 ? "warning" : "info" },
     { key: "not_shared_recently", label: "Not shared in the last 14 days", count: staleShares, severity: staleShares > 0 ? "warning" : "info" },
