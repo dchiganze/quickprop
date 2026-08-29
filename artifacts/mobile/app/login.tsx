@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {
-  View, Text, TextInput, TouchableOpacity, StyleSheet,
+  View, Text, TextInput, TouchableOpacity, StyleSheet, Image,
   Platform, KeyboardAvoidingView, ScrollView, ActivityIndicator, Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -55,12 +55,13 @@ export default function LoginScreen() {
       >
         {/* Brand */}
         <View style={styles.brand}>
-          <View style={[styles.logoBox, { backgroundColor: colors.primary }]}>
-            <Ionicons name="business" size={32} color="#FFF" />
-            <View style={[styles.logoDot, { backgroundColor: colors.accent }]} />
-          </View>
-          <Text style={[styles.logoText, { color: colors.primary }]}>QuickProp</Text>
-          <Text style={[styles.logoSub, { color: colors.accent }]}>Agent</Text>
+          <Image
+            source={require('../assets/images/quickprop-agent-logo.png')}
+            style={styles.logo}
+            resizeMode="contain"
+            accessibilityRole="image"
+            accessibilityLabel="QuickProp Agent"
+          />
         </View>
 
         <Text style={[styles.heading, { color: colors.foreground }]}>Welcome back</Text>
@@ -169,11 +170,8 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   content: { paddingHorizontal: 28 },
-  brand: { alignItems: 'center', marginBottom: 32, flexDirection: 'row', justifyContent: 'center', gap: 10 },
-  logoBox: { width: 52, height: 52, borderRadius: 14, alignItems: 'center', justifyContent: 'center', position: 'relative' },
-  logoDot: { position: 'absolute', bottom: 6, right: 6, width: 10, height: 10, borderRadius: 5 },
-  logoText: { fontSize: 28, fontWeight: '900', letterSpacing: -0.5 },
-  logoSub: { fontSize: 28, fontWeight: '900', letterSpacing: -0.5, marginLeft: -4 },
+  brand: { alignItems: 'center', marginBottom: 32 },
+  logo: { width: '100%', aspectRatio: 1400 / 192 },
   heading: { fontSize: 30, fontWeight: '800', marginBottom: 6, letterSpacing: -0.5 },
   subheading: { fontSize: 15, marginBottom: 28, lineHeight: 22 },
   form: { gap: 14 },
