@@ -170,8 +170,8 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   content: { paddingHorizontal: 28 },
-  brand: { alignItems: 'center', marginBottom: 32 },
-  logo: { width: '100%', aspectRatio: 1400 / 192 },
+  brand: { width: '100%', alignItems: 'center', marginBottom: 32 },
+  logo: { width: '100%', maxWidth: 346, height: 54, alignSelf: 'center' },
   heading: { fontSize: 30, fontWeight: '800', marginBottom: 6, letterSpacing: -0.5 },
   subheading: { fontSize: 15, marginBottom: 28, lineHeight: 22 },
   form: { gap: 14 },
