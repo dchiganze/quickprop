@@ -32,3 +32,9 @@ For WhatsApp Status media on iOS, share the listing photo and copy a concise cap
 **Why:** WhatsApp's iOS share receiver can accept the image or the message but does not reliably preserve both from an external app, including dedicated sharing libraries.
 
 **How to apply:** Put the primary photo in the native share sheet, copy the Status-ready description first, and tell the agent to select WhatsApp → My Status and paste the caption.
+
+The Expo static bundle script must select an available Metro port instead of assuming 8081.
+
+**Why:** The workspace's component-preview server can occupy 8081, and Expo's non-interactive mode otherwise stops for a port-conflict prompt.
+
+**How to apply:** Keep Metro's selected port shared by health checks, bundle requests, manifest requests, and asset URL parsing.
