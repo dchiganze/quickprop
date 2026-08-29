@@ -7,7 +7,7 @@ import { useNetworkStatus } from '@/contexts/ConnectivityContext';
 
 type BannerState = 'offline' | 'online' | null;
 
-export const SYNC_STATUS_BANNER_HEIGHT = 40;
+export const SYNC_STATUS_BANNER_HEIGHT = 32;
 
 interface SyncStatusBannerProps {
   onVisibilityChange?: (visible: boolean) => void;
@@ -50,7 +50,10 @@ export function SyncStatusBanner({ onVisibilityChange }: SyncStatusBannerProps) 
     }).start();
   };
 
-  const swapMessage = (nextState: Exclude<BannerState, null>) => {
+  const swapMessage = (
+    nextState: Exclude<BannerState, null>,
+    onShown?: () => void,
+  ) => {
     Animated.timing(textOpacity, {
       toValue: 0,
       duration: 120,
@@ -61,7 +64,7 @@ export function SyncStatusBanner({ onVisibilityChange }: SyncStatusBannerProps) 
         toValue: 1,
         duration: 180,
         useNativeDriver: true,
-      }).start();
+      }).start(onShown);
     });
   };
 
@@ -110,16 +113,17 @@ export function SyncStatusBanner({ onVisibilityChange }: SyncStatusBannerProps) 
       wasOffline.current = false;
       clearOfflineFadeTimer();
       setOfflineBackgroundVisible(true);
-      swapMessage('online');
-      hideTimer.current = setTimeout(() => {
-        Animated.timing(translateY, {
-          toValue: bannerHeight,
-          duration: 260,
-          useNativeDriver: true,
-        }).start(({ finished }) => {
-          if (finished) setBannerState(null);
-        });
-      }, 2600);
+      swapMessage('online', () => {
+        hideTimer.current = setTimeout(() => {
+          Animated.timing(translateY, {
+            toValue: bannerHeight,
+            duration: 260,
+            useNativeDriver: true,
+          }).start(({ finished }) => {
+            if (finished) setBannerState(null);
+          });
+        }, 5000);
+      });
     }
   }, [bannerHeight, bannerState, user?.id, networkIsOffline, isOnline]);
 
@@ -142,16 +146,18 @@ export function SyncStatusBanner({ onVisibilityChange }: SyncStatusBannerProps) 
         styles.banner,
         {
           bottom: 0,
-          minHeight: bannerHeight,
+          height: bannerHeight,
           paddingBottom: insets.bottom,
           backgroundColor: isOfflineBanner && !offlineBackgroundVisible
-            ? 'transparent'
+            ? colors.background
             : colors.info,
           transform: [{ translateY }],
         },
       ]}
     >
-      <Animated.Text style={[styles.text, { opacity: textOpacity }]}>{label}</Animated.Text>
+      <Animated.Text style={[styles.text, { color: colors.statusText, opacity: textOpacity }]}>
+        {label}
+      </Animated.Text>
     </Animated.View>
   );
 }
@@ -164,12 +170,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingVertical: 0,
     zIndex: 100,
     elevation: 10,
   },
   text: {
-    color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '600',
   },
