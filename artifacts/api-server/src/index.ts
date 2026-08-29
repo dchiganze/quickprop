@@ -2,6 +2,7 @@ import app from "./app";
 import { logger } from "./lib/logger";
 import { startHousekeepingScheduler } from "./lib/housekeeping-job";
 import { startImportRecoveryWorker } from "./routes/imports";
+import { ensureDemoAccounts } from "./lib/demo-accounts";
 
 const rawPort = process.env["PORT"];
 
@@ -17,13 +18,22 @@ if (Number.isNaN(port) || port <= 0) {
   throw new Error(`Invalid PORT value: "${rawPort}"`);
 }
 
-app.listen(port, (err) => {
-  if (err) {
-    logger.error({ err }, "Error listening on port");
-    process.exit(1);
-  }
+async function startServer(): Promise<void> {
+  await ensureDemoAccounts();
 
-  logger.info({ port }, "Server listening");
-  startHousekeepingScheduler();
-  startImportRecoveryWorker();
+  app.listen(port, (err) => {
+    if (err) {
+      logger.error({ err }, "Error listening on port");
+      process.exit(1);
+    }
+
+    logger.info({ port }, "Server listening");
+    startHousekeepingScheduler();
+    startImportRecoveryWorker();
+  });
+}
+
+startServer().catch((err) => {
+  logger.error({ err }, "Unable to prepare server startup");
+  process.exit(1);
 });
