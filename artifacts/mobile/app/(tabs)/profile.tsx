@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, Alert,
-  Modal, TextInput, Switch, Linking, Pressable, Appearance, ActivityIndicator,
+  Modal, TextInput, Switch, Linking, Pressable, Appearance, ActivityIndicator, KeyboardAvoidingView,
 } from 'react-native';
 import { CatalogueBrochureSheet } from '@/components/BrochureSheet';
 import { ShareHubSheet } from '@/components/ShareHubSheet';
@@ -473,51 +473,57 @@ export default function ProfileScreen() {
       />
 
       <Modal visible={deleteOpen} animationType="slide" transparent onRequestClose={() => !deletingAccount && setDeleteOpen(false)} statusBarTranslucent>
-        <Pressable style={em.backdrop} onPress={() => !deletingAccount && setDeleteOpen(false)}>
-          <Pressable style={[em.sheet, { backgroundColor: colors.card }]} onPress={() => {}}>
-            <View style={[em.handle, { backgroundColor: colors.border }]} />
-            <View style={em.headerRow}>
-              <Text style={[em.title, { color: colors.destructive }]}>Delete Account</Text>
-              <TouchableOpacity disabled={deletingAccount} onPress={() => setDeleteOpen(false)} style={[em.closeBtn, { backgroundColor: colors.muted }]}>
-                <Ionicons name="close" size={18} color={colors.mutedForeground} />
+        <KeyboardAvoidingView
+          style={styles.modalKeyboard}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={0}
+        >
+          <Pressable style={em.backdrop} onPress={() => !deletingAccount && setDeleteOpen(false)}>
+            <Pressable style={[em.sheet, { backgroundColor: colors.card }]} onPress={() => {}}>
+              <View style={[em.handle, { backgroundColor: colors.border }]} />
+              <View style={em.headerRow}>
+                <Text style={[em.title, { color: colors.destructive }]}>Delete Account</Text>
+                <TouchableOpacity disabled={deletingAccount} onPress={() => setDeleteOpen(false)} style={[em.closeBtn, { backgroundColor: colors.muted }]}>
+                  <Ionicons name="close" size={18} color={colors.mutedForeground} />
+                </TouchableOpacity>
+              </View>
+              <Text style={[styles.deleteWarning, { color: colors.foreground }]}>
+                This is permanent. Your account, listings, leads, tasks, and associated data will be deleted and cannot be recovered.
+              </Text>
+              <Text style={[em.fieldLabel, { color: colors.mutedForeground }]}>TYPE DELETE TO CONFIRM</Text>
+              <TextInput
+                style={[em.input, { color: colors.foreground, backgroundColor: colors.muted, borderColor: colors.border }]}
+                value={deleteConfirmation}
+                onChangeText={setDeleteConfirmation}
+                autoCapitalize="characters"
+                autoCorrect={false}
+                editable={!deletingAccount}
+                placeholder="DELETE"
+                placeholderTextColor={colors.mutedForeground}
+              />
+              <Text style={[em.fieldLabel, { color: colors.mutedForeground, marginTop: 16 }]}>CURRENT PASSWORD</Text>
+              <TextInput
+                style={[em.input, { color: colors.foreground, backgroundColor: colors.muted, borderColor: colors.border }]}
+                value={deletePassword}
+                onChangeText={setDeletePassword}
+                secureTextEntry
+                autoCapitalize="none"
+                autoCorrect={false}
+                editable={!deletingAccount}
+                placeholder="Enter current password"
+                placeholderTextColor={colors.mutedForeground}
+              />
+              <TouchableOpacity
+                style={[em.saveBtn, { backgroundColor: deletingAccount ? colors.muted : colors.destructive, marginTop: 20 }]}
+                onPress={handleDeleteAccount}
+                disabled={deletingAccount}
+                activeOpacity={0.85}
+              >
+                {deletingAccount ? <ActivityIndicator color="#FFF" /> : <Text style={em.saveBtnText}>Permanently Delete Account</Text>}
               </TouchableOpacity>
-            </View>
-            <Text style={[styles.deleteWarning, { color: colors.foreground }]}>
-              This is permanent. Your account, listings, leads, tasks, and associated data will be deleted and cannot be recovered.
-            </Text>
-            <Text style={[em.fieldLabel, { color: colors.mutedForeground }]}>TYPE DELETE TO CONFIRM</Text>
-            <TextInput
-              style={[em.input, { color: colors.foreground, backgroundColor: colors.muted, borderColor: colors.border }]}
-              value={deleteConfirmation}
-              onChangeText={setDeleteConfirmation}
-              autoCapitalize="characters"
-              autoCorrect={false}
-              editable={!deletingAccount}
-              placeholder="DELETE"
-              placeholderTextColor={colors.mutedForeground}
-            />
-            <Text style={[em.fieldLabel, { color: colors.mutedForeground, marginTop: 16 }]}>CURRENT PASSWORD</Text>
-            <TextInput
-              style={[em.input, { color: colors.foreground, backgroundColor: colors.muted, borderColor: colors.border }]}
-              value={deletePassword}
-              onChangeText={setDeletePassword}
-              secureTextEntry
-              autoCapitalize="none"
-              autoCorrect={false}
-              editable={!deletingAccount}
-              placeholder="Enter current password"
-              placeholderTextColor={colors.mutedForeground}
-            />
-            <TouchableOpacity
-              style={[em.saveBtn, { backgroundColor: deletingAccount ? colors.muted : colors.destructive, marginTop: 20 }]}
-              onPress={handleDeleteAccount}
-              disabled={deletingAccount}
-              activeOpacity={0.85}
-            >
-              {deletingAccount ? <ActivityIndicator color="#FFF" /> : <Text style={em.saveBtnText}>Permanently Delete Account</Text>}
-            </TouchableOpacity>
+            </Pressable>
           </Pressable>
-        </Pressable>
+        </KeyboardAvoidingView>
       </Modal>
     </ScrollView>
   );
@@ -525,6 +531,7 @@ export default function ProfileScreen() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
+  modalKeyboard: { flex: 1 },
   headerPad: { paddingHorizontal: 16, marginBottom: 16 },
   agentCard: {
     borderRadius: 20, padding: 24, alignItems: 'center', gap: 4,
