@@ -11,7 +11,10 @@ import { router, useLocalSearchParams } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useColors } from '@/hooks/useColors';
 import { propertyShareLinks } from '@/utils/shareLinks';
-import { openWhatsAppMessage, shareListingPhotoToWhatsAppStatus } from '@/utils/whatsapp';
+import {
+  shareListingPhotoToWhatsAppStatus,
+  shareListingPhotoWithCaption,
+} from '@/utils/whatsapp';
 import { getPrimaryListingPhoto } from '@/utils/listingPhoto';
 import { useData } from '@/contexts/DataContext';
 import { Property } from '@/types';
@@ -188,10 +191,19 @@ export default function ListingDetailScreen() {
             }),
         },
         {
-          text: 'WhatsApp message',
-          onPress: () => openWhatsAppMessage(message).catch(() => {
-            Alert.alert('WhatsApp not found', 'WhatsApp is not installed. Use "Share…" instead.');
-          }),
+          text: 'WhatsApp chat (photo + description)',
+          onPress: () => shareListingPhotoWithCaption(property, 'chat')
+            .then((result) => {
+              Alert.alert(
+                result.sharedPhoto ? 'Photo ready to share' : 'Caption copied',
+                result.sharedPhoto
+                  ? 'Choose WhatsApp in the share sheet, select a contact, then paste the copied caption underneath the photo.'
+                  : 'Paste the copied caption into your WhatsApp chat.'
+              );
+            })
+            .catch((error: unknown) => {
+              Alert.alert('Could not share photo', error instanceof Error ? error.message : 'Please try again.');
+            }),
         },
         {
           text: 'Share…',

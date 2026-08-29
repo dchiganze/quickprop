@@ -10,7 +10,11 @@ import { useData } from '@/contexts/DataContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Property } from '@/types';
 import { catalogueShareLinks, propertyShareLinks } from '@/utils/shareLinks';
-import { openWhatsAppMessage, shareListingPhotoToWhatsAppStatus } from '@/utils/whatsapp';
+import {
+  openWhatsAppMessage,
+  shareListingPhotoWithCaption,
+  type WhatsAppPhotoShareDestination,
+} from '@/utils/whatsapp';
 
 type Step = 'hub' | 'property-select' | 'property-share' | 'catalogue-share';
 type CatalogMode = 'agent' | 'company';
@@ -124,15 +128,20 @@ export function ShareHubSheet({ visible, onClose }: Props) {
   };
 
   // ── Property share actions ─────────────────────────────────────────────────
-  const sharePropertyWhatsApp = useCallback(async (p: Property) => {
+  const sharePropertyWhatsApp = useCallback(async (
+    p: Property,
+    destination: WhatsAppPhotoShareDestination,
+  ) => {
     setSharing(true);
     try {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      const result = await shareListingPhotoToWhatsAppStatus(p);
+      const result = await shareListingPhotoWithCaption(p, destination);
       Alert.alert(
-        result.sharedPhoto ? 'Status caption copied' : 'Caption copied',
+        result.sharedPhoto ? 'Photo ready to share' : 'Caption copied',
         result.sharedPhoto
-          ? 'Choose WhatsApp in the share sheet, select My Status, then paste the caption into the status field.'
+          ? destination === 'status'
+            ? 'Choose WhatsApp in the share sheet, select My Status, then paste the copied caption underneath the photo.'
+            : 'Choose WhatsApp in the share sheet, select a contact, then paste the copied caption underneath the photo.'
           : 'Paste the copied caption into your WhatsApp Status.'
       );
       handleClose();
@@ -323,7 +332,7 @@ export function ShareHubSheet({ visible, onClose }: Props) {
 
         <TouchableOpacity
           style={[s.shareBtn, { backgroundColor: '#25D366' + '14', borderColor: '#25D366' + '40' }]}
-          onPress={() => sharePropertyWhatsApp(p)}
+          onPress={() => sharePropertyWhatsApp(p, 'status')}
           disabled={sharing}
           activeOpacity={0.75}
         >
@@ -333,6 +342,22 @@ export function ShareHubSheet({ visible, onClose }: Props) {
           <View style={s.shareBtnText}>
             <Text style={[s.shareBtnLabel, { color: colors.foreground }]}>WhatsApp Status</Text>
             <Text style={[s.shareBtnSub, { color: colors.mutedForeground }]}>Share main photo + copy caption</Text>
+          </View>
+          {sharing ? <ActivityIndicator color={colors.primary} /> : <Ionicons name="chevron-forward" size={16} color={colors.mutedForeground} />}
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[s.shareBtn, { backgroundColor: '#25D366' + '14', borderColor: '#25D366' + '40' }]}
+          onPress={() => sharePropertyWhatsApp(p, 'chat')}
+          disabled={sharing}
+          activeOpacity={0.75}
+        >
+          <View style={[s.shareBtnIcon, { backgroundColor: '#25D366' }]}>
+            <Ionicons name="chatbubble-ellipses-outline" size={22} color="#FFF" />
+          </View>
+          <View style={s.shareBtnText}>
+            <Text style={[s.shareBtnLabel, { color: colors.foreground }]}>WhatsApp Chat</Text>
+            <Text style={[s.shareBtnSub, { color: colors.mutedForeground }]}>Share photo + paste description</Text>
           </View>
           {sharing ? <ActivityIndicator color={colors.primary} /> : <Ionicons name="chevron-forward" size={16} color={colors.mutedForeground} />}
         </TouchableOpacity>

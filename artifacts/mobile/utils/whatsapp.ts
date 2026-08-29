@@ -89,7 +89,12 @@ async function getShareablePhotoUri(uri: string): Promise<string> {
   return download.uri;
 }
 
-export async function shareListingPhotoToWhatsAppStatus(property: Property): Promise<{ caption: string; sharedPhoto: boolean }> {
+export type WhatsAppPhotoShareDestination = 'status' | 'chat';
+
+export async function shareListingPhotoWithCaption(
+  property: Property,
+  destination: WhatsAppPhotoShareDestination = 'status',
+): Promise<{ caption: string; sharedPhoto: boolean }> {
   const caption = buildWhatsAppStatusCaption(property);
   await Clipboard.setStringAsync(caption);
 
@@ -109,10 +114,16 @@ export async function shareListingPhotoToWhatsAppStatus(property: Property): Pro
 
   const localPhotoUri = await getShareablePhotoUri(photoUri);
   await Sharing.shareAsync(localPhotoUri, {
-    dialogTitle: 'Share property photo to WhatsApp',
+    dialogTitle: destination === 'status'
+      ? 'Share property photo to WhatsApp Status'
+      : 'Share property photo to WhatsApp chat',
     mimeType: getShareMimeType(localPhotoUri),
     UTI: getShareMimeType(localPhotoUri) === 'image/png' ? 'public.png' : 'public.jpeg',
   });
 
   return { caption, sharedPhoto: true };
+}
+
+export function shareListingPhotoToWhatsAppStatus(property: Property) {
+  return shareListingPhotoWithCaption(property, 'status');
 }
