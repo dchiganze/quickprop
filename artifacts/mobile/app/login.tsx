@@ -148,10 +148,10 @@ export default function LoginScreen() {
           )}
           <TouchableOpacity
             style={[styles.socialBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
-            onPress={() => handleSocial('biometric')}
+            onPress={handleLogin}
           >
-            <Ionicons name="finger-print-outline" size={22} color={colors.primary} />
-            <Text style={[styles.socialText, { color: colors.foreground }]}>Biometric</Text>
+            <Ionicons name="mail-outline" size={22} color={colors.primary} />
+            <Text style={[styles.socialText, { color: colors.foreground }]}>Email</Text>
           </TouchableOpacity>
         </View>
 
