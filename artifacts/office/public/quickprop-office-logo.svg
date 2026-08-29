@@ -1,0 +1,6 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <title>QuickProp Office</title>
+  <rect width="512" height="512" rx="68" fill="#009966"/>
+  <path d="M142 372V220L256 130L370 220V372H142Z" stroke="#FDFEFE" stroke-width="28" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M214 372V234H298V372" stroke="#FDFEFE" stroke-width="28" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

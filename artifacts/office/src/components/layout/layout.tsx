@@ -2,7 +2,7 @@ import React from 'react';
 import { Link, useLocation } from 'wouter';
 import { useLogout, useGetCurrentUser, useListNotifications, useMarkNotificationRead } from '@workspace/api-client-react';
 import { 
-  Building2, LayoutDashboard, Database, KanbanSquare, Users, MessageSquare, Handshake,
+  LayoutDashboard, Database, KanbanSquare, Users, Handshake,
   Target, CheckSquare, Calendar, FileText, Briefcase, BarChart3, Settings, 
   ShieldAlert, UserCircle, Bell, Search, LogOut, Loader2, Sparkles, UploadCloud
 } from 'lucide-react';
@@ -114,9 +114,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
       {/* Sidebar */}
       <aside className="w-64 bg-sidebar flex-shrink-0 flex flex-col border-r border-sidebar-border shadow-xl z-20">
         <div className="h-16 flex items-center px-6 border-b border-sidebar-border gap-3">
-          <div className="w-8 h-8 rounded bg-primary flex items-center justify-center shadow-sm">
-            <Building2 className="w-5 h-5 text-primary-foreground" />
-          </div>
+           <img
+             src={`${import.meta.env.BASE_URL}quickprop-office-logo.svg`}
+             alt=""
+             className="h-8 w-8 rounded object-cover shadow-sm"
+           />
           <span className="font-bold text-sidebar-foreground tracking-tight">QuickProp Office</span>
         </div>
 

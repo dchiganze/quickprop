@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useLocation } from 'wouter';
-import { Building2, ArrowRight, Loader2, Info } from 'lucide-react';
+import { ArrowRight, Loader2, Info } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -50,9 +50,11 @@ export default function Login() {
         <div className="absolute -bottom-32 -right-32 w-96 h-96 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20"></div>
 
         <div className="relative z-10 flex items-center gap-3">
-          <div className="w-10 h-10 rounded bg-primary flex items-center justify-center shadow-lg shadow-primary/20">
-            <Building2 className="w-6 h-6 text-primary-foreground" />
-          </div>
+           <img
+             src={`${import.meta.env.BASE_URL}quickprop-office-logo.svg`}
+             alt=""
+             className="h-10 w-10 rounded object-cover shadow-lg shadow-primary/20"
+           />
           <span className="text-2xl font-bold tracking-tight">QuickProp Office</span>
         </div>
 
