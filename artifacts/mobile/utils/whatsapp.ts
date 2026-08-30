@@ -100,17 +100,7 @@ export async function sharePropertyToWhatsApp(
 export type PropertySocialDestination = 'facebook' | 'instagram' | 'linkedin' | 'tiktok';
 
 function buildSocialCaption(property: Property): string {
-  const typeLabel = property.type === 'sale' ? 'For Sale' : property.type === 'rent' ? 'To Rent' : property.type;
-  const price = property.price > 0
-    ? `${property.currency} ${property.price.toLocaleString()}${property.type === 'rent' ? '/month' : ''}`
-    : '';
-  const details = [
-    `${typeLabel} — ${property.suburb}`,
-    price,
-    property.bedrooms ? `${property.bedrooms} bed` : '',
-    property.bathrooms ? `${property.bathrooms} bath` : '',
-  ].filter(Boolean);
-  return `${details.join(' · ')}\n${propertyShareLinks(property).webUrl}`;
+  return buildWhatsAppCatalogueCaption(catalogueShareLinks(property.agentId).webUrl);
 }
 
 export async function sharePropertyToSocial(
@@ -123,8 +113,8 @@ export async function sharePropertyToSocial(
     return;
   }
 
-  const cardUri = await captureCard();
   const caption = buildSocialCaption(property);
+  await Clipboard.setStringAsync(caption).catch(() => {});
 
   if (Platform.OS === 'web') {
     if (destination === 'facebook') {
@@ -138,6 +128,8 @@ export async function sharePropertyToSocial(
     await Share.share({ message: caption });
     return;
   }
+
+  const cardUri = await captureCard();
 
   try {
     const { default: NativeShare } = await import('react-native-share');
@@ -175,13 +167,15 @@ export async function sharePropertyGeneric(
   property: Property,
   captureCard: () => Promise<string>,
 ): Promise<void> {
-  const cardUri = await captureCard();
   const caption = buildSocialCaption(property);
+  await Clipboard.setStringAsync(caption).catch(() => {});
 
   if (Platform.OS === 'web') {
     await Share.share({ message: caption });
     return;
   }
+
+  const cardUri = await captureCard();
 
   try {
     const { default: NativeShare } = await import('react-native-share');
