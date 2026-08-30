@@ -98,6 +98,10 @@
       "expo-local-authentication",
       "expo-apple-authentication",
       [
+        "react-native-share",
+        {}
+      ],
+      [
         "expo-calendar",
         {
           "calendarPermission": "QuickProp Agent adds confirmed tasks and property viewings to your calendar."

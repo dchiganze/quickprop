@@ -58,6 +58,7 @@
     "@react-native-community/netinfo": "11.4.1",
     "@sentry/react-native": "^7.2.0",
     "expo-apple-authentication": "~8.0.8",
+    "expo-build-properties": "1.0.10",
     "expo-calendar": "15.0.8",
     "expo-clipboard": "~8.0.8",
     "expo-file-system": "~19.0.24",
@@ -69,6 +70,8 @@
     "expo-video": "~3.0.16",
     "react": "19.1.0",
     "react-native": "0.81.5",
-    "react-native-reanimated": "~3.19.1"
+    "react-native-reanimated": "~3.19.1",
+    "react-native-share": "^12.3.1",
+    "react-native-view-shot": "^4.0.3"
   }
 }

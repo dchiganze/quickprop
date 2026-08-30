@@ -38,3 +38,9 @@ The Expo static bundle script must select an available Metro port instead of ass
 **Why:** The workspace's component-preview server can occupy 8081, and Expo's non-interactive mode otherwise stops for a port-conflict prompt.
 
 **How to apply:** Keep Metro's selected port shared by health checks, bundle requests, manifest requests, and asset URL parsing.
+
+When using react-native-share with Expo, include its config plugin with an explicit options object and add the Expo build-properties package at the SDK-compatible version.
+
+**Why:** The plugin can fail Expo startup when its options argument is omitted, and it imports expo-build-properties even when no extra share targets are configured.
+
+**How to apply:** Keep the plugin entry as a two-item array with `{}` (or explicit target options), and align expo-build-properties with Expo's expected version before restarting Metro.

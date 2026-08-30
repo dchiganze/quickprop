@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
-  View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, Alert, Share, Linking, Image, Modal,
+  View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, Alert, Share, Linking, Image, Modal, ActivityIndicator,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { VideoView, useVideoPlayer } from 'expo-video';
@@ -10,12 +10,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useColors } from '@/hooks/useColors';
-import { propertyShareLinks } from '@/utils/shareLinks';
+import { catalogueShareLinks, propertyShareLinks } from '@/utils/shareLinks';
 import {
-  shareListingPhotoToWhatsAppStatus,
-  shareListingPhotoWithCaption,
+  sharePropertyToWhatsApp,
 } from '@/utils/whatsapp';
 import { getPrimaryListingPhoto } from '@/utils/listingPhoto';
+import { SharePropertyCard, SharePropertyCardHandle } from '@/components/SharePropertyCard';
 import { useData } from '@/contexts/DataContext';
 import { Property } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
@@ -73,6 +73,8 @@ export default function ListingDetailScreen() {
   });
   const [brochureOpen, setBrochureOpen] = useState(false);
   const [videoPlayerVisible, setVideoPlayerVisible] = useState(false);
+  const [sharingToWhatsApp, setSharingToWhatsApp] = useState(false);
+  const shareCardRef = useRef<SharePropertyCardHandle>(null);
 
   const handleAddAgency = async () => {
     if (!multiAgent || !user || !property) return;
@@ -168,50 +170,24 @@ export default function ListingDetailScreen() {
   };
 
   const handleShare = async () => {
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    const message = buildShareMessage();
-
-    Alert.alert(
-      'Share Property',
-      'How would you like to share this listing?',
-      [
-        {
-          text: 'WhatsApp Status',
-          onPress: () => shareListingPhotoToWhatsAppStatus(property)
-            .then((result) => {
-              Alert.alert(
-                result.sharedPhoto ? 'Status caption copied' : 'Caption copied',
-                result.sharedPhoto
-                  ? 'Choose WhatsApp in the share sheet, select My Status, then paste the caption into the status field.'
-                  : 'Paste the copied caption into your WhatsApp Status.'
-              );
-            })
-            .catch((error: unknown) => {
-              Alert.alert('Could not share photo', error instanceof Error ? error.message : 'Please try again.');
-            }),
-        },
-        {
-          text: 'WhatsApp chat (photo + description)',
-          onPress: () => shareListingPhotoWithCaption(property, 'chat')
-            .then((result) => {
-              Alert.alert(
-                result.sharedPhoto ? 'Photo ready to share' : 'Caption copied',
-                result.sharedPhoto
-                  ? 'Choose WhatsApp in the share sheet, select a contact, then paste the copied caption underneath the photo.'
-                  : 'Paste the copied caption into your WhatsApp chat.'
-              );
-            })
-            .catch((error: unknown) => {
-              Alert.alert('Could not share photo', error instanceof Error ? error.message : 'Please try again.');
-            }),
-        },
-        {
-          text: 'Share…',
-          onPress: () => Share.share({ title: `${property.referenceNumber} — ${property.suburb}`, message }),
-        },
-        { text: 'Cancel', style: 'cancel' },
-      ]
-    );
+    if (sharingToWhatsApp) return;
+    setSharingToWhatsApp(true);
+    try {
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      await sharePropertyToWhatsApp(
+        property,
+        user?.id ?? property.agentId,
+        () => shareCardRef.current?.capture()
+          ?? Promise.reject(new Error('Unable to prepare the property image.')),
+      );
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message.toLowerCase() : '';
+      if (!message.includes('cancel') && !message.includes('dismiss')) {
+        Alert.alert('Could not share property', 'Unable to prepare the property. Please try again.');
+      }
+    } finally {
+      setSharingToWhatsApp(false);
+    }
   };
 
   const handleAddMedia = () => {
@@ -303,6 +279,13 @@ export default function ListingDetailScreen() {
 
   return (
     <View style={[styles.flex, { backgroundColor: colors.background }]}>
+      <View style={styles.shareCardHost} pointerEvents="none">
+        <SharePropertyCard
+          ref={shareCardRef}
+          property={property}
+          catalogueUrl={catalogueShareLinks(user?.id ?? property.agentId).webUrl}
+        />
+      </View>
       {videoPlayerVisible && property.videoUrl && (
         <VideoPlayerModal uri={property.videoUrl} onClose={() => setVideoPlayerVisible(false)} />
       )}
@@ -313,8 +296,14 @@ export default function ListingDetailScreen() {
         </TouchableOpacity>
         <Text style={[styles.topRef, { color: colors.mutedForeground }]}>{property.referenceNumber}</Text>
         <View style={styles.topActions}>
-          <TouchableOpacity style={[styles.iconBtn, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={handleShare}>
-            <Ionicons name="share-outline" size={20} color={colors.foreground} />
+          <TouchableOpacity
+            style={[styles.iconBtn, { backgroundColor: '#25D366', borderColor: '#25D366' }]}
+            onPress={handleShare}
+            disabled={sharingToWhatsApp}
+          >
+            {sharingToWhatsApp
+              ? <ActivityIndicator size="small" color="#FFF" />
+              : <Ionicons name="logo-whatsapp" size={20} color="#FFF" />}
           </TouchableOpacity>
           <TouchableOpacity style={[styles.iconBtn, { backgroundColor: colors.primary }]} onPress={() => router.push(`/edit-listing/${property.id}`)}>
             <Ionicons name="create-outline" size={20} color="#FFF" />
@@ -606,9 +595,17 @@ export default function ListingDetailScreen() {
 
       {/* Bottom actions */}
       <View style={[styles.bottomBar, { backgroundColor: colors.card, borderTopColor: colors.border, paddingBottom: insets.bottom + 8 }]}>
-        <TouchableOpacity style={[styles.bottomBtn, { backgroundColor: colors.secondary }]} onPress={handleShare}>
-          <Ionicons name="share-outline" size={18} color={colors.primary} />
-          <Text style={[styles.bottomBtnText, { color: colors.primary }]}>Share</Text>
+        <TouchableOpacity
+          style={[styles.bottomBtn, { backgroundColor: '#25D366' }]}
+          onPress={handleShare}
+          disabled={sharingToWhatsApp}
+        >
+          {sharingToWhatsApp
+            ? <ActivityIndicator size="small" color="#FFF" />
+            : <Ionicons name="logo-whatsapp" size={18} color="#FFF" />}
+          <Text style={[styles.bottomBtnText, { color: '#FFF' }]}>
+            {sharingToWhatsApp ? 'Preparing…' : 'WhatsApp'}
+          </Text>
         </TouchableOpacity>
         <TouchableOpacity style={[styles.bottomBtn, { backgroundColor: colors.secondary }]} onPress={async () => {
           await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -706,6 +703,7 @@ const styles = StyleSheet.create({
   infoLabel: { fontSize: 11, fontWeight: '600' },
   infoValue: { fontSize: 14, fontWeight: '700' },
   videoPlayOverlay: { position: 'absolute' },
+  shareCardHost: { position: 'absolute', left: -1000, top: 0, width: 360, height: 450 },
   bottomBar: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingTop: 12, borderTopWidth: 1 },
   bottomBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, borderRadius: 12, paddingVertical: 11 },
   bottomBtnText: { fontSize: 13, fontWeight: '600' },

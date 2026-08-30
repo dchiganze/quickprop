@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import {
   View, Text, Modal, TouchableOpacity, StyleSheet, Share, Linking,
   ScrollView, Platform, Pressable, ActivityIndicator, Alert,
@@ -12,9 +12,9 @@ import { Property } from '@/types';
 import { catalogueShareLinks, propertyShareLinks } from '@/utils/shareLinks';
 import {
   openWhatsAppMessage,
-  shareListingPhotoWithCaption,
-  type WhatsAppPhotoShareDestination,
+  sharePropertyToWhatsApp,
 } from '@/utils/whatsapp';
+import { SharePropertyCard, SharePropertyCardHandle } from '@/components/SharePropertyCard';
 
 type Step = 'hub' | 'property-select' | 'property-share' | 'catalogue-share';
 type CatalogMode = 'agent' | 'company';
@@ -111,6 +111,7 @@ export function ShareHubSheet({ visible, onClose }: Props) {
   const [catalogMode, setCatalogMode] = useState<CatalogMode>('agent');
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
   const [sharing, setSharing] = useState(false);
+  const shareCardRef = useRef<SharePropertyCardHandle>(null);
 
   const myProps = properties.filter(p => p.agentId === user?.id && p.status === 'published');
   const allProps = properties.filter(p => p.status === 'published');
@@ -128,29 +129,26 @@ export function ShareHubSheet({ visible, onClose }: Props) {
   };
 
   // ── Property share actions ─────────────────────────────────────────────────
-  const sharePropertyWhatsApp = useCallback(async (
-    p: Property,
-    destination: WhatsAppPhotoShareDestination,
-  ) => {
+  const sharePropertyWhatsApp = useCallback(async (p: Property) => {
     setSharing(true);
     try {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      const result = await shareListingPhotoWithCaption(p, destination);
-      Alert.alert(
-        result.sharedPhoto ? 'Photo ready to share' : 'Caption copied',
-        result.sharedPhoto
-          ? destination === 'status'
-            ? 'Choose WhatsApp in the share sheet, select My Status, then paste the copied caption underneath the photo.'
-            : 'Choose WhatsApp in the share sheet, select a contact, then paste the copied caption underneath the photo.'
-          : 'Paste the copied caption into your WhatsApp Status.'
+      await sharePropertyToWhatsApp(
+        p,
+        user?.id ?? p.agentId,
+        () => shareCardRef.current?.capture()
+          ?? Promise.reject(new Error('Unable to prepare the property image.')),
       );
       handleClose();
     } catch (e: unknown) {
-      Alert.alert('Could not share listing', e instanceof Error ? e.message : 'Please try another sharing option.');
+      const message = e instanceof Error ? e.message : '';
+      if (!message.toLowerCase().includes('cancel') && !message.toLowerCase().includes('dismiss')) {
+        Alert.alert('Could not share listing', 'Unable to prepare the property. Please try again.');
+      }
     } finally {
       setSharing(false);
     }
-  }, []);
+  }, [user?.id]);
 
   const sharePropertyNative = useCallback(async (p: Property) => {
     setSharing(true);
@@ -332,23 +330,7 @@ export function ShareHubSheet({ visible, onClose }: Props) {
 
         <TouchableOpacity
           style={[s.shareBtn, { backgroundColor: '#25D366' + '14', borderColor: '#25D366' + '40' }]}
-          onPress={() => sharePropertyWhatsApp(p, 'status')}
-          disabled={sharing}
-          activeOpacity={0.75}
-        >
-          <View style={[s.shareBtnIcon, { backgroundColor: '#25D366' }]}>
-            <Ionicons name="logo-whatsapp" size={22} color="#FFF" />
-          </View>
-          <View style={s.shareBtnText}>
-            <Text style={[s.shareBtnLabel, { color: colors.foreground }]}>WhatsApp Status</Text>
-            <Text style={[s.shareBtnSub, { color: colors.mutedForeground }]}>Share main photo + copy caption</Text>
-          </View>
-          {sharing ? <ActivityIndicator color={colors.primary} /> : <Ionicons name="chevron-forward" size={16} color={colors.mutedForeground} />}
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[s.shareBtn, { backgroundColor: '#25D366' + '14', borderColor: '#25D366' + '40' }]}
-          onPress={() => sharePropertyWhatsApp(p, 'chat')}
+           onPress={() => sharePropertyWhatsApp(p)}
           disabled={sharing}
           activeOpacity={0.75}
         >
@@ -356,8 +338,8 @@ export function ShareHubSheet({ visible, onClose }: Props) {
             <Ionicons name="chatbubble-ellipses-outline" size={22} color="#FFF" />
           </View>
           <View style={s.shareBtnText}>
-            <Text style={[s.shareBtnLabel, { color: colors.foreground }]}>WhatsApp Chat</Text>
-            <Text style={[s.shareBtnSub, { color: colors.mutedForeground }]}>Share photo + paste description</Text>
+             <Text style={[s.shareBtnLabel, { color: colors.foreground }]}>Share to WhatsApp</Text>
+             <Text style={[s.shareBtnSub, { color: colors.mutedForeground }]}>Property image + catalogue link</Text>
           </View>
           {sharing ? <ActivityIndicator color={colors.primary} /> : <Ionicons name="chevron-forward" size={16} color={colors.mutedForeground} />}
         </TouchableOpacity>
@@ -493,6 +475,16 @@ export function ShareHubSheet({ visible, onClose }: Props) {
     >
       <Pressable style={s.backdrop} onPress={handleClose}>
         <Pressable style={[s.sheet, { backgroundColor: colors.card }]} onPress={() => {}}>
+          {selectedProperty && (
+            <View style={s.shareCardHost} pointerEvents="none">
+              <SharePropertyCard
+                key={selectedProperty.id}
+                ref={shareCardRef}
+                property={selectedProperty}
+                catalogueUrl={catalogueShareLinks(user?.id ?? selectedProperty.agentId).webUrl}
+              />
+            </View>
+          )}
           {/* Handle */}
           <View style={[s.handle, { backgroundColor: colors.border }]} />
 
@@ -525,6 +517,7 @@ export function ShareHubSheet({ visible, onClose }: Props) {
 
 const s = StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  shareCardHost: { position: 'absolute', left: -1000, top: 0, width: 360, height: 450 },
   sheet: {
     borderTopLeftRadius: 26, borderTopRightRadius: 26,
     paddingHorizontal: 20, paddingBottom: Platform.OS === 'ios' ? 44 : 28, paddingTop: 12,

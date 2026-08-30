@@ -1,10 +1,9 @@
 import { Linking, Platform, Share } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
-import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import { Property } from '@/types';
-import { getPrimaryListingPhoto } from '@/utils/listingPhoto';
-import { propertyShareLinks } from '@/utils/shareLinks';
+import { shareProperty } from '@workspace/api-client-react';
+import { catalogueShareLinks } from '@/utils/shareLinks';
 
 /**
  * Share a prefilled text message to WhatsApp.
@@ -40,62 +39,27 @@ export async function openWhatsAppMessage(message: string): Promise<void> {
   await Share.share({ message });
 }
 
-function formatPrice(property: Property): string {
-  const value = property.price >= 1_000_000
-    ? `${property.currency} ${(property.price / 1_000_000).toFixed(1)}M`
-    : `${property.currency} ${property.price.toLocaleString()}`;
-  return property.type === 'rent' ? `${value}/month` : value;
+export function buildWhatsAppCatalogueCaption(catalogueUrl: string): string {
+  return `view my whole catalogue here: ${catalogueUrl}`;
 }
 
-export function buildWhatsAppStatusCaption(property: Property): string {
-  const homeLabel = property.bedrooms
-    ? `${property.bedrooms}-bed ${property.type === 'rent' ? 'rental' : 'home'}`
-    : property.type === 'rent' ? 'Rental property' : 'Property for sale';
-  const description = property.description?.replace(/\s+/g, ' ').trim();
-  const shortDescription = description
-    ? description.slice(0, 160) + (description.length > 160 ? '…' : '')
-    : '';
-  const links = propertyShareLinks(property);
-
-  return [
-    `🏠 ${homeLabel} in ${property.suburb}`,
-    `💰 ${formatPrice(property)}${property.negotiable ? ' · Negotiable' : ''}`,
-    shortDescription,
-    `View details: ${links.webUrl}`,
-  ].filter(Boolean).join('\n');
-}
-
-function getShareMimeType(uri: string): string {
-  const path = uri.split(/[?#]/)[0].toLowerCase();
-  if (path.endsWith('.png')) return 'image/png';
-  if (path.endsWith('.webp')) return 'image/webp';
-  return 'image/jpeg';
-}
-
-async function getShareablePhotoUri(uri: string): Promise<string> {
-  if (!/^https?:\/\//i.test(uri)) return uri;
-
-  const cacheDirectory = FileSystem.cacheDirectory;
-  if (!cacheDirectory) throw new Error('Unable to prepare the listing photo for sharing.');
-
-  const extension = getShareMimeType(uri) === 'image/png' ? 'png' : getShareMimeType(uri) === 'image/webp' ? 'webp' : 'jpg';
-  const destination = `${cacheDirectory}quickprop-status-${Date.now()}.${extension}`;
-  const download = await FileSystem.downloadAsync(uri, destination);
-
-  if (download.status < 200 || download.status >= 300) {
-    throw new Error('Unable to download the listing photo for sharing.');
+async function recordPropertyShare(property: Property): Promise<void> {
+  const remoteId = Number(property.id);
+  if (Platform.OS === 'web' || !Number.isInteger(remoteId) || remoteId <= 0) return;
+  try {
+    await shareProperty(remoteId, { channel: 'whatsapp' });
+  } catch {
+    // Analytics must never prevent an agent from sharing the property.
   }
-
-  return download.uri;
 }
 
-export type WhatsAppPhotoShareDestination = 'status' | 'chat';
-
-export async function shareListingPhotoWithCaption(
+export async function sharePropertyToWhatsApp(
   property: Property,
-  destination: WhatsAppPhotoShareDestination = 'status',
+  agentId: string | undefined,
+  captureCard: () => Promise<string>,
 ): Promise<{ caption: string; sharedPhoto: boolean }> {
-  const caption = buildWhatsAppStatusCaption(property);
+  const catalogueUrl = catalogueShareLinks(agentId).webUrl;
+  const caption = buildWhatsAppCatalogueCaption(catalogueUrl);
   await Clipboard.setStringAsync(caption);
 
   if (Platform.OS === 'web') {
@@ -103,27 +67,32 @@ export async function shareListingPhotoWithCaption(
     return { caption, sharedPhoto: false };
   }
 
-  const photoUri = getPrimaryListingPhoto(property);
-  if (!photoUri) {
-    throw new Error('Add a main listing photo before sharing it to WhatsApp Status.');
-  }
+  const cardUri = await captureCard();
+  await recordPropertyShare(property);
 
-  if (!(await Sharing.isAvailableAsync())) {
-    throw new Error('Sharing is not available on this device.');
-  }
+  try {
+    const { default: NativeShare } = await import('react-native-share');
+    await NativeShare.open({
+      url: cardUri,
+      type: 'image/jpeg',
+      message: caption,
+      title: `${property.referenceNumber} — ${property.suburb}`,
+      failOnCancel: false,
+      useInternalStorage: true,
+    });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message.toLowerCase() : '';
+    if (message.includes('cancel') || message.includes('dismiss')) {
+      return { caption, sharedPhoto: true };
+    }
 
-  const localPhotoUri = await getShareablePhotoUri(photoUri);
-  await Sharing.shareAsync(localPhotoUri, {
-    dialogTitle: destination === 'status'
-      ? 'Share property photo to WhatsApp Status'
-      : 'Share property photo to WhatsApp chat',
-    mimeType: getShareMimeType(localPhotoUri),
-    UTI: getShareMimeType(localPhotoUri) === 'image/png' ? 'public.png' : 'public.jpeg',
-  });
+    if (!(await Sharing.isAvailableAsync())) throw error;
+    await Sharing.shareAsync(cardUri, {
+      dialogTitle: 'Share property to WhatsApp',
+      mimeType: 'image/jpeg',
+      UTI: 'public.jpeg',
+    });
+  }
 
   return { caption, sharedPhoto: true };
-}
-
-export function shareListingPhotoToWhatsAppStatus(property: Property) {
-  return shareListingPhotoWithCaption(property, 'status');
 }
