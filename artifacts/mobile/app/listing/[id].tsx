@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import {
-  View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, Alert, Share, Linking, Image, Modal, ActivityIndicator,
+  View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, Alert, Linking, Image, Modal,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { VideoView, useVideoPlayer } from 'expo-video';
@@ -10,12 +10,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useColors } from '@/hooks/useColors';
-import { catalogueShareLinks, propertyShareLinks } from '@/utils/shareLinks';
-import {
-  sharePropertyToWhatsApp,
-} from '@/utils/whatsapp';
+import { catalogueShareLinks } from '@/utils/shareLinks';
 import { getPrimaryListingPhoto } from '@/utils/listingPhoto';
 import { SharePropertyCard, SharePropertyCardHandle } from '@/components/SharePropertyCard';
+import { PropertyShareSheet } from '@/components/PropertyShareSheet';
 import { useData } from '@/contexts/DataContext';
 import { Property } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
@@ -73,7 +71,7 @@ export default function ListingDetailScreen() {
   });
   const [brochureOpen, setBrochureOpen] = useState(false);
   const [videoPlayerVisible, setVideoPlayerVisible] = useState(false);
-  const [sharingToWhatsApp, setSharingToWhatsApp] = useState(false);
+  const [shareOptionsOpen, setShareOptionsOpen] = useState(false);
   const shareCardRef = useRef<SharePropertyCardHandle>(null);
 
   const handleAddAgency = async () => {
@@ -104,90 +102,9 @@ export default function ListingDetailScreen() {
     );
   }
 
-  const buildShareMessage = () => {
-    const typeLabel = property.type.charAt(0).toUpperCase() + property.type.slice(1);
-    const priceLabel = property.price >= 1_000_000
-      ? `${property.currency} ${(property.price / 1_000_000).toFixed(2)}M`
-      : `${property.currency} ${property.price.toLocaleString()}`;
-    const priceStr = property.type === 'rent' ? `${priceLabel}/mo` : priceLabel;
-
-    const lines: string[] = [];
-    lines.push(`🏠 *${typeLabel} — ${property.suburb}*`);
-    if (property.showAddress && property.address) {
-      lines.push(`📍 ${property.address}, ${property.suburb}`);
-    } else {
-      lines.push(`📍 ${property.suburb}`);
-    }
-    lines.push('');
-    lines.push(`💰 *${priceStr}*${property.negotiable ? ' _(Negotiable)_' : ''}`);
-    lines.push('');
-
-    const statsLine: string[] = [];
-    if (property.bedrooms !== undefined) statsLine.push(`🛏 ${property.bedrooms} bed`);
-    if (property.bathrooms !== undefined) statsLine.push(`🚿 ${property.bathrooms} bath`);
-    if (property.garages !== undefined && property.garages > 0) statsLine.push(`🚗 ${property.garages} garage`);
-    if (statsLine.length > 0) lines.push(statsLine.join('  |  '));
-
-    const sizeLines: string[] = [];
-    if (property.landSize && property.landSize > 0) sizeLines.push(`Land: ${property.landSize.toLocaleString()}m²`);
-    if (property.floorArea && property.floorArea > 0) sizeLines.push(`Floor: ${property.floorArea.toLocaleString()}m²`);
-    if (sizeLines.length > 0) lines.push(`📐 ${sizeLines.join('  |  ')}`);
-
-    if (property.features.length > 0) {
-      lines.push('');
-      lines.push(`✅ *Features:* ${property.features.join(', ')}`);
-    }
-
-    if (property.description) {
-      lines.push('');
-      const desc = property.description.length > 200
-        ? property.description.slice(0, 197) + '…'
-        : property.description;
-      lines.push(`📝 ${desc}`);
-    }
-
-    const financials: string[] = [];
-    if (property.rates && property.rates > 0) financials.push(`Rates: ${property.currency} ${property.rates}/mo`);
-    if (property.levies && property.levies > 0) financials.push(`Levies: ${property.currency} ${property.levies}/mo`);
-    if (financials.length > 0) {
-      lines.push('');
-      lines.push(`💵 ${financials.join('  |  ')}`);
-    }
-
-    if (property.photos.length > 0) {
-      lines.push('');
-      lines.push(`📸 ${property.photos.length} photo${property.photos.length > 1 ? 's' : ''} available`);
-    }
-
-    lines.push('');
-    lines.push(`📋 Ref: *${property.referenceNumber}*`);
-    lines.push('Listed on QuickProp');
-    const links = propertyShareLinks(property);
-    lines.push('');
-    lines.push(`Open in QuickProp Agent: ${links.appUrl}`);
-    lines.push(`View online: ${links.webUrl}`);
-    return lines.join('\n');
-  };
-
   const handleShare = async () => {
-    if (sharingToWhatsApp) return;
-    setSharingToWhatsApp(true);
-    try {
-      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      await sharePropertyToWhatsApp(
-        property,
-        user?.id ?? property.agentId,
-        () => shareCardRef.current?.capture()
-          ?? Promise.reject(new Error('Unable to prepare the property image.')),
-      );
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message.toLowerCase() : '';
-      if (!message.includes('cancel') && !message.includes('dismiss')) {
-        Alert.alert('Could not share property', 'Unable to prepare the property. Please try again.');
-      }
-    } finally {
-      setSharingToWhatsApp(false);
-    }
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setShareOptionsOpen(true);
   };
 
   const handleAddMedia = () => {
@@ -297,13 +214,10 @@ export default function ListingDetailScreen() {
         <Text style={[styles.topRef, { color: colors.mutedForeground }]}>{property.referenceNumber}</Text>
         <View style={styles.topActions}>
           <TouchableOpacity
-            style={[styles.iconBtn, { backgroundColor: '#25D366', borderColor: '#25D366' }]}
+            style={[styles.iconBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
             onPress={handleShare}
-            disabled={sharingToWhatsApp}
           >
-            {sharingToWhatsApp
-              ? <ActivityIndicator size="small" color="#FFF" />
-              : <Ionicons name="logo-whatsapp" size={20} color="#FFF" />}
+            <Ionicons name="share-outline" size={20} color={colors.foreground} />
           </TouchableOpacity>
           <TouchableOpacity style={[styles.iconBtn, { backgroundColor: colors.primary }]} onPress={() => router.push(`/edit-listing/${property.id}`)}>
             <Ionicons name="create-outline" size={20} color="#FFF" />
@@ -596,16 +510,11 @@ export default function ListingDetailScreen() {
       {/* Bottom actions */}
       <View style={[styles.bottomBar, { backgroundColor: colors.card, borderTopColor: colors.border, paddingBottom: insets.bottom + 8 }]}>
         <TouchableOpacity
-          style={[styles.bottomBtn, { backgroundColor: '#25D366' }]}
+          style={[styles.bottomBtn, { backgroundColor: colors.secondary }]}
           onPress={handleShare}
-          disabled={sharingToWhatsApp}
         >
-          {sharingToWhatsApp
-            ? <ActivityIndicator size="small" color="#FFF" />
-            : <Ionicons name="logo-whatsapp" size={18} color="#FFF" />}
-          <Text style={[styles.bottomBtnText, { color: '#FFF' }]}>
-            {sharingToWhatsApp ? 'Preparing…' : 'WhatsApp'}
-          </Text>
+          <Ionicons name="share-outline" size={18} color={colors.primary} />
+          <Text style={[styles.bottomBtnText, { color: colors.primary }]}>Share</Text>
         </TouchableOpacity>
         <TouchableOpacity style={[styles.bottomBtn, { backgroundColor: colors.secondary }]} onPress={async () => {
           await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -630,6 +539,14 @@ export default function ListingDetailScreen() {
         visible={brochureOpen}
         onClose={() => setBrochureOpen(false)}
         property={property}
+      />
+      <PropertyShareSheet
+        visible={shareOptionsOpen}
+        onClose={() => setShareOptionsOpen(false)}
+        property={property}
+        agentId={user?.id ?? property.agentId}
+        captureCard={() => shareCardRef.current?.capture()
+          ?? Promise.reject(new Error('Unable to prepare the property image.'))}
       />
     </View>
   );

@@ -44,3 +44,9 @@ When using react-native-share with Expo, include its config plugin with an expli
 **Why:** The plugin can fail Expo startup when its options argument is omitted, and it imports expo-build-properties even when no extra share targets are configured.
 
 **How to apply:** Keep the plugin entry as a two-item array with `{}` (or explicit target options), and align expo-build-properties with Expo's expected version before restarting Metro.
+
+For targeted social sharing with react-native-share, keep the destination type narrowed to non-story Social values.
+
+**Why:** A dynamic destination map is inferred broadly enough to include story targets, which makes `shareSingle` require an app ID even for Facebook, Instagram, and LinkedIn.
+
+**How to apply:** Use the library's `Exclude<Social, ...Stories>` type for the destination map while keeping the native import lazy for Expo Go.

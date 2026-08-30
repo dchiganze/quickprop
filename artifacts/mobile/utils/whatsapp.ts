@@ -3,7 +3,7 @@ import * as Clipboard from 'expo-clipboard';
 import * as Sharing from 'expo-sharing';
 import { Property } from '@/types';
 import { shareProperty } from '@workspace/api-client-react';
-import { catalogueShareLinks } from '@/utils/shareLinks';
+import { catalogueShareLinks, propertyShareLinks } from '@/utils/shareLinks';
 
 /**
  * Share a prefilled text message to WhatsApp.
@@ -95,4 +95,73 @@ export async function sharePropertyToWhatsApp(
   }
 
   return { caption, sharedPhoto: true };
+}
+
+export type PropertySocialDestination = 'facebook' | 'instagram' | 'linkedin';
+
+function buildSocialCaption(property: Property): string {
+  const typeLabel = property.type === 'sale' ? 'For Sale' : property.type === 'rent' ? 'To Rent' : property.type;
+  const price = property.price > 0
+    ? `${property.currency} ${property.price.toLocaleString()}${property.type === 'rent' ? '/month' : ''}`
+    : '';
+  const details = [
+    `${typeLabel} — ${property.suburb}`,
+    price,
+    property.bedrooms ? `${property.bedrooms} bed` : '',
+    property.bathrooms ? `${property.bathrooms} bath` : '',
+  ].filter(Boolean);
+  return `${details.join(' · ')}\n${propertyShareLinks(property).webUrl}`;
+}
+
+export async function sharePropertyToSocial(
+  property: Property,
+  destination: PropertySocialDestination,
+  captureCard: () => Promise<string>,
+): Promise<void> {
+  const cardUri = await captureCard();
+  const caption = buildSocialCaption(property);
+
+  if (Platform.OS === 'web') {
+    if (destination === 'facebook') {
+      await Linking.openURL(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(propertyShareLinks(property).webUrl)}`);
+      return;
+    }
+    if (destination === 'linkedin') {
+      await Linking.openURL(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(propertyShareLinks(property).webUrl)}`);
+      return;
+    }
+    await Share.share({ message: caption });
+    return;
+  }
+
+  try {
+    const { default: NativeShare } = await import('react-native-share');
+    const social = {
+      facebook: NativeShare.Social.FACEBOOK,
+      instagram: NativeShare.Social.INSTAGRAM,
+      linkedin: NativeShare.Social.LINKEDIN,
+    }[destination] as Exclude<
+      import('react-native-share').Social,
+      import('react-native-share').Social.FacebookStories | import('react-native-share').Social.InstagramStories
+    >;
+
+    await NativeShare.shareSingle({
+      social,
+      url: cardUri,
+      type: 'image/jpeg',
+      message: caption,
+      useInternalStorage: true,
+    });
+    return;
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message.toLowerCase() : '';
+    if (message.includes('cancel') || message.includes('dismiss')) return;
+    if (!(await Sharing.isAvailableAsync())) throw error;
+  }
+
+  await Sharing.shareAsync(cardUri, {
+    dialogTitle: `Share property to ${destination.charAt(0).toUpperCase() + destination.slice(1)}`,
+    mimeType: 'image/jpeg',
+    UTI: 'public.jpeg',
+  });
 }
