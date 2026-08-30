@@ -1,0 +1,614 @@
+Implement a production-quality “Share Property to WhatsApp” feature in the existing QuickProp React Native mobile app for BOTH iOS and Android.
+
+IMPORTANT:
+Use the existing QuickProp shared backend, database, authentication, property records, agent records, agency records and catalogue system.
+
+Do NOT create a separate sharing database or separate property system.
+
+The objective is extremely simple:
+
+AGENT OPENS PROPERTY
+↓
+TAPS “SHARE TO WHATSAPP”
+↓
+QUICKPROP GENERATES A PROFESSIONAL PROPERTY IMAGE
+↓
+NATIVE iOS/ANDROID SHARE SHEET OPENS
+↓
+AGENT SELECTS WHATSAPP
+↓
+WHATSAPP RECEIVES:
+1. THE PROPERTY SHARE IMAGE
+2. THE AGENT'S CATALOGUE URL AS THE CAPTION
+
+There must be NO individual property URL anywhere in the share.
+
+==================================================
+1. SHARE TO WHATSAPP BUTTON
+==================================================
+
+Add a prominent:
+
+“Share to WhatsApp”
+
+button to the property details screen in the QuickProp Agent Mobile App.
+
+It should be easily accessible without navigating through multiple menus.
+
+When tapped, begin generating the shareable property image.
+
+Prevent multiple simultaneous share requests if the agent taps the button repeatedly.
+
+Show a subtle loading state:
+
+“Preparing property…”
+
+Once ready, launch the native device sharing system.
+
+==================================================
+2. SHARE IMAGE DESIGN
+==================================================
+
+Generate a professional portrait-format property marketing image.
+
+Recommended canvas:
+1080 × 1350 px.
+
+The image should contain TWO main sections:
+
+SECTION 1 — PROPERTY PHOTO
+
+Use the property's primary approved photo.
+
+The photo should occupy approximately 70–75% of the image.
+
+Use a high-quality crop that maintains the important parts of the property.
+
+Do not distort the image.
+
+SECTION 2 — WHITE INFORMATION BLOCK
+
+Immediately underneath the photo, create a clean WHITE rectangular block.
+
+Inside this block display a short property description.
+
+Example:
+
+“3 bedroom house in Highlands, $300,000. Perfect for a small family”
+
+Another example:
+
+“4 bedroom home in Borrowdale, $450,000. Spacious family home with a large garden.”
+
+Another:
+
+“2 bedroom apartment in Avondale, $120,000. Modern apartment close to shops and amenities.”
+
+The description must be generated ONLY from information already contained in the QuickProp property record.
+
+DO NOT invent property features.
+
+==================================================
+3. PROPERTY DESCRIPTION GENERATION
+==================================================
+
+Create a lightweight description formatter using the existing property data.
+
+Prioritise:
+
+- number of bedrooms
+- number of bathrooms
+- property type
+- suburb/location
+- price
+- one or two notable existing features
+
+Keep the description short.
+
+Target approximately 1–2 sentences.
+
+Examples:
+
+“3 bedroom house in Highlands, $300,000. Perfect for a small family.”
+
+“4 bedroom house in Borrowdale, $475,000. Spacious property with a large garden.”
+
+“Commercial property in Avondale, $1.3 million. Prime location with excellent commercial potential.”
+
+If information is missing, simply omit it.
+
+For example, if there is no price:
+
+“3 bedroom house in Highlands. Spacious family home in a convenient location.”
+
+Never display:
+
+“undefined”
+“null”
+“NaN”
+or empty placeholders.
+
+Automatically handle long descriptions and wrap text cleanly.
+
+Text must never overflow the white block.
+
+==================================================
+4. OPTIONAL AGENCY BRANDING
+==================================================
+
+If an agency logo already exists in the QuickProp system, optionally display it subtly within the white information block.
+
+The property should remain visually dominant.
+
+Do not make the share card look like a QuickProp advertisement.
+
+The agent should feel that they are sharing THEIR property marketing material.
+
+Do not add an individual property URL.
+
+Do not add a QR code.
+
+Do not add unnecessary buttons.
+
+Keep the image clean and professional.
+
+==================================================
+5. WHATSAPP CAPTION
+==================================================
+
+The ONLY URL included in the WhatsApp share must be the agent's catalogue URL.
+
+The caption must read EXACTLY:
+
+“view my whole catalogue here: www.quickprop.co.zw/xxxx”
+
+Replace “xxxx” dynamically with the authenticated agent's unique catalogue identifier.
+
+Example:
+
+“view my whole catalogue here: www.quickprop.co.zw/anne-smith”
+
+IMPORTANT:
+
+Do NOT include:
+
+- individual property URLs
+- property IDs
+- database IDs
+- tracking URLs
+- additional links
+- QuickProp property links
+
+The caption should contain ONLY the catalogue URL.
+
+==================================================
+6. AGENT CATALOGUE URL
+==================================================
+
+Use the existing QuickProp catalogue architecture if one already exists.
+
+If the catalogue URL does not yet exist, implement a clean public agent catalogue route using the existing website/backend architecture.
+
+Example:
+
+www.quickprop.co.zw/anne-smith
+
+The catalogue should display the agent's currently active properties.
+
+The catalogue URL must be generated dynamically based on the authenticated agent.
+
+Never hard-code an agent's URL.
+
+If the agent belongs to an agency, maintain compatibility with the existing agency/agent data structure.
+
+The primary shared catalogue should be the agent's catalogue.
+
+==================================================
+7. iOS IMPLEMENTATION
+==================================================
+
+Implement sharing using Apple's native sharing architecture through React Native's appropriate native sharing mechanism.
+
+Use the iOS system share sheet rather than attempting to automate WhatsApp directly.
+
+The architecture should ultimately behave as:
+
+QuickProp
+→ generate image
+→ prepare image + caption
+→ invoke iOS native share sheet
+→ user selects WhatsApp
+→ WhatsApp receives image + caption
+→ user chooses recipient
+→ user presses Send
+
+Do NOT depend on undocumented WhatsApp APIs.
+
+Do NOT attempt to automatically select WhatsApp contacts.
+
+Do NOT attempt to send messages without user interaction.
+
+Requirements:
+
+- Current supported iOS versions
+- iPhone support
+- WhatsApp installed
+- WhatsApp not installed
+- user cancellation
+- share failure
+- slow image generation
+- missing image
+- temporary file cleanup
+- correct permissions
+- correct presentation of the native share sheet
+
+If WhatsApp is not installed, the normal iOS share sheet should still work.
+
+Do not crash if WhatsApp is unavailable.
+
+Ensure the share sheet is correctly presented on different iPhone screen sizes.
+
+If iPad support exists in the existing project, follow Apple's required presentation rules for the share sheet.
+
+==================================================
+8. ANDROID IMPLEMENTATION
+==================================================
+
+Use Android's native Sharesheet architecture.
+
+Use the appropriate ACTION_SEND intent with:
+
+type = image/*
+
+and the generated property image.
+
+Attach the caption text:
+
+“view my whole catalogue here: www.quickprop.co.zw/xxxx”
+
+The user should be able to select WhatsApp from the Android Sharesheet.
+
+Do NOT hard-code the WhatsApp package as a requirement.
+
+If WhatsApp is unavailable, other compatible sharing applications should remain available.
+
+Use a secure content URI/FileProvider where required.
+
+Never expose file:// URIs.
+
+Grant temporary read permissions to the receiving application where required.
+
+Clean up temporary files safely.
+
+Handle:
+
+- Android back button
+- cancellation
+- missing WhatsApp
+- image generation failure
+- URI permission issues
+- repeated taps
+- backgrounding the app
+- slow devices
+
+No scenario should crash the application.
+
+==================================================
+9. IMPORTANT: PRODUCTION BUILD REQUIREMENT
+==================================================
+
+This feature must NOT depend on:
+
+- Expo Go
+- the Replit development server
+- localhost
+- a running Replit process
+- development-only APIs
+- temporary development URLs
+
+The feature must work in the actual production iOS and Android builds.
+
+The share image generation and native share functionality must continue to work after the app is compiled and distributed through:
+
+- Apple TestFlight/App Store
+- Google Play/internal testing/production
+
+==================================================
+10. IMAGE HANDLING
+==================================================
+
+Use the existing property image URL from QuickProp.
+
+Process:
+
+1. Retrieve the primary approved property image.
+2. Check local cache where practical.
+3. If not cached, download asynchronously.
+4. Validate the image.
+5. Resize/crop appropriately.
+6. Generate the 1080 × 1350 share card.
+7. Save it temporarily.
+8. Launch the native share sheet.
+
+If the image cannot be downloaded:
+
+DO NOT CRASH.
+
+Use a professional QuickProp fallback image containing the property description.
+
+If the property has no photo at all, still allow sharing using a clean branded placeholder.
+
+Handle very large images efficiently to prevent excessive memory usage.
+
+Avoid blocking the UI thread.
+
+==================================================
+11. PERFORMANCE
+==================================================
+
+The experience should feel extremely fast.
+
+Target:
+
+Tap “Share to WhatsApp”
+→ image prepared
+→ native share sheet
+
+within approximately 2–3 seconds when the property image is already cached.
+
+If more time is required:
+
+Show:
+
+“Preparing property…”
+
+Do not freeze the interface.
+
+Disable the share button temporarily while processing.
+
+Prevent multiple simultaneous image-generation processes.
+
+Cache generated share images where sensible, but ensure stale property information does not remain indefinitely.
+
+If price or description changes, regenerate the share card.
+
+==================================================
+12. ANALYTICS
+==================================================
+
+When the agent initiates the share process, record a lightweight backend analytics event:
+
+property_id
+agent_id
+agency_id
+channel = “whatsapp”
+share_type = “property_image”
+platform = “ios” or “android”
+timestamp
+
+Do NOT record:
+
+- WhatsApp recipient
+- WhatsApp group name
+- phone numbers
+- message contents beyond the predefined caption
+
+The purpose is to measure agent distribution.
+
+Eventually this should allow the QuickProp CRM/admin portal to show:
+
+“Your properties shared this week: 18”
+
+and potentially:
+
+“Your catalogue was shared 18 times this week.”
+
+Do not make this analytics functionality interfere with the share itself.
+
+==================================================
+13. ROBUST ERROR HANDLING
+==================================================
+
+Gracefully handle all of the following:
+
+- no internet
+- slow internet
+- expired image URL
+- invalid image URL
+- corrupted image
+- very large image
+- missing image
+- missing price
+- missing location
+- missing property type
+- missing bedrooms
+- missing description
+- very long description
+- missing agency logo
+- WhatsApp not installed
+- user cancels sharing
+- user closes share sheet
+- native share failure
+- Android URI permission failure
+- iOS share failure
+- repeated button presses
+- app backgrounding
+- app returning from background
+- agent logging out
+- property becoming unavailable
+- temporary file failure
+- insufficient device storage
+
+The application must never crash because of a sharing failure.
+
+If something goes wrong, show a simple user-friendly message such as:
+
+“Unable to prepare the property. Please try again.”
+
+Do not expose technical error messages to the agent.
+
+==================================================
+14. SECURITY
+==================================================
+
+Only allow authenticated agents to share properties they are authorised to market.
+
+Do not expose:
+
+- authentication tokens
+- API keys
+- private database information
+- private property information
+- internal database IDs unnecessarily
+
+Catalogue URLs can be public.
+
+Use server-side permission checks where appropriate.
+
+==================================================
+15. WEBSITE CATALOGUE COMPATIBILITY
+==================================================
+
+The catalogue URL included in the caption must work perfectly on:
+
+- iPhone
+- Android
+- desktop
+- WhatsApp in-app browser
+- normal mobile browsers
+
+The catalogue should load quickly.
+
+The agent should be able to share their catalogue without requiring the recipient to install QuickProp.
+
+The catalogue must only display properties that are currently active and authorised for that agent.
+
+==================================================
+16. EXAMPLE FINAL RESULT
+==================================================
+
+The agent selects:
+
+3 Bedroom House
+Highlands
+US$300,000
+“Perfect for a small family”
+
+QuickProp generates:
+
+┌─────────────────────────────┐
+│                             │
+│                             │
+│       PROPERTY PHOTO        │
+│                             │
+│                             │
+├─────────────────────────────┤
+│                             │
+│  3 bedroom house in         │
+│  Highlands, $300,000.       │
+│  Perfect for a small        │
+│  family.                    │
+│                             │
+└─────────────────────────────┘
+
+WhatsApp receives the image with the caption:
+
+“view my whole catalogue here: www.quickprop.co.zw/anne-smith”
+
+THERE IS NO PROPERTY URL.
+
+THERE IS NO SECOND URL.
+
+THERE IS NO QR CODE.
+
+The image + catalogue URL are the entire share experience.
+
+==================================================
+17. TESTING
+==================================================
+
+Before completing the implementation:
+
+Test on:
+
+iOS:
+- small iPhone
+- large iPhone
+- current supported iOS
+- WhatsApp installed
+- WhatsApp unavailable
+- cancellation
+- slow connection
+- missing property image
+
+Android:
+- small Android
+- large Android
+- current supported Android versions
+- WhatsApp installed
+- WhatsApp unavailable
+- cancellation
+- slow connection
+- missing property image
+
+Test multiple properties with:
+
+- different prices
+- different property types
+- different descriptions
+- missing data
+- very long descriptions
+- multiple photos
+- very large photos
+
+Verify that every generated share image is correctly formatted and that text never overflows.
+
+Verify that the ONLY URL passed into the share caption is the agent catalogue URL.
+
+==================================================
+18. CODE QUALITY
+==================================================
+
+Before implementing:
+
+1. Inspect the existing QuickProp React Native architecture.
+2. Identify the existing property model.
+3. Identify the existing agent model.
+4. Identify the existing agency model.
+5. Identify the existing catalogue functionality.
+6. Reuse existing APIs/components wherever possible.
+7. Do not create duplicate models unnecessarily.
+8. Follow the existing TypeScript and React Native conventions.
+9. Keep the implementation modular and reusable.
+10. Do not break existing functionality.
+
+Create a reusable SharePropertyCard component/service and a reusable sharing service so the same functionality can later be used for:
+
+- WhatsApp
+- WhatsApp Status
+- other messaging platforms
+- social sharing
+
+Do not add those additional channels yet unless they already exist.
+
+FINAL OBJECTIVE:
+
+Make sharing a QuickProp property to WhatsApp so easy that an agent can do it in seconds.
+
+The desired experience is:
+
+OPEN PROPERTY
+↓
+SHARE TO WHATSAPP
+↓
+QUICKPROP CREATES BEAUTIFUL PROPERTY IMAGE
+↓
+NATIVE SHARE SHEET
+↓
+WHATSAPP
+↓
+IMAGE + “view my whole catalogue here: www.quickprop.co.zw/xxxx”
+↓
+SEND
+
+The feature must be fast, reliable, visually professional, mobile-first and production-ready on BOTH iOS and Android.
