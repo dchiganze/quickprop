@@ -16,6 +16,7 @@ import { Property } from '@/types';
 import { useColors } from '@/hooks/useColors';
 import {
   PropertySocialDestination,
+  sharePropertyGeneric,
   sharePropertyToSocial,
   sharePropertyToWhatsApp,
 } from '@/utils/whatsapp';
@@ -28,13 +29,13 @@ interface PropertyShareSheetProps {
   onClose: () => void;
 }
 
-type ShareDestination = 'whatsapp' | PropertySocialDestination;
+type ShareDestination = 'whatsapp' | 'share' | PropertySocialDestination;
 
 const SHARE_OPTIONS: Array<{
   key: ShareDestination;
   label: string;
   description: string;
-  icon: 'logo-whatsapp' | 'logo-facebook' | 'logo-instagram' | 'logo-linkedin';
+  icon: 'logo-whatsapp' | 'logo-facebook' | 'logo-instagram' | 'logo-linkedin' | 'logo-tiktok' | 'share-outline';
   color: string;
 }> = [
   {
@@ -65,6 +66,20 @@ const SHARE_OPTIONS: Array<{
     icon: 'logo-linkedin',
     color: '#0A66C2',
   },
+  {
+    key: 'tiktok',
+    label: 'TikTok',
+    description: 'Post or send image',
+    icon: 'logo-tiktok',
+    color: '#111827',
+  },
+  {
+    key: 'share',
+    label: 'Share',
+    description: 'More apps',
+    icon: 'share-outline',
+    color: '#1A3C6E',
+  },
 ];
 
 export function PropertyShareSheet({
@@ -84,6 +99,8 @@ export function PropertyShareSheet({
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       if (destination === 'whatsapp') {
         await sharePropertyToWhatsApp(property, agentId ?? property.agentId, captureCard);
+      } else if (destination === 'share') {
+        await sharePropertyGeneric(property, captureCard);
       } else {
         await sharePropertyToSocial(property, destination, captureCard);
       }
@@ -222,7 +239,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   option: {
-    width: '48.5%',
+    width: '47.5%',
     minHeight: 126,
     borderRadius: 16,
     borderWidth: 1,

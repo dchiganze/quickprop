@@ -97,7 +97,7 @@ export async function sharePropertyToWhatsApp(
   return { caption, sharedPhoto: true };
 }
 
-export type PropertySocialDestination = 'facebook' | 'instagram' | 'linkedin';
+export type PropertySocialDestination = 'facebook' | 'instagram' | 'linkedin' | 'tiktok';
 
 function buildSocialCaption(property: Property): string {
   const typeLabel = property.type === 'sale' ? 'For Sale' : property.type === 'rent' ? 'To Rent' : property.type;
@@ -118,6 +118,11 @@ export async function sharePropertyToSocial(
   destination: PropertySocialDestination,
   captureCard: () => Promise<string>,
 ): Promise<void> {
+  if (destination === 'tiktok') {
+    await sharePropertyGeneric(property, captureCard);
+    return;
+  }
+
   const cardUri = await captureCard();
   const caption = buildSocialCaption(property);
 
@@ -161,6 +166,42 @@ export async function sharePropertyToSocial(
 
   await Sharing.shareAsync(cardUri, {
     dialogTitle: `Share property to ${destination.charAt(0).toUpperCase() + destination.slice(1)}`,
+    mimeType: 'image/jpeg',
+    UTI: 'public.jpeg',
+  });
+}
+
+export async function sharePropertyGeneric(
+  property: Property,
+  captureCard: () => Promise<string>,
+): Promise<void> {
+  const cardUri = await captureCard();
+  const caption = buildSocialCaption(property);
+
+  if (Platform.OS === 'web') {
+    await Share.share({ message: caption });
+    return;
+  }
+
+  try {
+    const { default: NativeShare } = await import('react-native-share');
+    await NativeShare.open({
+      url: cardUri,
+      type: 'image/jpeg',
+      message: caption,
+      title: `${property.referenceNumber} — ${property.suburb}`,
+      failOnCancel: false,
+      useInternalStorage: true,
+    });
+    return;
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message.toLowerCase() : '';
+    if (message.includes('cancel') || message.includes('dismiss')) return;
+    if (!(await Sharing.isAvailableAsync())) throw error;
+  }
+
+  await Sharing.shareAsync(cardUri, {
+    dialogTitle: 'Share property',
     mimeType: 'image/jpeg',
     UTI: 'public.jpeg',
   });
