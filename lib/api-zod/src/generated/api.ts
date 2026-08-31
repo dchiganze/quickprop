@@ -2209,7 +2209,11 @@ export const GetPublicPropertyResponse = zod.object({
   "role": zod.string(),
   "branchId": zod.number().nullish(),
   "branchName": zod.string().nullish(),
-  "activeListings": zod.number()
+  "activeListings": zod.number(),
+  "reviewSummary": zod.object({
+  "averageRating": zod.number(),
+  "reviewCount": zod.number()
+})
 }).optional(),
   "offers": zod.array(zod.object({
   "id": zod.number(),
@@ -2254,7 +2258,11 @@ export const ListPublicAgentsResponseItem = zod.object({
   "role": zod.string(),
   "branchId": zod.number().nullish(),
   "branchName": zod.string().nullish(),
-  "activeListings": zod.number()
+  "activeListings": zod.number(),
+  "reviewSummary": zod.object({
+  "averageRating": zod.number(),
+  "reviewCount": zod.number()
+})
 })
 export const ListPublicAgentsResponse = zod.array(ListPublicAgentsResponseItem)
 
@@ -2276,7 +2284,11 @@ export const GetPublicAgentResponse = zod.object({
   "role": zod.string(),
   "branchId": zod.number().nullish(),
   "branchName": zod.string().nullish(),
-  "activeListings": zod.number()
+  "activeListings": zod.number(),
+  "reviewSummary": zod.object({
+  "averageRating": zod.number(),
+  "reviewCount": zod.number()
+})
 }),
   "listings": zod.array(zod.object({
   "id": zod.number(),
@@ -2312,7 +2324,66 @@ export const GetPublicAgentResponse = zod.object({
   "freshnessLabel": zod.string().optional(),
   "freshnessScore": zod.number().optional(),
   "qualityScore": zod.number().optional()
+})),
+  "reviews": zod.array(zod.object({
+  "rating": zod.number(),
+  "reviewText": zod.string(),
+  "outcome": zod.string(),
+  "createdAt": zod.string(),
+  "verified": zod.boolean()
 }))
+})
+
+
+/**
+ * @summary Read a one-time agent review invitation
+ */
+export const GetPublicReviewInvitationParams = zod.object({
+  "token": zod.coerce.string()
+})
+
+export const GetPublicReviewInvitationResponse = zod.object({
+  "status": zod.enum(['available']),
+  "agent": zod.object({
+  "name": zod.string()
+}),
+  "property": zod.object({
+  "reference": zod.string(),
+  "title": zod.string()
+}),
+  "outcome": zod.string(),
+  "expiresAt": zod.string()
+})
+
+
+/**
+ * @summary Submit a verified agent review
+ */
+export const SubmitAgentReviewParams = zod.object({
+  "token": zod.coerce.string()
+})
+
+export const submitAgentReviewBodyRatingMax = 5;
+
+export const submitAgentReviewBodyReviewTextMin = 10;
+export const submitAgentReviewBodyReviewTextMax = 600;
+
+
+
+export const SubmitAgentReviewBody = zod.object({
+  "rating": zod.number().min(1).max(submitAgentReviewBodyRatingMax),
+  "reviewText": zod.string().min(submitAgentReviewBodyReviewTextMin).max(submitAgentReviewBodyReviewTextMax)
+})
+
+export const SubmitAgentReviewResponse = zod.object({
+  "success": zod.boolean(),
+  "review": zod.object({
+  "rating": zod.number(),
+  "reviewText": zod.string(),
+  "outcome": zod.string(),
+  "createdAt": zod.string(),
+  "verified": zod.boolean()
+})
 })
 
 
@@ -2332,6 +2403,20 @@ export const SubmitEnquiryBody = zod.object({
 export const SubmitEnquiryResponse = zod.object({
   "leadId": zod.number(),
   "message": zod.string().optional()
+})
+
+
+/**
+ * @summary Retry a skipped or failed review invitation email
+ */
+export const RetryAgentReviewInvitationParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const RetryAgentReviewInvitationResponse = zod.object({
+  "ok": zod.boolean(),
+  "invitationId": zod.number(),
+  "status": zod.string()
 })
 
 
@@ -3866,3 +3951,5 @@ export const AskImportAssistantResponse = zod.object({
   "message": zod.string(),
   "suggestions": zod.array(zod.string())
 })
+
+

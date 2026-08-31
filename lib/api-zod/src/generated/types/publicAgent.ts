@@ -5,6 +5,7 @@
  * QuickProp Office API
  * OpenAPI spec version: 0.1.0
  */
+import type { AgentReviewSummary } from './agentReviewSummary';
 
 export interface PublicAgent {
   id: number;
@@ -21,4 +22,5 @@ export interface PublicAgent {
   /** @nullable */
   branchName?: string | null;
   activeListings: number;
+  reviewSummary: AgentReviewSummary;
 }

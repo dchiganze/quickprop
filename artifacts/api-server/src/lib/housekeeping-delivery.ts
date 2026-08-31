@@ -22,10 +22,18 @@ export type ReminderDeliveryPayload = {
   message: string;
 };
 
-type DeliveryResult = {
+export type DeliveryResult = {
   status: "sent" | "skipped";
   providerMessageId?: string;
   reason?: string;
+};
+
+export type EmailMessage = {
+  to: string | null;
+  subject: string;
+  text: string;
+  html?: string;
+  idempotencyKey: string;
 };
 
 type ProviderResponse = {
@@ -107,21 +115,17 @@ async function sendWhatsApp(
   return { status: "sent", providerMessageId: result.sid };
 }
 
-async function sendEmail(
-  email: string | null,
-  payload: ReminderDeliveryPayload,
-  deliveryId: number,
-): Promise<DeliveryResult> {
-  if (!email) return { status: "skipped", reason: "no_email_address" };
+export async function sendEmailMessage(message: EmailMessage): Promise<DeliveryResult> {
+  if (!message.to) return { status: "skipped", reason: "no_email_address" };
   const webhook = env("QUICKPROP_EMAIL_WEBHOOK_URL");
   if (webhook) {
     const result = await postJson(webhook, {
       channel: "email",
-      to: email,
-      subject: `Listing reminder: ${payload.reference}`,
-      text: payload.message,
-      listing: payload,
-    }, `housekeeping-delivery-${deliveryId}`);
+      to: message.to,
+      subject: message.subject,
+      text: message.text,
+      html: message.html,
+    }, message.idempotencyKey);
     return {
       status: "sent",
       providerMessageId: result.id ?? result.messageId,
@@ -138,17 +142,31 @@ async function sendEmail(
     "https://api.resend.com/emails",
     {
       from,
-      to: [email],
-      subject: `Listing reminder: ${payload.reference}`,
-      text: payload.message,
+      to: [message.to],
+      subject: message.subject,
+      text: message.text,
+      html: message.html,
     },
-    `housekeeping-delivery-${deliveryId}`,
+    message.idempotencyKey,
     { Authorization: `Bearer ${resendKey}` },
   );
   return {
     status: "sent",
     providerMessageId: result.id ?? result.messageId,
   };
+}
+
+async function sendEmail(
+  email: string | null,
+  payload: ReminderDeliveryPayload,
+  deliveryId: number,
+): Promise<DeliveryResult> {
+  return sendEmailMessage({
+    to: email,
+    subject: `Listing reminder: ${payload.reference}`,
+    text: payload.message,
+    idempotencyKey: `housekeeping-delivery-${deliveryId}`,
+  });
 }
 
 async function sendPush(

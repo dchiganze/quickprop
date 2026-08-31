@@ -35,6 +35,7 @@ import { parseId, logActivity, logAudit, jsonify } from "../lib/helpers";
 import { currentUser } from "./auth";
 import { DEFAULT_HOUSEKEEPING_SETTINGS } from "../lib/housekeeping";
 import { findDuplicateCandidates, normalizeText } from "../lib/multi-agent";
+import { queuePrimaryReviewInvitation } from "../lib/agent-reviews";
 
 const router: IRouter = Router();
 
@@ -248,6 +249,9 @@ router.patch("/properties/:id", async (req, res): Promise<void> => {
   }
   if (parsed.data.status && parsed.data.status !== existing.status) {
     await logActivity("status_change", `${row.reference} moved to ${row.status.replace(/_/g, " ")}`, "property", id, user?.name);
+    if (["sold", "rented", "withdrawn", "archived"].includes(parsed.data.status)) {
+      await queuePrimaryReviewInvitation(id, parsed.data.status);
+    }
   }
   await logAudit("edited", "property", id, `Updated ${row.reference}`, user?.id, user?.name);
   res.json(UpdatePropertyResponse.parse(jsonify(row)));

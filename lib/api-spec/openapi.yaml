@@ -29,6 +29,7 @@ tags:
   - name: public
   - name: collaboration
   - name: listing-housekeeping
+  - name: reviews
 paths:
   /healthz:
     get:
@@ -1043,6 +1044,41 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/PublicAgentProfile" }
         "404": { description: Not found }
+  /public/reviews/{token}:
+    get:
+      operationId: getPublicReviewInvitation
+      tags: [reviews]
+      summary: Read a one-time agent review invitation
+      parameters:
+        - { name: token, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Review invitation
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PublicReviewInvitation" }
+        "404": { description: Invalid review link }
+        "410": { description: Expired or already used review link }
+    post:
+      operationId: submitAgentReview
+      tags: [reviews]
+      summary: Submit a verified agent review
+      parameters:
+        - { name: token, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AgentReviewInput" }
+      responses:
+        "201":
+          description: Review submitted
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AgentReviewResult" }
+        "400": { description: Invalid review }
+        "404": { description: Invalid review link }
+        "410": { description: Expired or already used review link }
   /public/enquiries:
     post:
       operationId: submitEnquiry
@@ -1059,6 +1095,21 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/EnquiryResult" }
+  /admin/reviews/invitations/{id}/retry:
+    post:
+      operationId: retryAgentReviewInvitation
+      tags: [reviews]
+      summary: Retry a skipped or failed review invitation email
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "200":
+          description: Invitation queued
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ReviewInvitationRetryResult" }
+        "404": { description: Invitation not found or not retryable }
+        "409": { description: Invitation already used }
   /public/auth/register:
     post:
       operationId: registerBuyer
@@ -2368,7 +2419,7 @@ components:
         limit: { type: integer }
     PublicAgent:
       type: object
-      required: [id, name, role, activeListings]
+      required: [id, name, role, activeListings, reviewSummary]
       properties:
         id: { type: integer }
         name: { type: string }
@@ -2379,14 +2430,70 @@ components:
         branchId: { type: ["integer", "null"] }
         branchName: { type: ["string", "null"] }
         activeListings: { type: integer }
+        reviewSummary: { $ref: "#/components/schemas/AgentReviewSummary" }
     PublicAgentProfile:
       type: object
-      required: [agent, listings]
+      required: [agent, listings, reviews]
       properties:
         agent: { $ref: "#/components/schemas/PublicAgent" }
         listings:
           type: array
           items: { $ref: "#/components/schemas/PublicProperty" }
+        reviews:
+          type: array
+          items: { $ref: "#/components/schemas/PublicAgentReview" }
+    AgentReviewSummary:
+      type: object
+      required: [averageRating, reviewCount]
+      properties:
+        averageRating: { type: number }
+        reviewCount: { type: integer }
+    PublicAgentReview:
+      type: object
+      required: [rating, reviewText, outcome, createdAt, verified]
+      properties:
+        rating: { type: integer }
+        reviewText: { type: string }
+        outcome: { type: string }
+        createdAt: { type: string }
+        verified: { type: boolean }
+    PublicReviewInvitation:
+      type: object
+      required: [status, agent, property, outcome, expiresAt]
+      properties:
+        status: { type: string, enum: [available] }
+        agent:
+          type: object
+          required: [name]
+          properties:
+            name: { type: string }
+        property:
+          type: object
+          required: [reference, title]
+          properties:
+            reference: { type: string }
+            title: { type: string }
+        outcome: { type: string }
+        expiresAt: { type: string }
+    AgentReviewInput:
+      type: object
+      required: [rating, reviewText]
+      properties:
+        rating: { type: integer, minimum: 1, maximum: 5 }
+        reviewText: { type: string, minLength: 10, maxLength: 600 }
+    AgentReviewResult:
+      type: object
+      required: [success, review]
+      properties:
+        success: { type: boolean }
+        review: { $ref: "#/components/schemas/PublicAgentReview" }
+    ReviewInvitationRetryResult:
+      type: object
+      required: [ok, invitationId, status]
+      properties:
+        ok: { type: boolean }
+        invitationId: { type: integer }
+        status: { type: string }
     PublicPropertyDetail:
       type: object
       required: [property]

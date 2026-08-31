@@ -14,6 +14,7 @@ import collaborationRouter from "./collaboration";
 import multiAgentRouter from "./multi-agent";
 import housekeepingRouter from "./housekeeping";
 import importsRouter from "./imports";
+import reviewsRouter from "./reviews";
 
 const router: IRouter = Router();
 
@@ -24,6 +25,7 @@ router.use(authRouter);
 router.use(storageRouter);
 // Public routes — no auth required
 router.use(publicRouter);
+router.use(reviewsRouter);
 // All business routes below require a logged-in user.
 router.use(requireAuth);
 router.use(multiAgentRouter);

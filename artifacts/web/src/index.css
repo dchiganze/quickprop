@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap');
 @import 'tailwindcss';
 @import 'tw-animate-css';
 @plugin "@tailwindcss/typography";
@@ -63,49 +63,49 @@
 
 /* LIGHT MODE */
 :root {
-  --background: 0 0% 100%;
-  --foreground: 222.2 84% 4.9%;
+  --background: 42 32% 96%;
+  --foreground: 212 35% 17%;
 
-  --card: 0 0% 100%;
-  --card-foreground: 222.2 84% 4.9%;
-  --card-border: 214.3 31.8% 91.4%;
+  --card: 42 38% 98%;
+  --card-foreground: 212 35% 17%;
+  --card-border: 38 23% 88%;
 
-  --popover: 0 0% 100%;
-  --popover-foreground: 222.2 84% 4.9%;
-  --popover-border: 214.3 31.8% 91.4%;
+  --popover: 42 38% 98%;
+  --popover-foreground: 212 35% 17%;
+  --popover-border: 38 23% 88%;
 
-  --primary: 159 75% 36%;
-  --primary-foreground: 0 0% 100%;
+  --primary: 165 42% 30%;
+  --primary-foreground: 42 38% 98%;
 
-  --secondary: 210 40% 96.1%;
-  --secondary-foreground: 222.2 47.4% 11.2%;
+  --secondary: 39 31% 91%;
+  --secondary-foreground: 212 35% 17%;
 
-  --muted: 210 40% 96.1%;
-  --muted-foreground: 215.4 16.3% 46.9%;
+  --muted: 39 25% 92%;
+  --muted-foreground: 210 13% 42%;
 
-  --accent: 210 40% 96.1%;
-  --accent-foreground: 222.2 47.4% 11.2%;
+  --accent: 13 66% 63%;
+  --accent-foreground: 212 35% 17%;
 
-  --destructive: 0 84.2% 60.2%;
-  --destructive-foreground: 210 40% 98%;
+  --destructive: 2 62% 48%;
+  --destructive-foreground: 42 38% 98%;
 
-  --border: 214.3 31.8% 91.4%;
-  --input: 214.3 31.8% 91.4%;
-  --ring: 159 75% 36%;
+  --border: 38 23% 84%;
+  --input: 38 23% 79%;
+  --ring: 165 42% 30%;
 
   --app-font-sans: 'Plus Jakarta Sans', system-ui, sans-serif;
-  --app-font-serif: Georgia, serif;
+  --app-font-serif: 'Fraunces', Georgia, serif;
   --app-font-mono: Menlo, monospace;
-  --radius: 0.5rem;
+  --radius: 0.8rem;
 
-  --sidebar: 0 0% 100%;
-  --sidebar-foreground: 222.2 84% 4.9%;
-  --sidebar-border: 214.3 31.8% 91.4%;
-  --sidebar-primary: 159 75% 36%;
-  --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 210 40% 96.1%;
-  --sidebar-accent-foreground: 222.2 47.4% 11.2%;
-  --sidebar-ring: 159 75% 36%;
+  --sidebar: 39 32% 93%;
+  --sidebar-foreground: 212 35% 17%;
+  --sidebar-border: 38 23% 84%;
+  --sidebar-primary: 165 42% 30%;
+  --sidebar-primary-foreground: 42 38% 98%;
+  --sidebar-accent: 39 31% 88%;
+  --sidebar-accent-foreground: 212 35% 17%;
+  --sidebar-ring: 165 42% 30%;
 
   --shadow-2xs: 0px 1px 2px 0px rgba(0,0,0,0.05);
   --shadow-xs: 0px 1px 2px 0px rgba(0,0,0,0.05);
@@ -118,35 +118,35 @@
 }
 
 .dark {
-  --background: 222.2 84% 4.9%;
-  --foreground: 210 40% 98%;
+  --background: 212 28% 13%;
+  --foreground: 39 31% 93%;
 
-  --card: 222.2 84% 4.9%;
-  --card-foreground: 210 40% 98%;
-  --card-border: 217.2 32.6% 17.5%;
+  --card: 212 25% 17%;
+  --card-foreground: 39 31% 93%;
+  --card-border: 212 20% 25%;
 
-  --popover: 222.2 84% 4.9%;
-  --popover-foreground: 210 40% 98%;
-  --popover-border: 217.2 32.6% 17.5%;
+  --popover: 212 25% 17%;
+  --popover-foreground: 39 31% 93%;
+  --popover-border: 212 20% 25%;
 
-  --primary: 159 75% 36%;
-  --primary-foreground: 0 0% 100%;
+  --primary: 160 36% 53%;
+  --primary-foreground: 212 28% 13%;
 
-  --secondary: 217.2 32.6% 17.5%;
-  --secondary-foreground: 210 40% 98%;
+  --secondary: 212 20% 25%;
+  --secondary-foreground: 39 31% 93%;
 
-  --muted: 217.2 32.6% 17.5%;
-  --muted-foreground: 215 20.2% 65.1%;
+  --muted: 212 20% 25%;
+  --muted-foreground: 210 15% 69%;
 
-  --accent: 217.2 32.6% 17.5%;
-  --accent-foreground: 210 40% 98%;
+  --accent: 13 66% 63%;
+  --accent-foreground: 212 28% 13%;
 
-  --destructive: 0 62.8% 30.6%;
-  --destructive-foreground: 210 40% 98%;
+  --destructive: 2 62% 58%;
+  --destructive-foreground: 39 31% 93%;
 
-  --border: 217.2 32.6% 17.5%;
-  --input: 217.2 32.6% 17.5%;
-  --ring: 159 75% 36%;
+  --border: 212 20% 29%;
+  --input: 212 20% 34%;
+  --ring: 160 36% 53%;
 }
 
 @layer base {
@@ -155,5 +155,15 @@
   }
   body {
     @apply font-sans antialiased bg-background text-foreground;
+    background-image: radial-gradient(circle at 12% 8%, hsl(var(--accent) / 0.08), transparent 28rem);
+  }
+}
+
+@layer utilities {
+  .font-display {
+    font-family: var(--app-font-serif);
+  }
+  .text-balance {
+    text-wrap: balance;
   }
 }

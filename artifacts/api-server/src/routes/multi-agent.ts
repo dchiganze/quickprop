@@ -24,6 +24,7 @@ import {
   getPropertyOffers,
   type DuplicateInput,
 } from "../lib/multi-agent";
+import { queuePrimaryReviewInvitation, queueRelationshipReviewInvitation } from "../lib/agent-reviews";
 
 const router: IRouter = Router();
 const adminOnly = requireRole("principal", "admin");
@@ -182,6 +183,21 @@ router.post("/properties/:id/health", async (req, res): Promise<void> => {
     lastPriceConfirmedAt: action.data.action === "update" ? now : property.lastPriceConfirmedAt,
     updatedAt: now,
   }).where(eq(propertiesTable.id, property.id));
+  if (user && ["sold", "rented", "withdrawn"].includes(status)) {
+    const [relationship] = await db.select({ id: propertyAgentRelationshipsTable.id })
+      .from(propertyAgentRelationshipsTable)
+      .where(and(
+        eq(propertyAgentRelationshipsTable.propertyId, property.id),
+        eq(propertyAgentRelationshipsTable.agentId, user.id),
+        eq(propertyAgentRelationshipsTable.relationshipStatus, "active"),
+      ))
+      .limit(1);
+    if (relationship) {
+      await queueRelationshipReviewInvitation(relationship.id, status);
+    } else if (property.agentId === user.id) {
+      await queuePrimaryReviewInvitation(property.id, status);
+    }
+  }
   if (user) await logAudit("availability_confirmed", "property", property.id, `${user.name}: ${action.data.action}`, user.id, user.name);
   res.json({ ok: true, status, confirmedAt: now.toISOString() });
 });

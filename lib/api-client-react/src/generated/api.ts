@@ -34,6 +34,8 @@ import type {
   AdminPlatformStats,
   AgencyRelationship,
   AgencyRelationshipInput,
+  AgentReviewInput,
+  AgentReviewResult,
   AnalyticsSummary,
   AttentionItem,
   AuditEntry,
@@ -117,8 +119,10 @@ import type {
   PublicProperty,
   PublicPropertyDetail,
   PublicPropertyList,
+  PublicReviewInvitation,
   PublishImportInput,
   PublishImportResult,
+  ReviewInvitationRetryResult,
   SavedResult,
   SearchResults,
   Seller,
@@ -198,6 +202,8 @@ export const getHealthCheckQueryKey = () => {
     `/api/healthz`
     ] as const;
     }
+
+
 export const getHealthCheckQueryOptions = <TData = Awaited<ReturnType<typeof healthCheck>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof healthCheck>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
@@ -5190,6 +5196,155 @@ export function useGetPublicAgent<TData = Awaited<ReturnType<typeof getPublicAge
 
 
 
+export const getGetPublicReviewInvitationUrl = (token: string,) => {
+
+
+
+
+  return `/api/public/reviews/${token}`
+}
+
+/**
+ * @summary Read a one-time agent review invitation
+ */
+export const getPublicReviewInvitation = async (token: string, options?: RequestInit): Promise<PublicReviewInvitation> => {
+
+  return customFetch<PublicReviewInvitation>(getGetPublicReviewInvitationUrl(token),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPublicReviewInvitationQueryKey = (token: string,) => {
+    return [
+    `/api/public/reviews/${token}`
+    ] as const;
+    }
+
+
+export const getGetPublicReviewInvitationQueryOptions = <TData = Awaited<ReturnType<typeof getPublicReviewInvitation>>, TError = ErrorType<void>>(token: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPublicReviewInvitation>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPublicReviewInvitationQueryKey(token);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPublicReviewInvitation>>> = ({ signal }) => getPublicReviewInvitation(token, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: token !== null && token !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPublicReviewInvitation>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetPublicReviewInvitationQueryResult = NonNullable<Awaited<ReturnType<typeof getPublicReviewInvitation>>>
+export type GetPublicReviewInvitationQueryError = ErrorType<void>
+
+
+/**
+ * @summary Read a one-time agent review invitation
+ */
+
+export function useGetPublicReviewInvitation<TData = Awaited<ReturnType<typeof getPublicReviewInvitation>>, TError = ErrorType<void>>(
+ token: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPublicReviewInvitation>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetPublicReviewInvitationQueryOptions(token,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getSubmitAgentReviewUrl = (token: string,) => {
+
+
+
+
+  return `/api/public/reviews/${token}`
+}
+
+/**
+ * @summary Submit a verified agent review
+ */
+export const submitAgentReview = async (token: string,
+    agentReviewInput: AgentReviewInput, options?: RequestInit): Promise<AgentReviewResult> => {
+
+  return customFetch<AgentReviewResult>(getSubmitAgentReviewUrl(token),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(agentReviewInput)
+  }
+);}
+
+
+
+
+
+export const getSubmitAgentReviewMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof submitAgentReview>>, TError,{token: string;data: BodyType<AgentReviewInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof submitAgentReview>>, TError,{token: string;data: BodyType<AgentReviewInput>}, TContext> => {
+
+const mutationKey = ['submitAgentReview'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof submitAgentReview>>, {token: string;data: BodyType<AgentReviewInput>}> = (props) => {
+          const {token,data} = props ?? {};
+
+          return  submitAgentReview(token,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SubmitAgentReviewMutationResult = NonNullable<Awaited<ReturnType<typeof submitAgentReview>>>
+    export type SubmitAgentReviewMutationBody = BodyType<AgentReviewInput>
+    export type SubmitAgentReviewMutationError = ErrorType<void>
+
+    /**
+ * @summary Submit a verified agent review
+ */
+export const useSubmitAgentReview = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof submitAgentReview>>, TError,{token: string;data: BodyType<AgentReviewInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof submitAgentReview>>,
+        TError,
+        {token: string;data: BodyType<AgentReviewInput>},
+        TContext
+      > => {
+      return useMutation(getSubmitAgentReviewMutationOptions(options));
+    }
+
 export const getSubmitEnquiryUrl = () => {
 
 
@@ -5259,6 +5414,77 @@ export const useSubmitEnquiry = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getSubmitEnquiryMutationOptions(options));
+    }
+
+export const getRetryAgentReviewInvitationUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/reviews/invitations/${id}/retry`
+}
+
+/**
+ * @summary Retry a skipped or failed review invitation email
+ */
+export const retryAgentReviewInvitation = async (id: number, options?: RequestInit): Promise<ReviewInvitationRetryResult> => {
+
+  return customFetch<ReviewInvitationRetryResult>(getRetryAgentReviewInvitationUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getRetryAgentReviewInvitationMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof retryAgentReviewInvitation>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof retryAgentReviewInvitation>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['retryAgentReviewInvitation'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof retryAgentReviewInvitation>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  retryAgentReviewInvitation(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RetryAgentReviewInvitationMutationResult = NonNullable<Awaited<ReturnType<typeof retryAgentReviewInvitation>>>
+
+    export type RetryAgentReviewInvitationMutationError = ErrorType<void>
+
+    /**
+ * @summary Retry a skipped or failed review invitation email
+ */
+export const useRetryAgentReviewInvitation = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof retryAgentReviewInvitation>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof retryAgentReviewInvitation>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getRetryAgentReviewInvitationMutationOptions(options));
     }
 
 export const getRegisterBuyerUrl = () => {
@@ -8204,3 +8430,4 @@ export const useAskImportAssistant = <TError = ErrorType<unknown>,
       > => {
       return useMutation(getAskImportAssistantMutationOptions(options));
     }
+

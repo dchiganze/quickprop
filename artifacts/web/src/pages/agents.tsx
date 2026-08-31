@@ -1,69 +1,132 @@
 import { useListPublicAgents } from "@workspace/api-client-react";
+import { Link } from "wouter";
+import { ArrowRight, BriefcaseBusiness, Mail, MapPin, Phone, ShieldCheck, Star } from "lucide-react";
 import { Layout } from "@/components/layout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Link } from "wouter";
-import { Phone, Mail, MapPin } from "lucide-react";
+import { ReviewSummary } from "@/components/review-rating";
+
+function AgentsSkeleton() {
+  return (
+    <div className="grid animate-pulse grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3" data-testid="loading-agents">
+      {[1, 2, 3, 4, 5, 6].map((item) => (
+        <div key={item} className="h-72 rounded-2xl bg-secondary" />
+      ))}
+    </div>
+  );
+}
 
 export default function Agents() {
-  const { data: agents, isLoading } = useListPublicAgents();
+  const agentsQuery = useListPublicAgents();
+  const agents = agentsQuery.data ?? [];
 
   return (
     <Layout>
-      <div className="bg-primary/5 py-16 border-b">
-        <div className="container mx-auto px-4 text-center">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">Find an Agent</h1>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            Connect with verified real estate professionals who know the local market inside out.
-          </p>
+      <section className="border-b border-border bg-secondary/30">
+        <div className="container mx-auto px-4 pb-12 pt-14 sm:pb-16 sm:pt-20">
+          <div className="flex max-w-3xl flex-col justify-between gap-8 md:flex-row md:items-end">
+            <div>
+              <div className="mb-5 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-primary">
+                <ShieldCheck className="h-4 w-4" />
+                People behind the property
+              </div>
+              <h1 className="font-display text-5xl leading-[0.95] text-foreground sm:text-7xl">Meet your local experts.</h1>
+              <p className="mt-6 max-w-xl text-base leading-7 text-muted-foreground">
+                Find a real estate professional with the experience, local knowledge, and client recognition to move your next decision forward.
+              </p>
+            </div>
+            <div className="hidden shrink-0 items-center gap-3 border-l border-border pl-5 text-sm text-muted-foreground sm:flex">
+              <Star className="h-5 w-5 fill-accent text-accent" />
+              <span>Reviews from completed mandates</span>
+            </div>
+          </div>
         </div>
-      </div>
+      </section>
 
-      <div className="container mx-auto px-4 py-12">
-        {isLoading ? (
-          <div className="flex justify-center py-20">
-            <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
+      <section className="container mx-auto flex-1 px-4 py-10 sm:py-14">
+        <div className="mb-7 flex items-end justify-between gap-4">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-muted-foreground">The directory</p>
+            <h2 className="mt-2 font-display text-3xl text-foreground">Agents you can trust</h2>
+          </div>
+          {agents.length > 0 && <span className="text-sm text-muted-foreground" data-testid="text-agent-count">{agents.length} professionals</span>}
+        </div>
+
+        {agentsQuery.isLoading ? (
+          <AgentsSkeleton />
+        ) : agentsQuery.isError ? (
+          <div className="rounded-2xl border border-destructive/25 bg-destructive/5 p-8 text-center" role="alert" data-testid="status-agents-error">
+            <p className="font-semibold text-foreground">We could not load the agent directory.</p>
+            <p className="mt-2 text-sm text-muted-foreground">Check your connection, then give it another try.</p>
+            <Button type="button" onClick={() => agentsQuery.refetch()} variant="outline" className="mt-5" data-testid="button-retry-agents">Try again</Button>
+          </div>
+        ) : agents.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-border bg-card p-12 text-center" data-testid="status-agents-empty">
+            <BriefcaseBusiness className="mx-auto h-8 w-8 text-muted-foreground" />
+            <h3 className="mt-4 font-display text-2xl text-foreground">The directory is growing.</h3>
+            <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-muted-foreground">There are no public agent profiles available right now. Please check back soon.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {agents?.map((agent) => (
-              <Card key={agent.id} className="overflow-hidden hover:shadow-md transition-shadow">
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
+            {agents.map((agent) => (
+              <Card key={agent.id} className="group overflow-hidden border-border bg-card shadow-none transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_18px_40px_hsl(var(--primary)/0.12)]" data-testid={`card-agent-${agent.id}`}>
                 <CardContent className="p-0">
-                  <div className="bg-gray-50 h-32 relative">
-                    <div className="absolute -bottom-10 left-1/2 -translate-x-1/2">
-                      <div className="h-20 w-20 rounded-full border-4 border-white overflow-hidden bg-white shadow-sm">
+                  <div className="relative h-28 overflow-hidden bg-primary">
+                    <div className="absolute -right-8 -top-16 h-40 w-40 rounded-full border-[18px] border-accent/40" />
+                    <div className="absolute -bottom-12 left-7 h-32 w-32 rounded-full border border-primary-foreground/15" />
+                    <div className="absolute bottom-3 left-5 rounded-full bg-primary-foreground/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-primary-foreground">
+                      {agent.role.replace(/_/g, " ")}
+                    </div>
+                  </div>
+                  <div className="relative px-5 pb-5">
+                    <div className="-mt-10 mb-4 flex items-end justify-between">
+                      <div className="h-20 w-20 overflow-hidden rounded-2xl border-4 border-card bg-accent shadow-md">
                         {agent.avatarUrl ? (
-                          <img src={agent.avatarUrl} alt={agent.name} className="h-full w-full object-cover" />
+                          <img src={agent.avatarUrl} alt={agent.name} className="h-full w-full object-cover" data-testid={`img-agent-avatar-${agent.id}`} />
                         ) : (
-                          <div className="h-full w-full flex items-center justify-center bg-emerald-100 text-emerald-700 font-bold text-2xl">
-                            {agent.name.charAt(0)}
+                          <div className="flex h-full w-full items-center justify-center text-2xl font-bold text-primary" data-testid={`text-agent-initials-${agent.id}`}>
+                            {agent.name.split(" ").map((part) => part[0]).slice(0, 2).join("")}
                           </div>
                         )}
                       </div>
+                      <span className="flex items-center gap-1.5 pb-1 text-xs text-muted-foreground" data-testid={`text-agent-location-${agent.id}`}>
+                        <MapPin className="h-3.5 w-3.5" />
+                        {agent.branchName || "Independent"}
+                      </span>
                     </div>
-                  </div>
-                  
-                  <div className="pt-14 pb-6 px-6 text-center">
-                    <h3 className="text-lg font-bold text-gray-900">{agent.name}</h3>
-                    <p className="text-sm text-gray-500 mb-4">{agent.branchName || 'Independent Agent'}</p>
-                    
-                    <div className="flex items-center justify-center gap-4 text-sm text-gray-600 mb-6">
-                      <div className="flex flex-col items-center">
-                        <span className="font-bold text-primary text-lg">{agent.activeListings}</span>
-                        <span className="text-xs uppercase tracking-wider">Listings</span>
+                    <h3 className="font-display text-3xl leading-none text-foreground" data-testid={`text-agent-name-${agent.id}`}>{agent.name}</h3>
+                    <div className="mt-4">
+                      <ReviewSummary averageRating={agent.reviewSummary.averageRating} reviewCount={agent.reviewSummary.reviewCount} compact />
+                    </div>
+                    <div className="mt-5 grid grid-cols-2 gap-3 border-y border-border py-4 text-sm">
+                      <div>
+                        <p className="text-2xl font-semibold text-primary" data-testid={`text-agent-listings-${agent.id}`}>{agent.activeListings}</p>
+                        <p className="mt-1 text-xs text-muted-foreground">Active listings</p>
+                      </div>
+                      <div className="border-l border-border pl-4">
+                        <p className="text-2xl font-semibold text-primary">{agent.reviewSummary.reviewCount}</p>
+                        <p className="mt-1 text-xs text-muted-foreground">Client reviews</p>
                       </div>
                     </div>
-
-                    <Button asChild className="w-full" variant="outline">
-                      <Link href={`/agents/${agent.id}`}>View Profile</Link>
-                    </Button>
+                    <div className="mt-5 flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3 text-muted-foreground">
+                        {agent.phone && <Phone className="h-4 w-4" aria-label="Phone available" />}
+                        {agent.email && <Mail className="h-4 w-4" aria-label="Email available" />}
+                      </div>
+                      <Button asChild size="sm" className="gap-2 rounded-lg" data-testid={`button-view-agent-${agent.id}`}>
+                        <Link href={`/agents/${agent.id}`}>
+                          View profile
+                          <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                        </Link>
+                      </Button>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
             ))}
           </div>
         )}
-      </div>
+      </section>
     </Layout>
   );
 }

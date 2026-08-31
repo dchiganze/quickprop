@@ -8,6 +8,7 @@ import Search from '@/pages/search';
 import PropertyDetail from '@/pages/property-detail';
 import Agents from '@/pages/agents';
 import AgentProfile from '@/pages/agent-profile';
+import Review from '@/pages/review';
 import Login from '@/pages/login';
 import Register from '@/pages/register';
 import Account from '@/pages/account';
@@ -26,6 +27,7 @@ function Router() {
       <Route path="/search" component={Search} />
       <Route path="/properties/:id" component={PropertyDetail} />
       <Route path="/agents" component={Agents} />
+      <Route path="/review/:token" component={Review} />
       <Route path="/agents/:id" component={AgentProfile} />
       <Route path="/login" component={Login} />
       <Route path="/register" component={Register} />

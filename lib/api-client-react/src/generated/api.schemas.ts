@@ -802,6 +802,11 @@ export interface PublicPropertyList {
   limit: number;
 }
 
+export interface AgentReviewSummary {
+  averageRating: number;
+  reviewCount: number;
+}
+
 export interface PublicAgent {
   id: number;
   name: string;
@@ -817,11 +822,69 @@ export interface PublicAgent {
   /** @nullable */
   branchName?: string | null;
   activeListings: number;
+  reviewSummary: AgentReviewSummary;
+}
+
+export interface PublicAgentReview {
+  rating: number;
+  reviewText: string;
+  outcome: string;
+  createdAt: string;
+  verified: boolean;
 }
 
 export interface PublicAgentProfile {
   agent: PublicAgent;
   listings: PublicProperty[];
+  reviews: PublicAgentReview[];
+}
+
+export type PublicReviewInvitationStatus = typeof PublicReviewInvitationStatus[keyof typeof PublicReviewInvitationStatus];
+
+
+export const PublicReviewInvitationStatus = {
+  available: 'available',
+} as const;
+
+export type PublicReviewInvitationAgent = {
+  name: string;
+};
+
+export type PublicReviewInvitationProperty = {
+  reference: string;
+  title: string;
+};
+
+export interface PublicReviewInvitation {
+  status: PublicReviewInvitationStatus;
+  agent: PublicReviewInvitationAgent;
+  property: PublicReviewInvitationProperty;
+  outcome: string;
+  expiresAt: string;
+}
+
+export interface AgentReviewInput {
+  /**
+     * @minimum 1
+     * @maximum 5
+     */
+  rating: number;
+  /**
+     * @minLength 10
+     * @maxLength 600
+     */
+  reviewText: string;
+}
+
+export interface AgentReviewResult {
+  success: boolean;
+  review: PublicAgentReview;
+}
+
+export interface ReviewInvitationRetryResult {
+  ok: boolean;
+  invitationId: number;
+  status: string;
 }
 
 export interface MarketingAsset {
@@ -1598,3 +1661,4 @@ export type DeactivateListingHousekeepingPushToken200 = {
 export type ModerateProperty200 = {
   ok?: boolean;
 };
+

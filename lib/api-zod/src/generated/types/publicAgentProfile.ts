@@ -6,9 +6,11 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { PublicAgent } from './publicAgent';
+import type { PublicAgentReview } from './publicAgentReview';
 import type { PublicProperty } from './publicProperty';
 
 export interface PublicAgentProfile {
   agent: PublicAgent;
   listings: PublicProperty[];
+  reviews: PublicAgentReview[];
 }

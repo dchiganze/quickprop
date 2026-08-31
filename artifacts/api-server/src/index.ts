@@ -3,6 +3,7 @@ import { logger } from "./lib/logger";
 import { startHousekeepingScheduler } from "./lib/housekeeping-job";
 import { startImportRecoveryWorker } from "./routes/imports";
 import { ensureDemoAccounts } from "./lib/demo-accounts";
+import { startReviewInvitationScheduler } from "./lib/agent-reviews";
 
 const rawPort = process.env["PORT"];
 
@@ -30,6 +31,7 @@ async function startServer(): Promise<void> {
     logger.info({ port }, "Server listening");
     startHousekeepingScheduler();
     startImportRecoveryWorker();
+    startReviewInvitationScheduler();
   });
 }
 

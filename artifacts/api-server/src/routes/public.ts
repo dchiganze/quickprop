@@ -11,6 +11,7 @@ import { leadsTable } from "@workspace/db";
 import { ai } from "@workspace/integrations-gemini-ai";
 import { canonicalPropertyId, getCanonicalProperty, getPropertyOffers } from "../lib/multi-agent";
 import { calculateFreshness, freshnessRankBonus, publicFreshnessLabel } from "../lib/housekeeping";
+import { getPublicReviewSummary } from "../lib/agent-reviews";
 
 const router: IRouter = Router();
 
@@ -45,6 +46,7 @@ async function agentWithBranch(agentId: number | null) {
   const listings = await db.select().from(propertiesTable).where(
     and(eq(propertiesTable.agentId, agent.id), inArray(propertiesTable.status, PUBLIC_STATUSES))
   );
+  const reviewSummary = await getPublicReviewSummary(agent.id);
   return {
     id: agent.id,
     name: agent.name,
@@ -55,6 +57,10 @@ async function agentWithBranch(agentId: number | null) {
     branchId: agent.branchId ?? null,
     branchName,
     activeListings: listings.length,
+    reviewSummary: {
+      averageRating: reviewSummary.averageRating,
+      reviewCount: reviewSummary.reviewCount,
+    },
   };
 }
 
@@ -203,6 +209,7 @@ router.get("/public/agents", async (_req, res): Promise<void> => {
       const listings = await db.select({ id: propertiesTable.id }).from(propertiesTable).where(
         and(eq(propertiesTable.agentId, agent.id), inArray(propertiesTable.status, PUBLIC_STATUSES))
       );
+      const reviewSummary = await getPublicReviewSummary(agent.id);
       return {
         id: agent.id,
         name: agent.name,
@@ -213,6 +220,10 @@ router.get("/public/agents", async (_req, res): Promise<void> => {
         branchId: agent.branchId ?? null,
         branchName,
         activeListings: listings.length,
+        reviewSummary: {
+          averageRating: reviewSummary.averageRating,
+          reviewCount: reviewSummary.reviewCount,
+        },
       };
     })
   );
@@ -240,6 +251,7 @@ router.get("/public/agents/:id", async (req, res): Promise<void> => {
     and(eq(propertiesTable.agentId, agent.id), inArray(propertiesTable.status, PUBLIC_STATUSES))
   );
 
+  const reviewSummary = await getPublicReviewSummary(agent.id);
   res.json(jsonify({
     agent: {
       id: agent.id,
@@ -251,8 +263,13 @@ router.get("/public/agents/:id", async (req, res): Promise<void> => {
       branchId: agent.branchId ?? null,
       branchName,
       activeListings: listings.length,
+      reviewSummary: {
+        averageRating: reviewSummary.averageRating,
+        reviewCount: reviewSummary.reviewCount,
+      },
     },
     listings: listings.map(stripPrivate),
+    reviews: reviewSummary.reviews,
   }));
 });
 
