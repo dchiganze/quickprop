@@ -13,12 +13,20 @@ import { logger } from "./logger";
 import { createReviewToken, hashReviewToken } from "./agent-review-tokens";
 
 const REVIEW_INVITATION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+export const REVIEW_INITIAL_DELAY_MS = 2 * 60 * 60 * 1000;
+export const REVIEW_REMINDER_INTERVAL_MS = 7 * 24 * 60 * 60 * 1000;
+const MAX_REMINDER_NUMBER = 2;
 const MAX_ATTEMPTS = 5;
 const RETRY_DELAYS_MS = [5 * 60_000, 30 * 60_000, 2 * 60 * 60_000, 12 * 60 * 60_000];
 const TERMINAL_OUTCOMES = ["sold", "rented", "withdrawn", "archived"] as const;
 const PUBLIC_APP_URL = process.env.PUBLIC_APP_URL?.trim() || "https://quickprop.co.zw";
 
 export type ReviewOutcome = typeof TERMINAL_OUTCOMES[number];
+
+export function nextReviewDeliveryAt(from: Date, reminderNumber: number): Date {
+  const delay = reminderNumber === 0 ? REVIEW_INITIAL_DELAY_MS : REVIEW_REMINDER_INTERVAL_MS;
+  return new Date(from.getTime() + delay);
+}
 
 function safeReviewLink(token: string): string {
   return `${PUBLIC_APP_URL.replace(/\/$/, "")}/review/${token}`;
@@ -61,6 +69,7 @@ type InvitationInput = {
 export async function ensureReviewInvitation(input: InvitationInput) {
   const token = createReviewToken();
   const expiresAt = new Date(Date.now() + REVIEW_INVITATION_TTL_MS);
+  const nextAttemptAt = nextReviewDeliveryAt(new Date(), 0);
   const [created] = await db
     .insert(agentReviewInvitationsTable)
     .values({
@@ -73,6 +82,7 @@ export async function ensureReviewInvitation(input: InvitationInput) {
       outcome: input.outcome,
       tokenHash: hashReviewToken(token),
       expiresAt,
+      nextAttemptAt,
     })
     .onConflictDoNothing({ target: agentReviewInvitationsTable.mandateKey })
     .returning();
@@ -204,19 +214,28 @@ export async function getPublicReviewSummary(agentId: number) {
 function reviewEmail(invitation: typeof agentReviewInvitationsTable.$inferSelect, property: typeof propertiesTable.$inferSelect, agentName: string, token: string) {
   const link = safeReviewLink(token);
   const label = outcomeLabel(invitation.outcome as ReviewOutcome);
+  const isReminder = invitation.reminderNumber > 0;
+  const opening = isReminder
+    ? `Just a quick reminder that we'd value a short review of your experience with ${agentName}.`
+    : `Now that the ${label} mandate has closed, we'd value a short review of your experience.`;
   const text = [
     `Hi${invitation.recipientName ? ` ${invitation.recipientName}` : ""},`,
     "",
     `Thank you for working with ${agentName} on ${property.title} (${property.reference}).`,
-    `Now that the ${label} mandate has closed, we'd value a short review of your experience.`,
+    opening,
     "",
     `Leave your review: ${link}`,
     "",
     "This one-time link expires in 30 days.",
     "QuickProp",
   ].join("\n");
-  const html = `<p>Hi${invitation.recipientName ? ` ${escapeHtml(invitation.recipientName)}` : ""},</p><p>Thank you for working with <strong>${escapeHtml(agentName)}</strong> on ${escapeHtml(property.title)} (${escapeHtml(property.reference)}).</p><p>Now that the ${escapeHtml(label)} mandate has closed, we'd value a short review of your experience.</p><p><a href="${link}">Leave your review</a></p><p>This one-time link expires in 30 days.</p><p>QuickProp</p>`;
-  return { to: invitation.recipientEmail, subject: `How was your experience with ${agentName}?`, text, html };
+  const html = `<p>Hi${invitation.recipientName ? ` ${escapeHtml(invitation.recipientName)}` : ""},</p><p>Thank you for working with <strong>${escapeHtml(agentName)}</strong> on ${escapeHtml(property.title)} (${escapeHtml(property.reference)}).</p><p>${escapeHtml(opening)}</p><p><a href="${link}">Leave your review</a></p><p>This one-time link expires in 30 days.</p><p>QuickProp</p>`;
+  return {
+    to: invitation.recipientEmail,
+    subject: isReminder ? `A quick reminder about your ${agentName} review` : `How was your experience with ${agentName}?`,
+    text,
+    html,
+  };
 }
 
 function escapeHtml(value: string): string {
@@ -242,7 +261,7 @@ async function deliverInvitation(invitation: typeof agentReviewInvitationsTable.
   const email = reviewEmail(rotated, property, agent.name, token);
   return sendEmailMessage({
     ...email,
-    idempotencyKey: `agent-review-invitation-${invitation.id}`,
+    idempotencyKey: `agent-review-invitation-${invitation.id}-${invitation.reminderNumber}`,
   });
 }
 
@@ -279,8 +298,15 @@ export async function deliverDueReviewInvitations() {
     try {
       const result = await deliverInvitation(claimed);
       if (result.status === "sent") {
+        const nextReminderNumber = claimed.reminderNumber + 1;
+        const hasMoreReminders = nextReminderNumber <= MAX_REMINDER_NUMBER;
         await db.update(agentReviewInvitationsTable).set({
-          status: "sent",
+          status: hasMoreReminders ? "pending" : "sent",
+          reminderNumber: nextReminderNumber,
+          attempts: 0,
+          nextAttemptAt: hasMoreReminders
+            ? nextReviewDeliveryAt(new Date(), nextReminderNumber)
+            : claimed.nextAttemptAt,
           sentAt: new Date(),
           providerMessageId: result.providerMessageId ?? null,
           lastError: null,

@@ -27,6 +27,7 @@ export const agentReviewInvitationsTable = pgTable(
     status: text("status").notNull().default("pending"),
     expiresAt: timestamp("expires_at").notNull(),
     attempts: integer("attempts").notNull().default(0),
+    reminderNumber: integer("reminder_number").notNull().default(0),
     nextAttemptAt: timestamp("next_attempt_at").notNull().defaultNow(),
     sentAt: timestamp("sent_at"),
     submittedAt: timestamp("submitted_at"),
