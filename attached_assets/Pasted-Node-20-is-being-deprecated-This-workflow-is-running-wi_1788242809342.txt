@@ -1,0 +1,43 @@
+Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+Run apple-actions/upload-testflight-build@v1
+/usr/bin/xcrun altool --output-format xml --upload-app --file /Users/runner/work/quickmart/quickmart/artifacts/qm-business/build/ios-export/QMBusiness.ipa --type ios --apiKey *** --apiIssuer ***
+Running altool at path '/Applications/Xcode_16.4.app/Contents/SharedFrameworks/ContentDeliveryServices.framework/Frameworks/AppStoreService.framework/Support/altool'...
+2026-08-31 18:35:12.764 ERROR: [altool.60000123C1C0] [ContentDelivery.Uploader.60000123C1C0] Validation failed (409) SDK version issue. This app was built with the iOS 18.5 SDK. All iOS and iPadOS apps must be built with the iOS 26 SDK or later, included in Xcode 26 or later, in order to be uploaded to App Store Connect or submitted for distribution. (ID: 5d783394-ce25-467d-b88b-e4a53a1d8ab4)
+2026-08-31 18:35:28.245  INFO: [altool.60000123C1C0] [ContentDelivery.Uploader.60000123C1C0] 
+=======================================
+UPLOAD FAILED with 1 error, 0 warnings, 0 messages
+=======================================
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>os-version</key>
+	<string>15.7.7</string>
+	<key>product-errors</key>
+	<array>
+		<dict>
+			<key>code</key>
+			<integer>409</integer>
+			<key>message</key>
+			<string>Validation failed</string>
+			<key>userInfo</key>
+			<dict>
+				<key>NSLocalizedDescription</key>
+				<string>Validation failed</string>
+				<key>NSLocalizedFailureReason</key>
+				<string>SDK version issue. This app was built with the iOS 18.5 SDK. All iOS and iPadOS apps must be built with the iOS 26 SDK or later, included in Xcode 26 or later, in order to be uploaded to App Store Connect or submitted for distribution. (ID: 5d783394-ce25-467d-b88b-e4a53a1d8ab4)</string>
+				<key>NSUnderlyingError</key>
+				<string>Error Domain=IrisAPI Code=-19241 "Validation failed" UserInfo={status=409, detail=SDK version issue. This app was built with the iOS 18.5 SDK. All iOS and iPadOS apps must be built with the iOS 26 SDK or later, included in Xcode 26 or later, in order to be uploaded to App Store Connect or submitted for distribution., id=5d783394-ce25-467d-b88b-e4a53a1d8ab4, code=STATE_ERROR.VALIDATION_ERROR, title=Validation failed, NSLocalizedFailureReason=SDK version issue. This app was built with the iOS 18.5 SDK. All iOS and iPadOS apps must be built with the iOS 26 SDK or later, included in Xcode 26 or later, in order to be uploaded to App Store Connect or submitted for distribution., NSLocalizedDescription=Validation failed}</string>
+				<key>iris-code</key>
+				<string>STATE_ERROR.VALIDATION_ERROR</string>
+			</dict>
+		</dict>
+	</array>
+	<key>tool-path</key>
+	<string>/Applications/Xcode_16.4.app/Contents/SharedFrameworks/ContentDeliveryServices.framework/Versions/A/Frameworks/AppStoreService.framework</string>
+	<key>tool-version</key>
+	<string>8.303.16303</string>
+</dict>
+</plist>
+
+Error: The process '/usr/bin/xcrun' failed with exit code 1
