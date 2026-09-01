@@ -132,7 +132,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <div className="space-y-1">
               <div className="px-3 text-xs font-semibold tracking-wider text-sidebar-foreground/40 uppercase mb-2">Properties</div>
               <NavItem href="/inventory" icon={Database} label="Inventory" exact />
-              <NavItem href="/inventory/pipeline" icon={KanbanSquare} label="Pipeline" />
               <NavItem href="/imports" icon={UploadCloud} label="Bulk Imports" />
               <NavItem href="/calendar" icon={Calendar} label="Viewings" />
             </div>
@@ -149,7 +148,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
             <div className="space-y-1">
               <div className="px-3 text-xs font-semibold tracking-wider text-sidebar-foreground/40 uppercase mb-2">Agency</div>
-              <NavItem href="/documents" icon={FileText} label="Documents" />
               <NavItem href="/analytics" icon={BarChart3} label="Analytics" />
               <NavItem href="/users" icon={UserCircle} label="Team & Branches" />
               <NavItem href="/settings" icon={Settings} label="Settings" />
