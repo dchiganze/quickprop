@@ -41,23 +41,23 @@ export default function Account() {
       </div>
 
       <div className="container mx-auto px-4 py-12">
-        <Tabs defaultValue="saved" className="max-w-6xl mx-auto">
+        <Tabs defaultValue="alerts" className="max-w-6xl mx-auto">
           <TabsList className="mb-8 h-auto w-full flex-wrap justify-start gap-1 bg-gray-100">
+            <TabsTrigger value="alerts" data-testid="tab-property-alerts" className="px-3 sm:px-6 data-[state=active]:bg-white">
+              <Bell className="h-4 w-4 mr-2" />
+              Property Alerts
+            </TabsTrigger>
             <TabsTrigger value="saved" data-testid="tab-saved-properties" className="px-3 sm:px-6 data-[state=active]:bg-white">
               <Heart className="h-4 w-4 mr-2" />
               Saved Properties
-            </TabsTrigger>
-            <TabsTrigger value="profile" data-testid="tab-profile-details" className="px-3 sm:px-6 data-[state=active]:bg-white">
-              <User className="h-4 w-4 mr-2" />
-              Profile Details
             </TabsTrigger>
             <TabsTrigger value="rental-profile" data-testid="tab-rental-profile" className="px-3 sm:px-6 data-[state=active]:bg-white">
               <Home className="h-4 w-4 mr-2" />
               Rental Profile
             </TabsTrigger>
-            <TabsTrigger value="alerts" data-testid="tab-property-alerts" className="px-3 sm:px-6 data-[state=active]:bg-white">
-              <Bell className="h-4 w-4 mr-2" />
-              Property Alerts
+            <TabsTrigger value="profile" data-testid="tab-profile-details" className="px-3 sm:px-6 data-[state=active]:bg-white">
+              <User className="h-4 w-4 mr-2" />
+              Profile Details
             </TabsTrigger>
           </TabsList>
           
