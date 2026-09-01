@@ -23,14 +23,14 @@ export default function Agents() {
   return (
     <Layout>
       <section className="border-b border-border bg-secondary/30">
-        <div className="container mx-auto px-4 pb-12 pt-14 sm:pb-16 sm:pt-20">
-          <div className="flex max-w-3xl flex-col justify-between gap-8 md:flex-row md:items-end">
-            <div>
+        <div className="container mx-auto px-4 pb-12 pt-4 sm:pb-16 sm:pt-10">
+          <div className="flex max-w-6xl flex-col justify-between gap-8 md:flex-row md:items-end">
+            <div className="min-w-0 flex-1">
               <div className="mb-5 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-primary">
                 <ShieldCheck className="h-4 w-4" />
                 People behind the property
               </div>
-              <h1 className="font-display text-5xl leading-[0.95] text-foreground sm:text-7xl">Meet your local experts.</h1>
+              <h1 className="whitespace-nowrap font-display text-[clamp(2rem,5vw,4.5rem)] leading-[0.95] text-foreground">Meet your local experts.</h1>
               <p className="mt-6 max-w-xl text-base leading-7 text-muted-foreground">
                 Find a real estate professional with the experience, local knowledge, and client recognition to move your next decision forward.
               </p>
