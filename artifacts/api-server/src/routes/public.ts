@@ -12,6 +12,7 @@ import { ai } from "@workspace/integrations-gemini-ai";
 import { canonicalPropertyId, getCanonicalProperty, getPropertyOffers } from "../lib/multi-agent";
 import { calculateFreshness, freshnessRankBonus, publicFreshnessLabel } from "../lib/housekeeping";
 import { getPublicReviewSummary } from "../lib/agent-reviews";
+import { hashPassword, isScryptHash, verifyPassword } from "../lib/passwords";
 
 const router: IRouter = Router();
 
@@ -323,7 +324,7 @@ router.post("/public/auth/register", async (req, res): Promise<void> => {
       name,
       email: email.toLowerCase().trim(),
       phone: phone ?? null,
-      password,
+      password: await hashPassword(password),
       role: "buyer",
       status: "active",
     })
@@ -344,9 +345,12 @@ router.post("/public/auth/login", async (req, res): Promise<void> => {
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
 
   const [user] = await db.select().from(usersTable).where(eq(usersTable.email, parsed.data.email.toLowerCase().trim()));
-  if (!user || user.password !== parsed.data.password || user.role !== "buyer" || user.status !== "active") {
+  if (!user || user.role !== "buyer" || user.status !== "active" || !await verifyPassword(parsed.data.password, user.password)) {
     res.status(401).json({ error: "Invalid credentials" });
     return;
+  }
+  if (!isScryptHash(user.password)) {
+    await db.update(usersTable).set({ password: await hashPassword(parsed.data.password) }).where(eq(usersTable.id, user.id));
   }
 
   res.cookie(BUYER_COOKIE, String(user.id), {

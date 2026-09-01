@@ -1,4 +1,4 @@
-import { useLogin, useLoginBuyer } from "@workspace/api-client-react";
+import { useLoginBuyer } from "@workspace/api-client-react";
 import { Layout } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,7 +18,7 @@ const loginSchema = z.object({
 export default function Login() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  const loginMutation = useLogin();
+  const loginMutation = useLoginBuyer();
 
   const form = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
@@ -50,7 +50,7 @@ export default function Login() {
         <Card className="w-full max-w-md shadow-lg border-0">
           <CardHeader className="space-y-1 text-center pt-8 pb-6">
             <CardTitle className="text-2xl font-bold text-gray-900">Welcome back</CardTitle>
-            <CardDescription>Enter your email to sign in to your account</CardDescription>
+            <CardDescription>Sign in to save properties and manage your enquiries</CardDescription>
           </CardHeader>
           <CardContent className="pb-8">
             <Form {...form}>
