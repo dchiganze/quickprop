@@ -167,6 +167,13 @@ function ActivityFeed({ entries, isLoading }: { entries?: ActivityEntry[], isLoa
   );
 }
 
+function getTimeOfDayGreeting(date = new Date()) {
+  const hour = date.getHours();
+  if (hour < 12) return 'Good morning.';
+  if (hour < 18) return 'Good afternoon.';
+  return 'Good evening.';
+}
+
 export default function Dashboard() {
   const { data: summary, isLoading: loadingSummary } = useGetDashboardSummary();
   const { data: commandCentre, isLoading: loadingCommand } = useGetCommandCentre();
@@ -177,7 +184,7 @@ export default function Dashboard() {
     <div className="p-8 space-y-8 max-w-[1600px] mx-auto">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">Good morning.</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">{getTimeOfDayGreeting()}</h1>
           <p className="text-muted-foreground mt-1 text-lg">Here's what's happening across your agency today.</p>
         </div>
         <div className="flex gap-3">
