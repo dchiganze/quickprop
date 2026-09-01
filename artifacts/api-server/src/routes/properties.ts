@@ -36,6 +36,8 @@ import { currentUser } from "./auth";
 import { DEFAULT_HOUSEKEEPING_SETTINGS } from "../lib/housekeeping";
 import { findDuplicateCandidates, normalizeText } from "../lib/multi-agent";
 import { queuePrimaryReviewInvitation } from "../lib/agent-reviews";
+import { matchPropertyToAlerts } from "../lib/property-alerts";
+import { logger } from "../lib/logger";
 
 const router: IRouter = Router();
 
@@ -155,6 +157,9 @@ router.post("/properties", async (req, res): Promise<void> => {
     return { row, created: true };
   });
   if (result.created) {
+    void matchPropertyToAlerts(result.row.id).catch((error) => {
+      logger.warn({ propertyId: result.row.id, error }, "Property alert matching failed");
+    });
     const duplicateMatches = await findDuplicateCandidates({
       address: result.row.address,
       suburb: result.row.suburb,
@@ -252,6 +257,11 @@ router.patch("/properties/:id", async (req, res): Promise<void> => {
     if (["sold", "rented", "withdrawn", "archived"].includes(parsed.data.status)) {
       await queuePrimaryReviewInvitation(id, parsed.data.status);
     }
+  }
+  if (["public", "under_offer", "coming_soon"].includes(row.status)) {
+    void matchPropertyToAlerts(row.id).catch((error) => {
+      logger.warn({ propertyId: row.id, error }, "Property alert matching failed");
+    });
   }
   await logAudit("edited", "property", id, `Updated ${row.reference}`, user?.id, user?.name);
   res.json(UpdatePropertyResponse.parse(jsonify(row)));

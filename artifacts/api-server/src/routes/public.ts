@@ -21,7 +21,7 @@ const BUYER_COOKIE = "qp_buyer";
 
 /* ─── helpers ─────────────────────────────────────────────────────────── */
 
-async function currentBuyer(req: Request) {
+export async function currentBuyer(req: Request) {
   const raw = req.cookies?.[BUYER_COOKIE];
   const id = parseInt(raw ?? "", 10);
   if (!id || Number.isNaN(id)) return null;

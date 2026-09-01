@@ -1,4 +1,4 @@
-import { useGetPublicProperty, useSubmitEnquiry, useSaveProperty, useUnsaveProperty, useListSavedProperties } from "@workspace/api-client-react";
+import { useGetPublicMe, useGetPublicProperty, useSubmitEnquiry, useSaveProperty, useUnsaveProperty, useListSavedProperties, useCreateSimilarPropertyAlert } from "@workspace/api-client-react";
 import { Layout } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,8 +6,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatPrice } from "@/lib/utils";
-import { useParams } from "wouter";
-import { Bed, Bath, Car, Maximize, MapPin, Share2, Heart, MessageSquare, Phone, Building, CheckCircle2, Users, ShieldCheck } from "lucide-react";
+import { useLocation, useParams } from "wouter";
+import { Bed, Bath, Car, Maximize, MapPin, Share2, Heart, MessageSquare, Phone, Building, CheckCircle2, Users, ShieldCheck, Bell } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -15,7 +15,7 @@ import * as z from "zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
-import { getListSavedPropertiesQueryKey } from "@workspace/api-client-react";
+import { getGetPublicMeQueryKey, getListSavedPropertiesQueryKey } from "@workspace/api-client-react";
 
 const enquirySchema = z.object({
   name: z.string().min(2, "Name is required"),
@@ -26,6 +26,7 @@ const enquirySchema = z.object({
 
 export default function PropertyDetail() {
   const params = useParams();
+  const [, setLocation] = useLocation();
   const propertyIdentifier = params.id || "";
   const id = parseInt(propertyIdentifier, 10);
   const { toast } = useToast();
@@ -36,12 +37,15 @@ export default function PropertyDetail() {
   // sync replaces a temporary local ID.
   const { data, isLoading } = useGetPublicProperty(propertyIdentifier);
   const { data: savedProperties } = useListSavedProperties();
+  const { data: buyer } = useGetPublicMe({ query: { retry: false, queryKey: getGetPublicMeQueryKey() } });
   
   const submitEnquiry = useSubmitEnquiry();
   const saveProperty = useSaveProperty();
   const unsaveProperty = useUnsaveProperty();
+  const createSimilarAlert = useCreateSimilarPropertyAlert();
 
   const [activeImage, setActiveImage] = useState(0);
+  const [similarAlertCreated, setSimilarAlertCreated] = useState(false);
 
   const resolvedPropertyId = data?.property?.id ?? id;
   const isSaved = savedProperties?.some(p => p.id === resolvedPropertyId);
@@ -110,6 +114,31 @@ export default function PropertyDetail() {
       navigator.clipboard.writeText(window.location.href);
       toast({ description: "Link copied to clipboard" });
     }
+  };
+
+  const handleSimilarAlert = () => {
+    if (!buyer) {
+      toast({
+        title: "Create an account to get alerts",
+        description: "Log in or sign up and we’ll save this search for you.",
+      });
+      setLocation(`/login?redirect=/properties/${propertyIdentifier}`);
+      return;
+    }
+    createSimilarAlert.mutate({ id: resolvedPropertyId }, {
+      onSuccess: () => {
+        setSimilarAlertCreated(true);
+        toast({
+          title: "Similar property alert created",
+          description: "We’ll notify you when a similar property becomes available.",
+        });
+      },
+      onError: () => toast({
+        variant: "destructive",
+        title: "Couldn’t create alert",
+        description: "Please try again from your account.",
+      }),
+    });
   };
 
   if (isLoading || !data) return (
@@ -197,6 +226,17 @@ export default function PropertyDetail() {
               <div className="text-3xl font-bold text-primary mb-8">
                 {formatPrice(property.lowestPrice ?? property.price, property.currency)}
                 {property.listingType === 'rent' && <span className="text-lg text-gray-500 font-normal"> / month</span>}
+              </div>
+              <div className="mb-8">
+                <Button
+                  variant={similarAlertCreated ? "secondary" : "outline"}
+                  className="w-full justify-center border-primary/30 sm:w-auto"
+                  onClick={handleSimilarAlert}
+                  disabled={createSimilarAlert.isPending || similarAlertCreated}
+                >
+                  {similarAlertCreated ? <CheckCircle2 className="mr-2 h-4 w-4" /> : <Bell className="mr-2 h-4 w-4" />}
+                  {similarAlertCreated ? "Similar alert created" : "Notify me of similar properties"}
+                </Button>
               </div>
               {(data.agencyCount ?? property.agencyCount ?? 1) > 1 && (
                 <div className="mb-8 flex items-center gap-3 rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-emerald-800">

@@ -2536,6 +2536,278 @@ export const UnsavePropertyResponse = zod.void()
 
 
 /**
+ * @summary List the signed-in buyer's property alerts
+ */
+export const ListPropertyAlertsResponseItem = zod.object({
+  "id": zod.number(),
+  "userId": zod.number(),
+  "name": zod.string(),
+  "transactionType": zod.enum(['sale', 'rent']),
+  "propertyTypes": zod.array(zod.string()),
+  "cities": zod.array(zod.string()),
+  "suburbs": zod.array(zod.string()),
+  "minPrice": zod.number().nullable(),
+  "maxPrice": zod.number().nullable(),
+  "minBedrooms": zod.number().nullable(),
+  "minBathrooms": zod.number().nullable(),
+  "requiredAmenities": zod.array(zod.string()),
+  "preferredAmenities": zod.array(zod.string()),
+  "furnishedPreference": zod.string(),
+  "parkingPreference": zod.string(),
+  "petsPreference": zod.string(),
+  "powerPreference": zod.string(),
+  "waterPreference": zod.string(),
+  "notificationFrequency": zod.enum(['immediately', 'daily', 'weekly']),
+  "notificationChannels": zod.array(zod.enum(['in_app', 'email', 'whatsapp'])),
+  "active": zod.boolean(),
+  "sourcePropertyId": zod.number().nullable(),
+  "matchedCount": zod.number(),
+  "notificationsSent": zod.number(),
+  "propertiesViewed": zod.number(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+export const ListPropertyAlertsResponse = zod.array(ListPropertyAlertsResponseItem)
+
+
+/**
+ * @summary Create a property alert for the signed-in buyer
+ */
+export const createPropertyAlertBodyNameMin = 2;
+export const createPropertyAlertBodyNameMax = 120;
+
+
+export const createPropertyAlertBodyMinPriceMin = 0;
+
+export const createPropertyAlertBodyMaxPriceMin = 0;
+
+export const createPropertyAlertBodyMinBedroomsMin = 0;
+export const createPropertyAlertBodyMinBedroomsMax = 20;
+
+export const createPropertyAlertBodyMinBathroomsMin = 0;
+export const createPropertyAlertBodyMinBathroomsMax = 20;
+
+
+
+export const CreatePropertyAlertBody = zod.object({
+  "name": zod.string().min(createPropertyAlertBodyNameMin).max(createPropertyAlertBodyNameMax).optional(),
+  "transactionType": zod.enum(['sale', 'rent']),
+  "propertyTypes": zod.array(zod.string()).min(1),
+  "cities": zod.array(zod.string()).optional(),
+  "suburbs": zod.array(zod.string()).optional(),
+  "minPrice": zod.number().min(createPropertyAlertBodyMinPriceMin).nullish(),
+  "maxPrice": zod.number().min(createPropertyAlertBodyMaxPriceMin).nullish(),
+  "minBedrooms": zod.number().min(createPropertyAlertBodyMinBedroomsMin).max(createPropertyAlertBodyMinBedroomsMax).nullish(),
+  "minBathrooms": zod.number().min(createPropertyAlertBodyMinBathroomsMin).max(createPropertyAlertBodyMinBathroomsMax).nullish(),
+  "requiredAmenities": zod.array(zod.string()).optional(),
+  "preferredAmenities": zod.array(zod.string()).optional(),
+  "furnishedPreference": zod.enum(['any', 'furnished', 'unfurnished']).optional(),
+  "parkingPreference": zod.enum(['any', 'required']).optional(),
+  "petsPreference": zod.enum(['any', 'required']).optional(),
+  "powerPreference": zod.enum(['any', 'backup_power', 'solar']).optional(),
+  "waterPreference": zod.enum(['any', 'borehole']).optional(),
+  "notificationFrequency": zod.enum(['immediately', 'daily', 'weekly']).optional(),
+  "notificationChannels": zod.array(zod.enum(['in_app', 'email', 'whatsapp'])).optional(),
+  "sourcePropertyId": zod.number().nullish()
+})
+
+export const CreatePropertyAlertResponse = zod.object({
+  "id": zod.number(),
+  "userId": zod.number(),
+  "name": zod.string(),
+  "transactionType": zod.enum(['sale', 'rent']),
+  "propertyTypes": zod.array(zod.string()),
+  "cities": zod.array(zod.string()),
+  "suburbs": zod.array(zod.string()),
+  "minPrice": zod.number().nullable(),
+  "maxPrice": zod.number().nullable(),
+  "minBedrooms": zod.number().nullable(),
+  "minBathrooms": zod.number().nullable(),
+  "requiredAmenities": zod.array(zod.string()),
+  "preferredAmenities": zod.array(zod.string()),
+  "furnishedPreference": zod.string(),
+  "parkingPreference": zod.string(),
+  "petsPreference": zod.string(),
+  "powerPreference": zod.string(),
+  "waterPreference": zod.string(),
+  "notificationFrequency": zod.enum(['immediately', 'daily', 'weekly']),
+  "notificationChannels": zod.array(zod.enum(['in_app', 'email', 'whatsapp'])),
+  "active": zod.boolean(),
+  "sourcePropertyId": zod.number().nullable(),
+  "matchedCount": zod.number(),
+  "notificationsSent": zod.number(),
+  "propertiesViewed": zod.number(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+
+
+/**
+ * @summary Edit a property alert
+ */
+export const UpdatePropertyAlertParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const updatePropertyAlertBodyNameMin = 2;
+export const updatePropertyAlertBodyNameMax = 120;
+
+
+export const updatePropertyAlertBodyMinPriceMin = 0;
+
+export const updatePropertyAlertBodyMaxPriceMin = 0;
+
+export const updatePropertyAlertBodyMinBedroomsMin = 0;
+export const updatePropertyAlertBodyMinBedroomsMax = 20;
+
+export const updatePropertyAlertBodyMinBathroomsMin = 0;
+export const updatePropertyAlertBodyMinBathroomsMax = 20;
+
+
+
+export const UpdatePropertyAlertBody = zod.object({
+  "name": zod.string().min(updatePropertyAlertBodyNameMin).max(updatePropertyAlertBodyNameMax).optional(),
+  "transactionType": zod.enum(['sale', 'rent']).optional(),
+  "propertyTypes": zod.array(zod.string()).min(1).optional(),
+  "cities": zod.array(zod.string()).optional(),
+  "suburbs": zod.array(zod.string()).optional(),
+  "minPrice": zod.number().min(updatePropertyAlertBodyMinPriceMin).nullish(),
+  "maxPrice": zod.number().min(updatePropertyAlertBodyMaxPriceMin).nullish(),
+  "minBedrooms": zod.number().min(updatePropertyAlertBodyMinBedroomsMin).max(updatePropertyAlertBodyMinBedroomsMax).nullish(),
+  "minBathrooms": zod.number().min(updatePropertyAlertBodyMinBathroomsMin).max(updatePropertyAlertBodyMinBathroomsMax).nullish(),
+  "requiredAmenities": zod.array(zod.string()).optional(),
+  "preferredAmenities": zod.array(zod.string()).optional(),
+  "furnishedPreference": zod.enum(['any', 'furnished', 'unfurnished']).optional(),
+  "parkingPreference": zod.enum(['any', 'required']).optional(),
+  "petsPreference": zod.enum(['any', 'required']).optional(),
+  "powerPreference": zod.enum(['any', 'backup_power', 'solar']).optional(),
+  "waterPreference": zod.enum(['any', 'borehole']).optional(),
+  "notificationFrequency": zod.enum(['immediately', 'daily', 'weekly']).optional(),
+  "notificationChannels": zod.array(zod.enum(['in_app', 'email', 'whatsapp'])).optional()
+})
+
+export const UpdatePropertyAlertResponse = zod.object({
+  "id": zod.number(),
+  "userId": zod.number(),
+  "name": zod.string(),
+  "transactionType": zod.enum(['sale', 'rent']),
+  "propertyTypes": zod.array(zod.string()),
+  "cities": zod.array(zod.string()),
+  "suburbs": zod.array(zod.string()),
+  "minPrice": zod.number().nullable(),
+  "maxPrice": zod.number().nullable(),
+  "minBedrooms": zod.number().nullable(),
+  "minBathrooms": zod.number().nullable(),
+  "requiredAmenities": zod.array(zod.string()),
+  "preferredAmenities": zod.array(zod.string()),
+  "furnishedPreference": zod.string(),
+  "parkingPreference": zod.string(),
+  "petsPreference": zod.string(),
+  "powerPreference": zod.string(),
+  "waterPreference": zod.string(),
+  "notificationFrequency": zod.enum(['immediately', 'daily', 'weekly']),
+  "notificationChannels": zod.array(zod.enum(['in_app', 'email', 'whatsapp'])),
+  "active": zod.boolean(),
+  "sourcePropertyId": zod.number().nullable(),
+  "matchedCount": zod.number(),
+  "notificationsSent": zod.number(),
+  "propertiesViewed": zod.number(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+
+
+/**
+ * @summary Delete a property alert
+ */
+export const DeletePropertyAlertParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const DeletePropertyAlertResponse = zod.void()
+
+
+/**
+ * @summary Pause or resume a property alert
+ */
+export const UpdatePropertyAlertStatusParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const UpdatePropertyAlertStatusBody = zod.object({
+  "active": zod.boolean()
+})
+
+export const UpdatePropertyAlertStatusResponse = zod.object({
+  "id": zod.number(),
+  "userId": zod.number(),
+  "name": zod.string(),
+  "transactionType": zod.enum(['sale', 'rent']),
+  "propertyTypes": zod.array(zod.string()),
+  "cities": zod.array(zod.string()),
+  "suburbs": zod.array(zod.string()),
+  "minPrice": zod.number().nullable(),
+  "maxPrice": zod.number().nullable(),
+  "minBedrooms": zod.number().nullable(),
+  "minBathrooms": zod.number().nullable(),
+  "requiredAmenities": zod.array(zod.string()),
+  "preferredAmenities": zod.array(zod.string()),
+  "furnishedPreference": zod.string(),
+  "parkingPreference": zod.string(),
+  "petsPreference": zod.string(),
+  "powerPreference": zod.string(),
+  "waterPreference": zod.string(),
+  "notificationFrequency": zod.enum(['immediately', 'daily', 'weekly']),
+  "notificationChannels": zod.array(zod.enum(['in_app', 'email', 'whatsapp'])),
+  "active": zod.boolean(),
+  "sourcePropertyId": zod.number().nullable(),
+  "matchedCount": zod.number(),
+  "notificationsSent": zod.number(),
+  "propertiesViewed": zod.number(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+
+
+/**
+ * @summary Create an alert for similar properties
+ */
+export const CreateSimilarPropertyAlertParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const CreateSimilarPropertyAlertResponse = zod.object({
+  "id": zod.number(),
+  "userId": zod.number(),
+  "name": zod.string(),
+  "transactionType": zod.enum(['sale', 'rent']),
+  "propertyTypes": zod.array(zod.string()),
+  "cities": zod.array(zod.string()),
+  "suburbs": zod.array(zod.string()),
+  "minPrice": zod.number().nullable(),
+  "maxPrice": zod.number().nullable(),
+  "minBedrooms": zod.number().nullable(),
+  "minBathrooms": zod.number().nullable(),
+  "requiredAmenities": zod.array(zod.string()),
+  "preferredAmenities": zod.array(zod.string()),
+  "furnishedPreference": zod.string(),
+  "parkingPreference": zod.string(),
+  "petsPreference": zod.string(),
+  "powerPreference": zod.string(),
+  "waterPreference": zod.string(),
+  "notificationFrequency": zod.enum(['immediately', 'daily', 'weekly']),
+  "notificationChannels": zod.array(zod.enum(['in_app', 'email', 'whatsapp'])),
+  "active": zod.boolean(),
+  "sourcePropertyId": zod.number().nullable(),
+  "matchedCount": zod.number(),
+  "notificationsSent": zod.number(),
+  "propertiesViewed": zod.number(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+
+
+/**
  * @summary Marketplace statistics for homepage
  */
 export const GetMarketplaceStatsResponse = zod.object({

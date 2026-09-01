@@ -1467,6 +1467,297 @@ export interface SavedResult {
   propertyId: number;
 }
 
+export type PropertyAlertTransactionType = typeof PropertyAlertTransactionType[keyof typeof PropertyAlertTransactionType];
+
+
+export const PropertyAlertTransactionType = {
+  sale: 'sale',
+  rent: 'rent',
+} as const;
+
+export type PropertyAlertNotificationFrequency = typeof PropertyAlertNotificationFrequency[keyof typeof PropertyAlertNotificationFrequency];
+
+
+export const PropertyAlertNotificationFrequency = {
+  immediately: 'immediately',
+  daily: 'daily',
+  weekly: 'weekly',
+} as const;
+
+export type PropertyAlertNotificationChannelsItem = typeof PropertyAlertNotificationChannelsItem[keyof typeof PropertyAlertNotificationChannelsItem];
+
+
+export const PropertyAlertNotificationChannelsItem = {
+  in_app: 'in_app',
+  email: 'email',
+  whatsapp: 'whatsapp',
+} as const;
+
+export interface PropertyAlert {
+  id: number;
+  userId: number;
+  name: string;
+  transactionType: PropertyAlertTransactionType;
+  propertyTypes: string[];
+  cities: string[];
+  suburbs: string[];
+  /** @nullable */
+  minPrice: number | null;
+  /** @nullable */
+  maxPrice: number | null;
+  /** @nullable */
+  minBedrooms: number | null;
+  /** @nullable */
+  minBathrooms: number | null;
+  requiredAmenities: string[];
+  preferredAmenities: string[];
+  furnishedPreference: string;
+  parkingPreference: string;
+  petsPreference: string;
+  powerPreference: string;
+  waterPreference: string;
+  notificationFrequency: PropertyAlertNotificationFrequency;
+  notificationChannels: PropertyAlertNotificationChannelsItem[];
+  active: boolean;
+  /** @nullable */
+  sourcePropertyId: number | null;
+  matchedCount: number;
+  notificationsSent: number;
+  propertiesViewed: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type PropertyAlertInputTransactionType = typeof PropertyAlertInputTransactionType[keyof typeof PropertyAlertInputTransactionType];
+
+
+export const PropertyAlertInputTransactionType = {
+  sale: 'sale',
+  rent: 'rent',
+} as const;
+
+export type PropertyAlertInputFurnishedPreference = typeof PropertyAlertInputFurnishedPreference[keyof typeof PropertyAlertInputFurnishedPreference];
+
+
+export const PropertyAlertInputFurnishedPreference = {
+  any: 'any',
+  furnished: 'furnished',
+  unfurnished: 'unfurnished',
+} as const;
+
+export type PropertyAlertInputParkingPreference = typeof PropertyAlertInputParkingPreference[keyof typeof PropertyAlertInputParkingPreference];
+
+
+export const PropertyAlertInputParkingPreference = {
+  any: 'any',
+  required: 'required',
+} as const;
+
+export type PropertyAlertInputPetsPreference = typeof PropertyAlertInputPetsPreference[keyof typeof PropertyAlertInputPetsPreference];
+
+
+export const PropertyAlertInputPetsPreference = {
+  any: 'any',
+  required: 'required',
+} as const;
+
+export type PropertyAlertInputPowerPreference = typeof PropertyAlertInputPowerPreference[keyof typeof PropertyAlertInputPowerPreference];
+
+
+export const PropertyAlertInputPowerPreference = {
+  any: 'any',
+  backup_power: 'backup_power',
+  solar: 'solar',
+} as const;
+
+export type PropertyAlertInputWaterPreference = typeof PropertyAlertInputWaterPreference[keyof typeof PropertyAlertInputWaterPreference];
+
+
+export const PropertyAlertInputWaterPreference = {
+  any: 'any',
+  borehole: 'borehole',
+} as const;
+
+export type PropertyAlertInputNotificationFrequency = typeof PropertyAlertInputNotificationFrequency[keyof typeof PropertyAlertInputNotificationFrequency];
+
+
+export const PropertyAlertInputNotificationFrequency = {
+  immediately: 'immediately',
+  daily: 'daily',
+  weekly: 'weekly',
+} as const;
+
+export type PropertyAlertInputNotificationChannelsItem = typeof PropertyAlertInputNotificationChannelsItem[keyof typeof PropertyAlertInputNotificationChannelsItem];
+
+
+export const PropertyAlertInputNotificationChannelsItem = {
+  in_app: 'in_app',
+  email: 'email',
+  whatsapp: 'whatsapp',
+} as const;
+
+export interface PropertyAlertInput {
+  /**
+     * @minLength 2
+     * @maxLength 120
+     */
+  name?: string;
+  transactionType: PropertyAlertInputTransactionType;
+  /** @minItems 1 */
+  propertyTypes: string[];
+  cities?: string[];
+  suburbs?: string[];
+  /**
+     * @minimum 0
+     * @nullable
+     */
+  minPrice?: number | null;
+  /**
+     * @minimum 0
+     * @nullable
+     */
+  maxPrice?: number | null;
+  /**
+     * @minimum 0
+     * @maximum 20
+     * @nullable
+     */
+  minBedrooms?: number | null;
+  /**
+     * @minimum 0
+     * @maximum 20
+     * @nullable
+     */
+  minBathrooms?: number | null;
+  requiredAmenities?: string[];
+  preferredAmenities?: string[];
+  furnishedPreference?: PropertyAlertInputFurnishedPreference;
+  parkingPreference?: PropertyAlertInputParkingPreference;
+  petsPreference?: PropertyAlertInputPetsPreference;
+  powerPreference?: PropertyAlertInputPowerPreference;
+  waterPreference?: PropertyAlertInputWaterPreference;
+  notificationFrequency?: PropertyAlertInputNotificationFrequency;
+  notificationChannels?: PropertyAlertInputNotificationChannelsItem[];
+  /** @nullable */
+  sourcePropertyId?: number | null;
+}
+
+export type PropertyAlertUpdateTransactionType = typeof PropertyAlertUpdateTransactionType[keyof typeof PropertyAlertUpdateTransactionType];
+
+
+export const PropertyAlertUpdateTransactionType = {
+  sale: 'sale',
+  rent: 'rent',
+} as const;
+
+export type PropertyAlertUpdateFurnishedPreference = typeof PropertyAlertUpdateFurnishedPreference[keyof typeof PropertyAlertUpdateFurnishedPreference];
+
+
+export const PropertyAlertUpdateFurnishedPreference = {
+  any: 'any',
+  furnished: 'furnished',
+  unfurnished: 'unfurnished',
+} as const;
+
+export type PropertyAlertUpdateParkingPreference = typeof PropertyAlertUpdateParkingPreference[keyof typeof PropertyAlertUpdateParkingPreference];
+
+
+export const PropertyAlertUpdateParkingPreference = {
+  any: 'any',
+  required: 'required',
+} as const;
+
+export type PropertyAlertUpdatePetsPreference = typeof PropertyAlertUpdatePetsPreference[keyof typeof PropertyAlertUpdatePetsPreference];
+
+
+export const PropertyAlertUpdatePetsPreference = {
+  any: 'any',
+  required: 'required',
+} as const;
+
+export type PropertyAlertUpdatePowerPreference = typeof PropertyAlertUpdatePowerPreference[keyof typeof PropertyAlertUpdatePowerPreference];
+
+
+export const PropertyAlertUpdatePowerPreference = {
+  any: 'any',
+  backup_power: 'backup_power',
+  solar: 'solar',
+} as const;
+
+export type PropertyAlertUpdateWaterPreference = typeof PropertyAlertUpdateWaterPreference[keyof typeof PropertyAlertUpdateWaterPreference];
+
+
+export const PropertyAlertUpdateWaterPreference = {
+  any: 'any',
+  borehole: 'borehole',
+} as const;
+
+export type PropertyAlertUpdateNotificationFrequency = typeof PropertyAlertUpdateNotificationFrequency[keyof typeof PropertyAlertUpdateNotificationFrequency];
+
+
+export const PropertyAlertUpdateNotificationFrequency = {
+  immediately: 'immediately',
+  daily: 'daily',
+  weekly: 'weekly',
+} as const;
+
+export type PropertyAlertUpdateNotificationChannelsItem = typeof PropertyAlertUpdateNotificationChannelsItem[keyof typeof PropertyAlertUpdateNotificationChannelsItem];
+
+
+export const PropertyAlertUpdateNotificationChannelsItem = {
+  in_app: 'in_app',
+  email: 'email',
+  whatsapp: 'whatsapp',
+} as const;
+
+export interface PropertyAlertUpdate {
+  /**
+     * @minLength 2
+     * @maxLength 120
+     */
+  name?: string;
+  transactionType?: PropertyAlertUpdateTransactionType;
+  /** @minItems 1 */
+  propertyTypes?: string[];
+  cities?: string[];
+  suburbs?: string[];
+  /**
+     * @minimum 0
+     * @nullable
+     */
+  minPrice?: number | null;
+  /**
+     * @minimum 0
+     * @nullable
+     */
+  maxPrice?: number | null;
+  /**
+     * @minimum 0
+     * @maximum 20
+     * @nullable
+     */
+  minBedrooms?: number | null;
+  /**
+     * @minimum 0
+     * @maximum 20
+     * @nullable
+     */
+  minBathrooms?: number | null;
+  requiredAmenities?: string[];
+  preferredAmenities?: string[];
+  furnishedPreference?: PropertyAlertUpdateFurnishedPreference;
+  parkingPreference?: PropertyAlertUpdateParkingPreference;
+  petsPreference?: PropertyAlertUpdatePetsPreference;
+  powerPreference?: PropertyAlertUpdatePowerPreference;
+  waterPreference?: PropertyAlertUpdateWaterPreference;
+  notificationFrequency?: PropertyAlertUpdateNotificationFrequency;
+  notificationChannels?: PropertyAlertUpdateNotificationChannelsItem[];
+}
+
+export interface PropertyAlertStatusInput {
+  active: boolean;
+}
+
 export interface MarketplaceStats {
   totalListings: number;
   forSale: number;

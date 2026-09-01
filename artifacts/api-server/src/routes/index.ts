@@ -16,6 +16,7 @@ import housekeepingRouter from "./housekeeping";
 import importsRouter from "./imports";
 import reviewsRouter from "./reviews";
 import rentalProfileRouter from "./rental-profile";
+import propertyAlertsRouter from "./property-alerts";
 
 const router: IRouter = Router();
 
@@ -27,6 +28,7 @@ router.use(storageRouter);
 // Public routes — no auth required
 router.use(publicRouter);
 router.use(rentalProfileRouter);
+router.use(propertyAlertsRouter);
 router.use(reviewsRouter);
 // All business routes below require a logged-in user.
 router.use(requireAuth);

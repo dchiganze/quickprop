@@ -5,6 +5,7 @@ import { startImportRecoveryWorker } from "./routes/imports";
 import { ensureDemoAccounts } from "./lib/demo-accounts";
 import { startReviewInvitationScheduler } from "./lib/agent-reviews";
 import { startRentalReferenceScheduler } from "./lib/rental-references";
+import { startPropertyAlertScheduler } from "./lib/property-alerts";
 
 const rawPort = process.env["PORT"];
 
@@ -34,6 +35,7 @@ async function startServer(): Promise<void> {
     startImportRecoveryWorker();
     startReviewInvitationScheduler();
     startRentalReferenceScheduler();
+    startPropertyAlertScheduler();
   });
 }
 

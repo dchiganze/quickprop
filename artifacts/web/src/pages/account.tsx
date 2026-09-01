@@ -5,8 +5,9 @@ import { PropertyCard } from "@/components/property-card";
 import { useLocation } from "wouter";
 import { useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Heart, Home, User } from "lucide-react";
+import { Bell, Heart, Home, User } from "lucide-react";
 import { RentalProfilePanel } from "@/components/rental-profile-panel";
+import { PropertyAlertsPanel } from "@/components/property-alerts-panel";
 
 export default function Account() {
   const [, setLocation] = useLocation();
@@ -53,6 +54,10 @@ export default function Account() {
             <TabsTrigger value="rental-profile" data-testid="tab-rental-profile" className="px-3 sm:px-6 data-[state=active]:bg-white">
               <Home className="h-4 w-4 mr-2" />
               Rental Profile
+            </TabsTrigger>
+            <TabsTrigger value="alerts" data-testid="tab-property-alerts" className="px-3 sm:px-6 data-[state=active]:bg-white">
+              <Bell className="h-4 w-4 mr-2" />
+              Property Alerts
             </TabsTrigger>
           </TabsList>
           
@@ -106,6 +111,10 @@ export default function Account() {
 
           <TabsContent value="rental-profile">
             <RentalProfilePanel />
+          </TabsContent>
+
+          <TabsContent value="alerts">
+            <PropertyAlertsPanel />
           </TabsContent>
         </Tabs>
       </div>

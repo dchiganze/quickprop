@@ -22,6 +22,7 @@ import { getPrivateObjectDownloadUrl } from "./storage";
 import { findDuplicateCandidates, normalizeText } from "../lib/multi-agent";
 import { jsonify, logAudit } from "../lib/helpers";
 import { logger } from "../lib/logger";
+import { matchPropertyToAlerts } from "../lib/property-alerts";
 
 const router: IRouter = Router();
 const IMPORT_EXTENSIONS = new Set([".xlsx", ".xls", ".csv", ".pdf", ".docx", ".txt", ".jpg", ".jpeg", ".png"]);
@@ -1032,6 +1033,7 @@ router.post("/imports/sessions/:id/publish", async (req, res): Promise<void> => 
   if (!session || !recordIds.length) { res.status(400).json({ error: "Select at least one approved record to publish." }); return; }
   const records = await db.select().from(importRecordsTable).where(and(eq(importRecordsTable.sessionId, sessionId), inArray(importRecordsTable.id, recordIds)));
   let created = 0; let linked = 0; let published = 0; const errors: string[] = [];
+  const createdPropertyIds: number[] = [];
   for (const record of records) {
     const data = effectiveData(record);
     const issues = validateData(data, "spreadsheet").filter((issue) => !issue.includes("Image needs"));
@@ -1067,6 +1069,7 @@ router.post("/imports/sessions/:id/publish", async (req, res): Promise<void> => 
           updatedAt: new Date(),
         }).returning({ id: propertiesTable.id });
         propertyId = property.id;
+        createdPropertyIds.push(property.id);
         created += 1;
       } else {
         linked += 1;
@@ -1103,6 +1106,11 @@ router.post("/imports/sessions/:id/publish", async (req, res): Promise<void> => 
   }
   await updateCounters(sessionId);
   await db.update(importSessionsTable).set({ status: errors.length ? "review" : "published", currentStage: errors.length ? "review" : "published", updatedAt: new Date() }).where(eq(importSessionsTable.id, sessionId));
+  for (const propertyId of createdPropertyIds) {
+    void matchPropertyToAlerts(propertyId).catch((error) => {
+      logger.warn({ propertyId, error }, "Imported property alert matching failed");
+    });
+  }
   await logAudit("import_published", "import_session", sessionId, `Published ${published} record(s)`, user.id, user.name);
   res.json({ published, linked, created, failed: errors.length, errors });
 });

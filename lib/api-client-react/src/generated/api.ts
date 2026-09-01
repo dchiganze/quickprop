@@ -110,6 +110,10 @@ import type {
   PriceHistoryEntry,
   ProcessImportInput,
   Property,
+  PropertyAlert,
+  PropertyAlertInput,
+  PropertyAlertStatusInput,
+  PropertyAlertUpdate,
   PropertyInput,
   PropertyMatch,
   PropertyModerationInput,
@@ -6005,6 +6009,440 @@ export const useUnsaveProperty = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getUnsavePropertyMutationOptions(options));
+    }
+
+export const getListPropertyAlertsUrl = () => {
+
+
+
+
+  return `/api/public/property-alerts`
+}
+
+/**
+ * @summary List the signed-in buyer's property alerts
+ */
+export const listPropertyAlerts = async ( options?: RequestInit): Promise<PropertyAlert[]> => {
+
+  return customFetch<PropertyAlert[]>(getListPropertyAlertsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListPropertyAlertsQueryKey = () => {
+    return [
+    `/api/public/property-alerts`
+    ] as const;
+    }
+
+
+export const getListPropertyAlertsQueryOptions = <TData = Awaited<ReturnType<typeof listPropertyAlerts>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listPropertyAlerts>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListPropertyAlertsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listPropertyAlerts>>> = ({ signal }) => listPropertyAlerts({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listPropertyAlerts>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListPropertyAlertsQueryResult = NonNullable<Awaited<ReturnType<typeof listPropertyAlerts>>>
+export type ListPropertyAlertsQueryError = ErrorType<void>
+
+
+/**
+ * @summary List the signed-in buyer's property alerts
+ */
+
+export function useListPropertyAlerts<TData = Awaited<ReturnType<typeof listPropertyAlerts>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listPropertyAlerts>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListPropertyAlertsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreatePropertyAlertUrl = () => {
+
+
+
+
+  return `/api/public/property-alerts`
+}
+
+/**
+ * @summary Create a property alert for the signed-in buyer
+ */
+export const createPropertyAlert = async (propertyAlertInput: PropertyAlertInput, options?: RequestInit): Promise<PropertyAlert> => {
+
+  return customFetch<PropertyAlert>(getCreatePropertyAlertUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(propertyAlertInput)
+  }
+);}
+
+
+
+
+
+export const getCreatePropertyAlertMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createPropertyAlert>>, TError,{data: BodyType<PropertyAlertInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createPropertyAlert>>, TError,{data: BodyType<PropertyAlertInput>}, TContext> => {
+
+const mutationKey = ['createPropertyAlert'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createPropertyAlert>>, {data: BodyType<PropertyAlertInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createPropertyAlert(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreatePropertyAlertMutationResult = NonNullable<Awaited<ReturnType<typeof createPropertyAlert>>>
+    export type CreatePropertyAlertMutationBody = BodyType<PropertyAlertInput>
+    export type CreatePropertyAlertMutationError = ErrorType<void>
+
+    /**
+ * @summary Create a property alert for the signed-in buyer
+ */
+export const useCreatePropertyAlert = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createPropertyAlert>>, TError,{data: BodyType<PropertyAlertInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createPropertyAlert>>,
+        TError,
+        {data: BodyType<PropertyAlertInput>},
+        TContext
+      > => {
+      return useMutation(getCreatePropertyAlertMutationOptions(options));
+    }
+
+export const getUpdatePropertyAlertUrl = (id: number,) => {
+
+
+
+
+  return `/api/public/property-alerts/${id}`
+}
+
+/**
+ * @summary Edit a property alert
+ */
+export const updatePropertyAlert = async (id: number,
+    propertyAlertUpdate: PropertyAlertUpdate, options?: RequestInit): Promise<PropertyAlert> => {
+
+  return customFetch<PropertyAlert>(getUpdatePropertyAlertUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(propertyAlertUpdate)
+  }
+);}
+
+
+
+
+
+export const getUpdatePropertyAlertMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updatePropertyAlert>>, TError,{id: number;data: BodyType<PropertyAlertUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updatePropertyAlert>>, TError,{id: number;data: BodyType<PropertyAlertUpdate>}, TContext> => {
+
+const mutationKey = ['updatePropertyAlert'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updatePropertyAlert>>, {id: number;data: BodyType<PropertyAlertUpdate>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updatePropertyAlert(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdatePropertyAlertMutationResult = NonNullable<Awaited<ReturnType<typeof updatePropertyAlert>>>
+    export type UpdatePropertyAlertMutationBody = BodyType<PropertyAlertUpdate>
+    export type UpdatePropertyAlertMutationError = ErrorType<void>
+
+    /**
+ * @summary Edit a property alert
+ */
+export const useUpdatePropertyAlert = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updatePropertyAlert>>, TError,{id: number;data: BodyType<PropertyAlertUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updatePropertyAlert>>,
+        TError,
+        {id: number;data: BodyType<PropertyAlertUpdate>},
+        TContext
+      > => {
+      return useMutation(getUpdatePropertyAlertMutationOptions(options));
+    }
+
+export const getDeletePropertyAlertUrl = (id: number,) => {
+
+
+
+
+  return `/api/public/property-alerts/${id}`
+}
+
+/**
+ * @summary Delete a property alert
+ */
+export const deletePropertyAlert = async (id: number, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getDeletePropertyAlertUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeletePropertyAlertMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deletePropertyAlert>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deletePropertyAlert>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['deletePropertyAlert'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deletePropertyAlert>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  deletePropertyAlert(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeletePropertyAlertMutationResult = NonNullable<Awaited<ReturnType<typeof deletePropertyAlert>>>
+
+    export type DeletePropertyAlertMutationError = ErrorType<void>
+
+    /**
+ * @summary Delete a property alert
+ */
+export const useDeletePropertyAlert = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deletePropertyAlert>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deletePropertyAlert>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getDeletePropertyAlertMutationOptions(options));
+    }
+
+export const getUpdatePropertyAlertStatusUrl = (id: number,) => {
+
+
+
+
+  return `/api/public/property-alerts/${id}/status`
+}
+
+/**
+ * @summary Pause or resume a property alert
+ */
+export const updatePropertyAlertStatus = async (id: number,
+    propertyAlertStatusInput: PropertyAlertStatusInput, options?: RequestInit): Promise<PropertyAlert> => {
+
+  return customFetch<PropertyAlert>(getUpdatePropertyAlertStatusUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(propertyAlertStatusInput)
+  }
+);}
+
+
+
+
+
+export const getUpdatePropertyAlertStatusMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updatePropertyAlertStatus>>, TError,{id: number;data: BodyType<PropertyAlertStatusInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updatePropertyAlertStatus>>, TError,{id: number;data: BodyType<PropertyAlertStatusInput>}, TContext> => {
+
+const mutationKey = ['updatePropertyAlertStatus'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updatePropertyAlertStatus>>, {id: number;data: BodyType<PropertyAlertStatusInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updatePropertyAlertStatus(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdatePropertyAlertStatusMutationResult = NonNullable<Awaited<ReturnType<typeof updatePropertyAlertStatus>>>
+    export type UpdatePropertyAlertStatusMutationBody = BodyType<PropertyAlertStatusInput>
+    export type UpdatePropertyAlertStatusMutationError = ErrorType<void>
+
+    /**
+ * @summary Pause or resume a property alert
+ */
+export const useUpdatePropertyAlertStatus = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updatePropertyAlertStatus>>, TError,{id: number;data: BodyType<PropertyAlertStatusInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updatePropertyAlertStatus>>,
+        TError,
+        {id: number;data: BodyType<PropertyAlertStatusInput>},
+        TContext
+      > => {
+      return useMutation(getUpdatePropertyAlertStatusMutationOptions(options));
+    }
+
+export const getCreateSimilarPropertyAlertUrl = (id: number,) => {
+
+
+
+
+  return `/api/public/properties/${id}/similar-alert`
+}
+
+/**
+ * @summary Create an alert for similar properties
+ */
+export const createSimilarPropertyAlert = async (id: number, options?: RequestInit): Promise<PropertyAlert> => {
+
+  return customFetch<PropertyAlert>(getCreateSimilarPropertyAlertUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getCreateSimilarPropertyAlertMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createSimilarPropertyAlert>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createSimilarPropertyAlert>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['createSimilarPropertyAlert'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createSimilarPropertyAlert>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  createSimilarPropertyAlert(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateSimilarPropertyAlertMutationResult = NonNullable<Awaited<ReturnType<typeof createSimilarPropertyAlert>>>
+
+    export type CreateSimilarPropertyAlertMutationError = ErrorType<void>
+
+    /**
+ * @summary Create an alert for similar properties
+ */
+export const useCreateSimilarPropertyAlert = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createSimilarPropertyAlert>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createSimilarPropertyAlert>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getCreateSimilarPropertyAlertMutationOptions(options));
     }
 
 export const getGetMarketplaceStatsUrl = () => {
