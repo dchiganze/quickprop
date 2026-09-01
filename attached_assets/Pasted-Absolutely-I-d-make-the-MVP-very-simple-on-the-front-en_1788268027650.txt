@@ -1,0 +1,772 @@
+Absolutely. I’d make the MVP **very simple on the front end**, while making the verification workflow robust enough that you can build the network over time.
+
+Here’s a Replit AI prompt you can paste directly:
+
+# QuickProp MVP Feature: Rental Profile & Verified Rental History
+
+## Objective
+
+Build a new **"Rental Profile"** tab inside the existing QuickProp prospective buyer/renter profile.
+
+The purpose of this feature is to allow prospective renters to build a simple, credible **rental history** by requesting references from previous landlords or managing estate agencies.
+
+The MVP must be simple, fast and mobile-friendly. Do not build a complicated tenant scoring, credit scoring or background-check system.
+
+The core concept is:
+
+**Tenant adds previous tenancy → QuickProp contacts the actual previous landlord/agent → landlord/agent verifies the tenancy → landlord/agent answers 3 questions → verified reference becomes part of tenant's Rental Profile.**
+
+---
+
+# 1. Existing User Profile
+
+QuickProp already has profiles for prospective buyers/renters.
+
+Do NOT create a separate user account/profile system.
+
+Add a new tab to the existing renter profile:
+
+**Profile**
+
+* Personal Details
+* Saved Properties
+* Applications
+* **Rental Profile**
+* etc.
+
+The new tab should be called:
+
+## Rental Profile
+
+This should be visible primarily to users who identify as renters/prospective renters.
+
+---
+
+# 2. Rental Profile Landing Page
+
+Create a clean dashboard.
+
+Header:
+
+**Rental Profile**
+
+Subheading:
+
+> Build your rental history and make your next rental application easier.
+
+Show:
+
+### Rental History
+
+**2 Verified Tenancies**
+
+Then display previous tenancies as cards.
+
+Example:
+
+---
+
+**Borrowdale**
+
+Jan 2023 – Dec 2025
+
+🟢 **Verified by ABC Properties**
+
+**Rent paid on time:** Usually
+**Property maintained:** Good
+**Would rent again:** Yes
+
+---
+
+**Avondale**
+
+Jan 2021 – Dec 2023
+
+🟢 **Verified by Previous Landlord**
+
+**Rent paid on time:** Always
+**Property maintained:** Excellent
+**Would rent again:** Yes
+
+---
+
+If a tenancy has not yet been verified:
+
+🟡 **Verification Pending**
+
+Do not show the landlord's reference answers until the reference has been completed.
+
+---
+
+# 3. Add Previous Tenancy
+
+Add a prominent button:
+
+### + Add Previous Tenancy
+
+When clicked, open a simple form.
+
+Fields:
+
+### Property
+
+* Property address
+* Suburb / area
+* City
+
+### Rental Period
+
+* Start month/year
+* End month/year
+
+### Who managed the tenancy?
+
+Radio buttons:
+
+○ Private landlord
+○ Estate agency / property manager
+
+---
+
+# 4. Private Landlord Flow
+
+If the user selects:
+
+**Private landlord**
+
+Ask for:
+
+* Landlord's full name
+* Landlord's email address
+* Landlord's phone number
+
+Allow the tenant to enter either phone or email, but preferably collect both.
+
+Before submitting, show a prominent warning:
+
+> **Important**
+>
+> Your rental reference must be completed by the actual landlord who rented the property to you.
+>
+> Do not complete this reference yourself or ask another person to complete it on your behalf.
+>
+> QuickProp may verify the reference with the landlord.
+
+Checkbox:
+
+☐ I confirm that this was a genuine previous tenancy and that the person I have provided is the actual landlord.
+
+Button:
+
+**Send Reference Request**
+
+---
+
+# 5. Estate Agency Flow
+
+If the user selects:
+
+**Estate agency / property manager**
+
+Do NOT simply allow the tenant to enter an arbitrary agency email address.
+
+Instead, create an agency search/select interface.
+
+Example:
+
+**Search previous agency**
+
+[ Search agencies... ]
+
+Results:
+
+* ABC Properties
+* Pam Golding Properties
+* Knight Frank
+* XYZ Real Estate
+
+Once selected:
+
+**ABC Properties**
+
+✓ Registered QuickProp agency
+
+Show:
+
+> Your reference request will be sent to the agency's verified QuickProp contact.
+
+Button:
+
+**Send Reference Request**
+
+If the agency is not yet registered on QuickProp:
+
+Show:
+
+> We don't currently have this agency registered with QuickProp.
+
+Allow:
+
+**Request agency verification**
+
+The system should capture the agency name and appropriate contact details for onboarding.
+
+For the MVP, this can create an admin task/notification for QuickProp to verify and onboard the agency.
+
+---
+
+# 6. Reference Request
+
+Once submitted, create a Rental History record.
+
+Status:
+
+### 🟡 Verification Pending
+
+Show:
+
+> Reference request sent.
+
+> We've contacted your previous landlord/agent to verify this tenancy.
+
+The tenant should NOT be able to enter the reference answers.
+
+The tenant can see:
+
+* Property
+* Rental period
+* Reference requested from
+* Date requested
+* Status
+
+---
+
+# 7. Landlord / Agent Reference Flow
+
+Create a simple web/mobile page that the landlord or agency receives through a secure link.
+
+The page should say:
+
+## Rental Reference Request
+
+**Tenant:** John Smith
+
+**Property:** 123 Example Road, Borrowdale
+
+**Claimed rental period:** January 2023 – December 2025
+
+First question:
+
+### Did you actually rent/manage this property for this tenant during this period?
+
+○ Yes
+○ No
+
+If **No**:
+
+Show:
+
+> This tenancy could not be verified.
+
+Allow submission.
+
+Status becomes:
+
+**Not Verified**
+
+Do not create a public rental reference.
+
+If **Yes**, continue.
+
+---
+
+# 8. Three Reference Questions
+
+The referee then answers exactly these three questions.
+
+### 1. How often was rent paid on time?
+
+○ Always
+○ Usually
+○ Sometimes
+○ Rarely
+
+### 2. Was the property well maintained?
+
+○ Excellent
+○ Good
+○ Average
+○ Poor
+
+### 3. Would you take this tenant on again?
+
+○ Yes
+○ No
+
+Do NOT allow the tenant to edit these answers.
+
+The answers should be permanently associated with the verified tenancy record.
+
+---
+
+# 9. Referee Authentication
+
+The MVP must make a reasonable effort to ensure the person completing the reference is the actual landlord/agent.
+
+For private landlords:
+
+* Send a unique secure verification link.
+* Link should expire after a reasonable period.
+* Capture email/phone used.
+* Record timestamp.
+* Record IP/device metadata where appropriate and legally permissible.
+* Prevent the same reference link from being reused after completion.
+
+For agencies:
+
+The reference should preferably be completed through the agency's authenticated QuickProp account.
+
+Example:
+
+**ABC Properties**
+
+Agency account → Notifications → Rental Reference Requests
+
+The agency user clicks:
+
+**Complete Reference**
+
+This is preferable to an open public form.
+
+---
+
+# 10. Verification Statuses
+
+Use only these statuses:
+
+### 🟢 Verified
+
+The previous landlord/agency confirmed the tenancy and completed the reference.
+
+### 🟡 Pending
+
+Reference request has been sent but has not yet been completed.
+
+### ⚪ Self-reported
+
+The tenant has added the tenancy but no independent reference has been completed.
+
+### 🔴 Not Verified
+
+The nominated landlord/agency stated that they did not manage/rent the property to the tenant.
+
+Only **Verified** tenancies should contribute to the tenant's visible rental history.
+
+---
+
+# 11. Rental History Card
+
+For a verified tenancy show:
+
+**Borrowdale**
+
+Jan 2023 – Dec 2025
+
+🟢 **Verified tenancy**
+
+**Reference provided by:** ABC Properties
+
+**Rent paid on time:** Usually
+
+**Property maintained:** Good
+
+**Would take tenant again:** Yes
+
+Do not display the referee's personal phone number or email.
+
+---
+
+# 12. Self-Reported Tenancies
+
+Allow tenants to add older rental history even if QuickProp cannot immediately contact the previous landlord.
+
+Example:
+
+**Harare CBD**
+
+2020–2022
+
+⚪ **Self-reported**
+
+> Reference not yet verified.
+
+Give the tenant:
+
+**Request Verification**
+
+They can later add a landlord/agency reference.
+
+Do NOT present self-reported history with the same visual prominence or credibility as verified history.
+
+---
+
+# 13. Tenant Response / Dispute
+
+Once a verified reference is published, the tenant should be able to click:
+
+**Dispute this reference**
+
+Do not automatically delete the reference.
+
+Instead, create a dispute record and allow the tenant to submit a short explanation.
+
+Example:
+
+> **Reference disputed by tenant**
+
+The original reference remains visible to the tenant and authorised QuickProp administrators while the dispute is reviewed.
+
+For MVP, an admin dashboard can manually handle disputes.
+
+---
+
+# 14. Agency Onboarding
+
+Create the underlying database structure for agencies.
+
+Agency fields should include:
+
+* Agency name
+* Trading name
+* Email
+* Phone
+* Website
+* Address
+* QuickProp verification status
+* Admin users
+* Date onboarded
+* Active/inactive status
+
+An agency should eventually be able to receive reference requests from tenants.
+
+For MVP, build a simple agency notification system.
+
+When a tenant requests a reference from an agency:
+
+**Agency receives notification:**
+
+> New Rental Reference Request
+>
+> Tenant: John Smith
+> Property: Borrowdale
+> Rental period: Jan 2023 – Dec 2025
+>
+> [Verify & Complete Reference]
+
+---
+
+# 15. Notifications
+
+Build notification events for:
+
+### Tenant
+
+* Reference request sent
+* Reference completed
+* Reference could not be verified
+* Reference disputed
+* Agency/landlord has not responded
+
+### Landlord
+
+* New reference request
+* Reminder if unanswered
+
+### Agency
+
+* New reference request
+* Reminder if unanswered
+
+For MVP, support email notifications and in-app notifications.
+
+If QuickProp's existing WhatsApp notification infrastructure exists, structure the notification service so WhatsApp can be added easily.
+
+---
+
+# 16. Reminder System
+
+If a landlord/agent does not respond:
+
+After 3 days:
+
+> Reminder: John Smith has requested a rental reference.
+
+After 7 days:
+
+> Final reminder: rental reference request outstanding.
+
+Do not spam the referee.
+
+Allow QuickProp administrators to resend the request manually.
+
+---
+
+# 17. Privacy
+
+This feature involves personal information.
+
+Build the system so that:
+
+* Tenant controls who they request references from.
+* Referee contact information is not publicly displayed.
+* Reference answers cannot be edited by the tenant.
+* Tenant can see their own complete history.
+* Landlords/agents viewing an applicant should only see the information the tenant has authorised them to see.
+* Maintain an audit trail of who created, verified, modified or disputed a tenancy record.
+* Do not create a hidden "blacklist".
+* Do not create an opaque tenant credit/risk score in the MVP.
+
+The purpose is **verified rental history**, not tenant blacklisting.
+
+---
+
+# 18. Landlord/Agent Viewing a Tenant
+
+When an agent or landlord views a prospective renter's QuickProp profile, add:
+
+### Rental Profile
+
+**3 verified previous tenancies**
+
+Example:
+
+🟢 Borrowdale — 2023–2025
+🟢 Avondale — 2021–2023
+⚪ Mount Pleasant — 2019–2021 (Self-reported)
+
+Allow the landlord/agent to click:
+
+**View Rental History**
+
+to see the three reference answers for each verified tenancy.
+
+---
+
+# 19. Database Structure
+
+Create clean relational structures approximately as follows:
+
+### rental_history
+
+* id
+* tenant_user_id
+* property_id (nullable)
+* property_address
+* suburb
+* city
+* start_date
+* end_date
+* tenancy_type
+* verification_status
+* referee_type
+* referee_name
+* referee_email
+* referee_phone
+* agency_id (nullable)
+* verification_token
+* verification_token_expiry
+* verified_at
+* created_at
+* updated_at
+
+### rental_references
+
+* id
+* rental_history_id
+* verified_tenancy
+* rent_payment_rating
+* property_condition_rating
+* would_rent_again
+* submitted_by
+* submitted_at
+* dispute_status
+* dispute_reason
+
+### agencies
+
+* id
+* name
+* email
+* phone
+* verification_status
+* created_at
+* updated_at
+
+### reference_requests
+
+* id
+* rental_history_id
+* recipient_type
+* recipient_email
+* recipient_phone
+* agency_id
+* status
+* sent_at
+* reminder_count
+* completed_at
+* expires_at
+
+Adapt these structures to the existing QuickProp database architecture rather than creating duplicate user/account tables.
+
+---
+
+# 20. Admin Dashboard
+
+Create a simple admin section:
+
+## Rental Reference Management
+
+Show:
+
+* Pending requests
+* Completed references
+* Not verified references
+* Disputed references
+* Agencies awaiting verification
+* Landlords/referees
+* Suspicious activity
+
+Admin should be able to:
+
+* View tenancy record
+* View reference
+* Resend request
+* Mark a request for review
+* Resolve disputes
+* Verify/unverify an agency
+* Disable fraudulent accounts/references
+
+---
+
+# 21. Fraud Prevention
+
+Build basic protections into the MVP.
+
+Important:
+
+### Tenant cannot submit their own reference.
+
+The reference answers must only come from the referee flow.
+
+### One verified reference per tenancy.
+
+Prevent duplicate references for the same tenancy.
+
+### Secure reference links.
+
+Use unique, random, expiring tokens.
+
+### Agency references.
+
+Prefer authenticated agency accounts over manually entered email addresses.
+
+### Audit trail.
+
+Record:
+
+* Who submitted
+* When
+* Account/user ID
+* Reference request ID
+* Verification timestamp
+* Changes/status changes
+
+### Flag suspicious patterns.
+
+Create basic admin flags for things such as:
+
+* Same referee verifying many unrelated tenants
+* Multiple tenants using the same private landlord contact details
+* Multiple accounts associated with suspicious repeated information
+* Repeated references from the same device/IP where technically appropriate
+* Rapid creation of many rental histories
+
+Do not automatically ban users based solely on these flags. Flag them for review.
+
+---
+
+# 22. UX PRINCIPLE
+
+The entire tenant workflow should take **less than 2 minutes** to add a previous tenancy and request a reference.
+
+The UI should feel like:
+
+**Add tenancy → Choose landlord/agency → Confirm → Send**
+
+not a long application.
+
+The landlord/agent reference should take approximately **30 seconds**:
+
+**Confirm tenancy → Answer 3 questions → Submit**
+
+---
+
+# 23. Future Architecture
+
+Do not build these features now, but structure the system so they can be added later:
+
+* WhatsApp reference requests
+* SMS verification
+* ID verification
+* Property ownership verification
+* Lease verification
+* Rental payment history
+* Digital lease agreements
+* Rent collection
+* Tenant applications
+* Tenant-to-landlord reviews
+* Tenant rental reputation
+* Automated tenancy creation when a QuickProp application becomes successful
+
+The MVP should focus ONLY on:
+
+**Rental Profile + Rental History + Verified References.**
+
+---
+
+# 24. Important Product Philosophy
+
+The product should NOT be marketed as:
+
+"Tenant credit scoring."
+
+It should be:
+
+### **Your rental history, verified.**
+
+The value proposition to tenants:
+
+> **Good tenant? Take your rental history with you.**
+
+The value proposition to landlords/agents:
+
+> **See a prospective tenant's verified rental history before you accept an application.**
+
+Build this as a polished, production-quality feature integrated into the existing QuickProp application rather than as a separate application.
+
+Before writing new components, inspect the existing QuickProp codebase and reuse:
+
+* Existing authentication
+* Existing user profiles
+* Existing property database
+* Existing notification infrastructure
+* Existing UI components
+* Existing design system
+* Existing agency/agent profiles
+* Existing admin tools
+
+Do not duplicate functionality that already exists.
+
+First understand the current architecture, then implement the feature consistently with the existing QuickProp design.
+
+I would **definitely keep the MVP at this level** rather than adding scoring, income verification, ID checks, etc. The clever part is actually the workflow: **QuickProp becomes the trusted intermediary that requests the reference from the previous landlord/agency.**
