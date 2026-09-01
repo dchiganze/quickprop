@@ -2,7 +2,7 @@ import React from 'react';
 import { Link, useLocation } from 'wouter';
 import { useLogout, useGetCurrentUser, useListNotifications, useMarkNotificationRead } from '@workspace/api-client-react';
 import { 
-  LayoutDashboard, Database, KanbanSquare, Users, Handshake,
+  LayoutDashboard, Database, KanbanSquare, Users, Handshake, Home, UserRound,
   Target, CheckSquare, Calendar, FileText, Briefcase, BarChart3, Settings, 
   ShieldAlert, UserCircle, Bell, Search, LogOut, Loader2, Sparkles, UploadCloud
 } from 'lucide-react';
@@ -133,7 +133,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
               <div className="px-3 text-xs font-semibold tracking-wider text-sidebar-foreground/40 uppercase mb-2">Properties</div>
               <NavItem href="/inventory" icon={Database} label="Inventory" exact />
               <NavItem href="/inventory/pipeline" icon={KanbanSquare} label="Pipeline" />
-              <NavItem href="/housekeeping" icon={Sparkles} label="Listing Housekeeping" />
               <NavItem href="/imports" icon={UploadCloud} label="Bulk Imports" />
               <NavItem href="/calendar" icon={Calendar} label="Viewings" />
             </div>
@@ -144,6 +143,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
               <NavItem href="/matches" icon={Handshake} label="Matches" />
               <NavItem href="/buyers" icon={Users} label="Buyers" />
               <NavItem href="/sellers" icon={Briefcase} label="Sellers" />
+              <NavItem href="/landlords" icon={Home} label="Landlords" />
+              <NavItem href="/tenants" icon={UserRound} label="Tenants" />
             </div>
 
             <div className="space-y-1">
