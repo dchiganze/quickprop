@@ -2547,6 +2547,586 @@ export const GetMarketplaceStatsResponse = zod.object({
 
 
 /**
+ * @summary Get the signed-in buyer or renter's rental profile
+ */
+export const GetRentalProfileResponse = zod.object({
+  "verifiedCount": zod.number(),
+  "totalCount": zod.number(),
+  "tenancies": zod.array(zod.object({
+  "id": zod.number(),
+  "propertyId": zod.number().nullable(),
+  "propertyAddress": zod.string(),
+  "suburb": zod.string(),
+  "city": zod.string(),
+  "startDate": zod.string(),
+  "endDate": zod.string(),
+  "tenancyType": zod.string(),
+  "refereeType": zod.string(),
+  "refereeName": zod.string().nullable(),
+  "refereeEmail": zod.string().nullable(),
+  "refereePhone": zod.string().nullable(),
+  "agencyId": zod.number().nullable(),
+  "agency": zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "tradingName": zod.string().nullish(),
+  "email": zod.string().nullish(),
+  "phone": zod.string().nullish(),
+  "website": zod.string().nullish(),
+  "address": zod.string().nullish(),
+  "verificationStatus": zod.enum(['pending', 'verified', 'rejected']),
+  "status": zod.enum(['active', 'inactive']),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+}).nullish(),
+  "verificationStatus": zod.enum(['verified', 'pending', 'self_reported', 'not_verified']),
+  "verifiedAt": zod.string().nullable(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string(),
+  "reference": zod.object({
+  "id": zod.number(),
+  "rentalHistoryId": zod.number(),
+  "verifiedTenancy": zod.boolean(),
+  "rentPaymentRating": zod.string().nullable(),
+  "propertyConditionRating": zod.string().nullable(),
+  "wouldRentAgain": zod.boolean().nullable(),
+  "submittedBy": zod.string().nullable(),
+  "submittedAt": zod.string().nullable(),
+  "disputeStatus": zod.string(),
+  "disputeReason": zod.string().nullable()
+}).nullable(),
+  "request": zod.object({
+  "id": zod.number(),
+  "rentalHistoryId": zod.number(),
+  "recipientType": zod.string(),
+  "recipientEmail": zod.string().nullable(),
+  "recipientPhone": zod.string().nullable(),
+  "agencyId": zod.number().nullable(),
+  "status": zod.string(),
+  "sentAt": zod.string().nullable(),
+  "reminderCount": zod.number(),
+  "lastReminderAt": zod.string().nullable(),
+  "completedAt": zod.string().nullable(),
+  "expiresAt": zod.string(),
+  "lastError": zod.string().nullable(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+}).nullable(),
+  "disputes": zod.array(zod.object({
+  "id": zod.number(),
+  "rentalHistoryId": zod.number(),
+  "reason": zod.string(),
+  "status": zod.enum(['open', 'under_review', 'resolved', 'dismissed']),
+  "resolutionNote": zod.string().nullish(),
+  "resolvedAt": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+}))
+}))
+})
+
+
+/**
+ * @summary Add a self-reported previous tenancy
+ */
+export const createRentalHistoryBodyPropertyAddressMin = 3;
+
+export const createRentalHistoryBodySuburbMin = 2;
+
+export const createRentalHistoryBodyCityMin = 2;
+
+
+
+export const CreateRentalHistoryBody = zod.object({
+  "propertyId": zod.number().nullish(),
+  "propertyAddress": zod.string().min(createRentalHistoryBodyPropertyAddressMin),
+  "suburb": zod.string().min(createRentalHistoryBodySuburbMin),
+  "city": zod.string().min(createRentalHistoryBodyCityMin),
+  "startDate": zod.coerce.date(),
+  "endDate": zod.coerce.date(),
+  "tenancyType": zod.enum(['private_landlord', 'agency']),
+  "refereeType": zod.enum(['private_landlord', 'agency']),
+  "refereeName": zod.string().optional(),
+  "refereeEmail": zod.string().optional(),
+  "refereePhone": zod.string().optional(),
+  "agencyId": zod.number().nullish()
+})
+
+export const CreateRentalHistoryResponse = zod.object({
+  "id": zod.number(),
+  "propertyId": zod.number().nullable(),
+  "propertyAddress": zod.string(),
+  "suburb": zod.string(),
+  "city": zod.string(),
+  "startDate": zod.string(),
+  "endDate": zod.string(),
+  "tenancyType": zod.string(),
+  "refereeType": zod.string(),
+  "refereeName": zod.string().nullable(),
+  "refereeEmail": zod.string().nullable(),
+  "refereePhone": zod.string().nullable(),
+  "agencyId": zod.number().nullable(),
+  "agency": zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "tradingName": zod.string().nullish(),
+  "email": zod.string().nullish(),
+  "phone": zod.string().nullish(),
+  "website": zod.string().nullish(),
+  "address": zod.string().nullish(),
+  "verificationStatus": zod.enum(['pending', 'verified', 'rejected']),
+  "status": zod.enum(['active', 'inactive']),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+}).nullish(),
+  "verificationStatus": zod.enum(['verified', 'pending', 'self_reported', 'not_verified']),
+  "verifiedAt": zod.string().nullable(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string(),
+  "reference": zod.object({
+  "id": zod.number(),
+  "rentalHistoryId": zod.number(),
+  "verifiedTenancy": zod.boolean(),
+  "rentPaymentRating": zod.string().nullable(),
+  "propertyConditionRating": zod.string().nullable(),
+  "wouldRentAgain": zod.boolean().nullable(),
+  "submittedBy": zod.string().nullable(),
+  "submittedAt": zod.string().nullable(),
+  "disputeStatus": zod.string(),
+  "disputeReason": zod.string().nullable()
+}).nullable(),
+  "request": zod.object({
+  "id": zod.number(),
+  "rentalHistoryId": zod.number(),
+  "recipientType": zod.string(),
+  "recipientEmail": zod.string().nullable(),
+  "recipientPhone": zod.string().nullable(),
+  "agencyId": zod.number().nullable(),
+  "status": zod.string(),
+  "sentAt": zod.string().nullable(),
+  "reminderCount": zod.number(),
+  "lastReminderAt": zod.string().nullable(),
+  "completedAt": zod.string().nullable(),
+  "expiresAt": zod.string(),
+  "lastError": zod.string().nullable(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+}).nullable(),
+  "disputes": zod.array(zod.object({
+  "id": zod.number(),
+  "rentalHistoryId": zod.number(),
+  "reason": zod.string(),
+  "status": zod.enum(['open', 'under_review', 'resolved', 'dismissed']),
+  "resolutionNote": zod.string().nullish(),
+  "resolvedAt": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+}))
+})
+
+
+/**
+ * @summary Request an independent reference for a tenancy
+ */
+export const RequestRentalVerificationParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const RequestRentalVerificationBody = zod.object({
+  "refereeType": zod.enum(['private_landlord', 'agency']),
+  "refereeName": zod.string().optional(),
+  "refereeEmail": zod.string().optional(),
+  "refereePhone": zod.string().optional(),
+  "agencyId": zod.number().nullish()
+})
+
+export const RequestRentalVerificationResponse = zod.object({
+  "id": zod.number(),
+  "propertyId": zod.number().nullable(),
+  "propertyAddress": zod.string(),
+  "suburb": zod.string(),
+  "city": zod.string(),
+  "startDate": zod.string(),
+  "endDate": zod.string(),
+  "tenancyType": zod.string(),
+  "refereeType": zod.string(),
+  "refereeName": zod.string().nullable(),
+  "refereeEmail": zod.string().nullable(),
+  "refereePhone": zod.string().nullable(),
+  "agencyId": zod.number().nullable(),
+  "agency": zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "tradingName": zod.string().nullish(),
+  "email": zod.string().nullish(),
+  "phone": zod.string().nullish(),
+  "website": zod.string().nullish(),
+  "address": zod.string().nullish(),
+  "verificationStatus": zod.enum(['pending', 'verified', 'rejected']),
+  "status": zod.enum(['active', 'inactive']),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+}).nullish(),
+  "verificationStatus": zod.enum(['verified', 'pending', 'self_reported', 'not_verified']),
+  "verifiedAt": zod.string().nullable(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string(),
+  "reference": zod.object({
+  "id": zod.number(),
+  "rentalHistoryId": zod.number(),
+  "verifiedTenancy": zod.boolean(),
+  "rentPaymentRating": zod.string().nullable(),
+  "propertyConditionRating": zod.string().nullable(),
+  "wouldRentAgain": zod.boolean().nullable(),
+  "submittedBy": zod.string().nullable(),
+  "submittedAt": zod.string().nullable(),
+  "disputeStatus": zod.string(),
+  "disputeReason": zod.string().nullable()
+}).nullable(),
+  "request": zod.object({
+  "id": zod.number(),
+  "rentalHistoryId": zod.number(),
+  "recipientType": zod.string(),
+  "recipientEmail": zod.string().nullable(),
+  "recipientPhone": zod.string().nullable(),
+  "agencyId": zod.number().nullable(),
+  "status": zod.string(),
+  "sentAt": zod.string().nullable(),
+  "reminderCount": zod.number(),
+  "lastReminderAt": zod.string().nullable(),
+  "completedAt": zod.string().nullable(),
+  "expiresAt": zod.string(),
+  "lastError": zod.string().nullable(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+}).nullable(),
+  "disputes": zod.array(zod.object({
+  "id": zod.number(),
+  "rentalHistoryId": zod.number(),
+  "reason": zod.string(),
+  "status": zod.enum(['open', 'under_review', 'resolved', 'dismissed']),
+  "resolutionNote": zod.string().nullish(),
+  "resolvedAt": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+}))
+})
+
+
+/**
+ * @summary Dispute a verified rental reference
+ */
+export const DisputeRentalReferenceParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const disputeRentalReferenceBodyReasonMin = 10;
+export const disputeRentalReferenceBodyReasonMax = 1000;
+
+
+
+export const DisputeRentalReferenceBody = zod.object({
+  "reason": zod.string().min(disputeRentalReferenceBodyReasonMin).max(disputeRentalReferenceBodyReasonMax)
+})
+
+export const DisputeRentalReferenceResponse = zod.object({
+  "id": zod.number(),
+  "rentalHistoryId": zod.number(),
+  "reason": zod.string(),
+  "status": zod.enum(['open', 'under_review', 'resolved', 'dismissed']),
+  "resolutionNote": zod.string().nullish(),
+  "resolvedAt": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+
+
+/**
+ * @summary Search registered rental agencies
+ */
+export const searchRentalAgenciesQueryQMin = 2;
+
+
+
+export const SearchRentalAgenciesQueryParams = zod.object({
+  "q": zod.coerce.string().min(searchRentalAgenciesQueryQMin)
+})
+
+export const SearchRentalAgenciesResponseItem = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "tradingName": zod.string().nullish(),
+  "email": zod.string().nullish(),
+  "phone": zod.string().nullish(),
+  "website": zod.string().nullish(),
+  "address": zod.string().nullish(),
+  "verificationStatus": zod.enum(['pending', 'verified', 'rejected']),
+  "status": zod.enum(['active', 'inactive']),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+export const SearchRentalAgenciesResponse = zod.array(SearchRentalAgenciesResponseItem)
+
+
+/**
+ * @summary Open a secure rental reference request
+ */
+export const GetPublicRentalReferenceParams = zod.object({
+  "token": zod.coerce.string()
+})
+
+export const GetPublicRentalReferenceResponse = zod.object({
+  "status": zod.enum(['available']),
+  "tenantName": zod.string(),
+  "propertyAddress": zod.string(),
+  "suburb": zod.string(),
+  "city": zod.string(),
+  "startDate": zod.string(),
+  "endDate": zod.string(),
+  "refereeName": zod.string().nullable(),
+  "agencyName": zod.string().nullable(),
+  "expiresAt": zod.string()
+})
+
+
+/**
+ * @summary Complete a secure rental reference request
+ */
+export const SubmitPublicRentalReferenceParams = zod.object({
+  "token": zod.coerce.string()
+})
+
+export const SubmitPublicRentalReferenceBody = zod.object({
+  "verifiedTenancy": zod.boolean(),
+  "rentPaymentRating": zod.enum(['always', 'usually', 'sometimes', 'rarely']).optional(),
+  "propertyConditionRating": zod.enum(['excellent', 'good', 'average', 'poor']).optional(),
+  "wouldRentAgain": zod.boolean().optional()
+})
+
+export const SubmitPublicRentalReferenceResponse = zod.object({
+  "success": zod.boolean(),
+  "status": zod.enum(['verified', 'not_verified'])
+})
+
+
+/**
+ * @summary Rental history and reference management queue
+ */
+export const ListAdminRentalReferencesResponseItem = zod.object({
+  "id": zod.number(),
+  "propertyId": zod.number().nullable(),
+  "propertyAddress": zod.string(),
+  "suburb": zod.string(),
+  "city": zod.string(),
+  "startDate": zod.string(),
+  "endDate": zod.string(),
+  "tenancyType": zod.string(),
+  "refereeType": zod.string(),
+  "refereeName": zod.string().nullable(),
+  "refereeEmail": zod.string().nullable(),
+  "refereePhone": zod.string().nullable(),
+  "agencyId": zod.number().nullable(),
+  "agency": zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "tradingName": zod.string().nullish(),
+  "email": zod.string().nullish(),
+  "phone": zod.string().nullish(),
+  "website": zod.string().nullish(),
+  "address": zod.string().nullish(),
+  "verificationStatus": zod.enum(['pending', 'verified', 'rejected']),
+  "status": zod.enum(['active', 'inactive']),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+}).nullish(),
+  "verificationStatus": zod.enum(['verified', 'pending', 'self_reported', 'not_verified']),
+  "verifiedAt": zod.string().nullable(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string(),
+  "reference": zod.object({
+  "id": zod.number(),
+  "rentalHistoryId": zod.number(),
+  "verifiedTenancy": zod.boolean(),
+  "rentPaymentRating": zod.string().nullable(),
+  "propertyConditionRating": zod.string().nullable(),
+  "wouldRentAgain": zod.boolean().nullable(),
+  "submittedBy": zod.string().nullable(),
+  "submittedAt": zod.string().nullable(),
+  "disputeStatus": zod.string(),
+  "disputeReason": zod.string().nullable()
+}).nullable(),
+  "request": zod.object({
+  "id": zod.number(),
+  "rentalHistoryId": zod.number(),
+  "recipientType": zod.string(),
+  "recipientEmail": zod.string().nullable(),
+  "recipientPhone": zod.string().nullable(),
+  "agencyId": zod.number().nullable(),
+  "status": zod.string(),
+  "sentAt": zod.string().nullable(),
+  "reminderCount": zod.number(),
+  "lastReminderAt": zod.string().nullable(),
+  "completedAt": zod.string().nullable(),
+  "expiresAt": zod.string(),
+  "lastError": zod.string().nullable(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+}).nullable(),
+  "disputes": zod.array(zod.object({
+  "id": zod.number(),
+  "rentalHistoryId": zod.number(),
+  "reason": zod.string(),
+  "status": zod.enum(['open', 'under_review', 'resolved', 'dismissed']),
+  "resolutionNote": zod.string().nullish(),
+  "resolvedAt": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+}))
+}).and(zod.object({
+  "tenantName": zod.string(),
+  "tenantEmail": zod.string()
+}))
+export const ListAdminRentalReferencesResponse = zod.array(ListAdminRentalReferencesResponseItem)
+
+
+/**
+ * @summary Resend an unanswered rental reference request
+ */
+export const ResendRentalReferenceParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const ResendRentalReferenceResponse = zod.object({
+  "id": zod.number(),
+  "rentalHistoryId": zod.number(),
+  "recipientType": zod.string(),
+  "recipientEmail": zod.string().nullable(),
+  "recipientPhone": zod.string().nullable(),
+  "agencyId": zod.number().nullable(),
+  "status": zod.string(),
+  "sentAt": zod.string().nullable(),
+  "reminderCount": zod.number(),
+  "lastReminderAt": zod.string().nullable(),
+  "completedAt": zod.string().nullable(),
+  "expiresAt": zod.string(),
+  "lastError": zod.string().nullable(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+
+
+/**
+ * @summary List rental agencies awaiting verification
+ */
+export const ListRentalAgenciesResponseItem = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "tradingName": zod.string().nullish(),
+  "email": zod.string().nullish(),
+  "phone": zod.string().nullish(),
+  "website": zod.string().nullish(),
+  "address": zod.string().nullish(),
+  "verificationStatus": zod.enum(['pending', 'verified', 'rejected']),
+  "status": zod.enum(['active', 'inactive']),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+export const ListRentalAgenciesResponse = zod.array(ListRentalAgenciesResponseItem)
+
+
+/**
+ * @summary Add an agency for rental reference requests
+ */
+export const createRentalAgencyBodyNameMin = 2;
+
+
+
+export const CreateRentalAgencyBody = zod.object({
+  "name": zod.string().min(createRentalAgencyBodyNameMin),
+  "tradingName": zod.string().optional(),
+  "email": zod.string().optional(),
+  "phone": zod.string().optional(),
+  "website": zod.string().optional(),
+  "address": zod.string().optional()
+})
+
+export const CreateRentalAgencyResponse = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "tradingName": zod.string().nullish(),
+  "email": zod.string().nullish(),
+  "phone": zod.string().nullish(),
+  "website": zod.string().nullish(),
+  "address": zod.string().nullish(),
+  "verificationStatus": zod.enum(['pending', 'verified', 'rejected']),
+  "status": zod.enum(['active', 'inactive']),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+
+
+/**
+ * @summary Update an agency verification status
+ */
+export const UpdateRentalAgencyQueryParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const updateRentalAgencyBodyNameMin = 2;
+
+
+
+export const UpdateRentalAgencyBody = zod.object({
+  "name": zod.string().min(updateRentalAgencyBodyNameMin).optional(),
+  "tradingName": zod.string().optional(),
+  "email": zod.string().optional(),
+  "phone": zod.string().optional(),
+  "website": zod.string().optional(),
+  "address": zod.string().optional(),
+  "verificationStatus": zod.enum(['pending', 'verified', 'rejected']).optional(),
+  "status": zod.enum(['active', 'inactive']).optional()
+})
+
+export const UpdateRentalAgencyResponse = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "tradingName": zod.string().nullish(),
+  "email": zod.string().nullish(),
+  "phone": zod.string().nullish(),
+  "website": zod.string().nullish(),
+  "address": zod.string().nullish(),
+  "verificationStatus": zod.enum(['pending', 'verified', 'rejected']),
+  "status": zod.enum(['active', 'inactive']),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+
+
+/**
+ * @summary Resolve or review a rental reference dispute
+ */
+export const UpdateRentalDisputeParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const UpdateRentalDisputeBody = zod.object({
+  "status": zod.enum(['open', 'under_review', 'resolved', 'dismissed']),
+  "resolutionNote": zod.string().optional()
+})
+
+export const UpdateRentalDisputeResponse = zod.object({
+  "id": zod.number(),
+  "rentalHistoryId": zod.number(),
+  "reason": zod.string(),
+  "status": zod.enum(['open', 'under_review', 'resolved', 'dismissed']),
+  "resolutionNote": zod.string().nullish(),
+  "resolvedAt": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+
+
+/**
  * @summary Platform-wide KPI statistics
  */
 export const GetAdminPlatformStatsResponse = zod.object({

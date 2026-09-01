@@ -17,6 +17,7 @@ import MobileMarketing from '@/pages/mobile-marketing';
 import Privacy from '@/pages/privacy';
 import Terms from '@/pages/terms';
 import NotFound from '@/pages/not-found';
+import RentalReference from '@/pages/rental-reference';
 
 const queryClient = new QueryClient();
 
@@ -28,6 +29,7 @@ function Router() {
       <Route path="/properties/:id" component={PropertyDetail} />
       <Route path="/agents" component={Agents} />
       <Route path="/review/:token" component={Review} />
+      <Route path="/rental-reference/:token" component={RentalReference} />
       <Route path="/agents/:id" component={AgentProfile} />
       <Route path="/login" component={Login} />
       <Route path="/register" component={Register} />

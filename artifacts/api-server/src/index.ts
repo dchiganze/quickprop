@@ -4,6 +4,7 @@ import { startHousekeepingScheduler } from "./lib/housekeeping-job";
 import { startImportRecoveryWorker } from "./routes/imports";
 import { ensureDemoAccounts } from "./lib/demo-accounts";
 import { startReviewInvitationScheduler } from "./lib/agent-reviews";
+import { startRentalReferenceScheduler } from "./lib/rental-references";
 
 const rawPort = process.env["PORT"];
 
@@ -32,6 +33,7 @@ async function startServer(): Promise<void> {
     startHousekeepingScheduler();
     startImportRecoveryWorker();
     startReviewInvitationScheduler();
+    startRentalReferenceScheduler();
   });
 }
 

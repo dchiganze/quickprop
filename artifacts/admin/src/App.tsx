@@ -20,6 +20,7 @@ import ListingHealth from '@/pages/listing-health';
 import Audit from '@/pages/audit';
 import Settings from '@/pages/settings';
 import Duplicates from '@/pages/duplicates';
+import RentalReferences from '@/pages/rental-references';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -65,6 +66,7 @@ function AppRouter() {
       <ProtectedRoute path="/freshness" component={Freshness} />
       <ProtectedRoute path="/listing-health" component={ListingHealth} />
       <ProtectedRoute path="/duplicates" component={Duplicates} />
+      <ProtectedRoute path="/rental-references" component={RentalReferences} />
       <ProtectedRoute path="/audit" component={Audit} />
       <ProtectedRoute path="/settings" component={Settings} />
       <Route component={NotFound} />

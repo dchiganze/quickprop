@@ -5,6 +5,337 @@
  * QuickProp Office API
  * OpenAPI spec version: 0.1.0
  */
+export type RentalAgencyVerificationStatus = typeof RentalAgencyVerificationStatus[keyof typeof RentalAgencyVerificationStatus];
+
+
+export const RentalAgencyVerificationStatus = {
+  pending: 'pending',
+  verified: 'verified',
+  rejected: 'rejected',
+} as const;
+
+export type RentalAgencyStatus = typeof RentalAgencyStatus[keyof typeof RentalAgencyStatus];
+
+
+export const RentalAgencyStatus = {
+  active: 'active',
+  inactive: 'inactive',
+} as const;
+
+export interface RentalAgency {
+  id: number;
+  name: string;
+  /** @nullable */
+  tradingName?: string | null;
+  /** @nullable */
+  email?: string | null;
+  /** @nullable */
+  phone?: string | null;
+  /** @nullable */
+  website?: string | null;
+  /** @nullable */
+  address?: string | null;
+  verificationStatus: RentalAgencyVerificationStatus;
+  status: RentalAgencyStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface RentalAgencyInput {
+  /** @minLength 2 */
+  name: string;
+  tradingName?: string;
+  email?: string;
+  phone?: string;
+  website?: string;
+  address?: string;
+}
+
+export type RentalAgencyUpdateVerificationStatus = typeof RentalAgencyUpdateVerificationStatus[keyof typeof RentalAgencyUpdateVerificationStatus];
+
+
+export const RentalAgencyUpdateVerificationStatus = {
+  pending: 'pending',
+  verified: 'verified',
+  rejected: 'rejected',
+} as const;
+
+export type RentalAgencyUpdateStatus = typeof RentalAgencyUpdateStatus[keyof typeof RentalAgencyUpdateStatus];
+
+
+export const RentalAgencyUpdateStatus = {
+  active: 'active',
+  inactive: 'inactive',
+} as const;
+
+export interface RentalAgencyUpdate {
+  /** @minLength 2 */
+  name?: string;
+  tradingName?: string;
+  email?: string;
+  phone?: string;
+  website?: string;
+  address?: string;
+  verificationStatus?: RentalAgencyUpdateVerificationStatus;
+  status?: RentalAgencyUpdateStatus;
+}
+
+export type RentalHistoryInputTenancyType = typeof RentalHistoryInputTenancyType[keyof typeof RentalHistoryInputTenancyType];
+
+
+export const RentalHistoryInputTenancyType = {
+  private_landlord: 'private_landlord',
+  agency: 'agency',
+} as const;
+
+export type RentalHistoryInputRefereeType = typeof RentalHistoryInputRefereeType[keyof typeof RentalHistoryInputRefereeType];
+
+
+export const RentalHistoryInputRefereeType = {
+  private_landlord: 'private_landlord',
+  agency: 'agency',
+} as const;
+
+export interface RentalHistoryInput {
+  /** @nullable */
+  propertyId?: number | null;
+  /** @minLength 3 */
+  propertyAddress: string;
+  /** @minLength 2 */
+  suburb: string;
+  /** @minLength 2 */
+  city: string;
+  startDate: string;
+  endDate: string;
+  tenancyType: RentalHistoryInputTenancyType;
+  refereeType: RentalHistoryInputRefereeType;
+  refereeName?: string;
+  refereeEmail?: string;
+  refereePhone?: string;
+  /** @nullable */
+  agencyId?: number | null;
+}
+
+export type ReferenceRequestInputRefereeType = typeof ReferenceRequestInputRefereeType[keyof typeof ReferenceRequestInputRefereeType];
+
+
+export const ReferenceRequestInputRefereeType = {
+  private_landlord: 'private_landlord',
+  agency: 'agency',
+} as const;
+
+export interface ReferenceRequestInput {
+  refereeType: ReferenceRequestInputRefereeType;
+  refereeName?: string;
+  refereeEmail?: string;
+  refereePhone?: string;
+  /** @nullable */
+  agencyId?: number | null;
+}
+
+export type RentalHistoryVerificationStatus = typeof RentalHistoryVerificationStatus[keyof typeof RentalHistoryVerificationStatus];
+
+
+export const RentalHistoryVerificationStatus = {
+  verified: 'verified',
+  pending: 'pending',
+  self_reported: 'self_reported',
+  not_verified: 'not_verified',
+} as const;
+
+export interface RentalReference {
+  id: number;
+  rentalHistoryId: number;
+  verifiedTenancy: boolean;
+  /** @nullable */
+  rentPaymentRating: string | null;
+  /** @nullable */
+  propertyConditionRating: string | null;
+  /** @nullable */
+  wouldRentAgain: boolean | null;
+  /** @nullable */
+  submittedBy: string | null;
+  /** @nullable */
+  submittedAt: string | null;
+  disputeStatus: string;
+  /** @nullable */
+  disputeReason: string | null;
+}
+
+export interface ReferenceRequest {
+  id: number;
+  rentalHistoryId: number;
+  recipientType: string;
+  /** @nullable */
+  recipientEmail: string | null;
+  /** @nullable */
+  recipientPhone: string | null;
+  /** @nullable */
+  agencyId: number | null;
+  status: string;
+  /** @nullable */
+  sentAt: string | null;
+  reminderCount: number;
+  /** @nullable */
+  lastReminderAt: string | null;
+  /** @nullable */
+  completedAt: string | null;
+  expiresAt: string;
+  /** @nullable */
+  lastError: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type RentalDisputeStatus = typeof RentalDisputeStatus[keyof typeof RentalDisputeStatus];
+
+
+export const RentalDisputeStatus = {
+  open: 'open',
+  under_review: 'under_review',
+  resolved: 'resolved',
+  dismissed: 'dismissed',
+} as const;
+
+export interface RentalDispute {
+  id: number;
+  rentalHistoryId: number;
+  reason: string;
+  status: RentalDisputeStatus;
+  /** @nullable */
+  resolutionNote?: string | null;
+  /** @nullable */
+  resolvedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface RentalHistory {
+  id: number;
+  /** @nullable */
+  propertyId: number | null;
+  propertyAddress: string;
+  suburb: string;
+  city: string;
+  startDate: string;
+  endDate: string;
+  tenancyType: string;
+  refereeType: string;
+  /** @nullable */
+  refereeName: string | null;
+  /** @nullable */
+  refereeEmail: string | null;
+  /** @nullable */
+  refereePhone: string | null;
+  /** @nullable */
+  agencyId: number | null;
+  agency?: RentalAgency | null;
+  verificationStatus: RentalHistoryVerificationStatus;
+  /** @nullable */
+  verifiedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  reference: RentalReference | null;
+  request: ReferenceRequest | null;
+  disputes: RentalDispute[];
+}
+
+export interface RentalProfile {
+  verifiedCount: number;
+  totalCount: number;
+  tenancies: RentalHistory[];
+}
+
+export type RentalReferenceInputRentPaymentRating = typeof RentalReferenceInputRentPaymentRating[keyof typeof RentalReferenceInputRentPaymentRating];
+
+
+export const RentalReferenceInputRentPaymentRating = {
+  always: 'always',
+  usually: 'usually',
+  sometimes: 'sometimes',
+  rarely: 'rarely',
+} as const;
+
+export type RentalReferenceInputPropertyConditionRating = typeof RentalReferenceInputPropertyConditionRating[keyof typeof RentalReferenceInputPropertyConditionRating];
+
+
+export const RentalReferenceInputPropertyConditionRating = {
+  excellent: 'excellent',
+  good: 'good',
+  average: 'average',
+  poor: 'poor',
+} as const;
+
+export interface RentalReferenceInput {
+  verifiedTenancy: boolean;
+  rentPaymentRating?: RentalReferenceInputRentPaymentRating;
+  propertyConditionRating?: RentalReferenceInputPropertyConditionRating;
+  wouldRentAgain?: boolean;
+}
+
+export type RentalReferenceSubmissionStatus = typeof RentalReferenceSubmissionStatus[keyof typeof RentalReferenceSubmissionStatus];
+
+
+export const RentalReferenceSubmissionStatus = {
+  verified: 'verified',
+  not_verified: 'not_verified',
+} as const;
+
+export interface RentalReferenceSubmission {
+  success: boolean;
+  status: RentalReferenceSubmissionStatus;
+}
+
+export interface RentalDisputeInput {
+  /**
+     * @minLength 10
+     * @maxLength 1000
+     */
+  reason: string;
+}
+
+export type PublicRentalReferenceStatus = typeof PublicRentalReferenceStatus[keyof typeof PublicRentalReferenceStatus];
+
+
+export const PublicRentalReferenceStatus = {
+  available: 'available',
+} as const;
+
+export interface PublicRentalReference {
+  status: PublicRentalReferenceStatus;
+  tenantName: string;
+  propertyAddress: string;
+  suburb: string;
+  city: string;
+  startDate: string;
+  endDate: string;
+  /** @nullable */
+  refereeName: string | null;
+  /** @nullable */
+  agencyName: string | null;
+  expiresAt: string;
+}
+
+export type AdminRentalHistory = RentalHistory & {
+  tenantName: string;
+  tenantEmail: string;
+};
+
+export type RentalDisputeUpdateStatus = typeof RentalDisputeUpdateStatus[keyof typeof RentalDisputeUpdateStatus];
+
+
+export const RentalDisputeUpdateStatus = {
+  open: 'open',
+  under_review: 'under_review',
+  resolved: 'resolved',
+  dismissed: 'dismissed',
+} as const;
+
+export interface RentalDisputeUpdate {
+  status: RentalDisputeUpdateStatus;
+  resolutionNote?: string;
+}
+
 export interface HealthStatus {
   status: string;
 }
@@ -1652,6 +1983,17 @@ q?: string;
 page?: number;
 limit?: number;
 sort?: string;
+};
+
+export type SearchRentalAgenciesParams = {
+/**
+ * @minLength 2
+ */
+q: string;
+};
+
+export type UpdateRentalAgencyParams = {
+id: number;
 };
 
 export type DeactivateListingHousekeepingPushToken200 = {

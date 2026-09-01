@@ -3,8 +3,8 @@ import { Link, useLocation } from 'wouter';
 import { useLogout, useGetCurrentUser } from '@workspace/api-client-react';
 import {
   LayoutDashboard, Building2, Users, UserCheck, ShoppingBag,
-  Target, Map, Clock, Shield, Settings, LogOut, ChevronRight,
-  Bell, Search, Activity, ShieldCheck
+   Target, Map, Clock, Shield, Settings, LogOut, ChevronRight,
+   Bell, Search, Activity, ShieldCheck, FileCheck2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -52,6 +52,7 @@ const NAV: NavSection[] = [
     title: 'Engagement',
     items: [
       { href: '/leads', icon: Target, label: 'Leads' },
+      { href: '/rental-references', icon: FileCheck2, label: 'Rental References' },
     ],
   },
   {

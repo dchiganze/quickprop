@@ -1,0 +1,822 @@
+# QuickProp MVP Feature: Property Alerts & "Notify Me of Similar Properties"
+
+## Objective
+
+Build a property notification/alert system for QuickProp that allows prospective buyers and renters to tell QuickProp what type of property they are looking for and automatically receive notifications when matching properties are listed.
+
+The feature must work for both:
+
+* Prospective buyers
+* Prospective renters
+
+The user should be able to:
+
+1. Create a property search/alert using detailed parameters.
+2. Receive notifications when a matching property is listed.
+3. From any property listing, tap **"Notify me of similar properties"** to instantly create an alert based on that property.
+4. Manage, edit, pause and delete their alerts from their existing profile.
+
+The feature should integrate with the existing QuickProp prospective buyer/renter profile and existing property database.
+
+Do NOT create a separate account or profile system.
+
+---
+
+# 1. Add "Property Alerts" to Existing User Profile
+
+The existing QuickProp prospective buyer/renter profile should have a new section/tab:
+
+### Property Alerts
+
+Example:
+
+**My Property Alerts**
+
+🔔 **3 Bedroom House – Borrowdale**
+
+For Rent
+$800–$1,200/month
+Borrowdale
+3+ bedrooms
+2+ bathrooms
+Pool preferred
+
+**Alert:** 🟢 Active
+
+---
+
+🔔 **2–3 Bedroom Apartment – Harare**
+
+For Sale
+$100,000–$160,000
+Harare
+2+ bedrooms
+Parking required
+
+**Alert:** 🟢 Active
+
+---
+
+Include:
+
+**+ Create Property Alert**
+
+---
+
+# 2. Create Property Alert
+
+When the user clicks:
+
+### + Create Property Alert
+
+First ask:
+
+### What are you looking for?
+
+○ Property to Buy
+○ Property to Rent
+
+Then show the relevant search parameters.
+
+---
+
+# 3. Property Type
+
+Allow multiple selections where appropriate.
+
+### Property Type
+
+☐ House
+☐ Apartment
+☐ Townhouse
+☐ Cluster
+☐ Cottage
+☐ Land
+☐ Commercial
+☐ Office
+☐ Retail
+☐ Warehouse
+☐ Other
+
+The options should adapt depending on whether the user is searching for residential or commercial property.
+
+---
+
+# 4. Location
+
+Allow the user to select:
+
+### Preferred Location
+
+Support:
+
+* City
+* Suburb
+* Area
+* Multiple suburbs/areas
+
+Example:
+
+**Harare**
+
+☑ Borrowdale
+☑ Borrowdale Brooke
+☑ Highlands
+☑ Mount Pleasant
+
+Allow users to select multiple locations.
+
+Also allow:
+
+### "Any location in Harare"
+
+Where technically feasible, use the existing QuickProp location/property database rather than creating a duplicate location system.
+
+---
+
+# 5. Price
+
+For rental:
+
+### Monthly Budget
+
+Minimum: $____
+
+Maximum: $____
+
+For sale:
+
+### Purchase Budget
+
+Minimum: $____
+
+Maximum: $____
+
+Allow one side to remain blank.
+
+Example:
+
+$800 – $1,200
+
+The matching logic should treat the user's maximum as a hard maximum unless they specifically enable similar properties.
+
+---
+
+# 6. Bedrooms
+
+### Bedrooms
+
+○ Any
+○ 1+
+○ 2+
+○ 3+
+○ 4+
+○ 5+
+
+For land/commercial properties, hide bedroom requirements.
+
+---
+
+# 7. Bathrooms
+
+### Bathrooms
+
+○ Any
+○ 1+
+○ 2+
+○ 3+
+○ 4+
+
+---
+
+# 8. Property Features / Amenities
+
+Allow users to select preferred features.
+
+Examples:
+
+☐ Swimming pool
+☐ Borehole
+☐ Solar
+☐ Backup power
+☐ Garage
+☐ Secure parking
+☐ Garden
+☐ Ensuite
+☐ Built-in cupboards
+☐ Security / gated
+☐ Staff quarters
+☐ Fibre internet
+☐ Generator
+☐ Air conditioning
+☐ Pet friendly
+☐ Furnished
+☐ Unfurnished
+
+Use the existing QuickProp property amenity taxonomy where one already exists.
+
+Do not create duplicate amenity systems.
+
+---
+
+# 9. Additional Preferences
+
+Depending on property type, allow:
+
+### Furnishing
+
+○ Any
+○ Furnished
+○ Unfurnished
+
+### Parking
+
+○ Any
+○ Parking required
+
+### Pets
+
+○ Any
+○ Pet friendly required
+
+### Power
+
+○ Any
+○ Backup power preferred
+○ Solar preferred
+
+### Water
+
+○ Any
+○ Borehole preferred
+
+These should be treated as configurable matching criteria rather than mandatory criteria unless the user explicitly selects "Required".
+
+---
+
+# 10. Required vs Preferred
+
+This is important.
+
+Allow the user to distinguish between:
+
+### Must Have
+
+and
+
+### Preferred
+
+For example:
+
+**Must have**
+
+* Borrowdale
+* 3+ bedrooms
+* Under $1,200
+
+**Preferred**
+
+* Pool
+* Solar
+* Borehole
+
+The matching algorithm should prioritize properties satisfying all "Must Have" criteria.
+
+Preferred features should improve the match ranking but should not necessarily exclude the property.
+
+---
+
+# 11. Alert Name
+
+Automatically generate a name based on the search.
+
+Example:
+
+**"3 Bedroom Borrowdale Rental"**
+
+Allow the user to edit it.
+
+---
+
+# 12. Notification Frequency
+
+Allow the user to select:
+
+### How often would you like to be notified?
+
+○ Immediately
+○ Once daily
+○ Once weekly
+
+Default:
+
+**Immediately**
+
+For immediate alerts, send a notification when a newly published property matches.
+
+For daily/weekly alerts, group matching properties into one notification.
+
+---
+
+# 13. Notification Channels
+
+Use QuickProp's existing notification infrastructure.
+
+Support, where available:
+
+☑ In-app notification
+☑ Email
+☑ WhatsApp notification
+
+The user should control which channels they receive.
+
+Do not build a new notification system if one already exists in QuickProp.
+
+---
+
+# 14. Property Match Logic
+
+Whenever a property is:
+
+* Created
+* Published
+* Updated from draft to published
+* Re-listed
+
+run the property against active property alerts.
+
+If it matches, create a notification event.
+
+A property should only trigger a notification if it is currently active/published.
+
+Do not notify users about:
+
+* Draft properties
+* Deleted properties
+* Expired properties
+* Sold properties
+* Rented properties
+
+unless the product specifically supports those statuses.
+
+---
+
+# 15. Matching Algorithm
+
+Create a simple but robust matching system.
+
+### Hard criteria
+
+The following should normally be treated as hard filters:
+
+* Buy vs rent
+* Property type
+* Location
+* Maximum price
+* Minimum bedrooms
+* Minimum bathrooms
+* Explicitly required amenities
+
+### Soft criteria
+
+These can contribute to match quality:
+
+* Preferred amenities
+* Furnishing
+* Parking
+* Solar
+* Borehole
+* Pool
+* Other optional features
+
+Calculate an internal match percentage.
+
+Example:
+
+### 92% Match
+
+**3 bedroom house in Borrowdale**
+
+$1,050/month
+
+✓ Price
+✓ Location
+✓ Bedrooms
+✓ Bathrooms
+✓ Pool
+✓ Borehole
+✓ Secure parking
+
+The match percentage should be used primarily for ranking, not necessarily shown to the user unless useful.
+
+---
+
+# 16. "Notify Me of Similar Properties"
+
+This is a major feature.
+
+On every property listing, add a prominent CTA:
+
+### 🔔 Notify Me of Similar Properties
+
+Example:
+
+User is viewing:
+
+**3 Bedroom House – Borrowdale**
+
+$1,100/month
+
+The user taps:
+
+**Notify Me of Similar Properties**
+
+QuickProp automatically creates a property alert using the property's parameters.
+
+For example:
+
+**Property type:** House
+**Location:** Borrowdale
+**Price:** $1,100
+**Bedrooms:** 3
+**Bathrooms:** 2
+
+Then show a confirmation screen:
+
+### Similar Property Alert Created
+
+> We'll notify you when similar properties become available.
+
+Allow the user to modify the criteria before saving.
+
+---
+
+# 17. Similar Property Tolerance
+
+The "similar properties" alert should NOT be an exact duplicate search.
+
+Create reasonable tolerance around the source property.
+
+For example:
+
+If source property:
+
+**$1,000/month**
+
+similar alert might initially search:
+
+**$900–$1,100**
+
+If source property:
+
+**3 bedrooms**
+
+similar properties could include:
+
+**3–4 bedrooms**
+
+If location is:
+
+**Borrowdale**
+
+prioritize Borrowdale but potentially include nearby areas if the user allows similar locations.
+
+However, do not make the tolerance excessive.
+
+The user should be able to edit the alert.
+
+Show:
+
+> **Your similar property alert**
+>
+> Price: $900–$1,100
+> Location: Borrowdale
+> Bedrooms: 3+
+> Property type: House
+
+---
+
+# 18. One-Tap Alert From Property Card
+
+Also add the functionality to property cards, not only the property detail page.
+
+For example:
+
+**🏠 3 Bedroom House – Borrowdale**
+
+$1,100/month
+
+[View Property]
+
+[🔔 Similar Properties]
+
+Clicking the second button creates the alert.
+
+If the user isn't logged in:
+
+Prompt:
+
+> **Create a QuickProp account to receive property alerts.**
+
+After login/signup, return the user to the property and complete the alert creation.
+
+---
+
+# 19. Notifications
+
+Example immediate notification:
+
+### 🔔 New property matching your search
+
+**3 Bedroom House – Borrowdale**
+
+$1,050/month
+
+3 bedrooms · 2 bathrooms · Pool · Borehole
+
+**92% match**
+
+[View Property]
+
+---
+
+Daily notification:
+
+### 🔔 4 new properties match your search
+
+**3 Bedroom Borrowdale Rental**
+
+1. 3 Bedroom House — $1,050
+2. 3 Bedroom Townhouse — $1,100
+3. 4 Bedroom House — $1,200
+4. 3 Bedroom Cluster — $950
+
+[View All]
+
+---
+
+# 20. Avoid Notification Spam
+
+A user must NOT receive repeated notifications for the same property.
+
+Create a notification history.
+
+If a property has already triggered an alert for that user, don't send it again unless the property has materially changed and the system determines that it should be treated as a new opportunity.
+
+Also prevent the same property from triggering multiple identical alerts unnecessarily.
+
+Example:
+
+If a user has:
+
+**"3 Bedroom Borrowdale"**
+
+and
+
+**"Borrowdale House"**
+
+and both match the same property, consolidate notifications where appropriate rather than sending two separate notifications.
+
+---
+
+# 21. Alert Management
+
+Inside:
+
+**Profile → Property Alerts**
+
+Users should be able to:
+
+* View alerts
+* Edit alerts
+* Pause alerts
+* Resume alerts
+* Delete alerts
+* Change notification frequency
+* Change notification channels
+
+Example:
+
+**3 Bedroom Borrowdale Rental**
+
+🟢 Active
+
+[Edit] [Pause] [Delete]
+
+---
+
+# 22. Alert Performance
+
+For each alert, optionally show simple statistics:
+
+**3 Bedroom Borrowdale Rental**
+
+Created: 1 Aug 2026
+
+Properties matched: 18
+
+Notifications sent: 12
+
+Properties viewed: 7
+
+This should be simple and can be expanded later.
+
+---
+
+# 23. Agent/Seller Benefit
+
+The alert system should also benefit property suppliers.
+
+When an agent or owner publishes a property, QuickProp should immediately check whether there are prospective buyers/renters looking for that type of property.
+
+This creates a powerful supply-demand connection:
+
+**New property listed**
+
+↓
+
+**QuickProp finds matching prospective buyers/renters**
+
+↓
+
+**They receive notification**
+
+This should happen automatically.
+
+Do not expose personal information about prospective buyers/renters to agents unless the user has explicitly made their contact/application information available.
+
+---
+
+# 24. Existing Saved Properties
+
+Integrate this feature with the existing saved/favourite property functionality.
+
+If a user repeatedly saves similar properties, consider showing:
+
+> **Looking for more properties like this?**
+>
+> 🔔 **Create an alert**
+
+Do NOT automatically create alerts without user consent.
+
+---
+
+# 25. Suggested Alert Creation
+
+When a user saves/favourites several properties with similar characteristics, optionally show:
+
+> **You're looking at several similar properties.**
+>
+> Want QuickProp to notify you when another one becomes available?
+>
+> **[Create Alert]**
+
+This should be an optional future enhancement and does not need to be part of the initial MVP unless easy to implement.
+
+---
+
+# 26. Database Structure
+
+Adapt to the existing QuickProp database.
+
+Create approximately:
+
+### property_alerts
+
+* id
+* user_id
+* name
+* transaction_type (sale/rent)
+* property_types
+* cities
+* suburbs
+* min_price
+* max_price
+* min_bedrooms
+* min_bathrooms
+* required_amenities
+* preferred_amenities
+* furnished_preference
+* parking_preference
+* pets_preference
+* notification_frequency
+* notification_channels
+* active
+* source_property_id (nullable)
+* created_at
+* updated_at
+
+### property_alert_notifications
+
+* id
+* alert_id
+* property_id
+* user_id
+* match_percentage
+* notification_status
+* notified_at
+* viewed_at
+* created_at
+
+Use the existing users, properties, locations and amenities tables where possible.
+
+Do NOT duplicate existing data structures.
+
+---
+
+# 27. Performance
+
+The system must be designed to scale.
+
+Do not run an expensive full database search against every alert synchronously every time a property is created.
+
+Use an appropriate background job/queue architecture if supported by the existing QuickProp stack.
+
+For MVP, a simple implementation is acceptable, but structure the matching service so it can later scale to:
+
+* Thousands of properties
+* Thousands of alerts
+* Multiple notifications per day
+
+---
+
+# 28. UX Principles
+
+The feature must be:
+
+* Very fast
+* Mobile-first
+* Simple
+* Visually clean
+* Easy to understand
+* Minimal typing
+* Primarily dropdowns, buttons and chips
+* Consistent with existing QuickProp UI
+
+The user should be able to create a basic alert in **under 60 seconds**.
+
+The fastest possible flow should be:
+
+**Rent → House → Borrowdale → $800–$1,200 → 3+ bedrooms → Create Alert**
+
+---
+
+# 29. Important: Do Not Overcomplicate the MVP
+
+Do NOT build:
+
+* AI property recommendations
+* Complex machine learning
+* Credit scoring
+* Automated affordability calculations
+* Complex geospatial algorithms
+* Predictive property recommendations
+* Complicated lead scoring
+
+The MVP is simply:
+
+### "Tell QuickProp what you want, and we'll tell you when it appears."
+
+And:
+
+### "See a property you like? Tap one button and we'll notify you about similar properties."
+
+---
+
+# 30. Future Architecture
+
+Structure the code so future features can be added:
+
+* AI-powered recommendations
+* "You may also like"
+* Price-drop alerts
+* Property status-change alerts
+* New properties in a saved suburb
+* Open-house alerts
+* Agent recommendations
+* WhatsApp conversational alerts
+* Buyer/renter demand matching
+* Automatic matching of new mandates to existing QuickProp users
+* "Property wanted" profiles visible to agents where users consent
+
+For now, implement only the core alert functionality.
+
+---
+
+# Final Implementation Requirement
+
+Before writing new code:
+
+1. Inspect the existing QuickProp codebase.
+2. Identify the existing user/profile system.
+3. Identify the existing property, property type, location and amenities structures.
+4. Identify the existing notification infrastructure.
+5. Reuse existing components and design patterns.
+6. Do not create duplicate authentication, user, property or location systems.
+7. Make the feature fully integrated into the existing QuickProp prospective buyer/renter experience.
+
+Build the feature end-to-end, including:
+
+**Frontend UI → database → alert creation → property matching → notification generation → notification history → alert management → "Notify Me of Similar Properties" button.**
+
+The result should be production-ready MVP functionality rather than a static UI mockup.

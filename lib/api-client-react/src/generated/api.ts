@@ -32,6 +32,7 @@ import type {
   AdminListingHealth,
   AdminPlatformCharts,
   AdminPlatformStats,
+  AdminRentalHistory,
   AgencyRelationship,
   AgencyRelationshipInput,
   AgentReviewInput,
@@ -119,11 +120,26 @@ import type {
   PublicProperty,
   PublicPropertyDetail,
   PublicPropertyList,
+  PublicRentalReference,
   PublicReviewInvitation,
   PublishImportInput,
   PublishImportResult,
+  ReferenceRequest,
+  ReferenceRequestInput,
+  RentalAgency,
+  RentalAgencyInput,
+  RentalAgencyUpdate,
+  RentalDispute,
+  RentalDisputeInput,
+  RentalDisputeUpdate,
+  RentalHistory,
+  RentalHistoryInput,
+  RentalProfile,
+  RentalReferenceInput,
+  RentalReferenceSubmission,
   ReviewInvitationRetryResult,
   SavedResult,
+  SearchRentalAgenciesParams,
   SearchResults,
   Seller,
   SellerInput,
@@ -136,6 +152,7 @@ import type {
   TimelineEntry,
   TimelineEntryInput,
   UpdateImportRecordInput,
+  UpdateRentalAgencyParams,
   User,
   UserInput,
   UserUpdate,
@@ -6066,6 +6083,978 @@ export function useGetMarketplaceStats<TData = Awaited<ReturnType<typeof getMark
 
 
 
+
+export const getGetRentalProfileUrl = () => {
+
+
+
+
+  return `/api/public/rental-profile`
+}
+
+/**
+ * @summary Get the signed-in buyer or renter's rental profile
+ */
+export const getRentalProfile = async ( options?: RequestInit): Promise<RentalProfile> => {
+
+  return customFetch<RentalProfile>(getGetRentalProfileUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetRentalProfileQueryKey = () => {
+    return [
+    `/api/public/rental-profile`
+    ] as const;
+    }
+
+
+export const getGetRentalProfileQueryOptions = <TData = Awaited<ReturnType<typeof getRentalProfile>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getRentalProfile>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetRentalProfileQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getRentalProfile>>> = ({ signal }) => getRentalProfile({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getRentalProfile>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetRentalProfileQueryResult = NonNullable<Awaited<ReturnType<typeof getRentalProfile>>>
+export type GetRentalProfileQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get the signed-in buyer or renter's rental profile
+ */
+
+export function useGetRentalProfile<TData = Awaited<ReturnType<typeof getRentalProfile>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getRentalProfile>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetRentalProfileQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateRentalHistoryUrl = () => {
+
+
+
+
+  return `/api/public/rental-history`
+}
+
+/**
+ * @summary Add a self-reported previous tenancy
+ */
+export const createRentalHistory = async (rentalHistoryInput: RentalHistoryInput, options?: RequestInit): Promise<RentalHistory> => {
+
+  return customFetch<RentalHistory>(getCreateRentalHistoryUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(rentalHistoryInput)
+  }
+);}
+
+
+
+
+
+export const getCreateRentalHistoryMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createRentalHistory>>, TError,{data: BodyType<RentalHistoryInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createRentalHistory>>, TError,{data: BodyType<RentalHistoryInput>}, TContext> => {
+
+const mutationKey = ['createRentalHistory'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createRentalHistory>>, {data: BodyType<RentalHistoryInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createRentalHistory(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateRentalHistoryMutationResult = NonNullable<Awaited<ReturnType<typeof createRentalHistory>>>
+    export type CreateRentalHistoryMutationBody = BodyType<RentalHistoryInput>
+    export type CreateRentalHistoryMutationError = ErrorType<void>
+
+    /**
+ * @summary Add a self-reported previous tenancy
+ */
+export const useCreateRentalHistory = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createRentalHistory>>, TError,{data: BodyType<RentalHistoryInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createRentalHistory>>,
+        TError,
+        {data: BodyType<RentalHistoryInput>},
+        TContext
+      > => {
+      return useMutation(getCreateRentalHistoryMutationOptions(options));
+    }
+
+export const getRequestRentalVerificationUrl = (id: number,) => {
+
+
+
+
+  return `/api/public/rental-history/${id}/request-verification`
+}
+
+/**
+ * @summary Request an independent reference for a tenancy
+ */
+export const requestRentalVerification = async (id: number,
+    referenceRequestInput: ReferenceRequestInput, options?: RequestInit): Promise<RentalHistory> => {
+
+  return customFetch<RentalHistory>(getRequestRentalVerificationUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(referenceRequestInput)
+  }
+);}
+
+
+
+
+
+export const getRequestRentalVerificationMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof requestRentalVerification>>, TError,{id: number;data: BodyType<ReferenceRequestInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof requestRentalVerification>>, TError,{id: number;data: BodyType<ReferenceRequestInput>}, TContext> => {
+
+const mutationKey = ['requestRentalVerification'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof requestRentalVerification>>, {id: number;data: BodyType<ReferenceRequestInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  requestRentalVerification(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RequestRentalVerificationMutationResult = NonNullable<Awaited<ReturnType<typeof requestRentalVerification>>>
+    export type RequestRentalVerificationMutationBody = BodyType<ReferenceRequestInput>
+    export type RequestRentalVerificationMutationError = ErrorType<void>
+
+    /**
+ * @summary Request an independent reference for a tenancy
+ */
+export const useRequestRentalVerification = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof requestRentalVerification>>, TError,{id: number;data: BodyType<ReferenceRequestInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof requestRentalVerification>>,
+        TError,
+        {id: number;data: BodyType<ReferenceRequestInput>},
+        TContext
+      > => {
+      return useMutation(getRequestRentalVerificationMutationOptions(options));
+    }
+
+export const getDisputeRentalReferenceUrl = (id: number,) => {
+
+
+
+
+  return `/api/public/rental-history/${id}/dispute`
+}
+
+/**
+ * @summary Dispute a verified rental reference
+ */
+export const disputeRentalReference = async (id: number,
+    rentalDisputeInput: RentalDisputeInput, options?: RequestInit): Promise<RentalDispute> => {
+
+  return customFetch<RentalDispute>(getDisputeRentalReferenceUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(rentalDisputeInput)
+  }
+);}
+
+
+
+
+
+export const getDisputeRentalReferenceMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof disputeRentalReference>>, TError,{id: number;data: BodyType<RentalDisputeInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof disputeRentalReference>>, TError,{id: number;data: BodyType<RentalDisputeInput>}, TContext> => {
+
+const mutationKey = ['disputeRentalReference'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof disputeRentalReference>>, {id: number;data: BodyType<RentalDisputeInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  disputeRentalReference(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DisputeRentalReferenceMutationResult = NonNullable<Awaited<ReturnType<typeof disputeRentalReference>>>
+    export type DisputeRentalReferenceMutationBody = BodyType<RentalDisputeInput>
+    export type DisputeRentalReferenceMutationError = ErrorType<void>
+
+    /**
+ * @summary Dispute a verified rental reference
+ */
+export const useDisputeRentalReference = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof disputeRentalReference>>, TError,{id: number;data: BodyType<RentalDisputeInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof disputeRentalReference>>,
+        TError,
+        {id: number;data: BodyType<RentalDisputeInput>},
+        TContext
+      > => {
+      return useMutation(getDisputeRentalReferenceMutationOptions(options));
+    }
+
+export const getSearchRentalAgenciesUrl = (params: SearchRentalAgenciesParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/public/agencies/search?${stringifiedParams}` : `/api/public/agencies/search`
+}
+
+/**
+ * @summary Search registered rental agencies
+ */
+export const searchRentalAgencies = async (params: SearchRentalAgenciesParams, options?: RequestInit): Promise<RentalAgency[]> => {
+
+  return customFetch<RentalAgency[]>(getSearchRentalAgenciesUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getSearchRentalAgenciesQueryKey = (params?: SearchRentalAgenciesParams,) => {
+    return [
+    `/api/public/agencies/search`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getSearchRentalAgenciesQueryOptions = <TData = Awaited<ReturnType<typeof searchRentalAgencies>>, TError = ErrorType<unknown>>(params: SearchRentalAgenciesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof searchRentalAgencies>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getSearchRentalAgenciesQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof searchRentalAgencies>>> = ({ signal }) => searchRentalAgencies(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof searchRentalAgencies>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type SearchRentalAgenciesQueryResult = NonNullable<Awaited<ReturnType<typeof searchRentalAgencies>>>
+export type SearchRentalAgenciesQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Search registered rental agencies
+ */
+
+export function useSearchRentalAgencies<TData = Awaited<ReturnType<typeof searchRentalAgencies>>, TError = ErrorType<unknown>>(
+ params: SearchRentalAgenciesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof searchRentalAgencies>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getSearchRentalAgenciesQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetPublicRentalReferenceUrl = (token: string,) => {
+
+
+
+
+  return `/api/public/rental-references/${token}`
+}
+
+/**
+ * @summary Open a secure rental reference request
+ */
+export const getPublicRentalReference = async (token: string, options?: RequestInit): Promise<PublicRentalReference> => {
+
+  return customFetch<PublicRentalReference>(getGetPublicRentalReferenceUrl(token),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPublicRentalReferenceQueryKey = (token: string,) => {
+    return [
+    `/api/public/rental-references/${token}`
+    ] as const;
+    }
+
+
+export const getGetPublicRentalReferenceQueryOptions = <TData = Awaited<ReturnType<typeof getPublicRentalReference>>, TError = ErrorType<void>>(token: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPublicRentalReference>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPublicRentalReferenceQueryKey(token);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPublicRentalReference>>> = ({ signal }) => getPublicRentalReference(token, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: token !== null && token !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPublicRentalReference>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetPublicRentalReferenceQueryResult = NonNullable<Awaited<ReturnType<typeof getPublicRentalReference>>>
+export type GetPublicRentalReferenceQueryError = ErrorType<void>
+
+
+/**
+ * @summary Open a secure rental reference request
+ */
+
+export function useGetPublicRentalReference<TData = Awaited<ReturnType<typeof getPublicRentalReference>>, TError = ErrorType<void>>(
+ token: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPublicRentalReference>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetPublicRentalReferenceQueryOptions(token,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getSubmitPublicRentalReferenceUrl = (token: string,) => {
+
+
+
+
+  return `/api/public/rental-references/${token}`
+}
+
+/**
+ * @summary Complete a secure rental reference request
+ */
+export const submitPublicRentalReference = async (token: string,
+    rentalReferenceInput: RentalReferenceInput, options?: RequestInit): Promise<RentalReferenceSubmission> => {
+
+  return customFetch<RentalReferenceSubmission>(getSubmitPublicRentalReferenceUrl(token),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(rentalReferenceInput)
+  }
+);}
+
+
+
+
+
+export const getSubmitPublicRentalReferenceMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof submitPublicRentalReference>>, TError,{token: string;data: BodyType<RentalReferenceInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof submitPublicRentalReference>>, TError,{token: string;data: BodyType<RentalReferenceInput>}, TContext> => {
+
+const mutationKey = ['submitPublicRentalReference'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof submitPublicRentalReference>>, {token: string;data: BodyType<RentalReferenceInput>}> = (props) => {
+          const {token,data} = props ?? {};
+
+          return  submitPublicRentalReference(token,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SubmitPublicRentalReferenceMutationResult = NonNullable<Awaited<ReturnType<typeof submitPublicRentalReference>>>
+    export type SubmitPublicRentalReferenceMutationBody = BodyType<RentalReferenceInput>
+    export type SubmitPublicRentalReferenceMutationError = ErrorType<void>
+
+    /**
+ * @summary Complete a secure rental reference request
+ */
+export const useSubmitPublicRentalReference = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof submitPublicRentalReference>>, TError,{token: string;data: BodyType<RentalReferenceInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof submitPublicRentalReference>>,
+        TError,
+        {token: string;data: BodyType<RentalReferenceInput>},
+        TContext
+      > => {
+      return useMutation(getSubmitPublicRentalReferenceMutationOptions(options));
+    }
+
+export const getListAdminRentalReferencesUrl = () => {
+
+
+
+
+  return `/api/admin/rental-references`
+}
+
+/**
+ * @summary Rental history and reference management queue
+ */
+export const listAdminRentalReferences = async ( options?: RequestInit): Promise<AdminRentalHistory[]> => {
+
+  return customFetch<AdminRentalHistory[]>(getListAdminRentalReferencesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListAdminRentalReferencesQueryKey = () => {
+    return [
+    `/api/admin/rental-references`
+    ] as const;
+    }
+
+
+export const getListAdminRentalReferencesQueryOptions = <TData = Awaited<ReturnType<typeof listAdminRentalReferences>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAdminRentalReferences>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListAdminRentalReferencesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listAdminRentalReferences>>> = ({ signal }) => listAdminRentalReferences({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listAdminRentalReferences>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListAdminRentalReferencesQueryResult = NonNullable<Awaited<ReturnType<typeof listAdminRentalReferences>>>
+export type ListAdminRentalReferencesQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Rental history and reference management queue
+ */
+
+export function useListAdminRentalReferences<TData = Awaited<ReturnType<typeof listAdminRentalReferences>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAdminRentalReferences>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListAdminRentalReferencesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getResendRentalReferenceUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/rental-reference-requests/${id}/resend`
+}
+
+/**
+ * @summary Resend an unanswered rental reference request
+ */
+export const resendRentalReference = async (id: number, options?: RequestInit): Promise<ReferenceRequest> => {
+
+  return customFetch<ReferenceRequest>(getResendRentalReferenceUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getResendRentalReferenceMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resendRentalReference>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof resendRentalReference>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['resendRentalReference'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof resendRentalReference>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  resendRentalReference(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ResendRentalReferenceMutationResult = NonNullable<Awaited<ReturnType<typeof resendRentalReference>>>
+
+    export type ResendRentalReferenceMutationError = ErrorType<void>
+
+    /**
+ * @summary Resend an unanswered rental reference request
+ */
+export const useResendRentalReference = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resendRentalReference>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof resendRentalReference>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getResendRentalReferenceMutationOptions(options));
+    }
+
+export const getListRentalAgenciesUrl = () => {
+
+
+
+
+  return `/api/admin/rental-agencies`
+}
+
+/**
+ * @summary List rental agencies awaiting verification
+ */
+export const listRentalAgencies = async ( options?: RequestInit): Promise<RentalAgency[]> => {
+
+  return customFetch<RentalAgency[]>(getListRentalAgenciesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListRentalAgenciesQueryKey = () => {
+    return [
+    `/api/admin/rental-agencies`
+    ] as const;
+    }
+
+
+export const getListRentalAgenciesQueryOptions = <TData = Awaited<ReturnType<typeof listRentalAgencies>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listRentalAgencies>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListRentalAgenciesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listRentalAgencies>>> = ({ signal }) => listRentalAgencies({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listRentalAgencies>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListRentalAgenciesQueryResult = NonNullable<Awaited<ReturnType<typeof listRentalAgencies>>>
+export type ListRentalAgenciesQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List rental agencies awaiting verification
+ */
+
+export function useListRentalAgencies<TData = Awaited<ReturnType<typeof listRentalAgencies>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listRentalAgencies>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListRentalAgenciesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateRentalAgencyUrl = () => {
+
+
+
+
+  return `/api/admin/rental-agencies`
+}
+
+/**
+ * @summary Add an agency for rental reference requests
+ */
+export const createRentalAgency = async (rentalAgencyInput: RentalAgencyInput, options?: RequestInit): Promise<RentalAgency> => {
+
+  return customFetch<RentalAgency>(getCreateRentalAgencyUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(rentalAgencyInput)
+  }
+);}
+
+
+
+
+
+export const getCreateRentalAgencyMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createRentalAgency>>, TError,{data: BodyType<RentalAgencyInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createRentalAgency>>, TError,{data: BodyType<RentalAgencyInput>}, TContext> => {
+
+const mutationKey = ['createRentalAgency'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createRentalAgency>>, {data: BodyType<RentalAgencyInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createRentalAgency(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateRentalAgencyMutationResult = NonNullable<Awaited<ReturnType<typeof createRentalAgency>>>
+    export type CreateRentalAgencyMutationBody = BodyType<RentalAgencyInput>
+    export type CreateRentalAgencyMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Add an agency for rental reference requests
+ */
+export const useCreateRentalAgency = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createRentalAgency>>, TError,{data: BodyType<RentalAgencyInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createRentalAgency>>,
+        TError,
+        {data: BodyType<RentalAgencyInput>},
+        TContext
+      > => {
+      return useMutation(getCreateRentalAgencyMutationOptions(options));
+    }
+
+export const getUpdateRentalAgencyUrl = (params: UpdateRentalAgencyParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/admin/rental-agencies?${stringifiedParams}` : `/api/admin/rental-agencies`
+}
+
+/**
+ * @summary Update an agency verification status
+ */
+export const updateRentalAgency = async (rentalAgencyUpdate: RentalAgencyUpdate,
+    params: UpdateRentalAgencyParams, options?: RequestInit): Promise<RentalAgency> => {
+
+  return customFetch<RentalAgency>(getUpdateRentalAgencyUrl(params),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(rentalAgencyUpdate)
+  }
+);}
+
+
+
+
+
+export const getUpdateRentalAgencyMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateRentalAgency>>, TError,{data: BodyType<RentalAgencyUpdate>;params: UpdateRentalAgencyParams}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateRentalAgency>>, TError,{data: BodyType<RentalAgencyUpdate>;params: UpdateRentalAgencyParams}, TContext> => {
+
+const mutationKey = ['updateRentalAgency'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateRentalAgency>>, {data: BodyType<RentalAgencyUpdate>;params: UpdateRentalAgencyParams}> = (props) => {
+          const {data,params} = props ?? {};
+
+          return  updateRentalAgency(data,params,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateRentalAgencyMutationResult = NonNullable<Awaited<ReturnType<typeof updateRentalAgency>>>
+    export type UpdateRentalAgencyMutationBody = BodyType<RentalAgencyUpdate>
+    export type UpdateRentalAgencyMutationError = ErrorType<void>
+
+    /**
+ * @summary Update an agency verification status
+ */
+export const useUpdateRentalAgency = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateRentalAgency>>, TError,{data: BodyType<RentalAgencyUpdate>;params: UpdateRentalAgencyParams}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateRentalAgency>>,
+        TError,
+        {data: BodyType<RentalAgencyUpdate>;params: UpdateRentalAgencyParams},
+        TContext
+      > => {
+      return useMutation(getUpdateRentalAgencyMutationOptions(options));
+    }
+
+export const getUpdateRentalDisputeUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/rental-disputes/${id}`
+}
+
+/**
+ * @summary Resolve or review a rental reference dispute
+ */
+export const updateRentalDispute = async (id: number,
+    rentalDisputeUpdate: RentalDisputeUpdate, options?: RequestInit): Promise<RentalDispute> => {
+
+  return customFetch<RentalDispute>(getUpdateRentalDisputeUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(rentalDisputeUpdate)
+  }
+);}
+
+
+
+
+
+export const getUpdateRentalDisputeMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateRentalDispute>>, TError,{id: number;data: BodyType<RentalDisputeUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateRentalDispute>>, TError,{id: number;data: BodyType<RentalDisputeUpdate>}, TContext> => {
+
+const mutationKey = ['updateRentalDispute'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateRentalDispute>>, {id: number;data: BodyType<RentalDisputeUpdate>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateRentalDispute(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateRentalDisputeMutationResult = NonNullable<Awaited<ReturnType<typeof updateRentalDispute>>>
+    export type UpdateRentalDisputeMutationBody = BodyType<RentalDisputeUpdate>
+    export type UpdateRentalDisputeMutationError = ErrorType<void>
+
+    /**
+ * @summary Resolve or review a rental reference dispute
+ */
+export const useUpdateRentalDispute = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateRentalDispute>>, TError,{id: number;data: BodyType<RentalDisputeUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateRentalDispute>>,
+        TError,
+        {id: number;data: BodyType<RentalDisputeUpdate>},
+        TContext
+      > => {
+      return useMutation(getUpdateRentalDisputeMutationOptions(options));
+    }
 
 export const getGetAdminPlatformStatsUrl = () => {
 

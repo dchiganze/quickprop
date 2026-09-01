@@ -1214,6 +1214,223 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/MarketplaceStats" }
+  /public/rental-profile:
+    get:
+      operationId: getRentalProfile
+      tags: [public]
+      summary: Get the signed-in buyer or renter's rental profile
+      responses:
+        "200":
+          description: Rental profile
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RentalProfile" }
+        "401": { description: Not logged in }
+  /public/rental-history:
+    post:
+      operationId: createRentalHistory
+      tags: [public]
+      summary: Add a self-reported previous tenancy
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RentalHistoryInput" }
+      responses:
+        "201":
+          description: Tenancy created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RentalHistory" }
+        "400": { description: Invalid tenancy }
+        "401": { description: Not logged in }
+  /public/rental-history/{id}/request-verification:
+    post:
+      operationId: requestRentalVerification
+      tags: [public]
+      summary: Request an independent reference for a tenancy
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ReferenceRequestInput" }
+      responses:
+        "200":
+          description: Reference request created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RentalHistory" }
+        "400": { description: Invalid request }
+        "401": { description: Not logged in }
+        "404": { description: Tenancy not found }
+        "409": { description: A request already exists }
+  /public/rental-history/{id}/dispute:
+    post:
+      operationId: disputeRentalReference
+      tags: [public]
+      summary: Dispute a verified rental reference
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RentalDisputeInput" }
+      responses:
+        "201":
+          description: Dispute created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RentalDispute" }
+        "400": { description: Invalid dispute }
+        "401": { description: Not logged in }
+        "404": { description: Tenancy not found }
+        "409": { description: An open dispute already exists }
+  /public/agencies/search:
+    get:
+      operationId: searchRentalAgencies
+      tags: [public]
+      summary: Search registered rental agencies
+      parameters:
+        - { name: q, in: query, required: true, schema: { type: string, minLength: 2 } }
+      responses:
+        "200":
+          description: Matching agencies
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/RentalAgency" }
+  /public/rental-references/{token}:
+    get:
+      operationId: getPublicRentalReference
+      tags: [public]
+      summary: Open a secure rental reference request
+      parameters:
+        - { name: token, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Reference request
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PublicRentalReference" }
+        "404": { description: Reference not found }
+        "410": { description: Reference expired or already completed }
+    post:
+      operationId: submitPublicRentalReference
+      tags: [public]
+      summary: Complete a secure rental reference request
+      parameters:
+        - { name: token, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RentalReferenceInput" }
+      responses:
+        "201":
+          description: Reference submitted
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RentalReferenceSubmission" }
+        "400": { description: Invalid reference }
+        "404": { description: Reference not found }
+        "410": { description: Reference expired or already completed }
+  /admin/rental-references:
+    get:
+      operationId: listAdminRentalReferences
+      tags: [admin-portal]
+      summary: Rental history and reference management queue
+      responses:
+        "200":
+          description: Rental reference records
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/AdminRentalHistory" }
+  /admin/rental-reference-requests/{id}/resend:
+    post:
+      operationId: resendRentalReference
+      tags: [admin-portal]
+      summary: Resend an unanswered rental reference request
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "200":
+          description: Reference request resent
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ReferenceRequest" }
+        "404": { description: Request not found }
+        "409": { description: Request cannot be resent }
+  /admin/rental-agencies:
+    get:
+      operationId: listRentalAgencies
+      tags: [admin-portal]
+      summary: List rental agencies awaiting verification
+      responses:
+        "200":
+          description: Rental agencies
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/RentalAgency" }
+    post:
+      operationId: createRentalAgency
+      tags: [admin-portal]
+      summary: Add an agency for rental reference requests
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RentalAgencyInput" }
+      responses:
+        "201":
+          description: Agency created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RentalAgency" }
+    patch:
+      operationId: updateRentalAgency
+      tags: [admin-portal]
+      summary: Update an agency verification status
+      parameters:
+        - { name: id, in: query, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RentalAgencyUpdate" }
+      responses:
+        "200":
+          description: Agency updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RentalAgency" }
+        "404": { description: Agency not found }
+  /admin/rental-disputes/{id}:
+    patch:
+      operationId: updateRentalDispute
+      tags: [admin-portal]
+      summary: Resolve or review a rental reference dispute
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RentalDisputeUpdate" }
+      responses:
+        "200":
+          description: Dispute updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RentalDispute" }
+        "404": { description: Dispute not found }
   /admin/platform-stats:
     get:
       operationId: getAdminPlatformStats
@@ -1669,6 +1886,195 @@ paths:
               schema: { $ref: "#/components/schemas/ImportAssistantResponse" }
 components:
   schemas:
+    RentalAgency:
+      type: object
+      required: [id, name, verificationStatus, status, createdAt, updatedAt]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        tradingName: { type: ["string", "null"] }
+        email: { type: ["string", "null"] }
+        phone: { type: ["string", "null"] }
+        website: { type: ["string", "null"] }
+        address: { type: ["string", "null"] }
+        verificationStatus: { type: string, enum: [pending, verified, rejected] }
+        status: { type: string, enum: [active, inactive] }
+        createdAt: { type: string }
+        updatedAt: { type: string }
+    RentalAgencyInput:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string, minLength: 2 }
+        tradingName: { type: string }
+        email: { type: string }
+        phone: { type: string }
+        website: { type: string }
+        address: { type: string }
+    RentalAgencyUpdate:
+      type: object
+      properties:
+        name: { type: string, minLength: 2 }
+        tradingName: { type: string }
+        email: { type: string }
+        phone: { type: string }
+        website: { type: string }
+        address: { type: string }
+        verificationStatus: { type: string, enum: [pending, verified, rejected] }
+        status: { type: string, enum: [active, inactive] }
+    RentalHistoryInput:
+      type: object
+      required: [propertyAddress, suburb, city, startDate, endDate, tenancyType, refereeType]
+      properties:
+        propertyId: { type: ["integer", "null"] }
+        propertyAddress: { type: string, minLength: 3 }
+        suburb: { type: string, minLength: 2 }
+        city: { type: string, minLength: 2 }
+        startDate: { type: string, format: date }
+        endDate: { type: string, format: date }
+        tenancyType: { type: string, enum: [private_landlord, agency] }
+        refereeType: { type: string, enum: [private_landlord, agency] }
+        refereeName: { type: string }
+        refereeEmail: { type: string }
+        refereePhone: { type: string }
+        agencyId: { type: ["integer", "null"] }
+    ReferenceRequestInput:
+      type: object
+      required: [refereeType]
+      properties:
+        refereeType: { type: string, enum: [private_landlord, agency] }
+        refereeName: { type: string }
+        refereeEmail: { type: string }
+        refereePhone: { type: string }
+        agencyId: { type: ["integer", "null"] }
+    RentalHistory:
+      type: object
+      required: [id, propertyId, propertyAddress, suburb, city, startDate, endDate, tenancyType, refereeType, refereeName, refereeEmail, refereePhone, agencyId, verificationStatus, verifiedAt, createdAt, updatedAt, reference, request, disputes]
+      properties:
+        id: { type: integer }
+        propertyId: { type: ["integer", "null"] }
+        propertyAddress: { type: string }
+        suburb: { type: string }
+        city: { type: string }
+        startDate: { type: string }
+        endDate: { type: string }
+        tenancyType: { type: string }
+        refereeType: { type: string }
+        refereeName: { type: ["string", "null"] }
+        refereeEmail: { type: ["string", "null"] }
+        refereePhone: { type: ["string", "null"] }
+        agencyId: { type: ["integer", "null"] }
+        agency: { allOf: [{ $ref: "#/components/schemas/RentalAgency" }], nullable: true }
+        verificationStatus: { type: string, enum: [verified, pending, self_reported, not_verified] }
+        verifiedAt: { type: ["string", "null"] }
+        createdAt: { type: string }
+        updatedAt: { type: string }
+        reference: { allOf: [{ $ref: "#/components/schemas/RentalReference" }], nullable: true }
+        request: { allOf: [{ $ref: "#/components/schemas/ReferenceRequest" }], nullable: true }
+        disputes:
+          type: array
+          items: { $ref: "#/components/schemas/RentalDispute" }
+    RentalProfile:
+      type: object
+      required: [verifiedCount, totalCount, tenancies]
+      properties:
+        verifiedCount: { type: integer }
+        totalCount: { type: integer }
+        tenancies:
+          type: array
+          items: { $ref: "#/components/schemas/RentalHistory" }
+    RentalReference:
+      type: object
+      required: [id, rentalHistoryId, verifiedTenancy, rentPaymentRating, propertyConditionRating, wouldRentAgain, submittedBy, submittedAt, disputeStatus, disputeReason]
+      properties:
+        id: { type: integer }
+        rentalHistoryId: { type: integer }
+        verifiedTenancy: { type: boolean }
+        rentPaymentRating: { type: ["string", "null"] }
+        propertyConditionRating: { type: ["string", "null"] }
+        wouldRentAgain: { type: ["boolean", "null"] }
+        submittedBy: { type: ["string", "null"] }
+        submittedAt: { type: ["string", "null"] }
+        disputeStatus: { type: string }
+        disputeReason: { type: ["string", "null"] }
+    ReferenceRequest:
+      type: object
+      required: [id, rentalHistoryId, recipientType, recipientEmail, recipientPhone, agencyId, status, sentAt, reminderCount, lastReminderAt, completedAt, expiresAt, lastError, createdAt, updatedAt]
+      properties:
+        id: { type: integer }
+        rentalHistoryId: { type: integer }
+        recipientType: { type: string }
+        recipientEmail: { type: ["string", "null"] }
+        recipientPhone: { type: ["string", "null"] }
+        agencyId: { type: ["integer", "null"] }
+        status: { type: string }
+        sentAt: { type: ["string", "null"] }
+        reminderCount: { type: integer }
+        lastReminderAt: { type: ["string", "null"] }
+        completedAt: { type: ["string", "null"] }
+        expiresAt: { type: string }
+        lastError: { type: ["string", "null"] }
+        createdAt: { type: string }
+        updatedAt: { type: string }
+    RentalReferenceInput:
+      type: object
+      required: [verifiedTenancy]
+      properties:
+        verifiedTenancy: { type: boolean }
+        rentPaymentRating: { type: string, enum: [always, usually, sometimes, rarely] }
+        propertyConditionRating: { type: string, enum: [excellent, good, average, poor] }
+        wouldRentAgain: { type: boolean }
+    RentalReferenceSubmission:
+      type: object
+      required: [success, status]
+      properties:
+        success: { type: boolean }
+        status: { type: string, enum: [verified, not_verified] }
+    RentalDisputeInput:
+      type: object
+      required: [reason]
+      properties:
+        reason: { type: string, minLength: 10, maxLength: 1000 }
+    RentalDispute:
+      type: object
+      required: [id, rentalHistoryId, reason, status, createdAt, updatedAt]
+      properties:
+        id: { type: integer }
+        rentalHistoryId: { type: integer }
+        reason: { type: string }
+        status: { type: string, enum: [open, under_review, resolved, dismissed] }
+        resolutionNote: { type: ["string", "null"] }
+        resolvedAt: { type: ["string", "null"] }
+        createdAt: { type: string }
+        updatedAt: { type: string }
+    PublicRentalReference:
+      type: object
+      required: [status, tenantName, propertyAddress, suburb, city, startDate, endDate, refereeName, agencyName, expiresAt]
+      properties:
+        status: { type: string, enum: [available] }
+        tenantName: { type: string }
+        propertyAddress: { type: string }
+        suburb: { type: string }
+        city: { type: string }
+        startDate: { type: string }
+        endDate: { type: string }
+        refereeName: { type: ["string", "null"] }
+        agencyName: { type: ["string", "null"] }
+        expiresAt: { type: string }
+    AdminRentalHistory:
+      allOf:
+        - $ref: "#/components/schemas/RentalHistory"
+        - type: object
+          required: [tenantName, tenantEmail]
+          properties:
+            tenantName: { type: string }
+            tenantEmail: { type: string }
+    RentalDisputeUpdate:
+      type: object
+      required: [status]
+      properties:
+        status: { type: string, enum: [open, under_review, resolved, dismissed] }
+        resolutionNote: { type: string }
     HealthStatus:
       type: object
       properties:
