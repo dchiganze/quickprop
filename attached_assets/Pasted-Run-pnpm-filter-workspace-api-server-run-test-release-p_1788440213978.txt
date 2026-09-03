@@ -1,0 +1,63 @@
+Run pnpm --filter @workspace/api-server run test:release
+  pnpm --filter @workspace/api-server run test:release
+  shell: /usr/bin/bash -e {0}
+  env:
+    TEST_DATABASE_URL: ***localhost:5432/quickprop_test
+    PRIVATE_OBJECT_DIR: /quickprop-release-test
+    AI_INTEGRATIONS_GEMINI_BASE_URL: http://127.0.0.1:1106
+    AI_INTEGRATIONS_GEMINI_API_KEY: quickprop-release-test-key
+    PNPM_HOME: /home/runner/setup-pnpm/node_modules/.bin
+
+> @workspace/api-server@0.0.0 test:release /home/runner/work/quickprop/quickprop/artifacts/api-server
+> RELEASE_VALIDATION=1 ../../scripts/node_modules/.bin/tsx --test src/lib/imports.test.ts
+
+✖ requires an explicit duplicate decision before publishing imported listings (1046.360531ms)
+✖ image imports are mocked, confidence-aware, and safe to retry after human decisions (5.523095ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 0
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1653.177034
+
+✖ failing tests:
+
+test at src/lib/imports.test.ts:1:550
+✖ requires an explicit duplicate decision before publishing imported listings (1046.360531ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'zod' imported from /home/runner/work/quickprop/quickprop/artifacts/api-server/src/routes/multi-agent.ts
+  Did you mean to import "zod/index.cjs"?
+      at Object.getPackageJSONURL (node:internal/modules/package_json_reader:301:9)
+      at packageResolve (node:internal/modules/esm/resolve:784:25)
+      at moduleResolve (node:internal/modules/esm/resolve:873:18)
+      at defaultResolve (node:internal/modules/esm/resolve:1006:11)
+      at #cachedDefaultResolve (node:internal/modules/esm/loader:705:20)
+      at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:725:38)
+      at nextStep (node:internal/modules/customization_hooks:189:26)
+      at resolveBaseSync (file:///home/runner/work/quickprop/quickprop/node_modules/.pnpm/tsx@4.23.0/node_modules/tsx/dist/register-D5KIhaFJ.mjs:2:9115)
+      at resolveDirectorySync (file:///home/runner/work/quickprop/quickprop/node_modules/.pnpm/tsx@4.23.0/node_modules/tsx/dist/register-D5KIhaFJ.mjs:2:10328)
+      at resolveTsPathsSync (file:///home/runner/work/quickprop/quickprop/node_modules/.pnpm/tsx@4.23.0/node_modules/tsx/dist/register-D5KIhaFJ.mjs:2:11560) {
+    code: 'ERR_MODULE_NOT_FOUND'
+  }
+
+test at src/lib/imports.test.ts:1:9971
+✖ image imports are mocked, confidence-aware, and safe to retry after human decisions (5.523095ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'zod' imported from /home/runner/work/quickprop/quickprop/artifacts/api-server/src/routes/multi-agent.ts
+  Did you mean to import "zod/index.cjs"?
+      at Object.getPackageJSONURL (node:internal/modules/package_json_reader:301:9)
+      at packageResolve (node:internal/modules/esm/resolve:784:25)
+      at moduleResolve (node:internal/modules/esm/resolve:873:18)
+      at defaultResolve (node:internal/modules/esm/resolve:1006:11)
+      at #cachedDefaultResolve (node:internal/modules/esm/loader:705:20)
+      at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:725:38)
+      at nextStep (node:internal/modules/customization_hooks:189:26)
+      at resolveBaseSync (file:///home/runner/work/quickprop/quickprop/node_modules/.pnpm/tsx@4.23.0/node_modules/tsx/dist/register-D5KIhaFJ.mjs:2:9115)
+      at resolveDirectorySync (file:///home/runner/work/quickprop/quickprop/node_modules/.pnpm/tsx@4.23.0/node_modules/tsx/dist/register-D5KIhaFJ.mjs:2:10328)
+      at resolveTsPathsSync (file:///home/runner/work/quickprop/quickprop/node_modules/.pnpm/tsx@4.23.0/node_modules/tsx/dist/register-D5KIhaFJ.mjs:2:11560) {
+    code: 'ERR_MODULE_NOT_FOUND'
+  }
+/home/runner/work/quickprop/quickprop/artifacts/api-server:
+ ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @workspace/api-server@0.0.0 test:release: `RELEASE_VALIDATION=1 ../../scripts/node_modules/.bin/tsx --test src/lib/imports.test.ts`
+Exit status 1
+Error: Process completed with exit code 1.
