@@ -118,9 +118,20 @@ jobs:
       - name: Locate AAB
         id: aab
         run: |
-          AAB=$(find artifacts/mobile/android -name "*.aab" | head -1)
-          echo "path=$AAB" >> $GITHUB_OUTPUT
-          echo "Found AAB: $AAB"
+          set -euo pipefail
+          AAB="artifacts/mobile/android/app/build/outputs/bundle/release/app-release.aab"
+          if [ ! -f "$AAB" ]; then
+            echo "Expected final release bundle at $AAB, but it was not created."
+            find artifacts/mobile/android -type f -name "*.aab" -print
+            exit 1
+          fi
+          if ! jarsigner -verify "$AAB" >/tmp/jarsigner-verify.log 2>&1; then
+            cat /tmp/jarsigner-verify.log
+            echo "The final release bundle is not signed."
+            exit 1
+          fi
+          echo "path=$AAB" >> "$GITHUB_OUTPUT"
+          echo "Found signed AAB: $AAB"
 
       - name: Upload AAB artifact
         uses: actions/upload-artifact@v4
