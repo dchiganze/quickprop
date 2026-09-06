@@ -177,6 +177,25 @@ paths:
         - { name: id, in: path, required: true, schema: { type: integer } }
       responses:
         "204": { description: Deleted }
+  /properties/{id}/mark-sold:
+    post:
+      operationId: markPropertySold
+      tags: [properties]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/MarkPropertySoldInput" }
+      responses:
+        "200":
+          description: Property marked as sold
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Property" }
+        "400": { description: Sale price is missing or invalid }
+        "404": { description: Not found }
   /properties/{id}/price-history:
     get:
       operationId: getPropertyPriceHistory
@@ -2266,6 +2285,9 @@ components:
         status: { type: string, description: "draft | internal_only | public | under_offer | sold | rented | archived | withdrawn | coming_soon | private_listing" }
         pipelineStage: { type: string, description: "draft | awaiting_photos | ready | published | under_offer | sold | archived" }
         price: { type: number }
+        salePrice: { type: ["number", "null"], description: "Completed sale price; asking price remains in price." }
+        soldAt: { type: ["string", "null"] }
+        soldBy: { type: ["integer", "null"] }
         currency: { type: string }
         suburb: { type: string }
         city: { type: string }
@@ -2286,7 +2308,7 @@ components:
         agentId: { type: ["integer", "null"] }
         branchId: { type: ["integer", "null"] }
         sellerId: { type: ["integer", "null"] }
-        mandateType: { type: ["string", "null"], description: "open | sole | exclusive" }
+        mandateType: { type: ["string", "null"], description: "open | sole" }
         mandateStart: { type: ["string", "null"] }
         mandateExpiry: { type: ["string", "null"] }
         commissionPercent: { type: ["number", "null"] }
@@ -2325,6 +2347,7 @@ components:
         status: { type: string }
         pipelineStage: { type: string }
         price: { type: number }
+        salePrice: { type: number }
         currency: { type: string }
         suburb: { type: string }
         city: { type: string }
@@ -2362,6 +2385,7 @@ components:
         status: { type: string }
         pipelineStage: { type: string }
         price: { type: number }
+        salePrice: { type: number }
         currency: { type: string }
         suburb: { type: string }
         city: { type: string }
@@ -2389,6 +2413,11 @@ components:
         commissionPercent: { type: number }
         privateNotes: { type: string }
         collaborationEnabled: { type: boolean }
+    MarkPropertySoldInput:
+      type: object
+      required: [salePrice]
+      properties:
+        salePrice: { type: number, exclusiveMinimum: 0 }
     CollaborationRequestInput:
       type: object
       required: [propertyId]

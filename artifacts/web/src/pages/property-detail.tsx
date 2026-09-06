@@ -320,7 +320,7 @@ export default function PropertyDetail() {
                             <h3 className="font-bold text-gray-900">{offer.agencyName}</h3>
                             {offer.verificationStatus === 'verified' && <ShieldCheck className="h-4 w-4 text-emerald-600" aria-label="Verified availability" />}
                           </div>
-                          <p className="text-sm text-gray-500">{offer.agentName} · {offer.mandateType.replace('_', ' ')}</p>
+                          {offer.mandateType === 'sole' && <p className="text-sm text-gray-500">{offer.agentName} · Sole mandate</p>}
                           {offer.terms && <p className="text-sm text-gray-600 mt-1">{offer.terms}</p>}
                            {offer.assets?.[0]?.attributionName && (
                              <p className="mt-2 text-xs text-gray-500">Media: {offer.assets[0].attributionName}</p>

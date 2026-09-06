@@ -25,7 +25,7 @@ const STEP_LABELS = [
 ];
 
 const CURRENCIES = ['USD', 'ZAR', 'ZWL', 'GBP', 'EUR'];
-const MANDATE_TYPES: Array<'open' | 'sole' | 'exclusive'> = ['open', 'sole', 'exclusive'];
+const MANDATE_TYPES: Array<'open' | 'sole'> = ['open', 'sole'];
 
 interface FormData {
   photos: string[];
@@ -51,7 +51,7 @@ interface FormData {
   sellerPhone: string;
   sellerEmail: string;
   mandateExpiry: string;
-  mandateType: 'open' | 'sole' | 'exclusive';
+  mandateType: 'open' | 'sole';
   sellerNotes: string;
   collaborationEnabled: boolean;
 }
@@ -95,18 +95,26 @@ const ss = StyleSheet.create({
   stepVal: { fontSize: 20, fontWeight: '800', minWidth: 28, textAlign: 'center' },
 });
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function normalizeMandateType(value: unknown): 'open' | 'sole' {
+  // Older records may still contain the removed exclusive value. Treat it as
+  // sole rather than allowing an unsupported value into a new listing.
+  return value === 'open' ? 'open' : 'sole';
+}
+
+function Field({ label, error, children }: { label: string; error?: boolean; children: React.ReactNode }) {
   const colors = useColors();
   return (
     <View style={fStyles.field}>
-      <Text style={[fStyles.label, { color: colors.mutedForeground }]}>{label}</Text>
+      <Text style={[fStyles.label, { color: error ? colors.destructive : colors.mutedForeground }]}>{label}</Text>
       {children}
+      {error && <Text style={[fStyles.error, { color: colors.destructive }]}>Required</Text>}
     </View>
   );
 }
 const fStyles = StyleSheet.create({
   field: { gap: 8, marginBottom: 16 },
   label: { fontSize: 12, fontWeight: '700', letterSpacing: 0.4 },
+  error: { fontSize: 12, fontWeight: '600', marginTop: -4 },
 });
 
 function VideoThumbnailPreview({ uri, onRemove }: { uri: string; onRemove: () => void }) {
@@ -148,8 +156,12 @@ export default function NewListingScreen() {
   const [step, setStep] = useState(0);
   const [form, setForm] = useState<FormData>(defaultForm);
   const [saving, setSaving] = useState(false);
+  const [validationAttempted, setValidationAttempted] = useState(false);
 
-  const set = (key: keyof FormData, value: any) => setForm(f => ({ ...f, [key]: value }));
+  const set = (key: keyof FormData, value: any) => setForm(f => ({
+    ...f,
+    [key]: key === 'mandateType' ? normalizeMandateType(value) : value,
+  }));
 
   const toggleFeature = (feature: string) => {
     Haptics.selectionAsync();
@@ -223,10 +235,13 @@ export default function NewListingScreen() {
   };
 
   const handlePublish = async (status: 'published' | 'draft') => {
-    if (!form.address.trim() || !form.suburb.trim() || !form.price.trim() || Number(form.price) <= 0 || !form.type || form.photos.length === 0) {
-      Alert.alert('Required Fields', 'Add at least one photo, choose a listing type, then enter a street address, suburb, and a valid price.');
+    const missing = getMissingFields();
+    if (missing.length > 0) {
+      setValidationAttempted(true);
+      Alert.alert('Required Fields', `Complete: ${missing.join(', ')}.`);
       return;
     }
+    if (!form.type) return;
     setSaving(true);
     try {
       if (status === 'published' && apiOrigin && user?.id) {
@@ -261,7 +276,7 @@ export default function NewListingScreen() {
             await addMyAgencyToProperty(likelyMatch.id, {
               askingPrice: parseFloat(form.price),
               currency: form.currency,
-              mandateType: form.mandateType,
+              mandateType: normalizeMandateType(form.mandateType),
               terms: form.negotiable ? 'Negotiable' : undefined,
               description: form.description,
               contactName: user.name,
@@ -277,7 +292,7 @@ export default function NewListingScreen() {
       }
       const property = await addProperty({
       referenceNumber: form.referenceNumber,
-      type: form.type,
+       type: form.type,
       status,
       address: form.address,
       showAddress: form.showAddress,
@@ -302,7 +317,7 @@ export default function NewListingScreen() {
         phone: form.sellerPhone,
         email: form.sellerEmail,
         mandateExpiry: form.mandateExpiry,
-        mandateType: form.mandateType,
+        mandateType: normalizeMandateType(form.mandateType),
         notes: form.sellerNotes,
       },
         agentId: user?.id ?? 'agent-001',
@@ -322,12 +337,57 @@ export default function NewListingScreen() {
     }
   };
 
-  const canNext = () => {
-    if (step === 0) return form.photos.length > 0;
-    if (step === 2) return !!form.address.trim() && !!form.suburb.trim();
-    if (step === 3) return form.type === 'sale' || form.type === 'rent';
-    if (step === 4) return !!form.price.trim() && Number(form.price) > 0;
-    return true;
+  const getMissingFields = () => {
+    const missing: string[] = [];
+    if (form.photos.length === 0) missing.push('at least one photo');
+    if (!form.videoUri) missing.push('property video');
+    if (!form.address.trim()) missing.push('street address');
+    if (!form.suburb.trim()) missing.push('suburb');
+    if (!form.type) missing.push('listing type');
+    if (!form.price.trim() || Number(form.price) <= 0) missing.push('valid price');
+    if (form.bedrooms < 0) missing.push('bedrooms');
+    if (form.bathrooms < 0) missing.push('bathrooms');
+    if (form.garages < 0) missing.push('garages');
+    if (!form.landSize.trim() || Number(form.landSize) <= 0) missing.push('land size');
+    if (!form.floorArea.trim() || Number(form.floorArea) <= 0) missing.push('floor area');
+    if (!form.referenceNumber.trim()) missing.push('reference number');
+    if (form.features.length === 0) missing.push('at least one feature');
+    if (!form.description.trim()) missing.push('description');
+    if (!form.sellerName.trim()) missing.push('seller name');
+    if (!form.sellerPhone.trim()) missing.push('seller phone');
+    if (!form.sellerEmail.trim()) missing.push('seller email');
+    if (!form.mandateExpiry.trim()) missing.push('mandate expiry');
+    if (!form.sellerNotes.trim()) missing.push('internal notes');
+    return missing;
+  };
+
+  const getStepMissingFields = (stepNumber: number) => {
+    const missing = getMissingFields();
+    const byStep: Record<number, string[]> = {
+      0: ['at least one photo'],
+      1: ['property video'],
+      2: ['street address', 'suburb'],
+      3: ['listing type'],
+      4: ['valid price', 'bedrooms', 'bathrooms', 'garages', 'land size', 'floor area', 'reference number'],
+      5: ['at least one feature'],
+      6: ['description'],
+      7: ['seller name', 'seller phone', 'seller email', 'mandate expiry', 'internal notes'],
+      8: [],
+      9: missing,
+    };
+    return (byStep[stepNumber] ?? []).filter(field => missing.includes(field));
+  };
+
+  const canNext = () => getStepMissingFields(step).length === 0;
+  const fieldError = (field: string) => validationAttempted && getStepMissingFields(step).includes(field);
+  const handleNext = () => {
+    if (!canNext()) {
+      setValidationAttempted(true);
+      Alert.alert('Required Fields', `Complete: ${getStepMissingFields(step).join(', ')}.`);
+      return;
+    }
+    Haptics.selectionAsync();
+    setStep(s => s + 1);
   };
 
   const inputStyle = [styles.input, { color: colors.foreground, backgroundColor: colors.input, borderColor: colors.border }];
@@ -373,7 +433,7 @@ export default function NewListingScreen() {
               </ScrollView>
             </View>
           ) : (
-            <View style={[styles.photoEmpty, { backgroundColor: colors.muted, borderColor: colors.border }]}>
+            <View style={[styles.photoEmpty, { backgroundColor: colors.muted, borderColor: fieldError('at least one photo') ? colors.destructive : colors.border }]}>
               <Ionicons name="images-outline" size={36} color={colors.mutedForeground} />
               <Text style={[styles.photoEmptyText, { color: colors.mutedForeground }]}>No photos yet</Text>
             </View>
@@ -384,7 +444,7 @@ export default function NewListingScreen() {
       case 1: return ( // Video
         <View style={styles.stepContent}>
           <Text style={[styles.stepHeading, { color: colors.foreground }]}>Property Video</Text>
-          <Text style={[styles.stepSub, { color: colors.mutedForeground }]}>Optional — max 60 seconds. Compresses automatically.</Text>
+          <Text style={[styles.stepSub, { color: colors.mutedForeground }]}>Add a property video (max 60 seconds). Compresses automatically.</Text>
           {form.videoUri ? (
             <VideoThumbnailPreview uri={form.videoUri} onRemove={() => set('videoUri', '')} />
           ) : (
@@ -407,7 +467,7 @@ export default function NewListingScreen() {
           )}
           <View style={[styles.skipInfo, { backgroundColor: colors.secondary, borderColor: colors.border }]}>
             <Ionicons name="information-circle-outline" size={16} color={colors.primary} />
-            <Text style={[styles.skipInfoText, { color: colors.mutedForeground }]}>This step is optional. Tap Next to continue.</Text>
+             <Text style={[styles.skipInfoText, { color: colors.mutedForeground }]}>A property video is required to continue.</Text>
           </View>
         </View>
       );
@@ -416,11 +476,11 @@ export default function NewListingScreen() {
         <View style={styles.stepContent}>
           <Text style={[styles.stepHeading, { color: colors.foreground }]}>Property Location</Text>
           <Text style={[styles.stepSub, { color: colors.mutedForeground }]}>Exact coordinates are private. Public listing shows approximate location.</Text>
-          <Field label="STREET ADDRESS *">
-            <TextInput style={inputStyle} value={form.address} onChangeText={v => set('address', v)} placeholder="14 Acacia Avenue" placeholderTextColor={colors.mutedForeground} />
+          <Field label="STREET ADDRESS *" error={fieldError('street address')}>
+            <TextInput style={[inputStyle, fieldError('street address') && { borderColor: colors.destructive }]} value={form.address} onChangeText={v => set('address', v)} placeholder="14 Acacia Avenue" placeholderTextColor={colors.mutedForeground} />
           </Field>
-          <Field label="SUBURB *">
-            <TextInput style={inputStyle} value={form.suburb} onChangeText={v => set('suburb', v)} placeholder="Borrowdale" placeholderTextColor={colors.mutedForeground} />
+          <Field label="SUBURB *" error={fieldError('suburb')}>
+            <TextInput style={[inputStyle, fieldError('suburb') && { borderColor: colors.destructive }]} value={form.suburb} onChangeText={v => set('suburb', v)} placeholder="Borrowdale" placeholderTextColor={colors.mutedForeground} />
           </Field>
           <TouchableOpacity style={[styles.gpsBtn, { backgroundColor: colors.accent + '15', borderColor: colors.accent }]}>
             <Ionicons name="navigate" size={18} color={colors.accent} />
@@ -454,7 +514,7 @@ export default function NewListingScreen() {
           <Text style={[styles.stepSub, { color: colors.mutedForeground }]}>
             Choose whether this property is being offered for sale or rent.
           </Text>
-          <View style={styles.listingTypeGrid}>
+          <View style={[styles.listingTypeGrid, fieldError('listing type') && { borderWidth: 1, borderColor: colors.destructive, borderRadius: 16, padding: 8 }]}>
             {([
               { value: 'sale' as const, title: 'For Sale', subtitle: 'A property being sold to a buyer', icon: 'home-outline' as const },
               { value: 'rent' as const, title: 'For Rent', subtitle: 'A property available to let', icon: 'key-outline' as const },
@@ -511,7 +571,7 @@ export default function NewListingScreen() {
               <Text style={[styles.selectedTypeHint, { color: colors.mutedForeground }]}>Selected on the previous step</Text>
             </View>
           </Field>
-          <Field label="PRICE *">
+          <Field label="PRICE *" error={fieldError('valid price')}>
             <View style={styles.priceRow}>
               <TouchableOpacity
                 style={[styles.currencyBtn, { backgroundColor: colors.secondary, borderColor: colors.border }]}
@@ -522,7 +582,7 @@ export default function NewListingScreen() {
                 <Ionicons name="chevron-down" size={14} color={colors.mutedForeground} />
               </TouchableOpacity>
               <TextInput
-                style={[inputStyle, { flex: 1 }]}
+                style={[inputStyle, { flex: 1 }, fieldError('valid price') && { borderColor: colors.destructive }]}
                 value={form.price}
                 onChangeText={v => set('price', v)}
                 placeholder="420000"
@@ -542,24 +602,24 @@ export default function NewListingScreen() {
               />
             </View>
           </Field>
-          <Field label="BEDROOMS">
+          <Field label="BEDROOMS *" error={fieldError('bedrooms')}>
             <Stepper value={form.bedrooms} onChange={v => set('bedrooms', v)} />
           </Field>
-          <Field label="BATHROOMS">
+          <Field label="BATHROOMS *" error={fieldError('bathrooms')}>
             <Stepper value={form.bathrooms} onChange={v => set('bathrooms', v)} />
           </Field>
-          <Field label="GARAGES">
+          <Field label="GARAGES *" error={fieldError('garages')}>
             <Stepper value={form.garages} onChange={v => set('garages', v)} />
           </Field>
           <View style={styles.twoCol}>
             <View style={styles.halfField}>
-              <Field label="LAND SIZE (m²)">
-                <TextInput style={inputStyle} value={form.landSize} onChangeText={v => set('landSize', v)} placeholder="4200" placeholderTextColor={colors.mutedForeground} keyboardType="numeric" />
+                <Field label="LAND SIZE (m²) *" error={fieldError('land size')}>
+                <TextInput style={[inputStyle, fieldError('land size') && { borderColor: colors.destructive }]} value={form.landSize} onChangeText={v => set('landSize', v)} placeholder="4200" placeholderTextColor={colors.mutedForeground} keyboardType="numeric" />
               </Field>
             </View>
             <View style={styles.halfField}>
-              <Field label="FLOOR AREA (m²)">
-                <TextInput style={inputStyle} value={form.floorArea} onChangeText={v => set('floorArea', v)} placeholder="380" placeholderTextColor={colors.mutedForeground} keyboardType="numeric" />
+                <Field label="FLOOR AREA (m²) *" error={fieldError('floor area')}>
+                <TextInput style={[inputStyle, fieldError('floor area') && { borderColor: colors.destructive }]} value={form.floorArea} onChangeText={v => set('floorArea', v)} placeholder="380" placeholderTextColor={colors.mutedForeground} keyboardType="numeric" />
               </Field>
             </View>
           </View>
@@ -575,8 +635,8 @@ export default function NewListingScreen() {
               </Field>
             </View>
           </View>
-          <Field label="REFERENCE NUMBER">
-            <TextInput style={inputStyle} value={form.referenceNumber} onChangeText={v => set('referenceNumber', v)} placeholderTextColor={colors.mutedForeground} />
+          <Field label="REFERENCE NUMBER *" error={fieldError('reference number')}>
+            <TextInput style={[inputStyle, fieldError('reference number') && { borderColor: colors.destructive }]} value={form.referenceNumber} onChangeText={v => set('referenceNumber', v)} placeholderTextColor={colors.mutedForeground} />
           </Field>
         </ScrollView>
       );
@@ -584,7 +644,7 @@ export default function NewListingScreen() {
       case 5: return ( // Features
         <View style={styles.stepContent}>
           <Text style={[styles.stepHeading, { color: colors.foreground }]}>Property Features</Text>
-          <Text style={[styles.stepSub, { color: colors.mutedForeground }]}>Select all features this property has. {form.features.length} selected.</Text>
+          <Text style={[styles.stepSub, { color: fieldError('at least one feature') ? colors.destructive : colors.mutedForeground }]}>Select all features this property has. At least one is required. {form.features.length} selected.</Text>
           <ScrollView showsVerticalScrollIndicator={false}>
             <View style={styles.chipsWrap}>
               {PROPERTY_FEATURES.map(f => (
@@ -598,9 +658,9 @@ export default function NewListingScreen() {
       case 6: return ( // Description
         <View style={styles.stepContent}>
           <Text style={[styles.stepHeading, { color: colors.foreground }]}>Description</Text>
-          <Text style={[styles.stepSub, { color: colors.mutedForeground }]}>Write a compelling description. Use AI tools to refine.</Text>
+          <Text style={[styles.stepSub, { color: colors.mutedForeground }]}>Write a compelling description of the property.</Text>
           <TextInput
-            style={[textAreaStyle, { minHeight: 150 }]}
+            style={[textAreaStyle, { minHeight: 150 }, fieldError('description') && { borderColor: colors.destructive }]}
             value={form.description}
             onChangeText={v => set('description', v)}
             placeholder="Describe the property — location, key features, lifestyle appeal..."
@@ -608,23 +668,6 @@ export default function NewListingScreen() {
             multiline
             textAlignVertical="top"
           />
-          <Text style={[styles.aiLabel, { color: colors.mutedForeground }]}>AI TONE TOOLS</Text>
-          <View style={styles.aiButtons}>
-            {['Improve Writing', 'Shorten', 'Luxury Tone', 'Investment Tone', 'Professional'].map(tool => (
-              <TouchableOpacity
-                key={tool}
-                style={[styles.aiBtn, { backgroundColor: colors.secondary, borderColor: colors.border }]}
-                onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
-              >
-                <Ionicons name="sparkles" size={13} color={colors.primary} />
-                <Text style={[styles.aiBtnText, { color: colors.primary }]}>{tool}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-          <View style={[styles.aiDisclaimer, { backgroundColor: colors.muted }]}>
-            <Ionicons name="information-circle-outline" size={14} color={colors.mutedForeground} />
-            <Text style={[styles.aiDisclaimerText, { color: colors.mutedForeground }]}>AI will improve your writing but will never invent facts.</Text>
-          </View>
         </View>
       );
 
@@ -635,11 +678,11 @@ export default function NewListingScreen() {
             <Ionicons name="lock-closed-outline" size={14} color={colors.primary} />
             <Text style={[styles.privateNoteText, { color: colors.mutedForeground }]}>This information is private and never visible to the public.</Text>
           </View>
-          <Field label="SELLER NAME"><TextInput style={inputStyle} value={form.sellerName} onChangeText={v => set('sellerName', v)} placeholder="Robert Chikwanda" placeholderTextColor={colors.mutedForeground} /></Field>
-          <Field label="PHONE"><TextInput style={inputStyle} value={form.sellerPhone} onChangeText={v => set('sellerPhone', v)} placeholder="+263 77 123 4567" placeholderTextColor={colors.mutedForeground} keyboardType="phone-pad" /></Field>
-          <Field label="EMAIL"><TextInput style={inputStyle} value={form.sellerEmail} onChangeText={v => set('sellerEmail', v)} placeholder="seller@email.com" placeholderTextColor={colors.mutedForeground} keyboardType="email-address" autoCapitalize="none" /></Field>
-          <Field label="MANDATE EXPIRY">
-            <TextInput style={inputStyle} value={form.mandateExpiry} onChangeText={v => set('mandateExpiry', v)} placeholder="2025-03-31" placeholderTextColor={colors.mutedForeground} />
+          <Field label="SELLER NAME *" error={fieldError('seller name')}><TextInput style={[inputStyle, fieldError('seller name') && { borderColor: colors.destructive }]} value={form.sellerName} onChangeText={v => set('sellerName', v)} placeholder="Robert Chikwanda" placeholderTextColor={colors.mutedForeground} /></Field>
+          <Field label="PHONE *" error={fieldError('seller phone')}><TextInput style={[inputStyle, fieldError('seller phone') && { borderColor: colors.destructive }]} value={form.sellerPhone} onChangeText={v => set('sellerPhone', v)} placeholder="+263 77 123 4567" placeholderTextColor={colors.mutedForeground} keyboardType="phone-pad" /></Field>
+          <Field label="EMAIL *" error={fieldError('seller email')}><TextInput style={[inputStyle, fieldError('seller email') && { borderColor: colors.destructive }]} value={form.sellerEmail} onChangeText={v => set('sellerEmail', v)} placeholder="seller@email.com" placeholderTextColor={colors.mutedForeground} keyboardType="email-address" autoCapitalize="none" /></Field>
+          <Field label="MANDATE EXPIRY *" error={fieldError('mandate expiry')}>
+            <TextInput style={[inputStyle, fieldError('mandate expiry') && { borderColor: colors.destructive }]} value={form.mandateExpiry} onChangeText={v => set('mandateExpiry', v)} placeholder="2025-03-31" placeholderTextColor={colors.mutedForeground} />
           </Field>
           <Field label="MANDATE TYPE">
             <View style={styles.typeGrid}>
@@ -654,8 +697,8 @@ export default function NewListingScreen() {
               ))}
             </View>
           </Field>
-          <Field label="INTERNAL NOTES">
-            <TextInput style={[textAreaStyle, { minHeight: 80 }]} value={form.sellerNotes} onChangeText={v => set('sellerNotes', v)} placeholder="Seller motivation, negotiation notes, access instructions..." placeholderTextColor={colors.mutedForeground} multiline textAlignVertical="top" />
+          <Field label="INTERNAL NOTES *" error={fieldError('internal notes')}>
+            <TextInput style={[textAreaStyle, { minHeight: 80 }, fieldError('internal notes') && { borderColor: colors.destructive }]} value={form.sellerNotes} onChangeText={v => set('sellerNotes', v)} placeholder="Seller motivation, negotiation notes, access instructions..." placeholderTextColor={colors.mutedForeground} multiline textAlignVertical="top" />
           </Field>
         </ScrollView>
       );
@@ -727,7 +770,7 @@ export default function NewListingScreen() {
                { label: 'Collaboration', value: form.collaborationEnabled ? 'Open to agent requests' : 'Private to your agency' },
               { label: 'Features', value: form.features.length > 0 ? `${form.features.length} selected` : 'None' },
               { label: 'Seller', value: form.sellerName || 'Not entered' },
-              { label: 'Mandate', value: `${form.mandateType} · ${form.mandateExpiry}` },
+               { label: 'Mandate', value: `${normalizeMandateType(form.mandateType)} · ${form.mandateExpiry}` },
             ].map(({ label, value }, i, arr) => (
               <View key={label} style={[styles.reviewRow, i < arr.length - 1 && { borderBottomWidth: 1, borderBottomColor: colors.border }]}>
                 <Text style={[styles.reviewLabel, { color: colors.mutedForeground }]}>{label}</Text>
@@ -809,10 +852,10 @@ export default function NewListingScreen() {
         {step < TOTAL_STEPS - 1 && (
           <TouchableOpacity
             style={[styles.nextBtn, { backgroundColor: canNext() ? colors.primary : colors.muted, flex: step > 0 ? 1 : undefined, width: step === 0 ? '100%' : undefined }]}
-            onPress={() => { if (canNext()) { Haptics.selectionAsync(); setStep(s => s + 1); } }}
+             onPress={handleNext}
           >
             <Text style={[styles.nextBtnText, { color: canNext() ? '#FFF' : colors.mutedForeground }]}>
-              {step === 1 ? (form.videoUri ? 'Next' : 'Skip') : 'Continue'}
+               Continue
             </Text>
             <Ionicons name="arrow-forward" size={18} color={canNext() ? '#FFF' : colors.mutedForeground} />
           </TouchableOpacity>
@@ -883,12 +926,6 @@ const styles = StyleSheet.create({
   twoCol: { flexDirection: 'row', gap: 12 },
   halfField: { flex: 1 },
   chipsWrap: { flexDirection: 'row', flexWrap: 'wrap', paddingBottom: 20 },
-  aiLabel: { fontSize: 11, fontWeight: '700', letterSpacing: 0.8, marginTop: 4, marginBottom: 8 },
-  aiButtons: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  aiBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 13, paddingVertical: 8, borderRadius: 20, borderWidth: 1 },
-  aiBtnText: { fontSize: 13, fontWeight: '600' },
-  aiDisclaimer: { flexDirection: 'row', alignItems: 'center', gap: 6, padding: 10, borderRadius: 8, marginTop: 4 },
-  aiDisclaimerText: { fontSize: 12, flex: 1 },
   privateNote: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 12, borderRadius: 10, borderWidth: 1, marginBottom: 16 },
   privateNoteText: { fontSize: 13, flex: 1 },
   reviewCard: { borderRadius: 16, borderWidth: 1, overflow: 'hidden', marginBottom: 20 },

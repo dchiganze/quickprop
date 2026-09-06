@@ -19,6 +19,9 @@ export interface Property {
   showAddress?: boolean;
   suburb: string;
   price: number;
+  /** Original asking price stays in price; this is populated only after a sale. */
+  salePrice?: number;
+  soldAt?: string | null;
   currency: string;
   negotiable: boolean;
   bedrooms?: number;
@@ -43,7 +46,7 @@ export interface Property {
     phone: string;
     email: string;
     mandateExpiry: string;
-    mandateType: 'open' | 'sole' | 'exclusive';
+    mandateType: 'open' | 'sole';
     notes: string;
   };
   agentId: string;

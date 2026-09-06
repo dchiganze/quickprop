@@ -16,8 +16,9 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 
@@ -41,6 +42,8 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
   const updateHealth = useUpdatePropertyHealth();
 
   const [shareChannel, setShareChannel] = useState('whatsapp');
+  const [saleDialogOpen, setSaleDialogOpen] = useState(false);
+  const [salePrice, setSalePrice] = useState('');
 
   if (isLoading) {
     return <div className="p-8 space-y-6 max-w-[1200px] mx-auto">
@@ -54,10 +57,32 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
   }
 
   const handleStatusChange = (newStatus: string) => {
+    if (newStatus === 'sold') {
+      setSalePrice('');
+      setSaleDialogOpen(true);
+      return;
+    }
     updateProperty.mutate({ id: propertyId, data: { status: newStatus } }, {
       onSuccess: () => {
         toast({ title: 'Status updated', description: `Property status is now ${newStatus.replace('_', ' ')}` });
       }
+    });
+  };
+
+  const handleConfirmSale = () => {
+    const parsedSalePrice = Number(salePrice);
+    if (!Number.isFinite(parsedSalePrice) || parsedSalePrice <= 0) {
+      toast({ title: 'Sale price required', description: 'Enter a positive final sale price.', variant: 'destructive' });
+      return;
+    }
+    updateProperty.mutate({ id: propertyId, data: { status: 'sold', salePrice: parsedSalePrice } }, {
+      onSuccess: () => {
+        setSaleDialogOpen(false);
+        toast({ title: 'Sale recorded', description: `Final sale price recorded as ${property.currency} ${parsedSalePrice.toLocaleString()}.` });
+      },
+      onError: (error) => {
+        toast({ title: 'Could not record sale', description: error.message, variant: 'destructive' });
+      },
     });
   };
 
@@ -83,6 +108,35 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
 
   return (
     <div className="p-8 max-w-[1600px] mx-auto space-y-6">
+      <Dialog open={saleDialogOpen} onOpenChange={setSaleDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Record completed sale</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              The asking price remains {property.currency} {property.price.toLocaleString()}. Enter the final price this property sold for.
+            </p>
+            <div className="space-y-2">
+              <label htmlFor="sale-price" className="text-sm font-medium">Final sale price ({property.currency})</label>
+              <Input
+                id="sale-price"
+                type="number"
+                min="0.01"
+                step="0.01"
+                value={salePrice}
+                onChange={(event) => setSalePrice(event.target.value)}
+                placeholder="Enter sale price"
+                autoFocus
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSaleDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleConfirmSale} disabled={updateProperty.isPending}>Record sale</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
@@ -207,7 +261,7 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
                         <div className="flex justify-between gap-3">
                           <div>
                             <p className="font-semibold text-sm">{offer.agencyName}</p>
-                            <p className="text-xs text-muted-foreground">{offer.agentName} · {offer.mandateType.replace('_', ' ')}</p>
+                            {offer.mandateType === 'sole' && <p className="text-xs text-muted-foreground">{offer.agentName} · Sole mandate</p>}
                           </div>
                           <p className="font-bold text-sm">{offer.currency} {offer.askingPrice.toLocaleString()}</p>
                         </div>
@@ -433,7 +487,7 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
             <CardHeader className="bg-muted/30 border-b border-border pb-4">
               <CardTitle className="text-sm font-bold uppercase tracking-wider text-muted-foreground flex justify-between items-center">
                 <span>Seller Info</span>
-                {property.mandateType && <Badge variant="secondary" className="text-[10px] capitalize">{property.mandateType} Mandate</Badge>}
+                {property.mandateType === 'sole' && <Badge variant="secondary" className="text-[10px]">Sole Mandate</Badge>}
               </CardTitle>
             </CardHeader>
             <CardContent className="p-4">

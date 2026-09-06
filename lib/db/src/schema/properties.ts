@@ -22,6 +22,11 @@ export const propertiesTable = pgTable("properties", {
   status: text("status").notNull().default("draft"),
   pipelineStage: text("pipeline_stage").notNull().default("draft"),
   price: doublePrecision("price").notNull(),
+  // Asking price remains in `price`; these fields capture the completed sale
+  // without overwriting the original listing amount.
+  salePrice: doublePrecision("sale_price"),
+  soldAt: timestamp("sold_at"),
+  soldBy: integer("sold_by").references(() => usersTable.id),
   currency: text("currency").notNull().default("USD"),
   suburb: text("suburb").notNull(),
   city: text("city").notNull().default("Harare"),

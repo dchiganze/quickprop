@@ -6,6 +6,7 @@ import { ensureDemoAccounts } from "./lib/demo-accounts";
 import { startReviewInvitationScheduler } from "./lib/agent-reviews";
 import { startRentalReferenceScheduler } from "./lib/rental-references";
 import { startPropertyAlertScheduler } from "./lib/property-alerts";
+import { ensurePropertySaleColumns } from "./lib/property-schema";
 
 const rawPort = process.env["PORT"];
 
@@ -22,6 +23,7 @@ if (Number.isNaN(port) || port <= 0) {
 }
 
 async function startServer(): Promise<void> {
+  await ensurePropertySaleColumns();
   await ensureDemoAccounts();
 
   app.listen(port, (err) => {

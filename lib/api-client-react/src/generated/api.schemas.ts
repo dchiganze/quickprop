@@ -426,6 +426,15 @@ export interface Property {
   /** draft | awaiting_photos | ready | published | under_offer | sold | archived */
   pipelineStage: string;
   price: number;
+  /**
+     * Completed sale price; asking price remains in price.
+     * @nullable
+     */
+  salePrice?: number | null;
+  /** @nullable */
+  soldAt?: string | null;
+  /** @nullable */
+  soldBy?: number | null;
   currency: string;
   suburb: string;
   city: string;
@@ -457,7 +466,7 @@ export interface Property {
   /** @nullable */
   sellerId?: number | null;
   /**
-     * open | sole | exclusive
+     * open | sole
      * @nullable
      */
   mandateType?: string | null;
@@ -511,6 +520,7 @@ export interface PropertyInput {
   status?: string;
   pipelineStage?: string;
   price: number;
+  salePrice?: number;
   currency?: string;
   suburb: string;
   city: string;
@@ -544,6 +554,7 @@ export interface PropertyUpdate {
   status?: string;
   pipelineStage?: string;
   price?: number;
+  salePrice?: number;
   currency?: string;
   suburb?: string;
   city?: string;
@@ -567,6 +578,11 @@ export interface PropertyUpdate {
   commissionPercent?: number;
   privateNotes?: string;
   collaborationEnabled?: boolean;
+}
+
+export interface MarkPropertySoldInput {
+  /** @exclusiveMinimum 0 */
+  salePrice: number;
 }
 
 export interface CollaborationRequestInput {

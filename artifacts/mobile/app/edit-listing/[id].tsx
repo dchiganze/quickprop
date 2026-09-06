@@ -16,7 +16,7 @@ import { PROPERTY_FEATURES, Property } from '@/types';
 const CURRENCIES = ['USD', 'ZAR', 'ZWL', 'GBP', 'EUR'];
 const PROPERTY_TYPES: Property['type'][] = ['sale', 'rent', 'commercial', 'stand', 'farm', 'mine'];
 const STATUSES: Property['status'][] = ['published', 'draft', 'archived', 'sold', 'rented', 'pending'];
-const MANDATE_TYPES: Array<'open' | 'sole' | 'exclusive'> = ['open', 'sole', 'exclusive'];
+const MANDATE_TYPES: Array<'open' | 'sole'> = ['open', 'sole'];
 
 const STATUS_COLORS: Record<Property['status'], string> = {
   published: '#10B981', draft: '#F59E0B', archived: '#64748B',
@@ -83,7 +83,7 @@ export default function EditListingScreen() {
   const [sellerPhone, setSellerPhone] = useState(property?.seller.phone ?? '');
   const [sellerEmail, setSellerEmail] = useState(property?.seller.email ?? '');
   const [mandateExpiry, setMandateExpiry] = useState(property?.seller.mandateExpiry ?? '');
-  const [mandateType, setMandateType] = useState<'open' | 'sole' | 'exclusive'>(property?.seller.mandateType ?? 'sole');
+  const [mandateType, setMandateType] = useState<'open' | 'sole'>(property?.seller.mandateType === 'open' ? 'open' : 'sole');
   const [sellerNotes, setSellerNotes] = useState(property?.seller.notes ?? '');
   const [photos, setPhotos] = useState<string[]>(property?.photos ?? []);
   const [collaborationEnabled, setCollaborationEnabled] = useState(Boolean(property?.collaborationEnabled));

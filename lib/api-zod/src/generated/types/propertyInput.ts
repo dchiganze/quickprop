@@ -14,6 +14,7 @@ export interface PropertyInput {
   status?: string;
   pipelineStage?: string;
   price: number;
+  salePrice?: number;
   currency?: string;
   suburb: string;
   city: string;

@@ -138,6 +138,29 @@ export async function sharePropertyToSocial(
     return;
   }
 
+  // Facebook rejects a number of targeted image payloads on both platforms.
+  // Use the native chooser instead; the rendered JPEG is still delivered and
+  // the copied caption can be pasted into the Facebook post composer.
+  if (destination === 'facebook') {
+    await sharePropertyGeneric(property, captureCard, 'Share property to Facebook', false);
+    return;
+  }
+
+  // iOS social apps are most reliable when they receive only the rendered
+  // image through the system share sheet. The caption was copied above so it
+  // can be pasted into the destination app after it opens. Keep this separate
+  // from Android, where the direct native share targets preserve the existing
+  // image-plus-caption behavior.
+  if (Platform.OS === 'ios') {
+    await sharePropertyGeneric(
+      property,
+      captureCard,
+      `Share property to ${destination.charAt(0).toUpperCase() + destination.slice(1)}`,
+      false,
+    );
+    return;
+  }
+
   // LinkedIn's targeted react-native-share implementation can remain pending
   // when the LinkedIn app is unavailable or rejects an image handoff. Use the
   // system share sheet instead so the agent can select LinkedIn without
@@ -191,7 +214,11 @@ export async function sharePropertyToFacebookStory(
 
   const metaAppId = process.env.EXPO_PUBLIC_META_APP_ID ?? process.env.EXPO_PUBLIC_FACEBOOK_APP_ID;
   if (!metaAppId) {
-    throw new Error('Facebook Stories sharing needs Meta app setup before it can be used.');
+    // A direct Stories handoff requires a Meta app ID in the standalone build.
+    // Keep the action useful until that configuration is supplied by opening
+    // the system chooser with the image only.
+    await sharePropertyGeneric(property, captureCard, 'Share property to Facebook Story', false);
+    return;
   }
 
   const cardUri = await captureCard();

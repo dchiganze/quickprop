@@ -101,6 +101,7 @@ import type {
   ListingHousekeepingSettings,
   LoginInput,
   LoginResult,
+  MarkPropertySoldInput,
   MarketplaceStats,
   ModerateProperty200,
   MultiAgentProperty,
@@ -884,6 +885,72 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
         TContext
       > => {
       return useMutation(getDeletePropertyMutationOptions(options));
+    }
+
+export const getMarkPropertySoldUrl = (id: number,) => {
+
+
+
+
+  return `/api/properties/${id}/mark-sold`
+}
+
+export const markPropertySold = async (id: number,
+    markPropertySoldInput: MarkPropertySoldInput, options?: RequestInit): Promise<Property> => {
+
+  return customFetch<Property>(getMarkPropertySoldUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(markPropertySoldInput)
+  }
+);}
+
+
+
+
+
+export const getMarkPropertySoldMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof markPropertySold>>, TError,{id: number;data: BodyType<MarkPropertySoldInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof markPropertySold>>, TError,{id: number;data: BodyType<MarkPropertySoldInput>}, TContext> => {
+
+const mutationKey = ['markPropertySold'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof markPropertySold>>, {id: number;data: BodyType<MarkPropertySoldInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  markPropertySold(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type MarkPropertySoldMutationResult = NonNullable<Awaited<ReturnType<typeof markPropertySold>>>
+    export type MarkPropertySoldMutationBody = BodyType<MarkPropertySoldInput>
+    export type MarkPropertySoldMutationError = ErrorType<void>
+
+    export const useMarkPropertySold = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof markPropertySold>>, TError,{id: number;data: BodyType<MarkPropertySoldInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof markPropertySold>>,
+        TError,
+        {id: number;data: BodyType<MarkPropertySoldInput>},
+        TContext
+      > => {
+      return useMutation(getMarkPropertySoldMutationOptions(options));
     }
 
 export const getGetPropertyPriceHistoryUrl = (id: number,) => {

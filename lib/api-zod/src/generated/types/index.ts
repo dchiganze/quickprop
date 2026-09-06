@@ -112,6 +112,7 @@ export * from './loginInput';
 export * from './loginResult';
 export * from './marketingAsset';
 export * from './marketplaceStats';
+export * from './markPropertySoldInput';
 export * from './moderateProperty200';
 export * from './multiAgentProperty';
 export * from './notification';

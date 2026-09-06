@@ -28,7 +28,13 @@
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "LSApplicationQueriesSchemes": [
-          "whatsapp"
+          "whatsapp",
+          "fb",
+          "facebook-stories",
+          "instagram",
+          "instagram-stories",
+          "linkedin",
+          "tiktok"
         ],
         "NSCameraUsageDescription": "QuickProp Agent uses the camera to capture property photos and videos for listings.",
         "NSPhotoLibraryUsageDescription": "QuickProp Agent accesses your photo library to attach property images to listings.",

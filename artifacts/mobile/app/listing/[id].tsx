@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import {
-  View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, Alert, Linking, Image, Modal,
+  View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, Alert, Linking, Image, Modal, TextInput,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { VideoView, useVideoPlayer } from 'expo-video';
@@ -72,6 +72,8 @@ export default function ListingDetailScreen() {
   const [brochureOpen, setBrochureOpen] = useState(false);
   const [videoPlayerVisible, setVideoPlayerVisible] = useState(false);
   const [shareOptionsOpen, setShareOptionsOpen] = useState(false);
+  const [saleModalVisible, setSaleModalVisible] = useState(false);
+  const [salePriceInput, setSalePriceInput] = useState('');
   const shareCardRef = useRef<SharePropertyCardHandle>(null);
 
   const handleAddAgency = async () => {
@@ -174,18 +176,43 @@ export default function ListingDetailScreen() {
     setVideoPlayerVisible(true);
   };
 
-  const handleMarkSold = () => {
-    Alert.alert('Mark as Sold', 'Are you sure you want to mark this property as sold?', [
+  const handleRemoveListing = () => {
+    Alert.alert('Remove Listing', 'Was this property sold?', [
       { text: 'Cancel', style: 'cancel' },
       {
-        text: 'Mark Sold', style: 'destructive',
+        text: 'No, withdraw it',
         onPress: async () => {
-          await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-          updateProperty(property.id, { status: 'sold' });
+          await updateProperty(property.id, { status: 'archived', availabilityStatus: 'withdrawn' });
           router.back();
         },
       },
+      {
+        text: 'Yes, it was sold',
+        style: 'destructive',
+        onPress: async () => {
+          setSalePriceInput('');
+          setSaleModalVisible(true);
+        },
+      },
     ]);
+  };
+
+  const handleConfirmSale = async () => {
+    const salePrice = Number(salePriceInput.replace(/,/g, '').trim());
+    if (!Number.isFinite(salePrice) || salePrice <= 0) {
+      Alert.alert('Sale price required', 'Enter the positive price the property sold for.');
+      return;
+    }
+    await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    await updateProperty(property.id, {
+      status: 'sold',
+      salePrice,
+      soldAt: new Date().toISOString(),
+      availabilityStatus: 'sold',
+      freshnessStatus: 'inactive',
+    });
+    setSaleModalVisible(false);
+    router.back();
   };
 
   const price = property.price >= 1000000
@@ -469,12 +496,14 @@ export default function ListingDetailScreen() {
                 <Ionicons name="mail-outline" size={15} color={colors.primary} />
                 <Text style={[styles.sellerValue, { color: colors.foreground }]}>{property.seller.email}</Text>
               </View>
-              <View style={styles.sellerRow}>
-                <Ionicons name="calendar-outline" size={15} color={colors.primary} />
-                <Text style={[styles.sellerValue, { color: colors.foreground }]}>
-                  {property.seller.mandateType.charAt(0).toUpperCase() + property.seller.mandateType.slice(1)} mandate • Expires {new Date(property.seller.mandateExpiry).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
-                </Text>
-              </View>
+              {property.seller.mandateType === 'sole' && (
+                <View style={styles.sellerRow}>
+                  <Ionicons name="calendar-outline" size={15} color={colors.primary} />
+                  <Text style={[styles.sellerValue, { color: colors.foreground }]}>
+                    Sole mandate • Expires {new Date(property.seller.mandateExpiry).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                  </Text>
+                </View>
+              )}
               {!!property.seller.notes && (
                 <View style={[styles.notesBox, { backgroundColor: colors.card, borderColor: colors.border }]}>
                   <Text style={[styles.notesText, { color: colors.foreground }]}>{property.seller.notes}</Text>
@@ -523,10 +552,10 @@ export default function ListingDetailScreen() {
           <Ionicons name="document-text-outline" size={18} color={colors.primary} />
           <Text style={[styles.bottomBtnText, { color: colors.primary }]}>Brochure</Text>
         </TouchableOpacity>
-        {property.status === 'published' && (
-          <TouchableOpacity style={[styles.bottomBtn, { backgroundColor: colors.destructive + '15' }]} onPress={handleMarkSold}>
-            <Ionicons name="checkmark-circle-outline" size={18} color={colors.destructive} />
-            <Text style={[styles.bottomBtnText, { color: colors.destructive }]}>Sold</Text>
+        {property.status === 'published' && property.type === 'sale' && (
+          <TouchableOpacity style={[styles.bottomBtn, { backgroundColor: colors.destructive + '15' }]} onPress={handleRemoveListing}>
+            <Ionicons name="archive-outline" size={18} color={colors.destructive} />
+            <Text style={[styles.bottomBtnText, { color: colors.destructive }]}>Remove</Text>
           </TouchableOpacity>
         )}
         <TouchableOpacity style={[styles.bottomBtnPrimary, { backgroundColor: colors.primary }]} onPress={() => router.push(`/edit-listing/${property.id}`)}>
@@ -534,6 +563,46 @@ export default function ListingDetailScreen() {
           <Text style={styles.bottomBtnPrimaryText}>Edit</Text>
         </TouchableOpacity>
       </View>
+
+      <Modal
+        visible={saleModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setSaleModalVisible(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={[styles.saleModal, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <Text style={[styles.saleModalTitle, { color: colors.foreground }]}>Record completed sale</Text>
+            <Text style={[styles.saleModalCopy, { color: colors.mutedForeground }]}>
+              The original asking price remains {property.currency} {property.price.toLocaleString()}. Enter the final sale price to keep the transaction history accurate.
+            </Text>
+            <Text style={[styles.saleModalLabel, { color: colors.mutedForeground }]}>FINAL SALE PRICE ({property.currency})</Text>
+            <TextInput
+              autoFocus
+              value={salePriceInput}
+              onChangeText={setSalePriceInput}
+              keyboardType="numeric"
+              placeholder="Enter sale price"
+              placeholderTextColor={colors.mutedForeground}
+              style={[styles.salePriceInput, { color: colors.foreground, backgroundColor: colors.input, borderColor: colors.border }]}
+            />
+            <View style={styles.saleModalActions}>
+              <TouchableOpacity
+                style={[styles.saleModalButton, { borderColor: colors.border }]}
+                onPress={() => setSaleModalVisible(false)}
+              >
+                <Text style={[styles.saleModalButtonText, { color: colors.foreground }]}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.saleModalButton, { backgroundColor: colors.primary, borderColor: colors.primary }]}
+                onPress={handleConfirmSale}
+              >
+                <Text style={[styles.saleModalButtonText, { color: '#FFF' }]}>Record Sale</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       <PropertyBrochureSheet
         visible={brochureOpen}
@@ -626,4 +695,13 @@ const styles = StyleSheet.create({
   bottomBtnText: { fontSize: 13, fontWeight: '600' },
   bottomBtnPrimary: { flex: 1.5, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, borderRadius: 12, paddingVertical: 11 },
   bottomBtnPrimaryText: { color: '#FFF', fontSize: 13, fontWeight: '700' },
+  modalBackdrop: { flex: 1, backgroundColor: '#00000088', alignItems: 'center', justifyContent: 'center', padding: 24 },
+  saleModal: { width: '100%', maxWidth: 440, borderRadius: 20, borderWidth: 1, padding: 20, gap: 12 },
+  saleModalTitle: { fontSize: 20, fontWeight: '800' },
+  saleModalCopy: { fontSize: 14, lineHeight: 21 },
+  saleModalLabel: { fontSize: 11, fontWeight: '700', letterSpacing: 0.5, marginTop: 4 },
+  salePriceInput: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 17 },
+  saleModalActions: { flexDirection: 'row', gap: 10, marginTop: 4 },
+  saleModalButton: { flex: 1, borderWidth: 1, borderRadius: 12, alignItems: 'center', paddingVertical: 12 },
+  saleModalButtonText: { fontSize: 14, fontWeight: '700' },
 });

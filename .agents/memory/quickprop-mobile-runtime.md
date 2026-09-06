@@ -63,6 +63,12 @@ For TikTok image sharing on iOS, send only the JPEG in the system share payload 
 
 **How to apply:** Keep the TikTok path image-only on iOS; preserve the existing image-plus-caption payload on Android and leave the caption on the clipboard for pasting.
 
+For Facebook, Instagram, LinkedIn, and TikTok image posts on iOS, prefer the native system chooser with an image-only payload and copy the caption separately.
+
+**Why:** Several social apps either reject mixed image/text payloads or redirect through their store/deep-link fallback when targeted sharing is unavailable in a standalone build.
+
+**How to apply:** Whitelist each app's URL schemes in the generated iOS Info.plist, keep the generic image handoff as the compatibility path, and validate the final TestFlight binary rather than Expo Go.
+
 Standalone mobile release bundles need an explicit production API URL; do not rely on the development workflow's `EXPO_PUBLIC_DOMAIN` injection.
 
 **Why:** Native release builds can otherwise compile with no API base URL, leaving cloud-only screens such as Matches unable to load while local cached screens still appear normal.

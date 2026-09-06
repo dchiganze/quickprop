@@ -21,6 +21,15 @@ export interface Property {
   /** draft | awaiting_photos | ready | published | under_offer | sold | archived */
   pipelineStage: string;
   price: number;
+  /**
+     * Completed sale price; asking price remains in price.
+     * @nullable
+     */
+  salePrice?: number | null;
+  /** @nullable */
+  soldAt?: string | null;
+  /** @nullable */
+  soldBy?: number | null;
   currency: string;
   suburb: string;
   city: string;
@@ -52,7 +61,7 @@ export interface Property {
   /** @nullable */
   sellerId?: number | null;
   /**
-     * open | sole | exclusive
+     * open | sole
      * @nullable
      */
   mandateType?: string | null;
