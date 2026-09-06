@@ -100,6 +100,18 @@ jobs:
           rm /tmp/profile.mobileprovision
           echo "Installed profile: ${UUID}"
 
+      - name: Resolve existing distribution signing identity
+        run: |
+          SIGNING_IDENTITY=$(security find-identity -v -p codesigning build.keychain \
+            | awk -F'"' '/^[[:space:]]*[0-9]+\)/ { print $2; exit }')
+          if [ -z "$SIGNING_IDENTITY" ]; then
+            echo "ERROR: No valid signing identity found in the imported keychain."
+            security find-identity -v -p codesigning build.keychain || true
+            exit 1
+          fi
+          echo "Using existing signing identity: $SIGNING_IDENTITY"
+          echo "IOS_SIGNING_IDENTITY=$SIGNING_IDENTITY" >> "$GITHUB_ENV"
+
       - name: Install runtime deps pnpm missed into mobile node_modules
         run: |
           TMPDIR=$(mktemp -d)
@@ -233,7 +245,7 @@ jobs:
             -archivePath "$RUNNER_TEMP/QuickPropAgent.xcarchive" \
             CODE_SIGN_STYLE=Manual \
             PROVISIONING_PROFILE="$PROFILE_UUID" \
-            CODE_SIGN_IDENTITY="iPhone Distribution" \
+            CODE_SIGN_IDENTITY="$IOS_SIGNING_IDENTITY" \
             DEVELOPMENT_TEAM=R7FGJAAUQF \
             CURRENT_PROJECT_VERSION="$IOS_BUILD_NUMBER" \
             MARKETING_VERSION="1.0.0"
