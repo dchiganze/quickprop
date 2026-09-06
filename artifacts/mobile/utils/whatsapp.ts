@@ -109,7 +109,16 @@ export async function sharePropertyToSocial(
   captureCard: () => Promise<string>,
 ): Promise<void> {
   if (destination === 'tiktok') {
-    await sharePropertyGeneric(property, captureCard, 'Share property via TikTok');
+    // TikTok's iOS share extension accepts the image from Photos, but can
+    // hide itself when the system payload contains a second text item. The
+    // generic share helper already copies the caption for pasting, so send
+    // TikTok only the JPEG, matching the Photos app handoff.
+    await sharePropertyGeneric(
+      property,
+      captureCard,
+      'Share property via TikTok',
+      Platform.OS !== 'ios',
+    );
     return;
   }
 
@@ -230,6 +239,7 @@ export async function sharePropertyGeneric(
   property: Property,
   captureCard: () => Promise<string>,
   dialogTitle = 'Share property',
+  includeCaption = true,
 ): Promise<void> {
   const caption = buildSocialCaption(property);
   await Clipboard.setStringAsync(caption).catch(() => {});
@@ -246,10 +256,10 @@ export async function sharePropertyGeneric(
     await NativeShare.open({
       url: cardUri,
       type: 'image/jpeg',
-      message: caption,
       title: `${property.referenceNumber} — ${property.suburb}`,
       failOnCancel: false,
       useInternalStorage: true,
+      ...(includeCaption ? { message: caption } : {}),
     });
     return;
   } catch (error: unknown) {
