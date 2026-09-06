@@ -163,6 +163,33 @@ export async function sharePropertyToSocial(
   });
 }
 
+export async function sharePropertyToFacebookStory(
+  property: Property,
+  captureCard: () => Promise<string>,
+): Promise<void> {
+  if (Platform.OS === 'web') {
+    throw new Error('Facebook Stories sharing is available in the mobile app only.');
+  }
+
+  const facebookAppId = process.env.EXPO_PUBLIC_FACEBOOK_APP_ID;
+  if (!facebookAppId) {
+    throw new Error('Facebook Stories sharing needs Facebook app setup before it can be used.');
+  }
+
+  const cardUri = await captureCard();
+  const propertyUrl = propertyShareLinks(property).webUrl;
+  const { default: NativeShare, Social } = await import('react-native-share');
+
+  await NativeShare.shareSingle({
+    social: Social.FacebookStories,
+    appId: facebookAppId,
+    backgroundImage: cardUri,
+    linkUrl: propertyUrl,
+    attributionURL: propertyUrl,
+    useInternalStorage: true,
+  });
+}
+
 export async function sharePropertyGeneric(
   property: Property,
   captureCard: () => Promise<string>,

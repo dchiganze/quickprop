@@ -17,6 +17,7 @@ import { useColors } from '@/hooks/useColors';
 import {
   PropertySocialDestination,
   sharePropertyGeneric,
+  sharePropertyToFacebookStory,
   sharePropertyToSocial,
   sharePropertyToWhatsApp,
 } from '@/utils/whatsapp';
@@ -90,7 +91,13 @@ export function PropertyShareSheet({
   onClose,
 }: PropertyShareSheetProps) {
   const colors = useColors();
-  const [sharing, setSharing] = useState<ShareDestination | null>(null);
+  const [sharing, setSharing] = useState<ShareDestination | 'facebook-post' | 'facebook-story' | null>(null);
+  const [facebookOptionsOpen, setFacebookOptionsOpen] = useState(false);
+
+  const closeSheet = () => {
+    setFacebookOptionsOpen(false);
+    onClose();
+  };
 
   const handleShare = async (destination: ShareDestination) => {
     if (sharing) return;
@@ -104,11 +111,37 @@ export function PropertyShareSheet({
       } else {
         await sharePropertyToSocial(property, destination, captureCard);
       }
-      onClose();
+      closeSheet();
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message.toLowerCase() : '';
       if (!message.includes('cancel') && !message.includes('dismiss')) {
         Alert.alert('Could not share property', 'That app is unavailable right now. Please choose another destination.');
+        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
+      }
+    } finally {
+      setSharing(null);
+    }
+  };
+
+  const handleFacebookShare = async (choice: 'post' | 'story') => {
+    if (sharing) return;
+    const shareKey = `facebook-${choice}` as const;
+    setSharing(shareKey);
+    try {
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      if (choice === 'post') {
+        await sharePropertyToSocial(property, 'facebook', captureCard);
+      } else {
+        await sharePropertyToFacebookStory(property, captureCard);
+      }
+      closeSheet();
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message.toLowerCase() : '';
+      if (!message.includes('cancel') && !message.includes('dismiss')) {
+        Alert.alert(
+          choice === 'story' ? 'Facebook Stories is not ready' : 'Could not share property',
+          error instanceof Error ? error.message : 'That Facebook sharing option is unavailable right now.',
+        );
         await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
       }
     } finally {
@@ -122,9 +155,9 @@ export function PropertyShareSheet({
       transparent
       animationType="slide"
       statusBarTranslucent
-      onRequestClose={onClose}
+      onRequestClose={closeSheet}
     >
-      <Pressable style={styles.backdrop} onPress={onClose}>
+      <Pressable style={styles.backdrop} onPress={closeSheet}>
         <Pressable style={[styles.sheet, { backgroundColor: colors.card }]} onPress={() => {}}>
           <View style={[styles.handle, { backgroundColor: colors.border }]} />
 
@@ -137,7 +170,7 @@ export function PropertyShareSheet({
             </View>
             <TouchableOpacity
               style={[styles.closeButton, { backgroundColor: colors.muted }]}
-              onPress={onClose}
+              onPress={closeSheet}
               disabled={!!sharing}
               accessibilityLabel="Close share options"
             >
@@ -145,37 +178,108 @@ export function PropertyShareSheet({
             </TouchableOpacity>
           </View>
 
-          <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>SHARE VIA</Text>
+          {facebookOptionsOpen ? (
+            <>
+              <TouchableOpacity
+                style={styles.backButton}
+                onPress={() => setFacebookOptionsOpen(false)}
+                disabled={!!sharing}
+                accessibilityRole="button"
+                accessibilityLabel="Back to share options"
+              >
+                <Ionicons name="arrow-back" size={18} color={colors.primary} />
+                <Text style={[styles.backButtonText, { color: colors.primary }]}>All share options</Text>
+              </TouchableOpacity>
 
-          <View style={styles.optionGrid}>
-            {SHARE_OPTIONS.map(option => {
-              const isSharing = sharing === option.key;
-              return (
+              <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>SHARE TO FACEBOOK</Text>
+              <View style={styles.facebookChoiceList}>
                 <TouchableOpacity
-                  key={option.key}
-                  style={[
-                    styles.option,
-                    { backgroundColor: colors.muted, borderColor: colors.border },
-                  ]}
-                  onPress={() => handleShare(option.key)}
+                  style={[styles.facebookChoice, { backgroundColor: colors.muted, borderColor: colors.border }]}
+                  onPress={() => handleFacebookShare('post')}
                   disabled={!!sharing}
                   activeOpacity={0.78}
                   accessibilityRole="button"
-                  accessibilityLabel={`Share property to ${option.label}`}
+                  accessibilityLabel="Share property to a Facebook post"
                 >
-                  <View style={[styles.iconWrap, { backgroundColor: option.color }]}>
-                    {isSharing
+                  <View style={[styles.iconWrap, { backgroundColor: '#1877F2' }]}>
+                    {sharing === 'facebook-post'
                       ? <ActivityIndicator size="small" color="#FFF" />
-                      : <Ionicons name={option.icon} size={24} color="#FFF" />}
+                      : <Ionicons name="create-outline" size={24} color="#FFF" />}
                   </View>
-                  <Text style={[styles.optionLabel, { color: colors.foreground }]}>{option.label}</Text>
-                  <Text style={[styles.optionDescription, { color: colors.mutedForeground }]}>
-                    {option.description}
-                  </Text>
+                  <View style={styles.choiceCopy}>
+                    <Text style={[styles.optionLabel, { color: colors.foreground }]}>Post / status</Text>
+                    <Text style={[styles.optionDescription, { color: colors.mutedForeground }]}>
+                      Open Facebook’s post composer
+                    </Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={18} color={colors.mutedForeground} />
                 </TouchableOpacity>
-              );
-            })}
-          </View>
+
+                <TouchableOpacity
+                  style={[styles.facebookChoice, { backgroundColor: colors.muted, borderColor: colors.border }]}
+                  onPress={() => handleFacebookShare('story')}
+                  disabled={!!sharing}
+                  activeOpacity={0.78}
+                  accessibilityRole="button"
+                  accessibilityLabel="Share property to a Facebook story"
+                >
+                  <View style={[styles.iconWrap, { backgroundColor: '#8B5CF6' }]}>
+                    {sharing === 'facebook-story'
+                      ? <ActivityIndicator size="small" color="#FFF" />
+                      : <Ionicons name="time-outline" size={24} color="#FFF" />}
+                  </View>
+                  <View style={styles.choiceCopy}>
+                    <Text style={[styles.optionLabel, { color: colors.foreground }]}>Story</Text>
+                    <Text style={[styles.optionDescription, { color: colors.mutedForeground }]}>
+                      Share the property card to Facebook Stories
+                    </Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={18} color={colors.mutedForeground} />
+                </TouchableOpacity>
+              </View>
+            </>
+          ) : (
+            <>
+              <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>SHARE VIA</Text>
+
+              <View style={styles.optionGrid}>
+                {SHARE_OPTIONS.map(option => {
+                  const isSharing = sharing === option.key;
+                  return (
+                    <TouchableOpacity
+                      key={option.key}
+                      style={[
+                        styles.option,
+                        { backgroundColor: colors.muted, borderColor: colors.border },
+                      ]}
+                      onPress={() => {
+                        if (option.key === 'facebook') {
+                          Haptics.selectionAsync();
+                          setFacebookOptionsOpen(true);
+                        } else {
+                          handleShare(option.key);
+                        }
+                      }}
+                      disabled={!!sharing}
+                      activeOpacity={0.78}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Share property to ${option.label}`}
+                    >
+                      <View style={[styles.iconWrap, { backgroundColor: option.color }]}>
+                        {isSharing
+                          ? <ActivityIndicator size="small" color="#FFF" />
+                          : <Ionicons name={option.icon} size={24} color="#FFF" />}
+                      </View>
+                      <Text style={[styles.optionLabel, { color: colors.foreground }]}>{option.label}</Text>
+                      <Text style={[styles.optionDescription, { color: colors.mutedForeground }]}>
+                        {option.key === 'facebook' ? 'Choose post or story' : option.description}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </>
+          )}
 
           <Text style={[styles.footerNote, { color: colors.mutedForeground }]}>
             Your property card will be prepared before the app opens.
@@ -255,5 +359,24 @@ const styles = StyleSheet.create({
   },
   optionLabel: { fontSize: 15, fontWeight: '800' },
   optionDescription: { fontSize: 11, lineHeight: 15, marginTop: 3 },
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 6,
+    marginBottom: 18,
+  },
+  backButtonText: { fontSize: 13, fontWeight: '700' },
+  facebookChoiceList: { gap: 10 },
+  facebookChoice: {
+    minHeight: 82,
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  choiceCopy: { flex: 1 },
   footerNote: { fontSize: 11, lineHeight: 16, textAlign: 'center', marginTop: 18 },
 });
