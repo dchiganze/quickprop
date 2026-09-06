@@ -11,6 +11,9 @@ jobs:
   build:
     needs: validate
     runs-on: ubuntu-latest
+    env:
+      EXPO_PUBLIC_DOMAIN: www.quickprop.melios.co.zw
+      EXPO_PUBLIC_API_URL: https://www.quickprop.melios.co.zw/api
     permissions:
       id-token: write
       contents: read

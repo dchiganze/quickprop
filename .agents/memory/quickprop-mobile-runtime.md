@@ -56,3 +56,9 @@ Targeted LinkedIn sharing through `react-native-share.shareSingle` can remain pe
 **Why:** A pending native bridge promise leaves the share tile loading indefinitely and makes the modal appear frozen.
 
 **How to apply:** Keep LinkedIn's web flow as the LinkedIn composer URL, but route iOS and Android through the same generic image share path used by the app's other fallback shares.
+
+Standalone mobile release bundles need an explicit production API URL; do not rely on the development workflow's `EXPO_PUBLIC_DOMAIN` injection.
+
+**Why:** Native release builds can otherwise compile with no API base URL, leaving cloud-only screens such as Matches unable to load while local cached screens still appear normal.
+
+**How to apply:** Inject the verified production API URL in Android and iOS release workflows, and retain a release-only fallback in the auth context while keeping the local development fallback offline.

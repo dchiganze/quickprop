@@ -44,9 +44,12 @@ const ACCOUNT_DATA_KEYS = [
 ];
 
 const configuredApiUrl = process.env.EXPO_PUBLIC_API_URL?.replace(/\/$/, '');
+const productionApiUrl = 'https://www.quickprop.melios.co.zw/api';
 export const apiBaseUrl = configuredApiUrl
   ? (configuredApiUrl.endsWith('/api') ? configuredApiUrl : `${configuredApiUrl}/api`)
-  : (process.env.EXPO_PUBLIC_DOMAIN ? `https://${process.env.EXPO_PUBLIC_DOMAIN}/api` : null);
+  : (process.env.EXPO_PUBLIC_DOMAIN
+    ? `https://${process.env.EXPO_PUBLIC_DOMAIN}/api`
+    : !__DEV__ ? productionApiUrl : null);
 export const apiOrigin = apiBaseUrl?.replace(/\/api$/, '') ?? null;
 export const AUTH_TOKEN_STORAGE_KEY = AUTH_TOKEN_KEY;
 
