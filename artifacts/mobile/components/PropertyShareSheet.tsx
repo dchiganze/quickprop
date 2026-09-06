@@ -64,7 +64,7 @@ const SHARE_OPTIONS: Array<{
   {
     key: 'linkedin',
     label: 'LinkedIn',
-    description: 'Open post composer',
+    description: 'Open share sheet',
     icon: 'logo-linkedin',
     color: '#0A66C2',
   },

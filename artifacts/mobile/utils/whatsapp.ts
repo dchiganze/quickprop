@@ -129,6 +129,15 @@ export async function sharePropertyToSocial(
     return;
   }
 
+  // LinkedIn's targeted react-native-share implementation can remain pending
+  // when the LinkedIn app is unavailable or rejects an image handoff. Use the
+  // system share sheet instead so the agent can select LinkedIn without
+  // blocking the share modal indefinitely.
+  if (destination === 'linkedin') {
+    await sharePropertyGeneric(property, captureCard, 'Share property to LinkedIn');
+    return;
+  }
+
   const cardUri = await captureCard();
 
   try {
