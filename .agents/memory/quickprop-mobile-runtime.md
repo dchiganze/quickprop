@@ -50,3 +50,9 @@ For targeted social sharing with react-native-share, keep the destination type n
 **Why:** A dynamic destination map is inferred broadly enough to include story targets, which makes `shareSingle` require an app ID even for Facebook, Instagram, and LinkedIn.
 
 **How to apply:** Use the library's `Exclude<Social, ...Stories>` type for the destination map while keeping the native import lazy for Expo Go.
+
+Targeted LinkedIn sharing through `react-native-share.shareSingle` can remain pending on native when the LinkedIn app or image handoff is unavailable; use the generic system share sheet for LinkedIn image sharing.
+
+**Why:** A pending native bridge promise leaves the share tile loading indefinitely and makes the modal appear frozen.
+
+**How to apply:** Keep LinkedIn's web flow as the LinkedIn composer URL, but route iOS and Android through the same generic image share path used by the app's other fallback shares.
