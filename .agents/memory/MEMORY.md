@@ -7,3 +7,4 @@
 - [QuickProp Office Bulk Imports](quickprop-office-imports.md) — private sources, draft-only records, explicit duplicate decisions, and Node-safe document parsing are non-negotiable.
 - [Durable Import Recovery](durable-import-recovery.md) — database file checkpoints and restart-safe worker ownership keep large portfolio imports resumable.
 - [OpenAPI Contract Shape](openapi-contract-shape.md) — keep each operation's request and response blocks directly nested under its method so Orval can resolve the spec.
+- [GitHub Release Workflow Publishing](github-release-workflow.md) — workflow-file pushes require GitHub workflow scope and may be blocked by the connector proxy.
