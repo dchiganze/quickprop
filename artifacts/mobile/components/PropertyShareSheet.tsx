@@ -143,7 +143,7 @@ export function PropertyShareSheet({
       if (!message.includes('cancel') && !message.includes('dismiss')) {
         Alert.alert(
           choice === 'story' ? `${social === 'facebook' ? 'Facebook' : 'Instagram'} Stories is not ready` : 'Could not share property',
-          error instanceof Error ? error.message : 'That Facebook sharing option is unavailable right now.',
+          error instanceof Error ? error.message : `That ${socialLabel.charAt(0) + socialLabel.slice(1).toLowerCase()} sharing option is unavailable right now.`,
         );
         await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
       }
@@ -184,11 +184,11 @@ export function PropertyShareSheet({
             </TouchableOpacity>
           </View>
 
-          {facebookOptionsOpen ? (
+          {socialOptionsOpen ? (
             <>
               <TouchableOpacity
                 style={styles.backButton}
-                onPress={() => setFacebookOptionsOpen(false)}
+                onPress={() => setSocialOptionsOpen(null)}
                 disabled={!!sharing}
                 accessibilityRole="button"
                 accessibilityLabel="Back to share options"
@@ -197,47 +197,47 @@ export function PropertyShareSheet({
                 <Text style={[styles.backButtonText, { color: colors.primary }]}>All share options</Text>
               </TouchableOpacity>
 
-              <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>SHARE TO FACEBOOK</Text>
-              <View style={styles.facebookChoiceList}>
+              <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>SHARE TO {socialLabel}</Text>
+              <View style={styles.socialChoiceList}>
                 <TouchableOpacity
-                  style={[styles.facebookChoice, { backgroundColor: colors.muted, borderColor: colors.border }]}
-                  onPress={() => handleFacebookShare('post')}
+                  style={[styles.socialChoice, { backgroundColor: colors.muted, borderColor: colors.border }]}
+                  onPress={() => socialOptionsOpen && handleSocialShare(socialOptionsOpen, 'post')}
                   disabled={!!sharing}
                   activeOpacity={0.78}
                   accessibilityRole="button"
                   accessibilityLabel="Share property to a Facebook post"
                 >
-                  <View style={[styles.iconWrap, { backgroundColor: '#1877F2' }]}>
-                    {sharing === 'facebook-post'
+                  <View style={[styles.iconWrap, { backgroundColor: socialBrandColor }]}>
+                    {sharing === `${socialOptionsOpen}-post`
                       ? <ActivityIndicator size="small" color="#FFF" />
                       : <Ionicons name="create-outline" size={24} color="#FFF" />}
                   </View>
                   <View style={styles.choiceCopy}>
-                    <Text style={[styles.optionLabel, { color: colors.foreground }]}>Post / status</Text>
+                    <Text style={[styles.optionLabel, { color: colors.foreground }]}>Post</Text>
                     <Text style={[styles.optionDescription, { color: colors.mutedForeground }]}>
-                      Open Facebook’s post composer
+                      Open {socialLabel.charAt(0) + socialLabel.slice(1).toLowerCase()}’s post composer
                     </Text>
                   </View>
                   <Ionicons name="chevron-forward" size={18} color={colors.mutedForeground} />
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  style={[styles.facebookChoice, { backgroundColor: colors.muted, borderColor: colors.border }]}
-                  onPress={() => handleFacebookShare('story')}
+                  style={[styles.socialChoice, { backgroundColor: colors.muted, borderColor: colors.border }]}
+                  onPress={() => socialOptionsOpen && handleSocialShare(socialOptionsOpen, 'story')}
                   disabled={!!sharing}
                   activeOpacity={0.78}
                   accessibilityRole="button"
                   accessibilityLabel="Share property to a Facebook story"
                 >
                   <View style={[styles.iconWrap, { backgroundColor: '#8B5CF6' }]}>
-                    {sharing === 'facebook-story'
+                    {sharing === `${socialOptionsOpen}-story`
                       ? <ActivityIndicator size="small" color="#FFF" />
                       : <Ionicons name="time-outline" size={24} color="#FFF" />}
                   </View>
                   <View style={styles.choiceCopy}>
                     <Text style={[styles.optionLabel, { color: colors.foreground }]}>Story</Text>
                     <Text style={[styles.optionDescription, { color: colors.mutedForeground }]}>
-                      Share the property card to Facebook Stories
+                      Share the property card to {socialLabel.charAt(0) + socialLabel.slice(1).toLowerCase()} Stories
                     </Text>
                   </View>
                   <Ionicons name="chevron-forward" size={18} color={colors.mutedForeground} />
@@ -259,9 +259,9 @@ export function PropertyShareSheet({
                         { backgroundColor: colors.muted, borderColor: colors.border },
                       ]}
                       onPress={() => {
-                        if (option.key === 'facebook') {
+                        if (option.key === 'facebook' || option.key === 'instagram') {
                           Haptics.selectionAsync();
-                          setFacebookOptionsOpen(true);
+                          setSocialOptionsOpen(option.key);
                         } else {
                           handleShare(option.key);
                         }
@@ -278,7 +278,7 @@ export function PropertyShareSheet({
                       </View>
                       <Text style={[styles.optionLabel, { color: colors.foreground }]}>{option.label}</Text>
                       <Text style={[styles.optionDescription, { color: colors.mutedForeground }]}>
-                        {option.key === 'facebook' ? 'Choose post or story' : option.description}
+                        {option.key === 'facebook' || option.key === 'instagram' ? 'Choose post or story' : option.description}
                       </Text>
                     </TouchableOpacity>
                   );
@@ -373,8 +373,8 @@ const styles = StyleSheet.create({
     marginBottom: 18,
   },
   backButtonText: { fontSize: 13, fontWeight: '700' },
-  facebookChoiceList: { gap: 10 },
-  facebookChoice: {
+  socialChoiceList: { gap: 10 },
+  socialChoice: {
     minHeight: 82,
     borderRadius: 16,
     borderWidth: 1,
