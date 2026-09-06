@@ -109,7 +109,7 @@ export async function sharePropertyToSocial(
   captureCard: () => Promise<string>,
 ): Promise<void> {
   if (destination === 'tiktok') {
-    await sharePropertyGeneric(property, captureCard);
+    await sharePropertyGeneric(property, captureCard, 'Share property via TikTok');
     return;
   }
 
@@ -220,6 +220,7 @@ export async function sharePropertyToInstagramStory(
 export async function sharePropertyGeneric(
   property: Property,
   captureCard: () => Promise<string>,
+  dialogTitle = 'Share property',
 ): Promise<void> {
   const caption = buildSocialCaption(property);
   await Clipboard.setStringAsync(caption).catch(() => {});
@@ -249,7 +250,7 @@ export async function sharePropertyGeneric(
   }
 
   await Sharing.shareAsync(cardUri, {
-    dialogTitle: 'Share property',
+    dialogTitle,
     mimeType: 'image/jpeg',
     UTI: 'public.jpeg',
   });

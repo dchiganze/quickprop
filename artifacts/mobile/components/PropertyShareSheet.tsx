@@ -71,7 +71,7 @@ const SHARE_OPTIONS: Array<{
   {
     key: 'tiktok',
     label: 'TikTok',
-    description: 'Image + caption copied',
+    description: 'Open share sheet',
     icon: 'logo-tiktok',
     color: '#111827',
   },
