@@ -171,9 +171,9 @@ export async function sharePropertyToFacebookStory(
     throw new Error('Facebook Stories sharing is available in the mobile app only.');
   }
 
-  const facebookAppId = process.env.EXPO_PUBLIC_FACEBOOK_APP_ID;
-  if (!facebookAppId) {
-    throw new Error('Facebook Stories sharing needs Facebook app setup before it can be used.');
+  const metaAppId = process.env.EXPO_PUBLIC_META_APP_ID ?? process.env.EXPO_PUBLIC_FACEBOOK_APP_ID;
+  if (!metaAppId) {
+    throw new Error('Facebook Stories sharing needs Meta app setup before it can be used.');
   }
 
   const cardUri = await captureCard();
@@ -182,7 +182,34 @@ export async function sharePropertyToFacebookStory(
 
   await NativeShare.shareSingle({
     social: Social.FacebookStories,
-    appId: facebookAppId,
+    appId: metaAppId,
+    backgroundImage: cardUri,
+    linkUrl: propertyUrl,
+    attributionURL: propertyUrl,
+    useInternalStorage: true,
+  });
+}
+
+export async function sharePropertyToInstagramStory(
+  property: Property,
+  captureCard: () => Promise<string>,
+): Promise<void> {
+  if (Platform.OS === 'web') {
+    throw new Error('Instagram Stories sharing is available in the mobile app only.');
+  }
+
+  const metaAppId = process.env.EXPO_PUBLIC_META_APP_ID ?? process.env.EXPO_PUBLIC_FACEBOOK_APP_ID;
+  if (!metaAppId) {
+    throw new Error('Instagram Stories sharing needs Meta app setup before it can be used.');
+  }
+
+  const cardUri = await captureCard();
+  const propertyUrl = propertyShareLinks(property).webUrl;
+  const { default: NativeShare, Social } = await import('react-native-share');
+
+  await NativeShare.shareSingle({
+    social: Social.InstagramStories,
+    appId: metaAppId,
     backgroundImage: cardUri,
     linkUrl: propertyUrl,
     attributionURL: propertyUrl,

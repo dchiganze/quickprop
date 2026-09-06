@@ -18,6 +18,7 @@ import {
   PropertySocialDestination,
   sharePropertyGeneric,
   sharePropertyToFacebookStory,
+  sharePropertyToInstagramStory,
   sharePropertyToSocial,
   sharePropertyToWhatsApp,
 } from '@/utils/whatsapp';
@@ -91,11 +92,11 @@ export function PropertyShareSheet({
   onClose,
 }: PropertyShareSheetProps) {
   const colors = useColors();
-  const [sharing, setSharing] = useState<ShareDestination | 'facebook-post' | 'facebook-story' | null>(null);
-  const [facebookOptionsOpen, setFacebookOptionsOpen] = useState(false);
+  const [sharing, setSharing] = useState<ShareDestination | 'facebook-post' | 'facebook-story' | 'instagram-post' | 'instagram-story' | null>(null);
+  const [socialOptionsOpen, setSocialOptionsOpen] = useState<'facebook' | 'instagram' | null>(null);
 
   const closeSheet = () => {
-    setFacebookOptionsOpen(false);
+    setSocialOptionsOpen(null);
     onClose();
   };
 
@@ -123,23 +124,25 @@ export function PropertyShareSheet({
     }
   };
 
-  const handleFacebookShare = async (choice: 'post' | 'story') => {
+  const handleSocialShare = async (social: 'facebook' | 'instagram', choice: 'post' | 'story') => {
     if (sharing) return;
-    const shareKey = `facebook-${choice}` as const;
+    const shareKey = `${social}-${choice}` as const;
     setSharing(shareKey);
     try {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       if (choice === 'post') {
-        await sharePropertyToSocial(property, 'facebook', captureCard);
-      } else {
+        await sharePropertyToSocial(property, social, captureCard);
+      } else if (social === 'facebook') {
         await sharePropertyToFacebookStory(property, captureCard);
+      } else {
+        await sharePropertyToInstagramStory(property, captureCard);
       }
       closeSheet();
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message.toLowerCase() : '';
       if (!message.includes('cancel') && !message.includes('dismiss')) {
         Alert.alert(
-          choice === 'story' ? 'Facebook Stories is not ready' : 'Could not share property',
+          choice === 'story' ? `${social === 'facebook' ? 'Facebook' : 'Instagram'} Stories is not ready` : 'Could not share property',
           error instanceof Error ? error.message : 'That Facebook sharing option is unavailable right now.',
         );
         await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
@@ -148,6 +151,9 @@ export function PropertyShareSheet({
       setSharing(null);
     }
   };
+
+  const socialLabel = socialOptionsOpen === 'instagram' ? 'INSTAGRAM' : 'FACEBOOK';
+  const socialBrandColor = socialOptionsOpen === 'instagram' ? '#E1306C' : '#1877F2';
 
   return (
     <Modal
