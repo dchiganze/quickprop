@@ -57,6 +57,12 @@ Targeted LinkedIn sharing through `react-native-share.shareSingle` can remain pe
 
 **How to apply:** Keep LinkedIn's web flow as the LinkedIn composer URL, but route iOS and Android through the same generic image share path used by the app's other fallback shares.
 
+For TikTok image sharing on iOS, send only the JPEG in the system share payload and copy the caption separately.
+
+**Why:** TikTok's iOS share extension can hide itself when `react-native-share` includes both an image URL and a second text item, even though the same photo shares from Photos.
+
+**How to apply:** Keep the TikTok path image-only on iOS; preserve the existing image-plus-caption payload on Android and leave the caption on the clipboard for pasting.
+
 Standalone mobile release bundles need an explicit production API URL; do not rely on the development workflow's `EXPO_PUBLIC_DOMAIN` injection.
 
 **Why:** Native release builds can otherwise compile with no API base URL, leaving cloud-only screens such as Matches unable to load while local cached screens still appear normal.
