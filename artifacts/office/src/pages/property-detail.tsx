@@ -90,11 +90,30 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
     window.open(`${window.location.pathname.replace(/\/property\/\d+.*/, '')}/property/${propertyId}/brochure`, '_blank');
   };
 
-  const handleShare = () => {
+  const handleShare = async () => {
     shareProperty.mutate({ id: propertyId, data: { channel: shareChannel } }, {
-      onSuccess: (res) => {
-        toast({ title: 'Share link created', description: 'Link copied to clipboard or opened in app.' });
-        if (res.url) window.open(res.url, '_blank');
+      onSuccess: async (res) => {
+        const shareMessage = [
+          property.title,
+          property.address ? `${property.address}, ${property.suburb}` : property.suburb,
+          `${property.currency} ${property.price.toLocaleString()}`,
+          `View online: ${res.url}`,
+        ].join('\n');
+
+        try {
+          if (shareChannel === 'whatsapp') {
+            window.open(`https://wa.me/?text=${encodeURIComponent(shareMessage)}`, '_blank', 'noopener,noreferrer');
+          } else if (shareChannel === 'email') {
+            window.location.href = `mailto:?subject=${encodeURIComponent(property.title)}&body=${encodeURIComponent(shareMessage)}`;
+          } else if (shareChannel === 'facebook') {
+            window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(res.url)}`, '_blank', 'noopener,noreferrer');
+          } else {
+            await navigator.clipboard.writeText(shareMessage);
+          }
+          toast({ title: 'Property ready to share', description: shareChannel === 'link' ? 'Property details and link copied to clipboard.' : `Opened ${shareChannel}.` });
+        } catch {
+          toast({ title: 'Could not share property', description: 'Please try again.', variant: 'destructive' });
+        }
       }
     });
   };

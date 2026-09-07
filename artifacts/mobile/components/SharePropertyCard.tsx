@@ -21,7 +21,7 @@ export interface SharePropertyCardHandle {
 
 interface SharePropertyCardProps {
   property: Property;
-  catalogueUrl: string;
+  shareUrl: string;
 }
 
 function titleCase(value: string): string {
@@ -77,7 +77,7 @@ function wait(milliseconds: number): Promise<void> {
 }
 
 export const SharePropertyCard = forwardRef<SharePropertyCardHandle, SharePropertyCardProps>(
-  function SharePropertyCard({ property, catalogueUrl }, ref) {
+  function SharePropertyCard({ property, shareUrl }, ref) {
     const viewShotRef = useRef<ViewShot>(null);
     const photoUri = getPrimaryListingPhoto(property);
     const [imageFailed, setImageFailed] = useState(false);
@@ -108,7 +108,7 @@ export const SharePropertyCard = forwardRef<SharePropertyCardHandle, ShareProper
       },
     }), []);
 
-    const displayUrl = catalogueUrl.replace(/^https?:\/\//i, '');
+    const displayUrl = shareUrl.replace(/^https?:\/\//i, '');
     const description = buildShareCardDescription(property);
     const price = formatPrice(property);
     const stats = [
@@ -157,7 +157,7 @@ export const SharePropertyCard = forwardRef<SharePropertyCardHandle, ShareProper
             </Text>
           )}
           <View style={styles.catalogueRow}>
-            <Text style={styles.catalogueLabel}>View my full catalogue</Text>
+            <Text style={styles.catalogueLabel}>View listing online</Text>
             <Text style={styles.catalogueUrl} numberOfLines={2} ellipsizeMode="middle">{displayUrl}</Text>
           </View>
         </View>

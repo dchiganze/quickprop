@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useRef } from 'react';
 import {
-  View, Text, Modal, TouchableOpacity, StyleSheet, Share, Linking,
+  View, Text, Modal, TouchableOpacity, StyleSheet, Share,
   ScrollView, Platform, Pressable, ActivityIndicator, Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -10,6 +10,7 @@ import { useData } from '@/contexts/DataContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Property } from '@/types';
 import { catalogueShareLinks, propertyShareLinks } from '@/utils/shareLinks';
+import { buildCatalogueShareMessage, buildPropertyShareMessage, formatSharePrice } from '@/utils/shareContent';
 import {
   openWhatsAppMessage,
   sharePropertyToWhatsApp,
@@ -25,81 +26,7 @@ interface Props {
 }
 
 function formatPrice(p: Property) {
-  const val =
-    p.price >= 1_000_000
-      ? `${p.currency} ${(p.price / 1_000_000).toFixed(1)}M`
-      : `${p.currency} ${p.price.toLocaleString()}`;
-  return p.type === 'rent' ? `${val}/mo` : val;
-}
-
-function buildPropertyText(p: Property, agentName?: string) {
-  const priceStr = formatPrice(p);
-  const lines: string[] = [
-    `🏠 *${p.type.charAt(0).toUpperCase() + p.type.slice(1)} — ${p.suburb}*`,
-    p.showAddress && p.address ? `📍 ${p.address}, ${p.suburb}` : `📍 ${p.suburb}`,
-    '',
-    `💰 *${priceStr}*${p.negotiable ? ' _(Negotiable)_' : ''}`,
-    '',
-  ];
-  const stats = [
-    p.bedrooms !== undefined && p.bedrooms > 0 && `🛏 ${p.bedrooms} bed`,
-    p.bathrooms !== undefined && p.bathrooms > 0 && `🚿 ${p.bathrooms} bath`,
-    p.garages && p.garages > 0 && `🚗 ${p.garages} garage`,
-  ].filter(Boolean);
-  if (stats.length) lines.push(stats.join('  |  '));
-  if (p.features.length) {
-    lines.push('');
-    lines.push(`✅ ${p.features.slice(0, 6).join(', ')}`);
-  }
-  if (p.description) {
-    lines.push('');
-    lines.push(p.description.slice(0, 180) + (p.description.length > 180 ? '…' : ''));
-  }
-  lines.push('');
-  lines.push(`📋 Ref: *${p.referenceNumber}*`);
-  if (agentName) lines.push(`Agent: ${agentName}`);
-  const links = propertyShareLinks(p);
-  lines.push(`Open in QuickProp Agent: ${links.appUrl}`);
-  lines.push(`View online: ${links.webUrl}`);
-  return lines.join('\n');
-}
-
-function buildCatalogText(props: Property[], mode: CatalogMode, agentName: string | undefined, appUrl: string, catalogUrl: string) {
-  const lines: string[] = [];
-  lines.push('QuickProp — Property Catalogue');
-  lines.push('Your trusted Harare estate agency');
-  if (mode === 'agent' && agentName) lines.push(`Agent: ${agentName}`);
-  lines.push('');
-  const forSale = props.filter(p => p.type === 'sale');
-  const forRent = props.filter(p => p.type === 'rent');
-  if (forSale.length > 0) {
-    lines.push(`For Sale (${forSale.length} properties):`);
-    forSale.slice(0, 8).forEach(p => {
-      const beds = p.bedrooms ? `${p.bedrooms}-bed ` : '';
-      lines.push(`• ${beds}House in ${p.suburb} — ${formatPrice(p)}`);
-      if (p.description.trim()) {
-        const description = p.description.replace(/\s+/g, ' ').trim();
-        lines.push(`  ${description.slice(0, 90)}${description.length > 90 ? '…' : ''}`);
-      }
-    });
-    lines.push('');
-  }
-  if (forRent.length > 0) {
-    lines.push(`To Rent (${forRent.length} properties):`);
-    forRent.slice(0, 5).forEach(p => {
-      const beds = p.bedrooms ? `${p.bedrooms}-bed ` : '';
-      lines.push(`• ${beds}Property in ${p.suburb} — ${formatPrice(p)}`);
-      if (p.description.trim()) {
-        const description = p.description.replace(/\s+/g, ' ').trim();
-        lines.push(`  ${description.slice(0, 90)}${description.length > 90 ? '…' : ''}`);
-      }
-    });
-    lines.push('');
-  }
-  lines.push(`Open in QuickProp Agent: ${appUrl}`);
-  lines.push(`Browse listings online: ${catalogUrl}`);
-  lines.push('Reply to enquire about any property.');
-  return lines.join('\n');
+  return formatSharePrice(p);
 }
 
 export function ShareHubSheet({ visible, onClose }: Props) {
@@ -135,7 +62,6 @@ export function ShareHubSheet({ visible, onClose }: Props) {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       await sharePropertyToWhatsApp(
         p,
-        user?.id ?? p.agentId,
         () => shareCardRef.current?.capture()
           ?? Promise.reject(new Error('Unable to prepare the property image.')),
       );
@@ -154,10 +80,10 @@ export function ShareHubSheet({ visible, onClose }: Props) {
     setSharing(true);
     try {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      await Share.share({
-        title: `${p.type === 'sale' ? 'For Sale' : 'To Rent'} — ${p.suburb}`,
-        message: buildPropertyText(p, user?.name),
-      });
+       await Share.share({
+         title: `${p.type === 'sale' ? 'For Sale' : 'To Rent'} — ${p.suburb}`,
+         message: buildPropertyShareMessage(p, user?.name),
+       });
       handleClose();
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : '';
@@ -178,7 +104,7 @@ export function ShareHubSheet({ visible, onClose }: Props) {
     setSharing(true);
     try {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      const text = buildCatalogText(activeProps, catalogMode, user?.name, catalogLinks.appUrl, catalogUrl);
+      const text = buildCatalogueShareMessage(activeProps, catalogMode, user?.name, user?.id);
       await openWhatsAppMessage(text);
       handleClose();
     } catch (e: unknown) {
@@ -192,7 +118,8 @@ export function ShareHubSheet({ visible, onClose }: Props) {
     setSharing(true);
     try {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      await Linking.openURL(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(catalogUrl)}`);
+      const text = buildCatalogueShareMessage(activeProps, catalogMode, user?.name, user?.id);
+      await Share.share({ title: 'QuickProp Property Catalogue', message: text });
       handleClose();
     } catch (e: unknown) {
       Alert.alert('Could not open Facebook', e instanceof Error ? e.message : 'Please try again.');
@@ -205,7 +132,7 @@ export function ShareHubSheet({ visible, onClose }: Props) {
     setSharing(true);
     try {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      const text = buildCatalogText(activeProps, catalogMode, user?.name, catalogLinks.appUrl, catalogUrl);
+      const text = buildCatalogueShareMessage(activeProps, catalogMode, user?.name, user?.id);
       await Share.share({ title: 'QuickProp Property Catalogue', message: text });
       handleClose();
     } catch (e: unknown) {
@@ -339,7 +266,7 @@ export function ShareHubSheet({ visible, onClose }: Props) {
           </View>
           <View style={s.shareBtnText}>
              <Text style={[s.shareBtnLabel, { color: colors.foreground }]}>Share to WhatsApp</Text>
-             <Text style={[s.shareBtnSub, { color: colors.mutedForeground }]}>Property image + catalogue link</Text>
+              <Text style={[s.shareBtnSub, { color: colors.mutedForeground }]}>Property image + property link</Text>
           </View>
           {sharing ? <ActivityIndicator color={colors.primary} /> : <Ionicons name="chevron-forward" size={16} color={colors.mutedForeground} />}
         </TouchableOpacity>
@@ -477,11 +404,11 @@ export function ShareHubSheet({ visible, onClose }: Props) {
         <Pressable style={[s.sheet, { backgroundColor: colors.card }]} onPress={() => {}}>
           {selectedProperty && (
             <View style={s.shareCardHost} pointerEvents="none">
-              <SharePropertyCard
+                <SharePropertyCard
                 key={selectedProperty.id}
                 ref={shareCardRef}
                 property={selectedProperty}
-                catalogueUrl={catalogueShareLinks(user?.id ?? selectedProperty.agentId).webUrl}
+                 shareUrl={propertyShareLinks(selectedProperty).webUrl}
               />
             </View>
           )}

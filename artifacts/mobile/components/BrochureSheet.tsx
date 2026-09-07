@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   View, Text, Modal, TouchableOpacity, StyleSheet, ActivityIndicator,
-  Pressable, Alert, Share, Linking,
+  Pressable, Alert, Share,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -14,7 +14,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
 import { Property } from '@/types';
 import { singlePropertyBrochureHtml, catalogueBrochureHtml } from '@/utils/brochureHtml';
-import { propertyShareLinks } from '@/utils/shareLinks';
+import { buildPropertyShareMessage } from '@/utils/shareContent';
 import { openWhatsAppMessage } from '@/utils/whatsapp';
 
 type CatalogMode = 'my' | 'company';
@@ -32,41 +32,9 @@ export function PropertyBrochureSheet({ visible, onClose, property }: PropertyBr
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
 
-  const buildTextSummary = () => {
-    const price = property.price >= 1_000_000
-      ? `${property.currency} ${(property.price / 1_000_000).toFixed(2)}M`
-      : `${property.currency} ${property.price.toLocaleString()}`;
-    const priceStr = property.type === 'rent' ? `${price}/mo` : price;
-    const lines = [
-      `🏠 *${property.type.charAt(0).toUpperCase() + property.type.slice(1)} — ${property.suburb}*`,
-      property.showAddress && property.address ? `📍 ${property.address}, ${property.suburb}` : `📍 ${property.suburb}`,
-      '',
-      `💰 *${priceStr}*${property.negotiable ? ' _(Negotiable)_' : ''}`,
-      '',
-    ];
-    const stats = [
-      property.bedrooms !== undefined && `🛏 ${property.bedrooms} bed`,
-      property.bathrooms !== undefined && `🚿 ${property.bathrooms} bath`,
-      property.garages && property.garages > 0 && `🚗 ${property.garages} garage`,
-    ].filter(Boolean);
-    if (stats.length) lines.push(stats.join('  |  '));
-    const sizes = [
-      property.landSize && property.landSize > 0 && `Land: ${property.landSize.toLocaleString()}m²`,
-      property.floorArea && property.floorArea > 0 && `Floor: ${property.floorArea.toLocaleString()}m²`,
-    ].filter(Boolean);
-    if (sizes.length) lines.push(`📐 ${sizes.join('  |  ')}`);
-    if (property.features.length) { lines.push(''); lines.push(`✅ *Features:* ${property.features.join(', ')}`); }
-    if (property.description) { lines.push(''); lines.push(`📝 ${property.description.slice(0, 200)}${property.description.length > 200 ? '…' : ''}`); }
-    const links = propertyShareLinks(property);
-    lines.push(''); lines.push(`📋 Ref: *${property.referenceNumber}*`);
-    lines.push(`Open in QuickProp Agent: ${links.appUrl}`);
-    lines.push(`View online: ${links.webUrl}`);
-    return lines.join('\n');
-  };
-
   const handleShareAsText = () => {
     onClose();
-    const message = buildTextSummary();
+    const message = buildPropertyShareMessage(property, user?.name);
     Alert.alert('Share Listing', 'How would you like to share?', [
       {
         text: 'WhatsApp',

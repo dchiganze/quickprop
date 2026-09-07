@@ -10,7 +10,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useColors } from '@/hooks/useColors';
-import { catalogueShareLinks } from '@/utils/shareLinks';
+import { propertyShareLinks } from '@/utils/shareLinks';
 import { getPrimaryListingPhoto } from '@/utils/listingPhoto';
 import { SharePropertyCard, SharePropertyCardHandle } from '@/components/SharePropertyCard';
 import { PropertyShareSheet } from '@/components/PropertyShareSheet';
@@ -227,7 +227,7 @@ export default function ListingDetailScreen() {
         <SharePropertyCard
           ref={shareCardRef}
           property={property}
-          catalogueUrl={catalogueShareLinks(user?.id ?? property.agentId).webUrl}
+          shareUrl={propertyShareLinks(property).webUrl}
         />
       </View>
       {videoPlayerVisible && property.videoUrl && (
@@ -613,7 +613,6 @@ export default function ListingDetailScreen() {
         visible={shareOptionsOpen}
         onClose={() => setShareOptionsOpen(false)}
         property={property}
-        agentId={user?.id ?? property.agentId}
         captureCard={() => shareCardRef.current?.capture()
           ?? Promise.reject(new Error('Unable to prepare the property image.'))}
       />

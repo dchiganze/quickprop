@@ -3,7 +3,8 @@ import * as Clipboard from 'expo-clipboard';
 import * as Sharing from 'expo-sharing';
 import { Property } from '@/types';
 import { shareProperty } from '@workspace/api-client-react';
-import { catalogueShareLinks, propertyShareLinks } from '@/utils/shareLinks';
+import { propertyShareLinks } from '@/utils/shareLinks';
+import { buildPropertyShareMessage } from '@/utils/shareContent';
 
 /**
  * Share a prefilled text message to WhatsApp.
@@ -39,10 +40,6 @@ export async function openWhatsAppMessage(message: string): Promise<void> {
   await Share.share({ message });
 }
 
-export function buildWhatsAppCatalogueCaption(catalogueUrl: string): string {
-  return `view my whole catalogue here: ${catalogueUrl}`;
-}
-
 async function recordPropertyShare(property: Property): Promise<void> {
   const remoteId = Number(property.id);
   if (Platform.OS === 'web' || !Number.isInteger(remoteId) || remoteId <= 0) return;
@@ -55,11 +52,9 @@ async function recordPropertyShare(property: Property): Promise<void> {
 
 export async function sharePropertyToWhatsApp(
   property: Property,
-  agentId: string | undefined,
   captureCard: () => Promise<string>,
 ): Promise<{ caption: string; sharedPhoto: boolean }> {
-  const catalogueUrl = catalogueShareLinks(agentId).webUrl;
-  const caption = buildWhatsAppCatalogueCaption(catalogueUrl);
+  const caption = buildPropertyShareMessage(property);
   await Clipboard.setStringAsync(caption);
 
   if (Platform.OS === 'web') {
@@ -99,10 +94,6 @@ export async function sharePropertyToWhatsApp(
 
 export type PropertySocialDestination = 'facebook' | 'instagram' | 'linkedin' | 'tiktok';
 
-function buildSocialCaption(property: Property): string {
-  return buildWhatsAppCatalogueCaption(catalogueShareLinks(property.agentId).webUrl);
-}
-
 export async function sharePropertyToSocial(
   property: Property,
   destination: PropertySocialDestination,
@@ -122,7 +113,7 @@ export async function sharePropertyToSocial(
     return;
   }
 
-  const caption = buildSocialCaption(property);
+  const caption = buildPropertyShareMessage(property);
   await Clipboard.setStringAsync(caption).catch(() => {});
 
   if (Platform.OS === 'web') {
@@ -268,7 +259,7 @@ export async function sharePropertyGeneric(
   dialogTitle = 'Share property',
   includeCaption = true,
 ): Promise<void> {
-  const caption = buildSocialCaption(property);
+  const caption = buildPropertyShareMessage(property);
   await Clipboard.setStringAsync(caption).catch(() => {});
 
   if (Platform.OS === 'web') {

@@ -26,7 +26,6 @@ import {
 interface PropertyShareSheetProps {
   visible: boolean;
   property: Property;
-  agentId?: string;
   captureCard: () => Promise<string>;
   onClose: () => void;
 }
@@ -43,7 +42,7 @@ const SHARE_OPTIONS: Array<{
   {
     key: 'whatsapp',
     label: 'WhatsApp',
-    description: 'Image + catalogue link',
+    description: 'Image + property link',
     icon: 'logo-whatsapp',
     color: '#25D366',
   },
@@ -87,7 +86,6 @@ const SHARE_OPTIONS: Array<{
 export function PropertyShareSheet({
   visible,
   property,
-  agentId,
   captureCard,
   onClose,
 }: PropertyShareSheetProps) {
@@ -106,7 +104,7 @@ export function PropertyShareSheet({
     try {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       if (destination === 'whatsapp') {
-        await sharePropertyToWhatsApp(property, agentId ?? property.agentId, captureCard);
+        await sharePropertyToWhatsApp(property, captureCard);
       } else if (destination === 'share') {
         await sharePropertyGeneric(property, captureCard);
       } else {

@@ -51,6 +51,12 @@ For targeted social sharing with react-native-share, keep the destination type n
 
 **How to apply:** Use the library's `Exclude<Social, ...Stories>` type for the destination map while keeping the native import lazy for Expo Go.
 
+Property sharing should use the listing's public URL and listing-specific caption; catalogue URLs belong only to catalogue shares.
+
+**Why:** Reusing an agent catalogue link made individual property shares inconsistent and sent recipients to the wrong destination.
+
+**How to apply:** Build property text and catalogue text separately, and keep rendered property cards labelled with the listing URL.
+
 Targeted LinkedIn sharing through `react-native-share.shareSingle` can remain pending on native when the LinkedIn app or image handoff is unavailable; use the generic system share sheet for LinkedIn image sharing.
 
 **Why:** A pending native bridge promise leaves the share tile loading indefinitely and makes the modal appear frozen.

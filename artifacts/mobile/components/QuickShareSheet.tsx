@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import {
-  View, Text, Modal, TouchableOpacity, StyleSheet, Share, Linking,
+  View, Text, Modal, TouchableOpacity, StyleSheet, Share,
   ScrollView, Platform, Pressable, ActivityIndicator, Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -10,6 +10,7 @@ import { useData } from '@/contexts/DataContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Property } from '@/types';
 import { catalogueShareLinks } from '@/utils/shareLinks';
+import { buildCatalogueShareMessage, formatSharePrice } from '@/utils/shareContent';
 import { openWhatsAppMessage } from '@/utils/whatsapp';
 
 type CatalogMode = 'agent' | 'company';
@@ -20,52 +21,7 @@ interface QuickShareSheetProps {
 }
 
 function formatPrice(p: Property) {
-  const val =
-    p.price >= 1_000_000
-      ? `${p.currency} ${(p.price / 1_000_000).toFixed(1)}M`
-      : `${p.currency} ${p.price.toLocaleString()}`;
-  return p.type === 'rent' ? `${val}/mo` : val;
-}
-
-function buildCatalogText(props: Property[], mode: CatalogMode, agentName: string | undefined, appUrl: string, catalogUrl: string) {
-  const lines: string[] = [];
-  lines.push('QuickProp — Property Catalogue');
-  lines.push('Your trusted Harare estate agency');
-  if (mode === 'agent' && agentName) lines.push(`Agent: ${agentName}`);
-  lines.push('');
-
-  const forSale = props.filter(p => p.type === 'sale');
-  const forRent = props.filter(p => p.type === 'rent');
-
-  if (forSale.length > 0) {
-    lines.push(`For Sale (${forSale.length} properties):`);
-    forSale.slice(0, 8).forEach(p => {
-      const beds = p.bedrooms ? `${p.bedrooms}-bed ` : '';
-      lines.push(`• ${beds}${p.type === 'sale' ? 'House' : 'Property'} in ${p.suburb} — ${formatPrice(p)}`);
-      if (p.description.trim()) {
-        const description = p.description.replace(/\s+/g, ' ').trim();
-        lines.push(`  ${description.slice(0, 90)}${description.length > 90 ? '…' : ''}`);
-      }
-    });
-    lines.push('');
-  }
-  if (forRent.length > 0) {
-    lines.push(`To Rent (${forRent.length} properties):`);
-    forRent.slice(0, 5).forEach(p => {
-      const beds = p.bedrooms ? `${p.bedrooms}-bed ` : '';
-      lines.push(`• ${beds}Property in ${p.suburb} — ${formatPrice(p)}`);
-      if (p.description.trim()) {
-        const description = p.description.replace(/\s+/g, ' ').trim();
-        lines.push(`  ${description.slice(0, 90)}${description.length > 90 ? '…' : ''}`);
-      }
-    });
-    lines.push('');
-  }
-
-  lines.push(`Open in QuickProp Agent: ${appUrl}`);
-  lines.push(`Browse listings online: ${catalogUrl}`);
-  lines.push('Reply to enquire about any property.');
-  return lines.join('\n');
+  return formatSharePrice(p);
 }
 
 export function QuickShareSheet({ visible, onClose }: QuickShareSheetProps) {
@@ -90,7 +46,7 @@ export function QuickShareSheet({ visible, onClose }: QuickShareSheetProps) {
     setSharing(true);
     try {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      const text = buildCatalogText(activeProps, mode, user?.name, catalogLinks.appUrl, catalogUrl);
+       const text = buildCatalogueShareMessage(activeProps, mode, user?.name, mode === 'agent' ? user?.id : undefined);
       await openWhatsAppMessage(text);
       onClose();
     } catch (e: unknown) {
@@ -104,8 +60,8 @@ export function QuickShareSheet({ visible, onClose }: QuickShareSheetProps) {
     setSharing(true);
     try {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      const url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(catalogUrl)}`;
-      await Linking.openURL(url);
+       const text = buildCatalogueShareMessage(activeProps, mode, user?.name, mode === 'agent' ? user?.id : undefined);
+       await Share.share({ title: 'QuickProp Property Catalogue', message: text });
       onClose();
     } catch (e: unknown) {
       Alert.alert('Could not open Facebook', e instanceof Error ? e.message : 'Please try again.');
@@ -118,7 +74,7 @@ export function QuickShareSheet({ visible, onClose }: QuickShareSheetProps) {
     setSharing(true);
     try {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      const text = buildCatalogText(activeProps, mode, user?.name, catalogLinks.appUrl, catalogUrl);
+       const text = buildCatalogueShareMessage(activeProps, mode, user?.name, mode === 'agent' ? user?.id : undefined);
       await Share.share({
         title: 'QuickProp Property Catalogue',
         message: text,
@@ -136,7 +92,7 @@ export function QuickShareSheet({ visible, onClose }: QuickShareSheetProps) {
     setSharing(true);
     try {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      const text = buildCatalogText(activeProps, mode, user?.name, catalogLinks.appUrl, catalogUrl);
+       const text = buildCatalogueShareMessage(activeProps, mode, user?.name, mode === 'agent' ? user?.id : undefined);
       await Share.share({
         title: 'QuickProp Property Catalogue',
         message: text,

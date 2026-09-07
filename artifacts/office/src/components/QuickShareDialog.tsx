@@ -101,24 +101,31 @@ export function QuickShareDialog() {
     window.open(url, '_blank', 'noopener,noreferrer');
   }, [publicProps, mode, user?.name, catalogUrl]);
 
-  const shareToFacebook = useCallback(() => {
+  const shareToFacebook = useCallback(async () => {
+    const text = buildWhatsAppText(publicProps, mode, user?.name, catalogUrl);
+    await navigator.clipboard.writeText(text).catch(() => {});
     const url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(catalogUrl)}`;
     window.open(url, '_blank', 'noopener,noreferrer');
-  }, [catalogUrl]);
+    toast({
+      title: 'Facebook ready to share',
+      description: 'The catalogue link is open and the full caption is copied to your clipboard.',
+    });
+  }, [publicProps, mode, user?.name, catalogUrl, toast]);
 
   const copyForInstagram = useCallback(async () => {
     try {
-      await navigator.clipboard.writeText(catalogUrl);
+      const text = buildWhatsAppText(publicProps, mode, user?.name, catalogUrl);
+      await navigator.clipboard.writeText(text);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
       toast({
-        title: 'Link copied',
-        description: 'Paste the link in your Instagram bio or story.',
+        title: 'Catalogue caption copied',
+        description: 'Paste the full catalogue caption and link into Instagram.',
       });
     } catch {
       toast({ title: 'Could not copy', variant: 'destructive' });
     }
-  }, [catalogUrl, toast]);
+  }, [publicProps, mode, user?.name, catalogUrl, toast]);
 
   const suburbList = [...new Set(publicProps.map(p => p.suburb))].slice(0, 4).join(', ');
 
@@ -297,7 +304,7 @@ export function QuickShareDialog() {
             </div>
             <div className="flex-1">
               <p className="text-sm font-medium text-foreground">Instagram</p>
-              <p className="text-xs text-muted-foreground">Copy link — paste in your bio or story</p>
+              <p className="text-xs text-muted-foreground">Copy caption + link for Instagram</p>
             </div>
             {copied
               ? <Check className="w-4 h-4 text-green-500" />

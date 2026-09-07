@@ -104,15 +104,29 @@ export default function PropertyDetail() {
     }
   };
 
-  const handleShare = () => {
-    if (navigator.share) {
-      navigator.share({
-        title: data?.property?.title,
-        url: window.location.href,
-      });
-    } else {
-      navigator.clipboard.writeText(window.location.href);
-      toast({ description: "Link copied to clipboard" });
+  const handleShare = async () => {
+    const shareUrl = window.location.href;
+    const shareText = [
+      data?.property?.title,
+      data?.property?.address ? `${data.property.address}, ${data.property.suburb}` : data?.property?.suburb,
+      `${formatPrice(data?.property?.lowestPrice ?? data?.property?.price ?? 0, data?.property?.currency ?? "")}`,
+    ].filter(Boolean).join("\n");
+
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: data?.property?.title,
+          text: `${shareText}\n\nView online: ${shareUrl}`,
+          url: shareUrl,
+        });
+        return;
+      }
+
+      await navigator.clipboard.writeText(`${shareText}\n\nView online: ${shareUrl}`);
+      toast({ description: "Property details and link copied to clipboard" });
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") return;
+      toast({ variant: "destructive", description: "Could not share this property. Please try again." });
     }
   };
 
