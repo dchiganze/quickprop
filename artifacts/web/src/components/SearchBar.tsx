@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useLocation, useSearch } from "wouter";
-import { Search, SlidersHorizontal, Sparkles } from "lucide-react";
+import { Search, SlidersHorizontal } from "lucide-react";
 import { FiltersSheet, FilterState, EMPTY_FILTERS } from "@/components/FiltersSheet";
-import { QuickSearchDialog } from "@/components/QuickSearchDialog";
 
 const TABS = [
   { value: "sale", label: "Buy" },
@@ -74,7 +73,6 @@ export function SearchBar({ compact = false }: SearchBarProps) {
   const [q, setQ] = useState("");
   const [filters, setFilters] = useState<FilterState>(EMPTY_FILTERS);
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [quickSearchOpen, setQuickSearchOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Sync from URL on mount and when URL changes
@@ -128,8 +126,6 @@ export function SearchBar({ compact = false }: SearchBarProps) {
         initialFilters={filters}
         onApply={handleFiltersApply}
       />
-      <QuickSearchDialog open={quickSearchOpen} onOpenChange={setQuickSearchOpen} />
-
       <div className={compact ? "" : "w-full"}>
         {/* Tab row */}
         <div className={`flex border-b border-gray-200 ${compact ? "bg-white" : "bg-white/95"}`}>
@@ -187,15 +183,6 @@ export function SearchBar({ compact = false }: SearchBarProps) {
             Search
           </button>
 
-          {/* Quick search */}
-          <button
-            onClick={() => setQuickSearchOpen(true)}
-            title="Quick search with AI"
-            className="flex items-center gap-1.5 px-3 py-2.5 rounded-full border border-primary/30 bg-emerald-50 text-primary text-sm font-medium hover:bg-emerald-100 transition-all shadow-sm whitespace-nowrap"
-          >
-            <Sparkles className="h-4 w-4" />
-            <span className="hidden sm:inline">Quick search</span>
-          </button>
         </div>
       </div>
     </>
