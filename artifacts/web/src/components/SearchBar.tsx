@@ -3,7 +3,7 @@ import { useLocation, useSearch } from "wouter";
 import { MapPin, Search, SlidersHorizontal, Sparkles, X } from "lucide-react";
 import { FiltersSheet, FilterState, EMPTY_FILTERS } from "@/components/FiltersSheet";
 import { QuickSearchDialog } from "@/components/QuickSearchDialog";
-import { ZIMBABWE_SUBURBS } from "@/data/zimbabwe-suburbs";
+import { ZIMBABWE_LOCATIONS } from "@/data/zimbabwe-suburbs";
 
 const TABS = [
   { value: "sale", label: "Buy" },
@@ -127,8 +127,8 @@ export function SearchBar({ compact = false }: SearchBarProps) {
   const locationSuggestions = useMemo(() => {
     const query = q.trim().toLocaleLowerCase();
     const matching = query
-      ? ZIMBABWE_SUBURBS.filter((suburb) => suburb.toLocaleLowerCase().includes(query))
-      : ZIMBABWE_SUBURBS;
+      ? ZIMBABWE_LOCATIONS.filter((location) => location.toLocaleLowerCase().includes(query))
+      : ZIMBABWE_LOCATIONS;
     return matching.slice(0, 8);
   }, [q]);
 
