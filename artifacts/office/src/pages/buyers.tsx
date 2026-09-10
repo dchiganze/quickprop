@@ -169,11 +169,11 @@ function AddBuyerDialog() {
           <div className="grid grid-cols-2 gap-4">
             <div className="grid gap-2">
               <Label htmlFor="b-bmin">Budget Min (USD)</Label>
-              <Input id="b-bmin" type="number" value={form.budgetMin} onChange={(e) => setForm({ ...form, budgetMin: e.target.value })} />
+              <Input id="b-bmin" inputMode="decimal" value={form.budgetMin} onChange={(e) => setForm({ ...form, budgetMin: e.target.value })} />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="b-bmax">Budget Max (USD)</Label>
-              <Input id="b-bmax" type="number" value={form.budgetMax} onChange={(e) => setForm({ ...form, budgetMax: e.target.value })} />
+              <Input id="b-bmax" inputMode="decimal" value={form.budgetMax} onChange={(e) => setForm({ ...form, budgetMax: e.target.value })} />
             </div>
           </div>
           <div className="grid gap-2">
@@ -194,7 +194,7 @@ function AddBuyerDialog() {
             </div>
             <div className="grid gap-2">
               <Label htmlFor="b-beds">Min Bedrooms</Label>
-              <Input id="b-beds" type="number" value={form.bedroomsMin} onChange={(e) => setForm({ ...form, bedroomsMin: e.target.value })} />
+              <Input id="b-beds" inputMode="numeric" value={form.bedroomsMin} onChange={(e) => setForm({ ...form, bedroomsMin: e.target.value })} />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">

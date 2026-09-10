@@ -140,9 +140,7 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
               <label htmlFor="sale-price" className="text-sm font-medium">Final sale price ({property.currency})</label>
               <Input
                 id="sale-price"
-                type="number"
-                min="0.01"
-                step="0.01"
+                inputMode="decimal"
                 value={salePrice}
                 onChange={(event) => setSalePrice(event.target.value)}
                 placeholder="Enter sale price"

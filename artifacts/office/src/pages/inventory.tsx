@@ -157,15 +157,15 @@ function AddPropertyDialog() {
           <div className="grid grid-cols-3 gap-4">
             <div className="grid gap-2">
               <Label htmlFor="np-price">Price (USD)</Label>
-              <Input id="np-price" data-testid="input-property-price" type="number" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} />
+              <Input id="np-price" data-testid="input-property-price" inputMode="decimal" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="np-beds">Bedrooms</Label>
-              <Input id="np-beds" type="number" value={form.bedrooms} onChange={(e) => setForm({ ...form, bedrooms: e.target.value })} />
+              <Input id="np-beds" inputMode="numeric" value={form.bedrooms} onChange={(e) => setForm({ ...form, bedrooms: e.target.value })} />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="np-baths">Bathrooms</Label>
-              <Input id="np-baths" type="number" value={form.bathrooms} onChange={(e) => setForm({ ...form, bathrooms: e.target.value })} />
+              <Input id="np-baths" inputMode="numeric" value={form.bathrooms} onChange={(e) => setForm({ ...form, bathrooms: e.target.value })} />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">

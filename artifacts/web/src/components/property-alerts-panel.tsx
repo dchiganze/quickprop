@@ -208,8 +208,8 @@ function AlertForm({
       <div>
         <FieldLabel>{form.transactionType === "rent" ? "Monthly budget" : "Purchase budget"}</FieldLabel>
         <div className="mt-2 grid grid-cols-2 gap-3">
-          <Input type="number" min="0" value={form.minPrice} onChange={(event) => update("minPrice", event.target.value)} placeholder="Minimum" aria-label="Minimum price" />
-          <Input type="number" min="0" value={form.maxPrice} onChange={(event) => update("maxPrice", event.target.value)} placeholder="Maximum" aria-label="Maximum price" />
+          <Input inputMode="numeric" value={form.minPrice} onChange={(event) => update("minPrice", event.target.value)} placeholder="Minimum" aria-label="Minimum price" />
+          <Input inputMode="numeric" value={form.maxPrice} onChange={(event) => update("maxPrice", event.target.value)} placeholder="Maximum" aria-label="Maximum price" />
         </div>
       </div>
 
