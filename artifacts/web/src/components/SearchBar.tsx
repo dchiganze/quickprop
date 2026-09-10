@@ -177,15 +177,6 @@ export function SearchBar({ compact = false }: SearchBarProps) {
             )}
           </button>
 
-          {/* Search button */}
-          <button
-            onClick={handleSearch}
-            className="flex items-center gap-2 px-6 py-2.5 rounded-full bg-primary text-white text-sm font-bold hover:bg-primary/90 transition-all shadow-sm whitespace-nowrap"
-          >
-            <Search className="h-4 w-4" />
-            Search
-          </button>
-
           {/* Quick search */}
           <button
             onClick={() => setQuickSearchOpen(true)}
