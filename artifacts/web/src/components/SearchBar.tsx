@@ -168,7 +168,7 @@ export function SearchBar({ compact = false }: SearchBarProps) {
       <QuickSearchDialog open={quickSearchOpen} onOpenChange={setQuickSearchOpen} />
       <div className={compact ? "" : "w-full"}>
         {/* Tab row */}
-        <div className={`flex overflow-x-auto border-b border-gray-200 ${compact ? "bg-white" : "bg-white/95"}`}>
+        <div className={`flex flex-wrap border-b border-gray-200 ${compact ? "bg-white" : "bg-white/95"}`}>
           {TABS.map((tab) => (
             <button
               key={tab.value}
