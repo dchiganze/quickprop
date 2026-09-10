@@ -16,6 +16,7 @@ export default function Search() {
   const [params, setParams] = useState({
     listingType: "",
     propertyType: "",
+    suburb: "",
     q: "",
     minPrice: "",
     maxPrice: "",
@@ -31,6 +32,7 @@ export default function Search() {
     setParams({
       listingType: p.get("listingType") || "",
       propertyType: p.get("propertyType") || "",
+      suburb: p.get("suburb") || "",
       q: p.get("q") || "",
       minPrice: p.get("minPrice") || "",
       maxPrice: p.get("maxPrice") || "",
@@ -53,6 +55,7 @@ export default function Search() {
   const { data, isLoading } = useListPublicProperties({
     listingType: params.listingType || undefined,
     propertyType: params.propertyType || undefined,
+    suburb: params.suburb || undefined,
     q: params.q || undefined,
     minPrice: params.minPrice ? parseInt(params.minPrice) : undefined,
     maxPrice: params.maxPrice ? parseInt(params.maxPrice) : undefined,
