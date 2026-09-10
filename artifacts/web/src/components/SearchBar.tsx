@@ -185,7 +185,7 @@ export function SearchBar({ compact = false }: SearchBarProps) {
         </div>
 
         {/* Search row */}
-        <div className={`flex flex-wrap items-center gap-2 sm:gap-3 ${compact ? "py-3 px-0" : "py-4"}`}>
+        <div className={`flex flex-wrap items-center gap-2 px-2 sm:gap-3 sm:px-3 ${compact ? "py-3" : "py-4"}`}>
           {/* Search input */}
           <div className="relative min-w-0 basis-full sm:basis-auto sm:flex-1">
             <div className="flex min-h-[44px] flex-wrap items-center gap-2 border border-gray-200 rounded-full px-4 py-2.5 bg-white focus-within:ring-2 focus-within:ring-primary/30 focus-within:border-primary transition-all shadow-sm">
