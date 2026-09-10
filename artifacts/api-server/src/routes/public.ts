@@ -88,7 +88,14 @@ router.get("/public/properties", async (req, res): Promise<void> => {
   const conditions = [inArray(propertiesTable.status, PUBLIC_STATUSES)];
   if (listingType) conditions.push(eq(propertiesTable.listingType, listingType));
   if (propertyType) conditions.push(eq(propertiesTable.propertyType, propertyType));
-  if (suburb) conditions.push(ilike(propertiesTable.suburb, `%${suburb}%`));
+  if (suburb) {
+    const suburbs = suburb.split(",").map((value) => value.trim()).filter(Boolean);
+    if (suburbs.length > 0) {
+      conditions.push(
+        or(...suburbs.map((value) => ilike(propertiesTable.suburb, `%${value}%`)))!,
+      );
+    }
+  }
   if (city) conditions.push(ilike(propertiesTable.city, `%${city}%`));
   if (minPrice) conditions.push(gte(propertiesTable.price, parseFloat(minPrice)));
   if (maxPrice) conditions.push(lte(propertiesTable.price, parseFloat(maxPrice)));
