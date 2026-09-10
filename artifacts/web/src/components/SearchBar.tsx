@@ -271,9 +271,10 @@ export function SearchBar({ compact = false }: SearchBarProps) {
           <button
             onClick={() => setQuickSearchOpen(true)}
             title="Quick search with AI"
-            className="flex min-w-0 flex-1 items-center justify-center gap-1.5 px-2 py-2.5 rounded-full border border-primary/30 bg-emerald-50 text-primary text-sm font-medium hover:bg-emerald-100 transition-all shadow-sm whitespace-nowrap sm:flex-none sm:px-3"
+            className="flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-2 py-2.5 rounded-full border border-primary/30 bg-emerald-50 text-primary text-sm font-medium hover:bg-emerald-100 transition-all shadow-sm whitespace-nowrap sm:flex-none sm:flex-row sm:gap-1.5 sm:px-3"
           >
-            <Sparkles className="h-4 w-4" />
+            <Sparkles className="hidden h-4 w-4 sm:block" />
+            <span className="text-center leading-[1.05] sm:hidden">Quick<br />Search</span>
             <span className="hidden sm:inline">Quick search</span>
           </button>
         </div>
