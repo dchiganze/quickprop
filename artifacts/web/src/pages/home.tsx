@@ -32,7 +32,7 @@ export default function Home() {
           >
             {/* Subtle overlay so the white card pops */}
             <div className="absolute inset-0 bg-black/20 pointer-events-none" />
-            <div className="relative z-10 px-6 flex items-center" style={{ minHeight: "300px" }}>
+            <div className="relative z-10 px-3 flex items-center sm:px-6" style={{ minHeight: "300px" }}>
               <div className="bg-white rounded-xl shadow-lg w-full">
                 <SearchBar />
               </div>

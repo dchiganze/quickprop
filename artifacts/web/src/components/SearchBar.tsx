@@ -168,12 +168,12 @@ export function SearchBar({ compact = false }: SearchBarProps) {
       <QuickSearchDialog open={quickSearchOpen} onOpenChange={setQuickSearchOpen} />
       <div className={compact ? "" : "w-full"}>
         {/* Tab row */}
-        <div className={`flex border-b border-gray-200 ${compact ? "bg-white" : "bg-white/95"}`}>
+        <div className={`flex overflow-x-auto border-b border-gray-200 ${compact ? "bg-white" : "bg-white/95"}`}>
           {TABS.map((tab) => (
             <button
               key={tab.value}
               onClick={() => handleTabClick(tab.value)}
-              className={`px-5 py-3 text-sm font-semibold transition-colors border-b-2 -mb-px ${
+                className={`shrink-0 px-4 py-3 text-sm font-semibold transition-colors border-b-2 -mb-px sm:px-5 ${
                 activeTab === tab.value
                   ? "border-primary text-primary"
                   : "border-transparent text-gray-500 hover:text-gray-800"
@@ -185,9 +185,9 @@ export function SearchBar({ compact = false }: SearchBarProps) {
         </div>
 
         {/* Search row */}
-        <div className={`flex items-center gap-3 ${compact ? "py-3 px-0" : "py-4"}`}>
+        <div className={`flex flex-wrap items-center gap-2 sm:gap-3 ${compact ? "py-3 px-0" : "py-4"}`}>
           {/* Search input */}
-          <div className="relative flex-1">
+          <div className="relative min-w-0 basis-full sm:basis-auto sm:flex-1">
             <div className="flex min-h-[44px] flex-wrap items-center gap-2 border border-gray-200 rounded-full px-4 py-2.5 bg-white focus-within:ring-2 focus-within:ring-primary/30 focus-within:border-primary transition-all shadow-sm">
               <Search className="h-4 w-4 text-gray-400 shrink-0" />
               {selectedSuburbs.map((suburb) => (
@@ -247,7 +247,7 @@ export function SearchBar({ compact = false }: SearchBarProps) {
           {/* Filters pill */}
           <button
             onClick={() => setFiltersOpen(true)}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-full border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:border-gray-400 hover:bg-gray-50 transition-all shadow-sm whitespace-nowrap"
+            className="flex min-w-0 flex-1 items-center justify-center gap-2 px-3 py-2.5 rounded-full border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:border-gray-400 hover:bg-gray-50 transition-all shadow-sm whitespace-nowrap sm:flex-none sm:px-4"
           >
             <SlidersHorizontal className="h-4 w-4" />
             Filters
@@ -261,7 +261,7 @@ export function SearchBar({ compact = false }: SearchBarProps) {
           {/* Search button */}
           <button
             onClick={handleSearch}
-            className="flex items-center gap-2 px-6 py-2.5 rounded-full bg-primary text-white text-sm font-bold hover:bg-primary/90 transition-all shadow-sm whitespace-nowrap"
+            className="flex min-w-0 flex-1 items-center justify-center gap-2 px-4 py-2.5 rounded-full bg-primary text-white text-sm font-bold hover:bg-primary/90 transition-all shadow-sm whitespace-nowrap sm:flex-none sm:px-6"
           >
             <Search className="h-4 w-4" />
             Search
@@ -271,7 +271,7 @@ export function SearchBar({ compact = false }: SearchBarProps) {
           <button
             onClick={() => setQuickSearchOpen(true)}
             title="Quick search with AI"
-            className="flex items-center gap-1.5 px-3 py-2.5 rounded-full border border-primary/30 bg-emerald-50 text-primary text-sm font-medium hover:bg-emerald-100 transition-all shadow-sm whitespace-nowrap"
+            className="flex min-w-0 flex-1 items-center justify-center gap-1.5 px-2 py-2.5 rounded-full border border-primary/30 bg-emerald-50 text-primary text-sm font-medium hover:bg-emerald-100 transition-all shadow-sm whitespace-nowrap sm:flex-none sm:px-3"
           >
             <Sparkles className="h-4 w-4" />
             <span className="hidden sm:inline">Quick search</span>
