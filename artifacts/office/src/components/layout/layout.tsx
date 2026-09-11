@@ -49,7 +49,7 @@ function NotificationsDropdown() {
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/50">
+        <Button variant="ghost" size="icon" className="relative bg-[#1f3554] text-white hover:bg-[#162a45] hover:text-white">
           <Bell className="w-5 h-5" />
           {unreadCount > 0 && (
             <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-destructive rounded-full" />
