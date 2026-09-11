@@ -53,15 +53,15 @@ export default function BrochureCatalog() {
     return [...ids].map(id => agentMap[id as number]).filter(Boolean);
   }, [mode, properties, agentMap]);
 
+  const agencyName = agencySettings?.agencyName || 'QuickProp';
   const titleLine = mode === 'my'
     ? `${currentUser?.name ?? 'Agent'}'s Property Catalogue`
     : mode === 'custom' && customAgentNames.length > 0
       ? customAgentNames.join(', ') + ' — Property Catalogue'
-      : 'Company Property Catalogue';
+      : `${agencyName} Catalogue`;
 
   const forSale = properties.filter(p => p.listingType === 'sale');
   const forRent = properties.filter(p => p.listingType === 'rent');
-  const agencyName = agencySettings?.agencyName || 'QuickProp';
   const agencyLogo = agencySettings?.logoUrl;
 
   if (isLoading) {
