@@ -440,6 +440,8 @@ export interface Property {
   city: string;
   /** @nullable */
   address?: string | null;
+  /** Whether the full property address may be shown on the public website. */
+  addressVisible?: boolean;
   /** @nullable */
   bedrooms?: number | null;
   /** @nullable */
@@ -527,6 +529,8 @@ export interface PropertyInput {
   suburb: string;
   city: string;
   address?: string;
+  /** Whether the full property address may be shown on the public website. */
+  addressVisible?: boolean;
   bedrooms?: number;
   bathrooms?: number;
   parking?: number;
@@ -563,6 +567,8 @@ export interface PropertyUpdate {
   suburb?: string;
   city?: string;
   address?: string;
+  /** Whether the full property address may be shown on the public website. */
+  addressVisible?: boolean;
   bedrooms?: number;
   bathrooms?: number;
   parking?: number;

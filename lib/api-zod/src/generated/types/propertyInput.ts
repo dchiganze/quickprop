@@ -19,6 +19,8 @@ export interface PropertyInput {
   suburb: string;
   city: string;
   address?: string;
+  /** Whether the full property address may be shown on the public website. */
+  addressVisible?: boolean;
   bedrooms?: number;
   bathrooms?: number;
   parking?: number;

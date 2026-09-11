@@ -2292,6 +2292,7 @@ components:
         suburb: { type: string }
         city: { type: string }
         address: { type: ["string", "null"] }
+        addressVisible: { type: boolean, description: "Whether the full property address may be shown on the public website." }
         bedrooms: { type: ["integer", "null"] }
         bathrooms: { type: ["integer", "null"] }
         parking: { type: ["integer", "null"] }
@@ -2356,6 +2357,7 @@ components:
         suburb: { type: string }
         city: { type: string }
         address: { type: string }
+        addressVisible: { type: boolean, description: "Whether the full property address may be shown on the public website." }
         bedrooms: { type: integer }
         bathrooms: { type: integer }
         parking: { type: integer }
@@ -2398,6 +2400,7 @@ components:
         suburb: { type: string }
         city: { type: string }
         address: { type: string }
+        addressVisible: { type: boolean, description: "Whether the full property address may be shown on the public website." }
         bedrooms: { type: integer }
         bathrooms: { type: integer }
         parking: { type: integer }

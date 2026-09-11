@@ -18,6 +18,7 @@ import {
 
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -56,7 +57,7 @@ function AddPropertyDialog() {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
     title: '', propertyType: 'house', listingType: 'sale', price: '', suburb: '', city: 'Harare',
-    bedrooms: '', bathrooms: '', description: '', proposedViewingTimes: [] as string[],
+    address: '', addressVisible: false, bedrooms: '', bathrooms: '', description: '', proposedViewingTimes: [] as string[],
   });
   const [viewingDates, setViewingDates] = useState<ViewingDateOption[]>([{ id: 1, date: tomorrowDate(), times: [] }]);
   const [nextViewingDateId, setNextViewingDateId] = useState(2);
@@ -76,7 +77,7 @@ function AddPropertyDialog() {
         queryClient.invalidateQueries({ queryKey: getGetPipelineQueryKey() });
         toast({ title: 'Mandate created', description: `${created.reference} — ${created.title}` });
         setOpen(false);
-         setForm({ title: '', propertyType: 'house', listingType: 'sale', price: '', suburb: '', city: 'Harare', bedrooms: '', bathrooms: '', description: '', proposedViewingTimes: [] });
+         setForm({ title: '', propertyType: 'house', listingType: 'sale', price: '', suburb: '', city: 'Harare', address: '', addressVisible: false, bedrooms: '', bathrooms: '', description: '', proposedViewingTimes: [] });
          setPhotoFiles([]);
          setVideoFile(null);
          setUploadError('');
@@ -209,6 +210,8 @@ function AddPropertyDialog() {
         price: Number(form.price),
         suburb: form.suburb,
         city: form.city || 'Harare',
+        address: form.address.trim() || undefined,
+        addressVisible: Boolean(form.address.trim() && form.addressVisible),
         bedrooms: form.bedrooms ? Number(form.bedrooms) : undefined,
         bathrooms: form.bathrooms ? Number(form.bathrooms) : undefined,
         description: form.description || undefined,
@@ -219,7 +222,7 @@ function AddPropertyDialog() {
       try {
         const duplicate = await duplicateCheck.mutateAsync({
           data: {
-            address: form.suburb,
+            address: form.address || form.suburb,
             suburb: form.suburb,
             city: form.city || 'Harare',
             propertyType: form.propertyType,
@@ -329,6 +332,35 @@ function AddPropertyDialog() {
             <div className="grid gap-2">
               <Label htmlFor="np-city">City</Label>
               <Input id="np-city" value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} />
+            </div>
+          </div>
+          <div className="grid gap-3 rounded-lg border border-border bg-muted/30 p-4">
+            <div className="grid gap-2">
+              <Label htmlFor="np-address">Property address <span className="font-normal text-muted-foreground">(optional)</span></Label>
+              <Input
+                id="np-address"
+                value={form.address}
+                onChange={(e) => setForm({ ...form, address: e.target.value, addressVisible: e.target.value.trim() ? form.addressVisible : false })}
+                placeholder="e.g. 15 Crowhill Road"
+              />
+              <p className="text-xs text-muted-foreground">
+                Add the full street address privately, then choose whether buyers can see it.
+              </p>
+            </div>
+            <div className="flex items-center justify-between gap-4 rounded-md border bg-background px-3 py-2.5">
+              <div className="min-w-0">
+                <Label htmlFor="np-address-visible" className="text-sm">Show address on website</Label>
+                <p className="text-xs text-muted-foreground">
+                  {form.addressVisible ? 'Buyers will see the full address.' : 'The website will show the suburb and city only.'}
+                </p>
+              </div>
+              <Switch
+                id="np-address-visible"
+                checked={form.addressVisible}
+                disabled={!form.address.trim()}
+                onCheckedChange={(checked) => setForm({ ...form, addressVisible: checked })}
+                aria-label="Show property address on website"
+              />
             </div>
           </div>
           <div className="grid gap-2">

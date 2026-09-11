@@ -35,6 +35,8 @@ export interface Property {
   city: string;
   /** @nullable */
   address?: string | null;
+  /** Whether the full property address may be shown on the public website. */
+  addressVisible?: boolean;
   /** @nullable */
   bedrooms?: number | null;
   /** @nullable */

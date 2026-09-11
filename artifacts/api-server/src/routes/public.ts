@@ -31,8 +31,8 @@ export async function currentBuyer(req: Request) {
 
 function stripPrivate(p: typeof propertiesTable.$inferSelect) {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { privateNotes, commissionPercent, sellerId, mandateType, mandateStart, mandateExpiry, pipelineStage, hasBrochure, shares, ...pub } = p;
-  return pub;
+  const { privateNotes, commissionPercent, sellerId, mandateType, mandateStart, mandateExpiry, pipelineStage, hasBrochure, shares, addressVisible, ...pub } = p;
+  return { ...pub, address: addressVisible ? p.address : null };
 }
 
 async function agentWithBranch(agentId: number | null) {
