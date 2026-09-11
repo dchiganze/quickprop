@@ -23,21 +23,25 @@ export default function CalendarPage() {
   };
 
   return (
-    <div className="p-8 max-w-[1200px] mx-auto space-y-6">
+    <div className="p-4 sm:p-8 max-w-[1200px] mx-auto space-y-6">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Viewings Calendar</h1>
         <p className="text-muted-foreground mt-1">Schedule and manage property viewings.</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-1">
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(20rem,1fr)_minmax(0,2fr)] gap-8">
+        <div className="min-w-0">
           <Card className="shadow-sm">
-            <CardContent className="p-4">
+            <CardContent className="p-4 sm:p-6">
               <Calendar
                 mode="single"
                 selected={date}
                 onSelect={setDate}
-                className="rounded-md border-0 mx-auto"
+                className="w-full max-w-none rounded-md border-0 mx-auto [--cell-size:3rem] sm:[--cell-size:3.25rem] lg:[--cell-size:2.75rem]"
+                classNames={{
+                  root: 'w-full',
+                  month: 'w-full',
+                }}
               />
             </CardContent>
           </Card>
