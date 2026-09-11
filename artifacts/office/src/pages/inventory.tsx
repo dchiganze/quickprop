@@ -30,8 +30,6 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 
-const VIEWING_TIME_OPTIONS = ['09:00', '11:00', '14:00', '16:00'];
-
 function tomorrowDate() {
   const date = new Date();
   date.setDate(date.getDate() + 1);
@@ -51,6 +49,7 @@ function dateWithOffset(days: number) {
 type ViewingDateOption = {
   id: number;
   date: string;
+  times: string[];
 };
 
 function AddPropertyDialog() {
@@ -59,8 +58,9 @@ function AddPropertyDialog() {
     title: '', propertyType: 'house', listingType: 'sale', price: '', suburb: '', city: 'Harare',
     bedrooms: '', bathrooms: '', description: '', proposedViewingTimes: [] as string[],
   });
-  const [viewingDates, setViewingDates] = useState<ViewingDateOption[]>([{ id: 1, date: tomorrowDate() }]);
+  const [viewingDates, setViewingDates] = useState<ViewingDateOption[]>([{ id: 1, date: tomorrowDate(), times: [] }]);
   const [nextViewingDateId, setNextViewingDateId] = useState(2);
+  const [timeInputs, setTimeInputs] = useState<Record<number, string>>({ 1: '' });
   const [photoFiles, setPhotoFiles] = useState<File[]>([]);
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [uploadError, setUploadError] = useState('');
@@ -80,8 +80,9 @@ function AddPropertyDialog() {
          setPhotoFiles([]);
          setVideoFile(null);
          setUploadError('');
-         setViewingDates([{ id: 1, date: tomorrowDate() }]);
+         setViewingDates([{ id: 1, date: tomorrowDate(), times: [] }]);
          setNextViewingDateId(2);
+         setTimeInputs({ 1: '' });
       },
       onError: () => toast({ title: 'Could not create property', variant: 'destructive' }),
     },
@@ -89,14 +90,27 @@ function AddPropertyDialog() {
   const duplicateCheck = useCheckPropertyDuplicate();
   const addAgency = useAddPropertyAgencyRelationship();
 
-  const toggleViewingTime = (date: string, time: string) => {
-    const slot = viewingSlot(date, time);
-    setForm((current) => ({
-      ...current,
-      proposedViewingTimes: current.proposedViewingTimes.includes(slot)
-        ? current.proposedViewingTimes.filter((value) => value !== slot)
-        : [...current.proposedViewingTimes, slot].sort(),
-    }));
+  const selectedViewingTimes = viewingDates
+    .flatMap((option) => option.times.map((time) => viewingSlot(option.date, time)))
+    .sort();
+
+  const addViewingTime = (id: number) => {
+    const time = timeInputs[id];
+    if (!time) return;
+    setViewingDates((current) => current.map((option) => (
+      option.id === id && !option.times.includes(time)
+        ? { ...option, times: [...option.times, time].sort() }
+        : option
+    )));
+    setTimeInputs((current) => ({ ...current, [id]: '' }));
+  };
+
+  const removeViewingTime = (id: number, time: string) => {
+    setViewingDates((current) => current.map((option) => (
+      option.id === id
+        ? { ...option, times: option.times.filter((value) => value !== time) }
+        : option
+    )));
   };
 
   const updateViewingDate = (id: number, date: string) => {
@@ -108,11 +122,6 @@ function AddPropertyDialog() {
     const previousDate = viewingDates.find((option) => option.id === id)?.date;
     setViewingDates((current) => current.map((option) => option.id === id ? { ...option, date } : option));
     if (previousDate && previousDate !== date) {
-      const slotsToRemove = new Set(VIEWING_TIME_OPTIONS.map((time) => viewingSlot(previousDate, time)));
-      setForm((current) => ({
-        ...current,
-        proposedViewingTimes: current.proposedViewingTimes.filter((slot) => !slotsToRemove.has(slot)),
-      }));
     }
   };
 
@@ -120,19 +129,20 @@ function AddPropertyDialog() {
     if (viewingDates.length >= 3) return;
     const date = Array.from({ length: 365 }, (_, index) => dateWithOffset(index + 2))
       .find((candidate) => !viewingDates.some((option) => option.date === candidate)) || dateWithOffset(2);
-    setViewingDates((current) => [...current, { id: nextViewingDateId, date }]);
+    setViewingDates((current) => [...current, { id: nextViewingDateId, date, times: [] }]);
     setNextViewingDateId((current) => current + 1);
+    setTimeInputs((current) => ({ ...current, [nextViewingDateId]: '' }));
   };
 
   const removeViewingDate = (id: number) => {
     const option = viewingDates.find((item) => item.id === id);
     if (!option || viewingDates.length === 1) return;
-    const slotsToRemove = new Set(VIEWING_TIME_OPTIONS.map((time) => viewingSlot(option.date, time)));
     setViewingDates((current) => current.filter((item) => item.id !== id));
-    setForm((current) => ({
-      ...current,
-      proposedViewingTimes: current.proposedViewingTimes.filter((slot) => !slotsToRemove.has(slot)),
-    }));
+    setTimeInputs((current) => {
+      const next = { ...current };
+      delete next[id];
+      return next;
+    });
   };
 
   const addPhotoFiles = (incoming: FileList | null) => {
@@ -207,7 +217,7 @@ function AddPropertyDialog() {
         description: form.description || undefined,
         photos,
         videoUrl,
-        proposedViewingTimes: form.proposedViewingTimes,
+        proposedViewingTimes: selectedViewingTimes,
       };
       try {
         const duplicate = await duplicateCheck.mutateAsync({
