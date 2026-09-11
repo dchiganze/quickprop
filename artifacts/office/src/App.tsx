@@ -22,6 +22,8 @@ import Tasks from '@/pages/tasks';
 import CalendarPage from '@/pages/calendar';
 import Documents from '@/pages/documents';
 import Sellers from '@/pages/sellers';
+import Landlords from '@/pages/landlords';
+import Tenants from '@/pages/tenants';
 import Analytics from '@/pages/analytics';
 import Users from '@/pages/users';
 import Audit from '@/pages/audit';
@@ -100,6 +102,8 @@ function AppRouter() {
       <ProtectedRoute path="/calendar" component={CalendarPage} />
       <ProtectedRoute path="/documents" component={Documents} />
       <ProtectedRoute path="/sellers" component={Sellers} />
+      <ProtectedRoute path="/landlords" component={Landlords} />
+      <ProtectedRoute path="/tenants" component={Tenants} />
       <ProtectedRoute path="/analytics" component={Analytics} />
       <ProtectedRoute path="/users" component={Users} />
       <ProtectedRoute path="/audit" component={Audit} />
