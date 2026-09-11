@@ -42,13 +42,25 @@ function viewingSlot(date: string, time: string) {
   return new Date(`${date}T${time}:00`).toISOString();
 }
 
+function dateWithOffset(days: number) {
+  const date = new Date();
+  date.setDate(date.getDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
+type ViewingDateOption = {
+  id: number;
+  date: string;
+};
+
 function AddPropertyDialog() {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
     title: '', propertyType: 'house', listingType: 'sale', price: '', suburb: '', city: 'Harare',
     bedrooms: '', bathrooms: '', description: '', proposedViewingTimes: [] as string[],
   });
-  const [viewingDate, setViewingDate] = useState(tomorrowDate);
+  const [viewingDates, setViewingDates] = useState<ViewingDateOption[]>([{ id: 1, date: tomorrowDate() }]);
+  const [nextViewingDateId, setNextViewingDateId] = useState(2);
   const [photoFiles, setPhotoFiles] = useState<File[]>([]);
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [uploadError, setUploadError] = useState('');
@@ -68,7 +80,8 @@ function AddPropertyDialog() {
          setPhotoFiles([]);
          setVideoFile(null);
          setUploadError('');
-         setViewingDate(tomorrowDate());
+         setViewingDates([{ id: 1, date: tomorrowDate() }]);
+         setNextViewingDateId(2);
       },
       onError: () => toast({ title: 'Could not create property', variant: 'destructive' }),
     },
@@ -76,13 +89,49 @@ function AddPropertyDialog() {
   const duplicateCheck = useCheckPropertyDuplicate();
   const addAgency = useAddPropertyAgencyRelationship();
 
-  const toggleViewingTime = (time: string) => {
-    const slot = viewingSlot(viewingDate, time);
+  const toggleViewingTime = (date: string, time: string) => {
+    const slot = viewingSlot(date, time);
     setForm((current) => ({
       ...current,
       proposedViewingTimes: current.proposedViewingTimes.includes(slot)
         ? current.proposedViewingTimes.filter((value) => value !== slot)
         : [...current.proposedViewingTimes, slot].sort(),
+    }));
+  };
+
+  const updateViewingDate = (id: number, date: string) => {
+    if (!date) return;
+    if (viewingDates.some((option) => option.id !== id && option.date === date)) {
+      toast({ title: 'Date already added', description: 'Choose a different viewing date.', variant: 'destructive' });
+      return;
+    }
+    const previousDate = viewingDates.find((option) => option.id === id)?.date;
+    setViewingDates((current) => current.map((option) => option.id === id ? { ...option, date } : option));
+    if (previousDate && previousDate !== date) {
+      const slotsToRemove = new Set(VIEWING_TIME_OPTIONS.map((time) => viewingSlot(previousDate, time)));
+      setForm((current) => ({
+        ...current,
+        proposedViewingTimes: current.proposedViewingTimes.filter((slot) => !slotsToRemove.has(slot)),
+      }));
+    }
+  };
+
+  const addViewingDate = () => {
+    if (viewingDates.length >= 3) return;
+    const date = Array.from({ length: 365 }, (_, index) => dateWithOffset(index + 2))
+      .find((candidate) => !viewingDates.some((option) => option.date === candidate)) || dateWithOffset(2);
+    setViewingDates((current) => [...current, { id: nextViewingDateId, date }]);
+    setNextViewingDateId((current) => current + 1);
+  };
+
+  const removeViewingDate = (id: number) => {
+    const option = viewingDates.find((item) => item.id === id);
+    if (!option || viewingDates.length === 1) return;
+    const slotsToRemove = new Set(VIEWING_TIME_OPTIONS.map((time) => viewingSlot(option.date, time)));
+    setViewingDates((current) => current.filter((item) => item.id !== id));
+    setForm((current) => ({
+      ...current,
+      proposedViewingTimes: current.proposedViewingTimes.filter((slot) => !slotsToRemove.has(slot)),
     }));
   };
 
@@ -359,33 +408,54 @@ function AddPropertyDialog() {
                 </p>
               </div>
             </div>
-            <div className="grid gap-2">
-              <Label htmlFor="np-viewing-date">Choose a date</Label>
-              <Input
-                id="np-viewing-date"
-                type="date"
-                min={tomorrowDate()}
-                value={viewingDate}
-                onChange={(e) => setViewingDate(e.target.value)}
-              />
+            <div className="flex items-center justify-between gap-3">
+              <Label>Proposed dates <span className="font-normal text-muted-foreground">(up to 3)</span></Label>
+              {viewingDates.length < 3 && (
+                <Button type="button" variant="outline" size="sm" className="gap-1.5" onClick={addViewingDate}>
+                  <Plus className="w-3.5 h-3.5" /> Add date
+                </Button>
+              )}
             </div>
-            <div className="grid grid-cols-2 gap-2">
-              {VIEWING_TIME_OPTIONS.map((time) => {
-                const selected = form.proposedViewingTimes.includes(viewingSlot(viewingDate, time));
-                return (
-                  <Button
-                    key={time}
-                    type="button"
-                    variant={selected ? 'default' : 'outline'}
-                    className="justify-start"
-                    onClick={() => toggleViewingTime(time)}
-                    aria-pressed={selected}
-                  >
-                    {selected ? <CheckCircle2 className="w-4 h-4 mr-2" /> : <Clock3 className="w-4 h-4 mr-2" />}
-                    {time}
-                  </Button>
-                );
-              })}
+            <div className="space-y-4">
+              {viewingDates.map((option, index) => (
+                <div key={option.id} className="rounded-md border bg-background/60 p-3 space-y-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <Label htmlFor={`np-viewing-date-${option.id}`} className="text-xs text-muted-foreground">
+                      Viewing date {index + 1}
+                    </Label>
+                    {index > 0 && (
+                      <Button type="button" variant="ghost" size="sm" className="h-7 gap-1 px-2 text-muted-foreground hover:text-destructive" onClick={() => removeViewingDate(option.id)}>
+                        <X className="w-3.5 h-3.5" /> Remove
+                      </Button>
+                    )}
+                  </div>
+                  <Input
+                    id={`np-viewing-date-${option.id}`}
+                    type="date"
+                    min={tomorrowDate()}
+                    value={option.date}
+                    onChange={(e) => updateViewingDate(option.id, e.target.value)}
+                  />
+                  <div className="grid grid-cols-2 gap-2">
+                    {VIEWING_TIME_OPTIONS.map((time) => {
+                      const selected = form.proposedViewingTimes.includes(viewingSlot(option.date, time));
+                      return (
+                        <Button
+                          key={time}
+                          type="button"
+                          variant={selected ? 'default' : 'outline'}
+                          className="justify-start"
+                          onClick={() => toggleViewingTime(option.date, time)}
+                          aria-pressed={selected}
+                        >
+                          {selected ? <CheckCircle2 className="w-4 h-4 mr-2" /> : <Clock3 className="w-4 h-4 mr-2" />}
+                          {time}
+                        </Button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
             </div>
             <p className="text-xs text-muted-foreground">
               {form.proposedViewingTimes.length > 0
