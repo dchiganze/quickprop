@@ -143,10 +143,10 @@ export function QuickShareDialog() {
       </DialogTrigger>
 
       <DialogContent
-        className="overflow-x-hidden"
+        className="min-w-0 overflow-x-hidden"
         style={{ width: 'calc(100vw - 2rem)', maxWidth: '28rem' }}
       >
-        <DialogHeader>
+        <DialogHeader className="min-w-0">
           <DialogTitle className="flex items-center gap-2">
             <Share2 className="w-5 h-5 text-primary" />
             QuickShare Catalogue
@@ -154,7 +154,7 @@ export function QuickShareDialog() {
         </DialogHeader>
 
         {/* Mode selector — prominent cards */}
-        <div className="grid w-full min-w-0 grid-cols-2 gap-2 overflow-hidden">
+        <div className="grid w-full min-w-0 grid-cols-[repeat(2,minmax(0,1fr))] gap-2 overflow-hidden">
           <button
             onClick={() => setMode('agent')}
             className={`flex w-full min-w-0 flex-col items-center gap-1.5 overflow-hidden rounded-xl border-2 p-2.5 transition-all ${
@@ -197,9 +197,9 @@ export function QuickShareDialog() {
         </div>
 
         {/* Catalog preview */}
-        <div className="rounded-lg border bg-muted/40 p-4 space-y-3">
-          <div className="flex items-start justify-between">
-            <div>
+        <div className="w-full min-w-0 overflow-hidden rounded-lg border bg-muted/40 p-4 space-y-3">
+          <div className="flex min-w-0 items-start justify-between gap-2">
+            <div className="min-w-0">
               <p className="font-semibold text-sm text-foreground">
                 {mode === 'agent' ? `${user?.name ?? 'My'} Listings` : 'QuickProp — All Listings'}
               </p>
@@ -207,12 +207,12 @@ export function QuickShareDialog() {
                 <p className="text-xs text-muted-foreground mt-0.5">{suburbList}{publicProps.length > 4 ? ' & more' : ''}</p>
               )}
             </div>
-            <Badge variant="secondary" className="text-xs">
+            <Badge variant="secondary" className="shrink-0 text-xs">
               {publicProps.length} {publicProps.length === 1 ? 'property' : 'properties'}
             </Badge>
           </div>
 
-          <div className="flex gap-3 text-xs">
+          <div className="flex min-w-0 flex-wrap gap-3 text-xs">
             {forSale.length > 0 && (
               <div className="flex items-center gap-1.5">
                 <div className="w-2 h-2 rounded-full bg-primary" />
@@ -233,8 +233,8 @@ export function QuickShareDialog() {
           {publicProps.slice(0, 3).length > 0 && (
             <div className="space-y-1.5">
               {publicProps.slice(0, 3).map(p => (
-                <div key={p.id} className="flex items-center justify-between text-xs">
-                  <span className="text-foreground/80 truncate flex-1">
+                <div key={p.id} className="flex min-w-0 items-center justify-between text-xs">
+                  <span className="min-w-0 flex-1 truncate text-foreground/80">
                     {p.bedrooms ? `${p.bedrooms}-bed ` : ''}{p.propertyType} · {p.suburb}
                   </span>
                   <span className="text-primary font-medium ml-2 shrink-0">
@@ -248,13 +248,13 @@ export function QuickShareDialog() {
             </div>
           )}
 
-          <div className="flex min-w-0 items-center gap-1.5 pt-1">
+          <div className="flex min-w-0 max-w-full items-center gap-1.5 overflow-hidden pt-1">
             <ExternalLink className="w-3 h-3 text-muted-foreground" />
             <a
               href={catalogUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="min-w-0 flex-1 truncate text-xs text-primary hover:underline"
+              className="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-xs text-primary hover:underline"
             >
               {catalogUrl}
             </a>
