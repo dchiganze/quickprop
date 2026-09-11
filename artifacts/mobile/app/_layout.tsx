@@ -1,10 +1,10 @@
 import React, { useEffect } from 'react';
-import { Appearance } from 'react-native';
+import { Appearance, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { Stack } from 'expo-router';
+import { router, Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { DataProvider } from '@/contexts/DataContext';
@@ -14,6 +14,9 @@ import { SplashScreenView } from '@/components/SplashScreenView';
 import * as Sentry from '@sentry/react-native';
 import { setAuthTokenGetter, setBaseUrl } from '@workspace/api-client-react';
 import { apiOrigin, getStoredAccessToken } from '@/contexts/AuthContext';
+import * as Notifications from 'expo-notifications';
+import { NavigationFlags } from '@/utils/navigationFlags';
+import '@/utils/pushNotifications';
 
 import appJson from '../app.json';
 
@@ -38,6 +41,20 @@ setAuthTokenGetter(getStoredAccessToken);
 function RootLayoutNav() {
   const { user, loading } = useAuth();
   const colors = useColors();
+
+  useEffect(() => {
+    if (Platform.OS === 'web') return;
+    const subscription = Notifications.addNotificationResponseReceivedListener((response) => {
+      const data = response.notification.request.content.data as { propertyId?: number | string } | undefined;
+      if (data?.propertyId) {
+        router.push(`/listing/${data.propertyId}` as never);
+        return;
+      }
+      NavigationFlags.notificationsFromDashboard = true;
+      router.push('/notifications');
+    });
+    return () => subscription.remove();
+  }, []);
 
   if (loading) {
     return <SplashScreenView />;

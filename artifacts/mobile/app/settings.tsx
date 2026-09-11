@@ -10,13 +10,16 @@ import { useColors } from '@/hooks/useColors';
 import { useAuth, apiBaseUrl } from '@/contexts/AuthContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Notifications from 'expo-notifications';
-import Constants from 'expo-constants';
 import {
   deactivateListingHousekeepingPushToken,
   getListingHousekeepingPreferences,
   registerListingHousekeepingPushToken,
   updateListingHousekeepingPreferences,
 } from '@workspace/api-client-react';
+import {
+  PUSH_TOKEN_STORAGE_KEY,
+  registerForPushNotificationsAsync,
+} from '@/utils/pushNotifications';
 
 interface ToggleRowProps {
   icon: keyof typeof Ionicons.glyphMap;
@@ -76,7 +79,8 @@ export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
 
-  const [pushEnabled, setPushEnabled] = useState(true);
+  const [pushEnabled, setPushEnabled] = useState(false);
+  const [pushLoading, setPushLoading] = useState(false);
   const [reminderPreferences, setReminderPreferences] = useState({
     whatsappEnabled: true,
     pushEnabled: true,
@@ -93,6 +97,13 @@ export default function SettingsScreen() {
   const [darkMode, setDarkMode] = useState(false);
   const [highQualityImages, setHighQualityImages] = useState(true);
   const [offlineMode, setOfflineMode] = useState(true);
+
+  useEffect(() => {
+    if (Platform.OS === 'web') return;
+    Notifications.getPermissionsAsync()
+      .then((permissions) => setPushEnabled(permissions.granted))
+      .catch(() => setPushEnabled(false));
+  }, []);
 
   const persistReminderPreferences = async (next: typeof reminderPreferences) => {
     setReminderPreferences(next);
@@ -121,29 +132,51 @@ export default function SettingsScreen() {
       .catch(() => {});
   }, [user]);
 
-  useEffect(() => {
-    if (!apiBaseUrl || !user || !reminderPreferences.pushEnabled || Platform.OS === 'web') return;
-    let cancelled = false;
-    const registerPushToken = async () => {
-      try {
-        if (!Constants.isDevice) return;
-        const current = await Notifications.getPermissionsAsync();
-        const permissions = current.status === 'granted'
-          ? current
-          : await Notifications.requestPermissionsAsync();
-        if (permissions.status !== 'granted') return;
-        const projectId = Constants.expoConfig?.extra?.eas?.projectId;
-        const token = (await Notifications.getExpoPushTokenAsync(projectId ? { projectId } : undefined)).data;
-        if (cancelled) return;
-        await AsyncStorage.setItem('@qp_housekeeping_push_token', token);
-        await registerListingHousekeepingPushToken({ token, platform: Platform.OS });
-      } catch {
-        // Push permission is optional; in-app and other enabled channels remain active.
+  const setNativePushEnabled = async (enabled: boolean) => {
+    if (Platform.OS === 'web') {
+      setPushEnabled(enabled);
+      return;
+    }
+
+    if (!enabled) {
+      setPushEnabled(false);
+      const token = await AsyncStorage.getItem(PUSH_TOKEN_STORAGE_KEY);
+      if (token && apiBaseUrl) {
+        await deactivateListingHousekeepingPushToken({ token, platform: Platform.OS }).catch(() => {});
       }
-    };
-    registerPushToken();
-    return () => { cancelled = true; };
-  }, [user, reminderPreferences.pushEnabled]);
+      return;
+    }
+
+    setPushLoading(true);
+    try {
+      const token = await registerForPushNotificationsAsync();
+      if (!token) {
+        setPushEnabled(false);
+        const permissions = await Notifications.getPermissionsAsync();
+        if (permissions.status === 'denied' && !permissions.canAskAgain) {
+          Alert.alert(
+            'Notifications are turned off',
+            'Enable notifications for QuickProp Agent in your device settings.',
+            [
+              { text: 'Not now', style: 'cancel' },
+              { text: 'Open Settings', onPress: () => { Linking.openSettings().catch(() => {}); } },
+            ],
+          );
+        }
+        return;
+      }
+      if (apiBaseUrl && user) {
+        await registerListingHousekeepingPushToken({ token, platform: Platform.OS });
+      }
+      await AsyncStorage.setItem(PUSH_TOKEN_STORAGE_KEY, token);
+      setPushEnabled(true);
+    } catch {
+      setPushEnabled(false);
+      Alert.alert('Unable to enable notifications', 'Please try again on this device.');
+    } finally {
+      setPushLoading(false);
+    }
+  };
 
   const setReminderChannel = (channel: 'whatsappEnabled' | 'pushEnabled' | 'emailEnabled', enabled: boolean) => {
     const next = { ...reminderPreferences, [channel]: enabled };
@@ -172,7 +205,7 @@ export default function SettingsScreen() {
       >
         <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>NOTIFICATIONS</Text>
         <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <ToggleRow icon="notifications-outline" label="Push Notifications" description="Enable all push notifications" value={pushEnabled} onChange={setPushEnabled} />
+          <ToggleRow icon="notifications-outline" label="Push Notifications" description={pushLoading ? 'Enabling on this device…' : 'Enable alerts from QuickProp Agent'} value={pushEnabled} onChange={(value) => { void setNativePushEnabled(value); }} />
           <ToggleRow icon="person-add-outline" label="New Lead" description="When a buyer enquires on your listing" value={newLeadNotif} onChange={setNewLeadNotif} />
           <ToggleRow icon="locate-outline" label="Buyer Match" description="When a new buyer matches your listing" value={buyerMatchNotif} onChange={setBuyerMatchNotif} />
           <ToggleRow icon="eye-outline" label="Viewing Reminders" description="30 minutes before a scheduled viewing" value={viewingReminder} onChange={setViewingReminder} />
