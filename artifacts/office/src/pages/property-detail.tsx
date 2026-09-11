@@ -9,7 +9,8 @@ import {
 import { 
   ArrowLeft, MapPin, Bed, Bath, Car, Square, Building2, Calendar, 
   Tag, Download, Share2, PenLine, CheckCircle2, FileText, Eye, 
-  Activity, ArrowUpRight, ArrowDownRight, Loader2, Image as ImageIcon
+  Activity, ArrowUpRight, ArrowDownRight, Loader2, Image as ImageIcon,
+  MessageCircle, Facebook, Instagram, Mail, Link as LinkIcon, Copy, ChevronRight
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -54,7 +55,8 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
   const shareProperty = useShareProperty();
   const updateHealth = useUpdatePropertyHealth();
 
-  const [shareChannel, setShareChannel] = useState('whatsapp');
+  const [shareChannel, setShareChannel] = useState<'whatsapp' | 'facebook' | 'instagram' | 'email' | 'link'>('whatsapp');
+  const [facebookShareType, setFacebookShareType] = useState<'post' | 'story'>('post');
   const [saleDialogOpen, setSaleDialogOpen] = useState(false);
   const [salePrice, setSalePrice] = useState('');
   const [editOpen, setEditOpen] = useState(false);
@@ -146,8 +148,11 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
     window.open(`${window.location.pathname.replace(/\/property\/\d+.*/, '')}/property/${propertyId}/brochure`, '_blank');
   };
 
-  const handleShare = async () => {
-    shareProperty.mutate({ id: propertyId, data: { channel: shareChannel } }, {
+  const handleShare = async (
+    channel: typeof shareChannel = shareChannel,
+    facebookType: 'post' | 'story' = facebookShareType,
+  ) => {
+    shareProperty.mutate({ id: propertyId, data: { channel: channel === 'facebook' && facebookType === 'story' ? 'facebook_story' : channel } }, {
       onSuccess: async (res) => {
         const shareMessage = [
           property.title,
@@ -157,16 +162,28 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
         ].join('\n');
 
         try {
-          if (shareChannel === 'whatsapp') {
+          if (channel === 'whatsapp') {
             window.open(`https://wa.me/?text=${encodeURIComponent(shareMessage)}`, '_blank', 'noopener,noreferrer');
-          } else if (shareChannel === 'email') {
+          } else if (channel === 'email') {
             window.location.href = `mailto:?subject=${encodeURIComponent(property.title)}&body=${encodeURIComponent(shareMessage)}`;
-          } else if (shareChannel === 'facebook') {
+          } else if (channel === 'facebook' && facebookType === 'post') {
             window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(res.url)}`, '_blank', 'noopener,noreferrer');
+          } else if (channel === 'facebook' && facebookType === 'story') {
+            await navigator.clipboard.writeText(shareMessage).catch(() => {});
+            window.open('https://www.facebook.com/', '_blank', 'noopener,noreferrer');
+          } else if (channel === 'instagram') {
+            await navigator.clipboard.writeText(shareMessage);
           } else {
             await navigator.clipboard.writeText(shareMessage);
           }
-          toast({ title: 'Property ready to share', description: shareChannel === 'link' ? 'Property details and link copied to clipboard.' : `Opened ${shareChannel}.` });
+          const description = channel === 'link'
+            ? 'Property details and link copied to clipboard.'
+            : channel === 'instagram'
+              ? 'The property caption and link were copied to your clipboard.'
+              : channel === 'facebook' && facebookType === 'story'
+                ? 'The property caption was copied. Choose Story in Facebook to continue.'
+                : `Opened ${channel}.`;
+          toast({ title: 'Property ready to share', description });
         } catch {
           toast({ title: 'Could not share property', description: 'Please try again.', variant: 'destructive' });
         }
@@ -406,26 +423,103 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
                 Share
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="sm:max-w-md">
               <DialogHeader>
                 <DialogTitle>Share Property</DialogTitle>
               </DialogHeader>
-              <div className="py-4 space-y-4">
-                <Select value={shareChannel} onValueChange={setShareChannel}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select channel" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="whatsapp">WhatsApp</SelectItem>
-                    <SelectItem value="email">Email</SelectItem>
-                    <SelectItem value="facebook">Facebook</SelectItem>
-                    <SelectItem value="link">Copy Link</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Button className="w-full" onClick={handleShare} disabled={shareProperty.isPending}>
-                  {shareProperty.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Share2 className="w-4 h-4 mr-2" />}
-                  Share via {shareChannel}
-                </Button>
+              <div className="space-y-2.5 py-4">
+                <button
+                  type="button"
+                  onClick={() => handleShare('whatsapp')}
+                  disabled={shareProperty.isPending}
+                  className="group flex w-full items-center gap-3 rounded-lg border border-border p-3 text-left transition-colors hover:bg-muted/60 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#25D366]">
+                    <MessageCircle className="h-5 w-5 text-white" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-foreground">WhatsApp</p>
+                    <p className="text-xs text-muted-foreground">Open WhatsApp with this property</p>
+                  </div>
+                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground transition-colors group-hover:text-foreground" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setShareChannel('facebook')}
+                  disabled={shareProperty.isPending}
+                  className={`group flex w-full items-center gap-3 rounded-lg border p-3 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
+                    shareChannel === 'facebook' ? 'border-primary bg-primary/5' : 'border-border hover:bg-muted/60'
+                  }`}
+                >
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#1877F2]">
+                    <Facebook className="h-5 w-5 text-white" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-foreground">Facebook</p>
+                    <p className="text-xs text-muted-foreground">Choose a post or story</p>
+                  </div>
+                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground transition-colors group-hover:text-foreground" />
+                </button>
+
+                {shareChannel === 'facebook' && (
+                  <div className="grid grid-cols-2 gap-2 pl-12">
+                    <Button
+                      type="button"
+                      variant={facebookShareType === 'post' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => {
+                        setFacebookShareType('post');
+                        handleShare('facebook', 'post');
+                      }}
+                      disabled={shareProperty.isPending}
+                    >
+                      Share Post
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={facebookShareType === 'story' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => {
+                        setFacebookShareType('story');
+                        handleShare('facebook', 'story');
+                      }}
+                      disabled={shareProperty.isPending}
+                    >
+                      Share Story
+                    </Button>
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => handleShare('instagram')}
+                  disabled={shareProperty.isPending}
+                  className="group flex w-full items-center gap-3 rounded-lg border border-border p-3 text-left transition-colors hover:bg-muted/60 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  <div
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
+                    style={{ background: 'linear-gradient(135deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)' }}
+                  >
+                    <Instagram className="h-5 w-5 text-white" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-foreground">Instagram</p>
+                    <p className="text-xs text-muted-foreground">Copy caption + link for Instagram</p>
+                  </div>
+                  <Copy className="h-4 w-4 shrink-0 text-muted-foreground transition-colors group-hover:text-foreground" />
+                </button>
+
+                <div className="grid grid-cols-2 gap-2 pt-1">
+                  <Button type="button" variant="outline" onClick={() => handleShare('email')} disabled={shareProperty.isPending}>
+                    <Mail className="mr-2 h-4 w-4" />
+                    Email
+                  </Button>
+                  <Button type="button" variant="outline" onClick={() => handleShare('link')} disabled={shareProperty.isPending}>
+                    <LinkIcon className="mr-2 h-4 w-4" />
+                    Copy Link
+                  </Button>
+                </div>
               </div>
             </DialogContent>
           </Dialog>
