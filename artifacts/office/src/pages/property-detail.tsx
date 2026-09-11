@@ -24,6 +24,17 @@ import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 
+const PROPERTY_FEATURES = [
+  'Solar', 'Borehole', 'Swimming Pool', 'Electric Fence',
+  'Staff Quarters', 'Cottage', 'Fitted Kitchen', 'Generator',
+  'Fireplace', 'Fibre', 'Air Conditioning', 'Alarm System',
+  'Paved Driveway', 'Municipal Water', 'Septic Tank', 'Internet',
+  'Schools Nearby', 'Hospital Nearby', 'Shopping Centre Nearby',
+  'Double Storey', 'Servant Quarters', 'Garden', 'Deck',
+  'Study', 'Gym', 'Home Theatre', 'Wine Cellar',
+  'Irrigation', 'Boma', 'Lapa', 'Outhouse',
+];
+
 export default function PropertyDetail({ params }: { params: { id: string } }) {
   const propertyId = parseInt(params.id, 10);
   const [, navigate] = useLocation();
@@ -51,7 +62,9 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
     title: '', propertyType: 'house', listingType: 'sale', price: '', negotiable: false,
     suburb: '', city: '', address: '', addressVisible: false, bedrooms: '', bathrooms: '',
     parking: '', landSize: '', buildingSize: '', levies: '', rates: '', description: '',
-    photos: '', videoUrl: '', proposedViewingTimes: '',
+    photos: '', videoUrl: '', proposedViewingTimes: '', features: [] as string[],
+    sellerName: '', sellerPhone: '', sellerEmail: '', mandateExpiry: '',
+    mandateType: 'sole' as 'open' | 'sole', sellerNotes: '', collaborationEnabled: false,
   });
 
   useEffect(() => {
@@ -73,12 +86,20 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
       buildingSize: property.buildingSize == null ? '' : String(property.buildingSize),
       levies: property.levies == null ? '' : String(property.levies),
       rates: property.rates == null ? '' : String(property.rates),
-      description: property.description ?? '',
+       description: property.description ?? '',
       photos: (property.photos ?? []).join('\n'),
       videoUrl: property.videoUrl ?? '',
       proposedViewingTimes: (property.proposedViewingTimes ?? []).join('\n'),
+       features: property.features ?? [],
+       sellerName: seller?.name ?? '',
+       sellerPhone: seller?.phone ?? '',
+       sellerEmail: seller?.email ?? '',
+       mandateExpiry: property.mandateExpiry ?? '',
+       mandateType: property.mandateType === 'open' ? 'open' : 'sole',
+       sellerNotes: seller?.notes ?? property.privateNotes ?? '',
+       collaborationEnabled: property.collaborationEnabled ?? false,
     });
-  }, [property]);
+   }, [property, seller]);
 
   if (isLoading) {
     return <div className="p-8 space-y-6 max-w-[1200px] mx-auto">
@@ -187,9 +208,18 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
         levies: edit.levies ? Number(edit.levies) : undefined,
         rates: edit.rates ? Number(edit.rates) : undefined,
         description: edit.description.trim() || undefined,
+         features: edit.features,
         photos,
         videoUrl: edit.videoUrl.trim() || undefined,
         proposedViewingTimes: edit.proposedViewingTimes.split(/\r?\n|,/).map((value) => value.trim()).filter(Boolean),
+         sellerName: edit.sellerName.trim() || undefined,
+         sellerPhone: edit.sellerPhone.trim() || undefined,
+         sellerEmail: edit.sellerEmail.trim() || undefined,
+         sellerNotes: edit.sellerNotes.trim() || undefined,
+         privateNotes: edit.sellerNotes.trim() || undefined,
+         mandateType: edit.mandateType,
+         mandateExpiry: edit.mandateExpiry || undefined,
+         collaborationEnabled: edit.collaborationEnabled,
       },
     }, {
       onSuccess: () => {
@@ -289,6 +319,39 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
             <div className="grid gap-2"><label htmlFor="edit-photos" className="text-sm font-medium">Photos <span className="font-normal text-muted-foreground">(one URL per line)</span></label><Textarea id="edit-photos" rows={4} value={edit.photos} onChange={(event) => setEdit({ ...edit, photos: event.target.value })} /></div>
             <div className="grid gap-2"><label htmlFor="edit-viewings" className="text-sm font-medium">Proposed viewing times <span className="font-normal text-muted-foreground">(ISO date-time, one per line, up to 3)</span></label><Textarea id="edit-viewings" rows={3} value={edit.proposedViewingTimes} onChange={(event) => setEdit({ ...edit, proposedViewingTimes: event.target.value })} /></div>
             <div className="grid gap-2"><label htmlFor="edit-description" className="text-sm font-medium">Description</label><Textarea id="edit-description" rows={4} value={edit.description} onChange={(event) => setEdit({ ...edit, description: event.target.value })} /></div>
+             <div className="grid gap-3 rounded-lg border bg-muted/30 p-4">
+               <div><label className="text-sm font-medium">Property features</label><p className="mt-1 text-xs text-muted-foreground">{edit.features.length} selected. Choose all that apply.</p></div>
+               <div className="flex flex-wrap gap-2">
+                 {PROPERTY_FEATURES.map((feature) => (
+                   <Button key={feature} type="button" size="sm" variant={edit.features.includes(feature) ? 'default' : 'outline'} onClick={() => setEdit({ ...edit, features: edit.features.includes(feature) ? edit.features.filter((item) => item !== feature) : [...edit.features, feature] })} className="rounded-full">
+                     {feature}
+                   </Button>
+                 ))}
+               </div>
+             </div>
+             <div className="grid gap-4 rounded-lg border bg-muted/30 p-4">
+               <div><label className="text-sm font-medium">Seller details</label><p className="mt-1 text-xs text-muted-foreground">Private information used by your agency.</p></div>
+               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                 <div className="grid gap-2"><label htmlFor="edit-seller-name" className="text-sm font-medium">Seller name</label><Input id="edit-seller-name" value={edit.sellerName} onChange={(event) => setEdit({ ...edit, sellerName: event.target.value })} /></div>
+                 <div className="grid gap-2"><label htmlFor="edit-seller-phone" className="text-sm font-medium">Phone</label><Input id="edit-seller-phone" value={edit.sellerPhone} onChange={(event) => setEdit({ ...edit, sellerPhone: event.target.value })} /></div>
+               </div>
+               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                 <div className="grid gap-2"><label htmlFor="edit-seller-email" className="text-sm font-medium">Email</label><Input id="edit-seller-email" type="email" value={edit.sellerEmail} onChange={(event) => setEdit({ ...edit, sellerEmail: event.target.value })} /></div>
+                 <div className="grid gap-2"><label htmlFor="edit-mandate-expiry" className="text-sm font-medium">Mandate expiry</label><Input id="edit-mandate-expiry" type="date" value={edit.mandateExpiry} onChange={(event) => setEdit({ ...edit, mandateExpiry: event.target.value })} /></div>
+               </div>
+               <div className="grid gap-2">
+                 <label className="text-sm font-medium">Mandate type</label>
+                 <Select value={edit.mandateType} onValueChange={(value: 'open' | 'sole') => setEdit({ ...edit, mandateType: value })}>
+                   <SelectTrigger><SelectValue /></SelectTrigger>
+                   <SelectContent><SelectItem value="open">Open</SelectItem><SelectItem value="sole">Sole</SelectItem></SelectContent>
+                 </Select>
+               </div>
+               <div className="grid gap-2"><label htmlFor="edit-seller-notes" className="text-sm font-medium">Internal notes</label><Textarea id="edit-seller-notes" rows={3} value={edit.sellerNotes} onChange={(event) => setEdit({ ...edit, sellerNotes: event.target.value })} /></div>
+             </div>
+             <div className="flex items-center justify-between gap-4 rounded-lg border bg-muted/30 px-4 py-3">
+               <div><label htmlFor="edit-collaboration" className="text-sm font-medium">Open to collaboration?</label><p className="text-xs text-muted-foreground">Allow other QuickProp agents to request collaboration.</p></div>
+               <Switch id="edit-collaboration" checked={edit.collaborationEnabled} onCheckedChange={(checked) => setEdit({ ...edit, collaborationEnabled: checked })} />
+             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditOpen(false)}>Cancel</Button>
