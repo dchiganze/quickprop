@@ -1768,6 +1768,32 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/ListingHousekeepingSettings" }
+  /admin/agency-settings:
+    get:
+      operationId: getAdminAgencySettings
+      tags: [admin-portal]
+      summary: Get agency profile, branding, and notification settings
+      responses:
+        "200":
+          description: Agency settings
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AgencySettings" }
+    patch:
+      operationId: updateAdminAgencySettings
+      tags: [admin-portal]
+      summary: Update agency profile, branding, and notification settings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AgencySettingsInput" }
+      responses:
+        "200":
+          description: Updated agency settings
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AgencySettings" }
   /admin/duplicates:
     get:
       operationId: listDuplicateReviews
@@ -3523,6 +3549,33 @@ components:
         updateRequiredOverdueDays: { type: integer }
         potentiallyStaleOverdueDays: { type: integer }
         staleOverdueDays: { type: integer }
+    AgencySettings:
+      type: object
+      required: [id, agencyName, phone, email, website, primaryColor, newLeadAlerts, mandateExpiryAlerts, weeklyReport, updatedAt]
+      properties:
+        id: { type: integer }
+        agencyName: { type: string }
+        phone: { type: string }
+        email: { type: string }
+        website: { type: string }
+        logoUrl: { type: ["string", "null"] }
+        primaryColor: { type: string }
+        newLeadAlerts: { type: boolean }
+        mandateExpiryAlerts: { type: boolean }
+        weeklyReport: { type: boolean }
+        updatedAt: { type: string }
+    AgencySettingsInput:
+      type: object
+      properties:
+        agencyName: { type: string }
+        phone: { type: string }
+        email: { type: string }
+        website: { type: string }
+        logoUrl: { type: ["string", "null"] }
+        primaryColor: { type: string }
+        newLeadAlerts: { type: boolean }
+        mandateExpiryAlerts: { type: boolean }
+        weeklyReport: { type: boolean }
     ListingHousekeepingItem:
       type: object
       required: [id, propertyId, reference, title, suburb, city, status, availabilityStatus, freshnessStatus, freshnessLabel, freshnessScore, qualityScore, daysSinceConfirmation]

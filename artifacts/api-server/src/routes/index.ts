@@ -17,6 +17,7 @@ import importsRouter from "./imports";
 import reviewsRouter from "./reviews";
 import rentalProfileRouter from "./rental-profile";
 import propertyAlertsRouter from "./property-alerts";
+import agencySettingsRouter from "./agency-settings";
 
 const router: IRouter = Router();
 
@@ -32,6 +33,7 @@ router.use(propertyAlertsRouter);
 router.use(reviewsRouter);
 // All business routes below require a logged-in user.
 router.use(requireAuth);
+router.use(agencySettingsRouter);
 router.use(multiAgentRouter);
 router.use(housekeepingRouter);
 router.use(importsRouter);

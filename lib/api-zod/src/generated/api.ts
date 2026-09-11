@@ -4050,6 +4050,54 @@ export const UpdateAdminListingHousekeepingSettingsResponse = zod.object({
 
 
 /**
+ * @summary Get agency profile, branding, and notification settings
+ */
+export const GetAdminAgencySettingsResponse = zod.object({
+  "id": zod.number(),
+  "agencyName": zod.string(),
+  "phone": zod.string(),
+  "email": zod.string(),
+  "website": zod.string(),
+  "logoUrl": zod.string().nullish(),
+  "primaryColor": zod.string(),
+  "newLeadAlerts": zod.boolean(),
+  "mandateExpiryAlerts": zod.boolean(),
+  "weeklyReport": zod.boolean(),
+  "updatedAt": zod.string()
+})
+
+
+/**
+ * @summary Update agency profile, branding, and notification settings
+ */
+export const UpdateAdminAgencySettingsBody = zod.object({
+  "agencyName": zod.string().optional(),
+  "phone": zod.string().optional(),
+  "email": zod.string().optional(),
+  "website": zod.string().optional(),
+  "logoUrl": zod.string().nullish(),
+  "primaryColor": zod.string().optional(),
+  "newLeadAlerts": zod.boolean().optional(),
+  "mandateExpiryAlerts": zod.boolean().optional(),
+  "weeklyReport": zod.boolean().optional()
+})
+
+export const UpdateAdminAgencySettingsResponse = zod.object({
+  "id": zod.number(),
+  "agencyName": zod.string(),
+  "phone": zod.string(),
+  "email": zod.string(),
+  "website": zod.string(),
+  "logoUrl": zod.string().nullish(),
+  "primaryColor": zod.string(),
+  "newLeadAlerts": zod.boolean(),
+  "mandateExpiryAlerts": zod.boolean(),
+  "weeklyReport": zod.boolean(),
+  "updatedAt": zod.string()
+})
+
+
+/**
  * @summary List potential duplicate property reviews
  */
 export const ListDuplicateReviewsResponseItem = zod.object({

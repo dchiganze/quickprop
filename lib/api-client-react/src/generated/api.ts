@@ -35,6 +35,8 @@ import type {
   AdminRentalHistory,
   AgencyRelationship,
   AgencyRelationshipInput,
+  AgencySettings,
+  AgencySettingsInput,
   AgentReviewInput,
   AgentReviewResult,
   AnalyticsSummary,
@@ -8820,6 +8822,154 @@ export const useUpdateAdminListingHousekeepingSettings = <TError = ErrorType<unk
         TContext
       > => {
       return useMutation(getUpdateAdminListingHousekeepingSettingsMutationOptions(options));
+    }
+
+export const getGetAdminAgencySettingsUrl = () => {
+
+
+
+
+  return `/api/admin/agency-settings`
+}
+
+/**
+ * @summary Get agency profile, branding, and notification settings
+ */
+export const getAdminAgencySettings = async ( options?: RequestInit): Promise<AgencySettings> => {
+
+  return customFetch<AgencySettings>(getGetAdminAgencySettingsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminAgencySettingsQueryKey = () => {
+    return [
+    `/api/admin/agency-settings`
+    ] as const;
+    }
+
+
+export const getGetAdminAgencySettingsQueryOptions = <TData = Awaited<ReturnType<typeof getAdminAgencySettings>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminAgencySettings>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminAgencySettingsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminAgencySettings>>> = ({ signal }) => getAdminAgencySettings({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminAgencySettings>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAdminAgencySettingsQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminAgencySettings>>>
+export type GetAdminAgencySettingsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get agency profile, branding, and notification settings
+ */
+
+export function useGetAdminAgencySettings<TData = Awaited<ReturnType<typeof getAdminAgencySettings>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminAgencySettings>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAdminAgencySettingsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getUpdateAdminAgencySettingsUrl = () => {
+
+
+
+
+  return `/api/admin/agency-settings`
+}
+
+/**
+ * @summary Update agency profile, branding, and notification settings
+ */
+export const updateAdminAgencySettings = async (agencySettingsInput: AgencySettingsInput, options?: RequestInit): Promise<AgencySettings> => {
+
+  return customFetch<AgencySettings>(getUpdateAdminAgencySettingsUrl(),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(agencySettingsInput)
+  }
+);}
+
+
+
+
+
+export const getUpdateAdminAgencySettingsMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAdminAgencySettings>>, TError,{data: BodyType<AgencySettingsInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateAdminAgencySettings>>, TError,{data: BodyType<AgencySettingsInput>}, TContext> => {
+
+const mutationKey = ['updateAdminAgencySettings'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateAdminAgencySettings>>, {data: BodyType<AgencySettingsInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  updateAdminAgencySettings(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateAdminAgencySettingsMutationResult = NonNullable<Awaited<ReturnType<typeof updateAdminAgencySettings>>>
+    export type UpdateAdminAgencySettingsMutationBody = BodyType<AgencySettingsInput>
+    export type UpdateAdminAgencySettingsMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Update agency profile, branding, and notification settings
+ */
+export const useUpdateAdminAgencySettings = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAdminAgencySettings>>, TError,{data: BodyType<AgencySettingsInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateAdminAgencySettings>>,
+        TError,
+        {data: BodyType<AgencySettingsInput>},
+        TContext
+      > => {
+      return useMutation(getUpdateAdminAgencySettingsMutationOptions(options));
     }
 
 export const getListDuplicateReviewsUrl = () => {

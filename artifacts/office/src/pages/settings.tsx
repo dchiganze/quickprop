@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Building2, Palette, Bell, Loader2 } from 'lucide-react';
 import {
+  useGetAdminAgencySettings,
+  useUpdateAdminAgencySettings,
   useGetListingHousekeepingPreferences,
   useUpdateListingHousekeepingPreferences,
 } from '@workspace/api-client-react';
@@ -18,11 +20,26 @@ const DEFAULT_REMINDER_PREFERENCES = {
   reminderFrequency: 'smart',
 };
 
+const DEFAULT_AGENCY_SETTINGS = {
+  agencyName: 'QuickProp Real Estate',
+  phone: '+263 242 123 456',
+  email: 'info@quickprop.co.zw',
+  website: 'https://quickprop.co.zw',
+  logoUrl: null as string | null,
+  primaryColor: '#10B981',
+  newLeadAlerts: true,
+  mandateExpiryAlerts: true,
+  weeklyReport: true,
+};
+
 export default function Settings() {
+  const agencySettingsQuery = useGetAdminAgencySettings();
+  const updateAgencySettings = useUpdateAdminAgencySettings();
   const preferencesQuery = useGetListingHousekeepingPreferences();
   const updatePreferences = useUpdateListingHousekeepingPreferences();
   const { toast } = useToast();
   const [reminderPreferences, setReminderPreferences] = useState(DEFAULT_REMINDER_PREFERENCES);
+  const [agencySettings, setAgencySettings] = useState(DEFAULT_AGENCY_SETTINGS);
   const [saved, setSaved] = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);
   const [logoUrl, setLogoUrl] = useState<string | null>(() => (
@@ -40,6 +57,23 @@ export default function Settings() {
       });
     }
   }, [preferencesQuery.data]);
+
+  useEffect(() => {
+    if (agencySettingsQuery.data) {
+      setAgencySettings({
+        agencyName: agencySettingsQuery.data.agencyName,
+        phone: agencySettingsQuery.data.phone,
+        email: agencySettingsQuery.data.email,
+        website: agencySettingsQuery.data.website,
+        logoUrl: agencySettingsQuery.data.logoUrl ?? null,
+        primaryColor: agencySettingsQuery.data.primaryColor,
+        newLeadAlerts: agencySettingsQuery.data.newLeadAlerts,
+        mandateExpiryAlerts: agencySettingsQuery.data.mandateExpiryAlerts,
+        weeklyReport: agencySettingsQuery.data.weeklyReport,
+      });
+      setLogoUrl(agencySettingsQuery.data.logoUrl ?? null);
+    }
+  }, [agencySettingsQuery.data]);
 
   const saveReminderPreferences = () => {
     setSaved(false);
@@ -105,11 +139,11 @@ export default function Settings() {
       if (!upload.ok) throw new Error('Could not upload the logo.');
 
       const url = `/api/storage${target.objectPath}`;
-      localStorage.setItem('quickprop-agency-logo', url);
       setLogoUrl(url);
+      setAgencySettings((current) => ({ ...current, logoUrl: url }));
       toast({
-        title: 'Logo uploaded',
-        description: 'Your agency logo is ready to use.',
+        title: 'Logo ready',
+        description: 'Save your settings to keep the logo across devices.',
       });
     } catch (error) {
       toast({
@@ -121,6 +155,38 @@ export default function Settings() {
       setLogoUploading(false);
       if (logoInputRef.current) logoInputRef.current.value = '';
     }
+  };
+
+  const saveAgencySettings = () => {
+    setSaved(false);
+    updateAgencySettings.mutate({ data: agencySettings }, {
+      onSuccess: (next) => {
+        setAgencySettings({
+          agencyName: next.agencyName,
+          phone: next.phone,
+          email: next.email,
+          website: next.website,
+          logoUrl: next.logoUrl ?? null,
+          primaryColor: next.primaryColor,
+          newLeadAlerts: next.newLeadAlerts,
+          mandateExpiryAlerts: next.mandateExpiryAlerts,
+          weeklyReport: next.weeklyReport,
+        });
+        setLogoUrl(next.logoUrl ?? null);
+        setSaved(true);
+        toast({
+          title: 'Changes saved',
+          description: 'Your agency settings have been saved.',
+        });
+      },
+      onError: (error) => {
+        toast({
+          title: 'Could not save settings',
+          description: error instanceof Error ? error.message : 'Please try again.',
+          variant: 'destructive',
+        });
+      },
+    });
   };
 
   return (
@@ -139,21 +205,39 @@ export default function Settings() {
           <CardContent className="p-6 space-y-4">
             <div className="space-y-2">
               <Label>Agency Name</Label>
-              <Input defaultValue="QuickProp Real Estate" />
+                <Input
+                  value={agencySettings.agencyName}
+                  onChange={(event) => setAgencySettings((current) => ({ ...current, agencyName: event.target.value }))}
+                  disabled={agencySettingsQuery.isLoading}
+                />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Phone</Label>
-                <Input defaultValue="+263 242 123 456" />
+                <Input
+                  value={agencySettings.phone}
+                  onChange={(event) => setAgencySettings((current) => ({ ...current, phone: event.target.value }))}
+                  disabled={agencySettingsQuery.isLoading}
+                />
               </div>
               <div className="space-y-2">
                 <Label>Email</Label>
-                <Input defaultValue="info@quickprop.co.zw" />
+                <Input
+                  type="email"
+                  value={agencySettings.email}
+                  onChange={(event) => setAgencySettings((current) => ({ ...current, email: event.target.value }))}
+                  disabled={agencySettingsQuery.isLoading}
+                />
               </div>
             </div>
             <div className="space-y-2">
               <Label>Website</Label>
-              <Input defaultValue="https://quickprop.co.zw" />
+              <Input
+                type="url"
+                value={agencySettings.website}
+                onChange={(event) => setAgencySettings((current) => ({ ...current, website: event.target.value }))}
+                disabled={agencySettingsQuery.isLoading}
+              />
             </div>
           </CardContent>
         </Card>
@@ -166,8 +250,8 @@ export default function Settings() {
           <CardContent className="p-6 space-y-4">
             <div className="flex items-center gap-6">
               <div className="w-24 h-24 rounded border-2 border-dashed flex items-center justify-center text-muted-foreground bg-muted/50 overflow-hidden">
-                {logoUrl ? (
-                  <img src={logoUrl} alt="Agency logo preview" className="w-full h-full object-contain" />
+                {logoUrl || agencySettings.logoUrl ? (
+                  <img src={logoUrl ?? agencySettings.logoUrl ?? ''} alt="Agency logo preview" className="w-full h-full object-contain" />
                 ) : (
                   'Logo'
                 )}
@@ -199,8 +283,17 @@ export default function Settings() {
             <div className="space-y-2 pt-4 border-t">
               <Label>Primary Brand Color</Label>
               <div className="flex items-center gap-3">
-                <Input type="color" defaultValue="#10B981" className="w-12 h-10 p-1 bg-background" />
-                <Input defaultValue="#10B981" className="font-mono max-w-[120px]" />
+                <Input
+                  type="color"
+                  value={agencySettings.primaryColor}
+                  onChange={(event) => setAgencySettings((current) => ({ ...current, primaryColor: event.target.value.toUpperCase() }))}
+                  className="w-12 h-10 p-1 bg-background"
+                />
+                <Input
+                  value={agencySettings.primaryColor}
+                  onChange={(event) => setAgencySettings((current) => ({ ...current, primaryColor: event.target.value }))}
+                  className="font-mono max-w-[120px]"
+                />
               </div>
             </div>
           </CardContent>
@@ -217,21 +310,33 @@ export default function Settings() {
                 <Label className="text-base font-semibold">New Lead Alerts</Label>
                 <p className="text-sm text-muted-foreground">Email when a new inquiry is received.</p>
               </div>
-              <Switch defaultChecked />
+              <Switch
+                checked={agencySettings.newLeadAlerts}
+                onCheckedChange={(checked) => setAgencySettings((current) => ({ ...current, newLeadAlerts: checked }))}
+                disabled={agencySettingsQuery.isLoading}
+              />
             </div>
             <div className="flex items-center justify-between">
               <div>
                 <Label className="text-base font-semibold">Mandate Expiry</Label>
                 <p className="text-sm text-muted-foreground">Notify 30 days before mandate expires.</p>
               </div>
-              <Switch defaultChecked />
+              <Switch
+                checked={agencySettings.mandateExpiryAlerts}
+                onCheckedChange={(checked) => setAgencySettings((current) => ({ ...current, mandateExpiryAlerts: checked }))}
+                disabled={agencySettingsQuery.isLoading}
+              />
             </div>
             <div className="flex items-center justify-between">
               <div>
                 <Label className="text-base font-semibold">Weekly Report</Label>
                 <p className="text-sm text-muted-foreground">Receive automated performance summary.</p>
               </div>
-              <Switch defaultChecked />
+              <Switch
+                checked={agencySettings.weeklyReport}
+                onCheckedChange={(checked) => setAgencySettings((current) => ({ ...current, weeklyReport: checked }))}
+                disabled={agencySettingsQuery.isLoading}
+              />
             </div>
             <div className="border-t pt-5">
               <div className="mb-4">
@@ -283,12 +388,10 @@ export default function Settings() {
         <Button
           size="lg"
           className="w-full md:w-auto font-semibold"
-          onClick={() => toast({
-            title: 'Changes saved',
-            description: 'Your settings have been saved.',
-          })}
+          onClick={saveAgencySettings}
+          disabled={agencySettingsQuery.isLoading || updateAgencySettings.isPending}
         >
-          Save Changes
+          {updateAgencySettings.isPending ? 'Saving…' : saved ? 'Saved' : 'Save Changes'}
         </Button>
       </div>
     </div>

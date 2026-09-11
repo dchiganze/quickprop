@@ -23,6 +23,8 @@ export * from './adminPlatformStats';
 export * from './adminRentalHistory';
 export * from './agencyRelationship';
 export * from './agencyRelationshipInput';
+export * from './agencySettings';
+export * from './agencySettingsInput';
 export * from './agentReviewInput';
 export * from './agentReviewResult';
 export * from './agentReviewSummary';

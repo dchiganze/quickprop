@@ -11,3 +11,4 @@ export * from "./imports";
 export * from "./agent-reviews";
 export * from "./rental-profile";
 export * from "./property-alerts";
+export * from "./agency-settings";

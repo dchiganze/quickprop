@@ -1889,6 +1889,34 @@ export interface ListingHousekeepingSettings {
   staleOverdueDays: number;
 }
 
+export interface AgencySettings {
+  id: number;
+  agencyName: string;
+  phone: string;
+  email: string;
+  website: string;
+  /** @nullable */
+  logoUrl?: string | null;
+  primaryColor: string;
+  newLeadAlerts: boolean;
+  mandateExpiryAlerts: boolean;
+  weeklyReport: boolean;
+  updatedAt: string;
+}
+
+export interface AgencySettingsInput {
+  agencyName?: string;
+  phone?: string;
+  email?: string;
+  website?: string;
+  /** @nullable */
+  logoUrl?: string | null;
+  primaryColor?: string;
+  newLeadAlerts?: boolean;
+  mandateExpiryAlerts?: boolean;
+  weeklyReport?: boolean;
+}
+
 export interface ListingHousekeepingItem {
   id: number;
   propertyId: number;
