@@ -13,11 +13,15 @@ export interface User {
 export interface Property {
   id: string;
   referenceNumber: string;
+  title?: string;
   type: 'sale' | 'rent' | 'commercial' | 'stand' | 'farm' | 'mine';
+  propertyType?: string;
+  listingType?: 'sale' | 'rent';
   status: 'published' | 'draft' | 'archived' | 'sold' | 'rented' | 'pending';
   address: string;
   showAddress?: boolean;
   suburb: string;
+  city?: string;
   price: number;
   /** Original asking price stays in price; this is populated only after a sale. */
   salePrice?: number;

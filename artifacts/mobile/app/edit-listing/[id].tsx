@@ -14,7 +14,8 @@ import { FeatureChip } from '@/components/FeatureChip';
 import { PROPERTY_FEATURES, Property } from '@/types';
 
 const CURRENCIES = ['USD', 'ZAR', 'ZWL', 'GBP', 'EUR'];
-const PROPERTY_TYPES: Property['type'][] = ['sale', 'rent', 'commercial', 'stand', 'farm', 'mine'];
+const LISTING_TYPES: Array<'sale' | 'rent'> = ['sale', 'rent'];
+const PROPERTY_CATEGORIES = ['house', 'apartment', 'townhouse', 'stand', 'commercial', 'industrial', 'farm', 'mine'];
 const STATUSES: Property['status'][] = ['published', 'draft', 'archived', 'sold', 'rented', 'pending'];
 const MANDATE_TYPES: Array<'open' | 'sole'> = ['open', 'sole'];
 
@@ -63,9 +64,12 @@ export default function EditListingScreen() {
   const [saving, setSaving] = useState(false);
 
   const [status, setStatus] = useState<Property['status']>(property?.status ?? 'draft');
-  const [type, setType] = useState<Property['type']>(property?.type ?? 'sale');
+  const [type, setType] = useState<Property['type']>(property?.listingType ?? (property?.type === 'rent' ? 'rent' : 'sale'));
+  const [propertyType, setPropertyType] = useState(property?.propertyType ?? (['commercial', 'stand', 'farm', 'mine'].includes(property?.type ?? '') ? property?.type : 'house'));
+  const [title, setTitle] = useState(property?.title ?? '');
   const [address, setAddress] = useState(property?.address ?? '');
   const [suburb, setSuburb] = useState(property?.suburb ?? '');
+  const [city, setCity] = useState(property?.city ?? 'Harare');
   const [showAddress, setShowAddress] = useState(property?.showAddress ?? false);
   const [price, setPrice] = useState(String(property?.price ?? ''));
   const [currency, setCurrency] = useState(property?.currency ?? 'USD');
@@ -86,6 +90,9 @@ export default function EditListingScreen() {
   const [mandateType, setMandateType] = useState<'open' | 'sole'>(property?.seller.mandateType === 'open' ? 'open' : 'sole');
   const [sellerNotes, setSellerNotes] = useState(property?.seller.notes ?? '');
   const [photos, setPhotos] = useState<string[]>(property?.photos ?? []);
+  const [videoUri, setVideoUri] = useState(property?.videoUrl ?? '');
+  const [viewingTimes, setViewingTimes] = useState<string[]>(property?.proposedViewingTimes ?? []);
+  const [viewingInput, setViewingInput] = useState('');
   const [collaborationEnabled, setCollaborationEnabled] = useState(Boolean(property?.collaborationEnabled));
 
   if (!property) {
@@ -105,21 +112,21 @@ export default function EditListingScreen() {
   };
 
   const handleSave = async () => {
-    if (!address.trim() || !suburb.trim() || !price.trim() || Number(price) <= 0 || photos.length === 0) {
-      Alert.alert('Required Fields', 'Add at least one photo, then enter an address, suburb, and a valid price.');
+    if (!title.trim() || !suburb.trim() || !price.trim() || Number(price) <= 0 || photos.length === 0) {
+      Alert.alert('Required Fields', 'Add a title and at least one photo, then enter a suburb and a valid price.');
       return;
     }
     setSaving(true);
     try {
       await updateProperty(property.id, {
-        status, type, address, suburb, showAddress,
+        status, type, listingType: type === 'rent' ? 'rent' : 'sale', propertyType, title, address, suburb, city, showAddress,
         price: parseFloat(price) || 0,
         currency, negotiable, bedrooms, bathrooms, garages,
         landSize: landSize ? parseFloat(landSize) : undefined,
         floorArea: floorArea ? parseFloat(floorArea) : undefined,
         levies: levies ? parseFloat(levies) : undefined,
         rates: rates ? parseFloat(rates) : undefined,
-        features, description, photos, collaborationEnabled,
+        features, description, photos, videoUrl: videoUri || undefined, proposedViewingTimes: viewingTimes, collaborationEnabled,
         seller: { name: sellerName, phone: sellerPhone, email: sellerEmail, mandateExpiry, mandateType, notes: sellerNotes },
       });
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -142,6 +149,28 @@ export default function EditListingScreen() {
     } catch (e: any) {
       Alert.alert('Photo Library Error', e?.message ?? 'Could not open the photo library.');
     }
+  };
+
+  const addVideo = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: 'videos', quality: 0.8 });
+      if (!result.canceled) setVideoUri(result.assets[0].uri);
+    } catch (e: any) {
+      Alert.alert('Video Library Error', e?.message ?? 'Could not open the video library.');
+    }
+  };
+
+  const addViewingTime = () => {
+    const value = viewingInput.trim();
+    if (!value || viewingTimes.length >= 3) return;
+    const parsed = new Date(value.replace(' ', 'T'));
+    if (Number.isNaN(parsed.getTime())) {
+      Alert.alert('Invalid viewing time', 'Use the format YYYY-MM-DD HH:mm.');
+      return;
+    }
+    const iso = parsed.toISOString();
+    if (!viewingTimes.includes(iso)) setViewingTimes(current => [...current, iso].sort());
+    setViewingInput('');
   };
 
   const inputStyle = [styles.input, { color: colors.foreground, backgroundColor: colors.input, borderColor: colors.border }];
@@ -227,12 +256,18 @@ export default function EditListingScreen() {
 
           {/* Location */}
           <Text style={[styles.sectionHeading, { color: colors.mutedForeground, marginTop: 20 }]}>LOCATION</Text>
+           <Field label="LISTING TITLE *">
+             <TextInput style={inputStyle} value={title} onChangeText={setTitle} placeholder="3-bedroom home in Borrowdale" placeholderTextColor={colors.mutedForeground} />
+           </Field>
           <Field label="STREET ADDRESS *">
             <TextInput style={inputStyle} value={address} onChangeText={setAddress} placeholder="14 Acacia Avenue" placeholderTextColor={colors.mutedForeground} />
           </Field>
           <Field label="SUBURB *">
             <TextInput style={inputStyle} value={suburb} onChangeText={setSuburb} placeholder="Borrowdale" placeholderTextColor={colors.mutedForeground} />
           </Field>
+           <Field label="CITY">
+             <TextInput style={inputStyle} value={city} onChangeText={setCity} placeholder="Harare" placeholderTextColor={colors.mutedForeground} />
+           </Field>
           <View style={[styles.disclosureCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
               <Ionicons name={showAddress ? 'eye-outline' : 'eye-off-outline'} size={18} color={colors.primary} />
@@ -250,7 +285,7 @@ export default function EditListingScreen() {
           <Text style={[styles.sectionHeading, { color: colors.mutedForeground, marginTop: 20 }]}>PROPERTY DETAILS</Text>
           <Field label="LISTING TYPE *">
             <View style={styles.chipRow}>
-              {PROPERTY_TYPES.map(t => (
+               {LISTING_TYPES.map(t => (
                 <TouchableOpacity
                   key={t}
                   style={[styles.typeChip, { backgroundColor: type === t ? colors.primary : colors.secondary, borderColor: type === t ? colors.primary : colors.border }]}
@@ -261,6 +296,19 @@ export default function EditListingScreen() {
               ))}
             </View>
           </Field>
+           <Field label="PROPERTY TYPE">
+             <View style={styles.chipRow}>
+               {PROPERTY_CATEGORIES.map(t => (
+                 <TouchableOpacity
+                   key={t}
+                   style={[styles.typeChip, { backgroundColor: propertyType === t ? colors.primary : colors.secondary, borderColor: propertyType === t ? colors.primary : colors.border }]}
+                   onPress={() => { Haptics.selectionAsync(); setPropertyType(t); }}
+                 >
+                   <Text style={[styles.typeChipText, { color: propertyType === t ? '#FFF' : colors.foreground }]}>{t.charAt(0).toUpperCase() + t.slice(1)}</Text>
+                 </TouchableOpacity>
+               ))}
+             </View>
+           </Field>
           <Field label="PRICE *">
             <View style={{ flexDirection: 'row', gap: 8 }}>
               <TouchableOpacity
@@ -323,6 +371,43 @@ export default function EditListingScreen() {
               <FeatureChip key={f} label={f} selected={features.includes(f)} onToggle={() => toggleFeature(f)} />
             ))}
           </View>
+
+           <Text style={[styles.sectionHeading, { color: colors.mutedForeground, marginTop: 16 }]}>VIDEO</Text>
+           <View style={[styles.disclosureCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+             {videoUri ? (
+               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                 <Ionicons name="videocam-outline" size={22} color={colors.primary} />
+                 <Text style={[{ flex: 1, color: colors.foreground }]} numberOfLines={1}>Property video selected</Text>
+                 <TouchableOpacity onPress={() => setVideoUri('')} accessibilityLabel="Remove property video">
+                   <Ionicons name="close-circle" size={22} color={colors.destructive} />
+                 </TouchableOpacity>
+               </View>
+             ) : (
+               <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }} onPress={addVideo}>
+                 <Ionicons name="cloud-upload-outline" size={22} color={colors.primary} />
+                 <Text style={[{ color: colors.primary, fontWeight: '700' }]}>Add or replace video</Text>
+               </TouchableOpacity>
+             )}
+           </View>
+
+           <Text style={[styles.sectionHeading, { color: colors.mutedForeground, marginTop: 16 }]}>PROPOSED VIEWING TIMES</Text>
+           <View style={[styles.disclosureCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+             <Text style={[{ color: colors.mutedForeground, fontSize: 12, marginBottom: 10 }]}>Add up to three dates and times using YYYY-MM-DD HH:mm.</Text>
+             <View style={{ flexDirection: 'row', gap: 8 }}>
+               <TextInput style={[inputStyle, { flex: 1 }]} value={viewingInput} onChangeText={setViewingInput} placeholder="2026-09-20 10:00" placeholderTextColor={colors.mutedForeground} />
+               <TouchableOpacity style={[styles.addViewingBtn, { backgroundColor: colors.primary }]} onPress={addViewingTime} disabled={viewingTimes.length >= 3}>
+                 <Ionicons name="add" size={20} color="#FFF" />
+               </TouchableOpacity>
+             </View>
+             {viewingTimes.map((time) => (
+               <View key={time} style={styles.viewingTimeRow}>
+                 <Text style={[{ flex: 1, color: colors.foreground, fontSize: 13 }]}>{new Date(time).toLocaleString()}</Text>
+                 <TouchableOpacity onPress={() => setViewingTimes(current => current.filter(item => item !== time))} accessibilityLabel={`Remove viewing time ${time}`}>
+                   <Ionicons name="close-circle-outline" size={20} color={colors.destructive} />
+                 </TouchableOpacity>
+               </View>
+             ))}
+           </View>
 
           {/* Description */}
           <Text style={[styles.sectionHeading, { color: colors.mutedForeground, marginTop: 16 }]}>DESCRIPTION</Text>
@@ -436,6 +521,8 @@ const styles = StyleSheet.create({
   mainPhotoLabel: { position: 'absolute', bottom: 4, left: 4, color: '#FFF', backgroundColor: '#00000099', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 8, fontSize: 10, fontWeight: '700' },
   addPhoto: { width: 112, height: 88, borderRadius: 10, borderWidth: 1, borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center', gap: 4 },
   addPhotoText: { fontSize: 11, fontWeight: '700' },
+  addViewingBtn: { width: 46, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  viewingTimeRow: { flexDirection: 'row', alignItems: 'center', gap: 8, borderTopWidth: 1, borderTopColor: '#E2E8F0', paddingTop: 9, marginTop: 9 },
   saveBottom: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderRadius: 14, paddingVertical: 15, marginTop: 8 },
   saveBottomText: { color: '#FFF', fontSize: 16, fontWeight: '700' },
 });

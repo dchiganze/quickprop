@@ -139,20 +139,27 @@ function toMobileProperty(property: ApiProperty): Property {
   return {
     id: String(property.id),
     referenceNumber: property.reference,
+    title: property.title,
     type,
+    propertyType: property.propertyType,
+    listingType: property.listingType === 'rent' ? 'rent' : 'sale',
     status: mobileStatus(property.status),
     address: property.address ?? '',
+    showAddress: property.addressVisible,
     suburb: property.suburb,
+    city: property.city,
     price: property.price,
     salePrice: property.salePrice ?? undefined,
     soldAt: property.soldAt ?? null,
     currency: property.currency,
-    negotiable: false,
+    negotiable: property.negotiable ?? false,
     bedrooms: property.bedrooms ?? undefined,
     bathrooms: property.bathrooms ?? undefined,
     garages: property.parking ?? undefined,
     landSize: property.landSize ?? undefined,
     floorArea: property.buildingSize ?? undefined,
+    levies: property.levies ?? undefined,
+    rates: property.rates ?? undefined,
     features: property.features ?? [],
     description: property.description ?? '',
     photos: property.photos ?? [],
@@ -176,36 +183,48 @@ function toMobileProperty(property: ApiProperty): Property {
     nextConfirmationAt: property.nextConfirmationAt,
     freshnessScore: property.freshnessScore,
     qualityScore: property.qualityScore,
+    coordinates: property.latitude != null && property.longitude != null
+      ? { lat: property.latitude, lng: property.longitude }
+      : undefined,
   };
 }
 
 function toServerProperty(property: Property, userId: string): PropertyInput {
-  const propertyType = property.type === 'commercial' || property.type === 'stand' || property.type === 'farm'
-    ? property.type
-    : 'house';
+  const propertyType = property.propertyType ?? (
+    property.type === 'commercial' || property.type === 'stand' || property.type === 'farm' || property.type === 'mine'
+      ? property.type
+      : 'house'
+  );
+  const listingType = property.listingType ?? (property.type === 'rent' ? 'rent' : 'sale');
   return {
-    title: property.address || `${property.bedrooms ?? ''} bedroom ${propertyType}`.trim(),
+    title: property.title || property.address || `${property.bedrooms ?? ''} bedroom ${propertyType}`.trim(),
     description: property.description,
     propertyType,
-    listingType: property.type === 'rent' ? 'rent' : 'sale',
+    listingType,
     status: serverStatus(property.status),
     pipelineStage: property.status === 'published' ? 'published' : property.status === 'pending' ? 'ready' : property.status,
     price: property.price,
     salePrice: property.salePrice,
     currency: property.currency,
     suburb: property.suburb,
-    city: 'Harare',
-    address: property.showAddress === false ? undefined : property.address,
+    city: property.city || 'Harare',
+    address: property.address || undefined,
+    addressVisible: Boolean(property.showAddress),
     bedrooms: property.bedrooms,
     bathrooms: property.bathrooms,
     parking: property.garages,
     landSize: property.landSize,
     buildingSize: property.floorArea,
+    negotiable: property.negotiable,
+    levies: property.levies,
+    rates: property.rates,
     features: property.features,
     photos: property.photos,
     proposedViewingTimes: property.proposedViewingTimes ?? [],
     videoUrl: property.videoUrl,
     coverImage: property.photos[0],
+    latitude: property.coordinates?.lat,
+    longitude: property.coordinates?.lng,
     collaborationEnabled: property.collaborationEnabled ?? false,
     agentId: Number(userId),
       mandateType: property.seller.mandateType === 'open' ? 'open' : 'sole',

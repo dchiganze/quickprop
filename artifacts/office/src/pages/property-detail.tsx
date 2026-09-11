@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useLocation } from 'wouter';
 import { 
   useGetProperty, useUpdateProperty, useGetPropertyPriceHistory, 
@@ -19,6 +19,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 
@@ -44,6 +46,39 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
   const [shareChannel, setShareChannel] = useState('whatsapp');
   const [saleDialogOpen, setSaleDialogOpen] = useState(false);
   const [salePrice, setSalePrice] = useState('');
+  const [editOpen, setEditOpen] = useState(false);
+  const [edit, setEdit] = useState({
+    title: '', propertyType: 'house', listingType: 'sale', price: '', negotiable: false,
+    suburb: '', city: '', address: '', addressVisible: false, bedrooms: '', bathrooms: '',
+    parking: '', landSize: '', buildingSize: '', levies: '', rates: '', description: '',
+    photos: '', videoUrl: '', proposedViewingTimes: '',
+  });
+
+  useEffect(() => {
+    if (!property) return;
+    setEdit({
+      title: property.title,
+      propertyType: property.propertyType,
+      listingType: property.listingType,
+      price: String(property.price),
+      negotiable: property.negotiable ?? false,
+      suburb: property.suburb,
+      city: property.city,
+      address: property.address ?? '',
+      addressVisible: property.addressVisible ?? false,
+      bedrooms: property.bedrooms == null ? '' : String(property.bedrooms),
+      bathrooms: property.bathrooms == null ? '' : String(property.bathrooms),
+      parking: property.parking == null ? '' : String(property.parking),
+      landSize: property.landSize == null ? '' : String(property.landSize),
+      buildingSize: property.buildingSize == null ? '' : String(property.buildingSize),
+      levies: property.levies == null ? '' : String(property.levies),
+      rates: property.rates == null ? '' : String(property.rates),
+      description: property.description ?? '',
+      photos: (property.photos ?? []).join('\n'),
+      videoUrl: property.videoUrl ?? '',
+      proposedViewingTimes: (property.proposedViewingTimes ?? []).join('\n'),
+    });
+  }, [property]);
 
   if (isLoading) {
     return <div className="p-8 space-y-6 max-w-[1200px] mx-auto">
@@ -125,6 +160,46 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
     });
   };
 
+  const handleEditSave = () => {
+    const price = Number(edit.price);
+    const photos = edit.photos.split(/\r?\n|,/).map((value) => value.trim()).filter(Boolean);
+    if (!edit.title.trim() || !edit.suburb.trim() || !edit.city.trim() || !Number.isFinite(price) || price <= 0 || photos.length === 0) {
+      toast({ title: 'Title, location, price and photos are required', variant: 'destructive' });
+      return;
+    }
+    updateProperty.mutate({
+      id: propertyId,
+      data: {
+        title: edit.title.trim(),
+        propertyType: edit.propertyType,
+        listingType: edit.listingType,
+        price,
+        negotiable: edit.negotiable,
+        suburb: edit.suburb.trim(),
+        city: edit.city.trim(),
+        address: edit.address.trim() || undefined,
+        addressVisible: Boolean(edit.address.trim() && edit.addressVisible),
+        bedrooms: edit.bedrooms ? Number(edit.bedrooms) : undefined,
+        bathrooms: edit.bathrooms ? Number(edit.bathrooms) : undefined,
+        parking: edit.parking ? Number(edit.parking) : undefined,
+        landSize: edit.landSize ? Number(edit.landSize) : undefined,
+        buildingSize: edit.buildingSize ? Number(edit.buildingSize) : undefined,
+        levies: edit.levies ? Number(edit.levies) : undefined,
+        rates: edit.rates ? Number(edit.rates) : undefined,
+        description: edit.description.trim() || undefined,
+        photos,
+        videoUrl: edit.videoUrl.trim() || undefined,
+        proposedViewingTimes: edit.proposedViewingTimes.split(/\r?\n|,/).map((value) => value.trim()).filter(Boolean),
+      },
+    }, {
+      onSuccess: () => {
+        setEditOpen(false);
+        toast({ title: 'Listing updated', description: `${edit.title} was saved.` });
+      },
+      onError: (error: Error) => toast({ title: 'Could not update listing', description: error.message, variant: 'destructive' }),
+    });
+  };
+
   return (
     <div className="p-8 max-w-[1600px] mx-auto space-y-6">
       <Dialog open={saleDialogOpen} onOpenChange={setSaleDialogOpen}>
@@ -151,6 +226,73 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
           <DialogFooter>
             <Button variant="outline" onClick={() => setSaleDialogOpen(false)}>Cancel</Button>
             <Button onClick={handleConfirmSale} disabled={updateProperty.isPending}>Record sale</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Edit listing</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-2">
+            <div className="grid gap-2">
+              <label htmlFor="edit-title" className="text-sm font-medium">Title</label>
+              <Input id="edit-title" value={edit.title} onChange={(event) => setEdit({ ...edit, title: event.target.value })} />
+            </div>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="grid gap-2">
+                <label className="text-sm font-medium">Property type</label>
+                <Select value={edit.propertyType} onValueChange={(value) => setEdit({ ...edit, propertyType: value })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>{['house', 'apartment', 'townhouse', 'stand', 'commercial', 'industrial', 'farm', 'mine'].map((value) => <SelectItem key={value} value={value} className="capitalize">{value}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2">
+                <label className="text-sm font-medium">Listing type</label>
+                <Select value={edit.listingType} onValueChange={(value) => setEdit({ ...edit, listingType: value })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent><SelectItem value="sale">For Sale</SelectItem><SelectItem value="rent">To Rent</SelectItem></SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+              <div className="grid gap-2"><label htmlFor="edit-price" className="text-sm font-medium">Price</label><Input id="edit-price" inputMode="decimal" value={edit.price} onChange={(event) => setEdit({ ...edit, price: event.target.value })} /></div>
+              <div className="grid gap-2"><label htmlFor="edit-bedrooms" className="text-sm font-medium">Bedrooms</label><Input id="edit-bedrooms" inputMode="numeric" value={edit.bedrooms} onChange={(event) => setEdit({ ...edit, bedrooms: event.target.value })} /></div>
+              <div className="grid gap-2"><label htmlFor="edit-bathrooms" className="text-sm font-medium">Bathrooms</label><Input id="edit-bathrooms" inputMode="numeric" value={edit.bathrooms} onChange={(event) => setEdit({ ...edit, bathrooms: event.target.value })} /></div>
+            </div>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="grid gap-2"><label htmlFor="edit-suburb" className="text-sm font-medium">Suburb</label><Input id="edit-suburb" value={edit.suburb} onChange={(event) => setEdit({ ...edit, suburb: event.target.value })} /></div>
+              <div className="grid gap-2"><label htmlFor="edit-city" className="text-sm font-medium">City</label><Input id="edit-city" value={edit.city} onChange={(event) => setEdit({ ...edit, city: event.target.value })} /></div>
+            </div>
+            <div className="grid gap-2 rounded-lg border bg-muted/30 p-4">
+              <label htmlFor="edit-address" className="text-sm font-medium">Full property address</label>
+              <Input id="edit-address" value={edit.address} onChange={(event) => setEdit({ ...edit, address: event.target.value })} />
+              <div className="flex items-center justify-between gap-4">
+                <div><label htmlFor="edit-address-visible" className="text-sm font-medium">Show exact address on website</label><p className="text-xs text-muted-foreground">Keep this off to show only suburb and city.</p></div>
+                <Switch id="edit-address-visible" checked={edit.addressVisible} disabled={!edit.address.trim()} onCheckedChange={(checked) => setEdit({ ...edit, addressVisible: checked })} />
+              </div>
+            </div>
+            <div className="flex items-center justify-between gap-4 rounded-lg border bg-muted/30 px-4 py-3">
+              <div><label htmlFor="edit-negotiable" className="text-sm font-medium">Price is negotiable</label><p className="text-xs text-muted-foreground">Show buyers that the asking price can be discussed.</p></div>
+              <Switch id="edit-negotiable" checked={edit.negotiable} onCheckedChange={(checked) => setEdit({ ...edit, negotiable: checked })} />
+            </div>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
+              <div className="grid gap-2"><label htmlFor="edit-parking" className="text-sm font-medium">Garages</label><Input id="edit-parking" inputMode="numeric" value={edit.parking} onChange={(event) => setEdit({ ...edit, parking: event.target.value })} /></div>
+              <div className="grid gap-2"><label htmlFor="edit-land" className="text-sm font-medium">Land m²</label><Input id="edit-land" inputMode="decimal" value={edit.landSize} onChange={(event) => setEdit({ ...edit, landSize: event.target.value })} /></div>
+              <div className="grid gap-2"><label htmlFor="edit-building" className="text-sm font-medium">Floor m²</label><Input id="edit-building" inputMode="decimal" value={edit.buildingSize} onChange={(event) => setEdit({ ...edit, buildingSize: event.target.value })} /></div>
+              <div className="grid gap-2"><label htmlFor="edit-levies" className="text-sm font-medium">Levies / month</label><Input id="edit-levies" inputMode="decimal" value={edit.levies} onChange={(event) => setEdit({ ...edit, levies: event.target.value })} /></div>
+            </div>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="grid gap-2"><label htmlFor="edit-rates" className="text-sm font-medium">Rates / month</label><Input id="edit-rates" inputMode="decimal" value={edit.rates} onChange={(event) => setEdit({ ...edit, rates: event.target.value })} /></div>
+              <div className="grid gap-2"><label htmlFor="edit-video" className="text-sm font-medium">Video URL</label><Input id="edit-video" value={edit.videoUrl} onChange={(event) => setEdit({ ...edit, videoUrl: event.target.value })} placeholder="/api/storage/..." /></div>
+            </div>
+            <div className="grid gap-2"><label htmlFor="edit-photos" className="text-sm font-medium">Photos <span className="font-normal text-muted-foreground">(one URL per line)</span></label><Textarea id="edit-photos" rows={4} value={edit.photos} onChange={(event) => setEdit({ ...edit, photos: event.target.value })} /></div>
+            <div className="grid gap-2"><label htmlFor="edit-viewings" className="text-sm font-medium">Proposed viewing times <span className="font-normal text-muted-foreground">(ISO date-time, one per line, up to 3)</span></label><Textarea id="edit-viewings" rows={3} value={edit.proposedViewingTimes} onChange={(event) => setEdit({ ...edit, proposedViewingTimes: event.target.value })} /></div>
+            <div className="grid gap-2"><label htmlFor="edit-description" className="text-sm font-medium">Description</label><Textarea id="edit-description" rows={4} value={edit.description} onChange={(event) => setEdit({ ...edit, description: event.target.value })} /></div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditOpen(false)}>Cancel</Button>
+            <Button onClick={handleEditSave} disabled={updateProperty.isPending}>{updateProperty.isPending ? 'Saving...' : 'Save changes'}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -186,7 +328,7 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
               <SelectItem value="archived">Archived</SelectItem>
             </SelectContent>
           </Select>
-          <Button variant="outline" className="shadow-sm">
+          <Button variant="outline" className="shadow-sm" onClick={() => setEditOpen(true)}>
             <PenLine className="w-4 h-4 mr-2" />
             Edit
           </Button>

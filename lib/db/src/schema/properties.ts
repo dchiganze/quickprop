@@ -22,6 +22,7 @@ export const propertiesTable = pgTable("properties", {
   status: text("status").notNull().default("draft"),
   pipelineStage: text("pipeline_stage").notNull().default("draft"),
   price: doublePrecision("price").notNull(),
+  negotiable: boolean("negotiable").notNull().default(false),
   // Asking price remains in `price`; these fields capture the completed sale
   // without overwriting the original listing amount.
   salePrice: doublePrecision("sale_price"),
@@ -37,6 +38,8 @@ export const propertiesTable = pgTable("properties", {
   parking: integer("parking"),
   landSize: doublePrecision("land_size"),
   buildingSize: doublePrecision("building_size"),
+  levies: doublePrecision("levies"),
+  rates: doublePrecision("rates"),
   features: text("features").array().notNull().default([]),
   photos: text("photos").array().notNull().default([]),
   proposedViewingTimes: text("proposed_viewing_times").array().notNull().default([]),

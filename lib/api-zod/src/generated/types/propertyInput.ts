@@ -14,6 +14,7 @@ export interface PropertyInput {
   status?: string;
   pipelineStage?: string;
   price: number;
+  negotiable?: boolean;
   salePrice?: number;
   currency?: string;
   suburb: string;
@@ -26,6 +27,10 @@ export interface PropertyInput {
   parking?: number;
   landSize?: number;
   buildingSize?: number;
+  levies?: number;
+  rates?: number;
+  latitude?: number;
+  longitude?: number;
   features?: string[];
   /** @minItems 1 */
   photos: string[];

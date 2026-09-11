@@ -236,6 +236,7 @@ router.patch("/properties/:id", async (req, res): Promise<void> => {
   }
   const normalizedData = {
     ...parsed.data,
+    proposedViewingTimes: parsed.data.proposedViewingTimes?.map((time) => time.toISOString()),
     mandateType: parsed.data.mandateType === "exclusive" ? "sole" : parsed.data.mandateType,
   };
   const update: Record<string, unknown> = { ...normalizedData, updatedAt: new Date() };

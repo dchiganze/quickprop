@@ -21,6 +21,7 @@ export interface Property {
   /** draft | awaiting_photos | ready | published | under_offer | sold | archived */
   pipelineStage: string;
   price: number;
+  negotiable?: boolean;
   /**
      * Completed sale price; asking price remains in price.
      * @nullable
@@ -50,6 +51,16 @@ export interface Property {
   landSize?: number | null;
   /** @nullable */
   buildingSize?: number | null;
+  /**
+     * Monthly levies, when applicable.
+     * @nullable
+     */
+  levies?: number | null;
+  /**
+     * Monthly municipal rates, when applicable.
+     * @nullable
+     */
+  rates?: number | null;
   features?: string[];
   photos?: string[];
   /** Optional proposed viewing slots as ISO 8601 date-time strings. */

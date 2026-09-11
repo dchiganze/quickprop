@@ -57,7 +57,8 @@ export function AddPropertyDialog() {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
     title: '', propertyType: 'house', listingType: 'sale', price: '', suburb: '', city: 'Harare',
-    address: '', addressVisible: false, bedrooms: '', bathrooms: '', description: '', proposedViewingTimes: [] as string[],
+    address: '', addressVisible: false, bedrooms: '', bathrooms: '', garages: '', landSize: '', floorArea: '',
+    negotiable: false, levies: '', rates: '', description: '', proposedViewingTimes: [] as string[],
   });
   const [viewingDates, setViewingDates] = useState<ViewingDateOption[]>([{ id: 1, date: tomorrowDate(), times: [] }]);
   const [nextViewingDateId, setNextViewingDateId] = useState(2);
@@ -77,7 +78,7 @@ export function AddPropertyDialog() {
         queryClient.invalidateQueries({ queryKey: getGetPipelineQueryKey() });
         toast({ title: 'Mandate created', description: `${created.reference} — ${created.title}` });
         setOpen(false);
-         setForm({ title: '', propertyType: 'house', listingType: 'sale', price: '', suburb: '', city: 'Harare', address: '', addressVisible: false, bedrooms: '', bathrooms: '', description: '', proposedViewingTimes: [] });
+         setForm({ title: '', propertyType: 'house', listingType: 'sale', price: '', suburb: '', city: 'Harare', address: '', addressVisible: false, bedrooms: '', bathrooms: '', garages: '', landSize: '', floorArea: '', negotiable: false, levies: '', rates: '', description: '', proposedViewingTimes: [] });
          setPhotoFiles([]);
          setVideoFile(null);
          setUploadError('');
@@ -208,12 +209,18 @@ export function AddPropertyDialog() {
         propertyType: form.propertyType,
         listingType: form.listingType,
         price: Number(form.price),
+         negotiable: form.negotiable,
         suburb: form.suburb,
         city: form.city || 'Harare',
         address: form.address.trim() || undefined,
         addressVisible: Boolean(form.address.trim() && form.addressVisible),
         bedrooms: form.bedrooms ? Number(form.bedrooms) : undefined,
         bathrooms: form.bathrooms ? Number(form.bathrooms) : undefined,
+         parking: form.garages ? Number(form.garages) : undefined,
+         landSize: form.landSize ? Number(form.landSize) : undefined,
+         buildingSize: form.floorArea ? Number(form.floorArea) : undefined,
+         levies: form.levies ? Number(form.levies) : undefined,
+         rates: form.rates ? Number(form.rates) : undefined,
         description: form.description || undefined,
         photos,
         videoUrl,
@@ -293,7 +300,7 @@ export function AddPropertyDialog() {
               <Select value={form.propertyType} onValueChange={(v) => setForm({ ...form, propertyType: v })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {['house','apartment','townhouse','stand','commercial','industrial','farm'].map((t) => (
+                  {['house','apartment','townhouse','stand','commercial','industrial','farm','mine'].map((t) => (
                     <SelectItem key={t} value={t} className="capitalize">{t}</SelectItem>
                   ))}
                 </SelectContent>
@@ -310,7 +317,7 @@ export function AddPropertyDialog() {
               </Select>
             </div>
           </div>
-          <div className="grid grid-cols-3 gap-4">
+           <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
             <div className="grid gap-2">
               <Label htmlFor="np-price">Price (USD)</Label>
               <Input id="np-price" data-testid="input-property-price" inputMode="decimal" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} />
@@ -323,7 +330,38 @@ export function AddPropertyDialog() {
               <Label htmlFor="np-baths">Bathrooms</Label>
               <Input id="np-baths" inputMode="numeric" value={form.bathrooms} onChange={(e) => setForm({ ...form, bathrooms: e.target.value })} />
             </div>
+             <div className="grid gap-2">
+               <Label htmlFor="np-garages">Garages</Label>
+               <Input id="np-garages" inputMode="numeric" value={form.garages} onChange={(e) => setForm({ ...form, garages: e.target.value })} />
+             </div>
           </div>
+           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+             <div className="grid gap-2">
+               <Label htmlFor="np-land-size">Land size (m²)</Label>
+               <Input id="np-land-size" inputMode="decimal" value={form.landSize} onChange={(e) => setForm({ ...form, landSize: e.target.value })} />
+             </div>
+             <div className="grid gap-2">
+               <Label htmlFor="np-floor-area">Floor area (m²)</Label>
+               <Input id="np-floor-area" inputMode="decimal" value={form.floorArea} onChange={(e) => setForm({ ...form, floorArea: e.target.value })} />
+             </div>
+           </div>
+           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+             <div className="grid gap-2">
+               <Label htmlFor="np-levies">Levies / month</Label>
+               <Input id="np-levies" inputMode="decimal" value={form.levies} onChange={(e) => setForm({ ...form, levies: e.target.value })} />
+             </div>
+             <div className="grid gap-2">
+               <Label htmlFor="np-rates">Rates / month</Label>
+               <Input id="np-rates" inputMode="decimal" value={form.rates} onChange={(e) => setForm({ ...form, rates: e.target.value })} />
+             </div>
+           </div>
+           <div className="flex items-center justify-between gap-4 rounded-lg border border-border bg-muted/30 px-4 py-3">
+             <div>
+               <Label htmlFor="np-negotiable">Price is negotiable</Label>
+               <p className="text-xs text-muted-foreground">Show buyers that the asking price can be discussed.</p>
+             </div>
+             <Switch id="np-negotiable" checked={form.negotiable} onCheckedChange={(checked) => setForm({ ...form, negotiable: checked })} />
+           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="grid gap-2">
               <Label htmlFor="np-suburb">Suburb</Label>

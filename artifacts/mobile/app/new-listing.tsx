@@ -47,10 +47,13 @@ function viewingDates(): Date[] {
 interface FormData {
   photos: string[];
   videoUri: string;
+  title: string;
   address: string;
   suburb: string;
+  city: string;
   showAddress: boolean;
   type: Property['type'] | null;
+  propertyType: string;
   price: string;
   currency: string;
   negotiable: boolean;
@@ -75,8 +78,8 @@ interface FormData {
 }
 
 const defaultForm: FormData = {
-  photos: [], videoUri: '', address: '', suburb: '', showAddress: false,
-  type: null, price: '', currency: 'USD', negotiable: false,
+  photos: [], videoUri: '', title: '', address: '', suburb: '', city: 'Harare', showAddress: false,
+  type: null, propertyType: 'house', price: '', currency: 'USD', negotiable: false,
   bedrooms: 3, bathrooms: 2, garages: 1, landSize: '', floorArea: '',
   levies: '', rates: '', referenceNumber: `QP-${Date.now().toString().slice(-6)}`,
   features: [], description: '',
@@ -276,7 +279,7 @@ export default function NewListingScreen() {
         const duplicateCheck = await findPropertyDuplicates({
           address: form.address,
           suburb: form.suburb,
-          propertyType: form.type,
+          propertyType: form.propertyType,
           bedrooms: form.bedrooms,
           bathrooms: form.bathrooms,
           landSize: parseFloat(form.landSize) || undefined,
@@ -320,11 +323,15 @@ export default function NewListingScreen() {
       }
       const property = await addProperty({
       referenceNumber: form.referenceNumber,
+        title: form.title,
        type: form.type,
+       propertyType: form.propertyType,
+       listingType: form.type === 'rent' ? 'rent' : 'sale',
       status,
       address: form.address,
       showAddress: form.showAddress,
       suburb: form.suburb,
+       city: form.city,
       price: parseFloat(form.price) || 0,
       currency: form.currency,
       negotiable: form.negotiable,
@@ -369,24 +376,14 @@ export default function NewListingScreen() {
   const getMissingFields = () => {
     const missing: string[] = [];
     if (form.photos.length === 0) missing.push('at least one photo');
-    if (!form.videoUri) missing.push('property video');
-    if (!form.address.trim()) missing.push('street address');
+    if (!form.title.trim()) missing.push('title');
     if (!form.suburb.trim()) missing.push('suburb');
     if (!form.type) missing.push('listing type');
     if (!form.price.trim() || Number(form.price) <= 0) missing.push('valid price');
     if (form.bedrooms < 0) missing.push('bedrooms');
     if (form.bathrooms < 0) missing.push('bathrooms');
     if (form.garages < 0) missing.push('garages');
-    if (!form.landSize.trim() || Number(form.landSize) <= 0) missing.push('land size');
-    if (!form.floorArea.trim() || Number(form.floorArea) <= 0) missing.push('floor area');
     if (!form.referenceNumber.trim()) missing.push('reference number');
-    if (form.features.length === 0) missing.push('at least one feature');
-    if (!form.description.trim()) missing.push('description');
-    if (!form.sellerName.trim()) missing.push('seller name');
-    if (!form.sellerPhone.trim()) missing.push('seller phone');
-    if (!form.sellerEmail.trim()) missing.push('seller email');
-    if (!form.mandateExpiry.trim()) missing.push('mandate expiry');
-    if (!form.sellerNotes.trim()) missing.push('internal notes');
     return missing;
   };
 
@@ -394,13 +391,13 @@ export default function NewListingScreen() {
     const missing = getMissingFields();
     const byStep: Record<number, string[]> = {
       0: ['at least one photo'],
-      1: ['property video'],
-      2: ['street address', 'suburb'],
+      1: [],
+      2: ['title', 'suburb'],
       3: ['listing type'],
-      4: ['valid price', 'bedrooms', 'bathrooms', 'garages', 'land size', 'floor area', 'reference number'],
-      5: ['at least one feature'],
-      6: ['description'],
-      7: ['seller name', 'seller phone', 'seller email', 'mandate expiry', 'internal notes'],
+      4: ['valid price', 'bedrooms', 'bathrooms', 'garages', 'reference number'],
+      5: [],
+      6: [],
+      7: [],
       8: [],
       9: missing,
     };
@@ -473,7 +470,7 @@ export default function NewListingScreen() {
       case 1: return ( // Video
         <View style={styles.stepContent}>
           <Text style={[styles.stepHeading, { color: colors.foreground }]}>Property Video</Text>
-          <Text style={[styles.stepSub, { color: colors.mutedForeground }]}>Add a property video (max 60 seconds). Compresses automatically.</Text>
+           <Text style={[styles.stepSub, { color: colors.mutedForeground }]}>Add an optional property video (max 60 seconds). Compresses automatically.</Text>
           {form.videoUri ? (
             <VideoThumbnailPreview uri={form.videoUri} onRemove={() => set('videoUri', '')} />
           ) : (
@@ -495,8 +492,8 @@ export default function NewListingScreen() {
             </View>
           )}
           <View style={[styles.skipInfo, { backgroundColor: colors.secondary, borderColor: colors.border }]}>
-            <Ionicons name="information-circle-outline" size={16} color={colors.primary} />
-             <Text style={[styles.skipInfoText, { color: colors.mutedForeground }]}>A property video is required to continue.</Text>
+             <Ionicons name="information-circle-outline" size={16} color={colors.primary} />
+              <Text style={[styles.skipInfoText, { color: colors.mutedForeground }]}>You can add or replace a video later from Edit Listing.</Text>
           </View>
         </View>
       );
@@ -505,12 +502,18 @@ export default function NewListingScreen() {
         <View style={styles.stepContent}>
           <Text style={[styles.stepHeading, { color: colors.foreground }]}>Property Location</Text>
           <Text style={[styles.stepSub, { color: colors.mutedForeground }]}>Exact coordinates are private. Public listing shows approximate location.</Text>
+           <Field label="LISTING TITLE *" error={fieldError('title')}>
+             <TextInput style={[inputStyle, fieldError('title') && { borderColor: colors.destructive }]} value={form.title} onChangeText={v => set('title', v)} placeholder="3-bedroom home in Borrowdale" placeholderTextColor={colors.mutedForeground} />
+           </Field>
           <Field label="STREET ADDRESS *" error={fieldError('street address')}>
             <TextInput style={[inputStyle, fieldError('street address') && { borderColor: colors.destructive }]} value={form.address} onChangeText={v => set('address', v)} placeholder="14 Acacia Avenue" placeholderTextColor={colors.mutedForeground} />
           </Field>
           <Field label="SUBURB *" error={fieldError('suburb')}>
             <TextInput style={[inputStyle, fieldError('suburb') && { borderColor: colors.destructive }]} value={form.suburb} onChangeText={v => set('suburb', v)} placeholder="Borrowdale" placeholderTextColor={colors.mutedForeground} />
           </Field>
+           <Field label="CITY">
+             <TextInput style={inputStyle} value={form.city} onChangeText={v => set('city', v)} placeholder="Harare" placeholderTextColor={colors.mutedForeground} />
+           </Field>
           <TouchableOpacity style={[styles.gpsBtn, { backgroundColor: colors.accent + '15', borderColor: colors.accent }]}>
             <Ionicons name="navigate" size={18} color={colors.accent} />
             <Text style={[styles.gpsBtnText, { color: colors.accent }]}>Use Current GPS Location</Text>
@@ -600,6 +603,22 @@ export default function NewListingScreen() {
               <Text style={[styles.selectedTypeHint, { color: colors.mutedForeground }]}>Selected on the previous step</Text>
             </View>
           </Field>
+           <Field label="PROPERTY TYPE">
+             <View style={styles.typeGrid}>
+               {['house', 'apartment', 'townhouse', 'stand', 'commercial', 'industrial', 'farm', 'mine'].map((propertyType) => {
+                 const selected = form.propertyType === propertyType;
+                 return (
+                   <TouchableOpacity
+                     key={propertyType}
+                     style={[styles.typeBtn, { backgroundColor: selected ? colors.primary : colors.secondary, borderColor: selected ? colors.primary : colors.border }]}
+                     onPress={() => { Haptics.selectionAsync(); set('propertyType', propertyType); }}
+                   >
+                     <Text style={[styles.typeBtnText, { color: selected ? '#FFF' : colors.foreground }]}>{propertyType.charAt(0).toUpperCase() + propertyType.slice(1)}</Text>
+                   </TouchableOpacity>
+                 );
+               })}
+             </View>
+           </Field>
           <Field label="PRICE *" error={fieldError('valid price')}>
             <View style={styles.priceRow}>
               <TouchableOpacity
