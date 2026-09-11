@@ -84,12 +84,12 @@ function Calendar({
           defaultClassNames.caption_label,
         ),
         table: 'w-full border-collapse',
-        weekdays: cn('grid grid-cols-7 w-full', defaultClassNames.weekdays),
+        weekdays: cn(defaultClassNames.weekdays, 'grid grid-cols-7 w-full'),
         weekday: cn(
           'text-muted-foreground flex items-center justify-center select-none rounded-md text-[0.8rem] font-normal',
           defaultClassNames.weekday,
         ),
-        week: cn('mt-2 grid grid-cols-7 w-full', defaultClassNames.week),
+        week: cn(defaultClassNames.week, 'mt-2 grid grid-cols-7 w-full'),
         week_number_header: cn(
           'w-[--cell-size] select-none',
           defaultClassNames.week_number_header,
