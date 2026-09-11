@@ -500,7 +500,7 @@ function AddPropertyDialog() {
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
           <Button onClick={submit} disabled={createProperty.isPending || uploading} data-testid="button-save-property">
-            {uploading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Uploading...</> : createProperty.isPending ? 'Creating...' : 'Create Mandate'}
+            {uploading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Uploading...</> : createProperty.isPending ? 'Creating...' : 'Create Listing'}
           </Button>
         </DialogFooter>
       </DialogContent>
