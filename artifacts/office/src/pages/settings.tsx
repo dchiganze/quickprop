@@ -9,6 +9,7 @@ import {
   useGetListingHousekeepingPreferences,
   useUpdateListingHousekeepingPreferences,
 } from '@workspace/api-client-react';
+import { useToast } from '@/hooks/use-toast';
 
 const DEFAULT_REMINDER_PREFERENCES = {
   whatsappEnabled: true,
@@ -20,6 +21,7 @@ const DEFAULT_REMINDER_PREFERENCES = {
 export default function Settings() {
   const preferencesQuery = useGetListingHousekeepingPreferences();
   const updatePreferences = useUpdateListingHousekeepingPreferences();
+  const { toast } = useToast();
   const [reminderPreferences, setReminderPreferences] = useState(DEFAULT_REMINDER_PREFERENCES);
   const [saved, setSaved] = useState(false);
 
@@ -47,6 +49,10 @@ export default function Settings() {
           reminderFrequency: next.reminderFrequency,
         });
         setSaved(true);
+        toast({
+          title: 'Changes saved',
+          description: 'Your reminder settings have been saved.',
+        });
       },
     });
   };
@@ -185,7 +191,16 @@ export default function Settings() {
       </div>
       
       <div className="flex justify-end pt-4">
-        <Button size="lg" className="w-full md:w-auto font-semibold">Save Changes</Button>
+        <Button
+          size="lg"
+          className="w-full md:w-auto font-semibold"
+          onClick={() => toast({
+            title: 'Changes saved',
+            description: 'Your settings have been saved.',
+          })}
+        >
+          Save Changes
+        </Button>
       </div>
     </div>
   );
