@@ -142,7 +142,10 @@ export function QuickShareDialog() {
         </Button>
       </DialogTrigger>
 
-      <DialogContent className="w-[calc(100vw-2rem)] max-w-xl overflow-x-hidden">
+      <DialogContent
+        className="overflow-x-hidden"
+        style={{ width: 'calc(100vw - 2rem)', maxWidth: '28rem' }}
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Share2 className="w-5 h-5 text-primary" />
