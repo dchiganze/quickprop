@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { Share2, MessageCircle, Facebook, Instagram, Check, Copy, ExternalLink, ChevronRight, User, Building2 } from 'lucide-react';
+import { Share2, MessageCircle, Facebook, Instagram, Linkedin, Check, Copy, ExternalLink, ChevronRight, User, Building2 } from 'lucide-react';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
 } from '@/components/ui/dialog';
@@ -111,6 +111,11 @@ export function QuickShareDialog() {
       description: 'The catalogue link is open and the full caption is copied to your clipboard.',
     });
   }, [publicProps, mode, user?.name, catalogUrl, toast]);
+
+  const shareToLinkedIn = useCallback(() => {
+    const url = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(catalogUrl)}`;
+    window.open(url, '_blank', 'noopener,noreferrer');
+  }, [catalogUrl]);
 
   const copyForInstagram = useCallback(async () => {
     try {
@@ -313,6 +318,21 @@ export function QuickShareDialog() {
               ? <Check className="w-4 h-4 text-green-500" />
               : <Copy className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
             }
+          </button>
+
+          <button
+            onClick={shareToLinkedIn}
+            disabled={publicProps.length === 0}
+            className="w-full flex items-center gap-3 p-3 rounded-lg border border-border hover:bg-muted/60 transition-colors disabled:opacity-40 disabled:cursor-not-allowed text-left group"
+          >
+            <div className="w-9 h-9 rounded-full bg-[#0A66C2] flex items-center justify-center shrink-0">
+              <Linkedin className="w-5 h-5 text-white" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-medium text-foreground">LinkedIn</p>
+              <p className="text-xs text-muted-foreground">Share your catalogue as a post</p>
+            </div>
+            <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
           </button>
         </div>
       </DialogContent>
