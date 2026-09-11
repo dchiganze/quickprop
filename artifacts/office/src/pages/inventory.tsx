@@ -119,10 +119,7 @@ function AddPropertyDialog() {
       toast({ title: 'Date already added', description: 'Choose a different viewing date.', variant: 'destructive' });
       return;
     }
-    const previousDate = viewingDates.find((option) => option.id === id)?.date;
     setViewingDates((current) => current.map((option) => option.id === id ? { ...option, date } : option));
-    if (previousDate && previousDate !== date) {
-    }
   };
 
   const addViewingDate = () => {
@@ -446,30 +443,56 @@ function AddPropertyDialog() {
                     value={option.date}
                     onChange={(e) => updateViewingDate(option.id, e.target.value)}
                   />
-                  <div className="grid grid-cols-2 gap-2">
-                    {VIEWING_TIME_OPTIONS.map((time) => {
-                      const selected = form.proposedViewingTimes.includes(viewingSlot(option.date, time));
-                      return (
+                  <div className="flex items-end gap-2">
+                    <div className="grid min-w-0 flex-1 gap-2">
+                      <Label htmlFor={`np-viewing-time-${option.id}`} className="text-xs text-muted-foreground">
+                        Choose any time
+                      </Label>
+                      <div className="relative">
+                        <Clock3 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                          id={`np-viewing-time-${option.id}`}
+                          type="time"
+                          value={timeInputs[option.id] || ''}
+                          onChange={(e) => setTimeInputs((current) => ({ ...current, [option.id]: e.target.value }))}
+                          className="pl-9"
+                        />
+                      </div>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => addViewingTime(option.id)}
+                      disabled={!timeInputs[option.id]}
+                    >
+                      Add time
+                    </Button>
+                  </div>
+                  {option.times.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {option.times.map((time) => (
                         <Button
                           key={time}
                           type="button"
-                          variant={selected ? 'default' : 'outline'}
-                          className="justify-start"
-                          onClick={() => toggleViewingTime(option.date, time)}
-                          aria-pressed={selected}
+                          variant="secondary"
+                          size="sm"
+                          className="gap-1.5"
+                          onClick={() => removeViewingTime(option.id, time)}
+                          aria-label={`Remove ${time}`}
                         >
-                          {selected ? <CheckCircle2 className="w-4 h-4 mr-2" /> : <Clock3 className="w-4 h-4 mr-2" />}
+                          <CheckCircle2 className="h-3.5 w-3.5" />
                           {time}
+                          <X className="h-3.5 w-3.5" />
                         </Button>
-                      );
-                    })}
-                  </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
             <p className="text-xs text-muted-foreground">
-              {form.proposedViewingTimes.length > 0
-                ? `${form.proposedViewingTimes.length} proposed time${form.proposedViewingTimes.length === 1 ? '' : 's'} selected`
+              {selectedViewingTimes.length > 0
+                ? `${selectedViewingTimes.length} proposed time${selectedViewingTimes.length === 1 ? '' : 's'} selected`
                 : 'You can skip this and arrange a viewing after publishing.'}
             </p>
           </div>
