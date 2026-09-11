@@ -119,7 +119,12 @@ export default function BrochureCatalog() {
               )}
               <div>
                 <div className="text-xl font-bold text-gray-900">{agencyName}</div>
-                <div className="text-[10px] text-gray-400 mt-0.5">powered by quickprop</div>
+                <div className="text-[10px] text-gray-400 mt-0.5">
+                  powered by{' '}
+                  <a href="https://www.quickprop.co.zw" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-gray-600">
+                    www.quickprop.co.zw
+                  </a>
+                </div>
               </div>
             </div>
             <div className="text-right">
@@ -181,7 +186,12 @@ export default function BrochureCatalog() {
 
         {/* ── FOOTER ── */}
         <div className="mx-10 mt-10 pt-6 border-t border-gray-200 flex items-center justify-between text-xs text-gray-400">
-          <span>powered by quickprop</span>
+          <span>
+            powered by{' '}
+            <a href="https://www.quickprop.co.zw" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-gray-600">
+              www.quickprop.co.zw
+            </a>
+          </span>
           <span>Generated {new Date().toLocaleDateString()}</span>
         </div>
       </div>
