@@ -18,6 +18,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
+import { AddPropertyDialog } from '@/pages/inventory';
 
 function MetricCard({ title, value, icon: Icon, trend, isLoading }: any) {
   return (
@@ -188,9 +189,7 @@ export default function Dashboard() {
           <p className="text-muted-foreground mt-1 text-lg">Here's what's happening across your agency today.</p>
         </div>
         <div className="flex gap-3">
-          <Button asChild variant="outline">
-             <Link href="/inventory">Add Property</Link>
-          </Button>
+           <AddPropertyDialog />
           <Button asChild>
              <Link href="/leads">New Lead</Link>
           </Button>

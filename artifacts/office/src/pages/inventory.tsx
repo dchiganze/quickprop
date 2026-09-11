@@ -53,7 +53,7 @@ type ViewingDateOption = {
   times: string[];
 };
 
-function AddPropertyDialog() {
+export function AddPropertyDialog() {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
     title: '', propertyType: 'house', listingType: 'sale', price: '', suburb: '', city: 'Harare',
