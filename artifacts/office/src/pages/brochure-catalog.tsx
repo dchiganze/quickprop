@@ -16,6 +16,8 @@ const STATUS_PILL: Record<string, { label: string; color: string }> = {
   sold:         { label: 'Sold',         color: '#dc2626' },
 };
 
+const PUBLIC_SITE_URL = 'https://www.quickprop.melios.co.zw';
+
 export default function BrochureCatalog() {
   const params = new URLSearchParams(window.location.search);
   const mode = (params.get('mode') ?? 'company') as 'my' | 'company' | 'custom';
@@ -247,6 +249,14 @@ function PropertyCard({ property: p, agentMap }: { property: any; agentMap: Reco
         {p.description && (
           <p className="text-xs text-gray-500 mt-2 line-clamp-2 leading-relaxed">{p.description}</p>
         )}
+         <a
+           href={`${PUBLIC_SITE_URL}/properties/${p.id}`}
+           target="_blank"
+           rel="noopener noreferrer"
+           className="mt-2 block text-[11px] leading-relaxed text-emerald-700 underline decoration-emerald-300 underline-offset-2 break-all hover:text-emerald-800"
+         >
+           {PUBLIC_SITE_URL.replace(/^https?:\/\//, '')}/properties/{p.id}
+         </a>
 
         {/* Features + agent */}
         <div className="flex items-center justify-between mt-3">
