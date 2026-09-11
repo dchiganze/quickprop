@@ -53,12 +53,26 @@ type ViewingDateOption = {
   times: string[];
 };
 
+const PROPERTY_FEATURES = [
+  'Solar', 'Borehole', 'Swimming Pool', 'Electric Fence',
+  'Staff Quarters', 'Cottage', 'Fitted Kitchen', 'Generator',
+  'Fireplace', 'Fibre', 'Air Conditioning', 'Alarm System',
+  'Paved Driveway', 'Municipal Water', 'Septic Tank', 'Internet',
+  'Schools Nearby', 'Hospital Nearby', 'Shopping Centre Nearby',
+  'Double Storey', 'Servant Quarters', 'Garden', 'Deck',
+  'Study', 'Gym', 'Home Theatre', 'Wine Cellar',
+  'Irrigation', 'Boma', 'Lapa', 'Outhouse',
+];
+
 export function AddPropertyDialog() {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
     title: '', propertyType: 'house', listingType: 'sale', price: '', suburb: '', city: 'Harare',
     address: '', addressVisible: false, bedrooms: '', bathrooms: '', garages: '', landSize: '', floorArea: '',
-    negotiable: false, levies: '', rates: '', description: '', proposedViewingTimes: [] as string[],
+    negotiable: false, levies: '', rates: '', features: [] as string[], description: '',
+    sellerName: '', sellerPhone: '', sellerEmail: '', mandateExpiry: '',
+    mandateType: 'sole' as 'open' | 'sole', sellerNotes: '', collaborationEnabled: false,
+    proposedViewingTimes: [] as string[],
   });
   const [viewingDates, setViewingDates] = useState<ViewingDateOption[]>([{ id: 1, date: tomorrowDate(), times: [] }]);
   const [nextViewingDateId, setNextViewingDateId] = useState(2);
@@ -78,7 +92,7 @@ export function AddPropertyDialog() {
         queryClient.invalidateQueries({ queryKey: getGetPipelineQueryKey() });
         toast({ title: 'Mandate created', description: `${created.reference} — ${created.title}` });
         setOpen(false);
-         setForm({ title: '', propertyType: 'house', listingType: 'sale', price: '', suburb: '', city: 'Harare', address: '', addressVisible: false, bedrooms: '', bathrooms: '', garages: '', landSize: '', floorArea: '', negotiable: false, levies: '', rates: '', description: '', proposedViewingTimes: [] });
+         setForm({ title: '', propertyType: 'house', listingType: 'sale', price: '', suburb: '', city: 'Harare', address: '', addressVisible: false, bedrooms: '', bathrooms: '', garages: '', landSize: '', floorArea: '', negotiable: false, levies: '', rates: '', features: [], description: '', sellerName: '', sellerPhone: '', sellerEmail: '', mandateExpiry: '', mandateType: 'sole', sellerNotes: '', collaborationEnabled: false, proposedViewingTimes: [] });
          setPhotoFiles([]);
          setVideoFile(null);
          setUploadError('');
@@ -95,6 +109,15 @@ export function AddPropertyDialog() {
   const selectedViewingTimes = viewingDates
     .flatMap((option) => option.times.map((time) => viewingSlot(option.date, time)))
     .sort();
+
+  const toggleFeature = (feature: string) => {
+    setForm((current) => ({
+      ...current,
+      features: current.features.includes(feature)
+        ? current.features.filter((item) => item !== feature)
+        : [...current.features, feature],
+    }));
+  };
 
   const addViewingTime = (id: number) => {
     const time = timeInputs[id];
@@ -221,7 +244,16 @@ export function AddPropertyDialog() {
          buildingSize: form.floorArea ? Number(form.floorArea) : undefined,
          levies: form.levies ? Number(form.levies) : undefined,
          rates: form.rates ? Number(form.rates) : undefined,
+         features: form.features,
         description: form.description || undefined,
+         sellerName: form.sellerName.trim() || undefined,
+         sellerPhone: form.sellerPhone.trim() || undefined,
+         sellerEmail: form.sellerEmail.trim() || undefined,
+         sellerNotes: form.sellerNotes.trim() || undefined,
+         mandateType: form.mandateType,
+         mandateExpiry: form.mandateExpiry || undefined,
+         privateNotes: form.sellerNotes.trim() || undefined,
+         collaborationEnabled: form.collaborationEnabled,
         photos,
         videoUrl,
         proposedViewingTimes: selectedViewingTimes,
@@ -405,6 +437,73 @@ export function AddPropertyDialog() {
             <Label htmlFor="np-desc">Description</Label>
             <Textarea id="np-desc" rows={3} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
           </div>
+           <div className="grid gap-3 rounded-lg border border-border bg-muted/30 p-4">
+             <div>
+               <Label>Property features</Label>
+               <p className="mt-1 text-xs text-muted-foreground">{form.features.length} selected. Choose all that apply.</p>
+             </div>
+             <div className="flex flex-wrap gap-2">
+               {PROPERTY_FEATURES.map((feature) => (
+                 <Button
+                   key={feature}
+                   type="button"
+                   size="sm"
+                   variant={form.features.includes(feature) ? 'default' : 'outline'}
+                   onClick={() => toggleFeature(feature)}
+                   className="rounded-full"
+                 >
+                   {feature}
+                 </Button>
+               ))}
+             </div>
+           </div>
+           <div className="grid gap-4 rounded-lg border border-border bg-muted/30 p-4">
+             <div>
+               <Label>Seller details</Label>
+               <p className="mt-1 text-xs text-muted-foreground">Private information used by your agency and never shown publicly.</p>
+             </div>
+             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+               <div className="grid gap-2">
+                 <Label htmlFor="np-seller-name">Seller name</Label>
+                 <Input id="np-seller-name" value={form.sellerName} onChange={(e) => setForm({ ...form, sellerName: e.target.value })} placeholder="Robert Chikwanda" />
+               </div>
+               <div className="grid gap-2">
+                 <Label htmlFor="np-seller-phone">Phone</Label>
+                 <Input id="np-seller-phone" value={form.sellerPhone} onChange={(e) => setForm({ ...form, sellerPhone: e.target.value })} placeholder="+263 77 123 4567" />
+               </div>
+             </div>
+             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+               <div className="grid gap-2">
+                 <Label htmlFor="np-seller-email">Email</Label>
+                 <Input id="np-seller-email" type="email" value={form.sellerEmail} onChange={(e) => setForm({ ...form, sellerEmail: e.target.value })} placeholder="seller@email.com" />
+               </div>
+               <div className="grid gap-2">
+                 <Label htmlFor="np-mandate-expiry">Mandate expiry</Label>
+                 <Input id="np-mandate-expiry" type="date" value={form.mandateExpiry} onChange={(e) => setForm({ ...form, mandateExpiry: e.target.value })} />
+               </div>
+             </div>
+             <div className="grid gap-2">
+               <Label>Mandate type</Label>
+               <Select value={form.mandateType} onValueChange={(value: 'open' | 'sole') => setForm({ ...form, mandateType: value })}>
+                 <SelectTrigger><SelectValue /></SelectTrigger>
+                 <SelectContent>
+                   <SelectItem value="open">Open</SelectItem>
+                   <SelectItem value="sole">Sole</SelectItem>
+                 </SelectContent>
+               </Select>
+             </div>
+             <div className="grid gap-2">
+               <Label htmlFor="np-seller-notes">Internal notes</Label>
+               <Textarea id="np-seller-notes" rows={3} value={form.sellerNotes} onChange={(e) => setForm({ ...form, sellerNotes: e.target.value })} placeholder="Seller motivation, negotiation notes, access instructions..." />
+             </div>
+           </div>
+           <div className="flex items-center justify-between gap-4 rounded-lg border border-border bg-muted/30 px-4 py-3">
+             <div>
+               <Label htmlFor="np-collaboration">Open to collaboration?</Label>
+               <p className="text-xs text-muted-foreground">Allow other QuickProp agents to send collaboration requests.</p>
+             </div>
+             <Switch id="np-collaboration" checked={form.collaborationEnabled} onCheckedChange={(checked) => setForm({ ...form, collaborationEnabled: checked })} />
+           </div>
           <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-3">
             <div className="flex items-start gap-3">
               <div className="rounded-md bg-primary/10 p-2 text-primary"><ImageIcon className="w-4 h-4" /></div>

@@ -2392,6 +2392,10 @@ components:
         mandateExpiry: { type: string }
         commissionPercent: { type: number }
         privateNotes: { type: string }
+        sellerName: { type: string }
+        sellerPhone: { type: string }
+        sellerEmail: { type: string, format: email }
+        sellerNotes: { type: string }
         collaborationEnabled: { type: boolean }
     PropertyUpdate:
       type: object
@@ -2440,6 +2444,10 @@ components:
         mandateExpiry: { type: string }
         commissionPercent: { type: number }
         privateNotes: { type: string }
+        sellerName: { type: string }
+        sellerPhone: { type: string }
+        sellerEmail: { type: string, format: email }
+        sellerNotes: { type: string }
         collaborationEnabled: { type: boolean }
     MarkPropertySoldInput:
       type: object
