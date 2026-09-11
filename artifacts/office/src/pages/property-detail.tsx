@@ -55,8 +55,6 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
   const shareProperty = useShareProperty();
   const updateHealth = useUpdatePropertyHealth();
 
-  const [shareChannel, setShareChannel] = useState<'whatsapp' | 'facebook' | 'instagram' | 'email' | 'link'>('whatsapp');
-  const [facebookShareType, setFacebookShareType] = useState<'post' | 'story'>('post');
   const [saleDialogOpen, setSaleDialogOpen] = useState(false);
   const [salePrice, setSalePrice] = useState('');
   const [editOpen, setEditOpen] = useState(false);
@@ -148,11 +146,8 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
     window.open(`${window.location.pathname.replace(/\/property\/\d+.*/, '')}/property/${propertyId}/brochure`, '_blank');
   };
 
-  const handleShare = async (
-    channel: typeof shareChannel = shareChannel,
-    facebookType: 'post' | 'story' = facebookShareType,
-  ) => {
-    shareProperty.mutate({ id: propertyId, data: { channel: channel === 'facebook' && facebookType === 'story' ? 'facebook_story' : channel } }, {
+  const handleShare = async (channel: 'whatsapp' | 'facebook' | 'instagram' | 'email' | 'link') => {
+    shareProperty.mutate({ id: propertyId, data: { channel } }, {
       onSuccess: async (res) => {
         const shareMessage = [
           property.title,
@@ -166,11 +161,8 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
             window.open(`https://wa.me/?text=${encodeURIComponent(shareMessage)}`, '_blank', 'noopener,noreferrer');
           } else if (channel === 'email') {
             window.location.href = `mailto:?subject=${encodeURIComponent(property.title)}&body=${encodeURIComponent(shareMessage)}`;
-          } else if (channel === 'facebook' && facebookType === 'post') {
+          } else if (channel === 'facebook') {
             window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(res.url)}`, '_blank', 'noopener,noreferrer');
-          } else if (channel === 'facebook' && facebookType === 'story') {
-            await navigator.clipboard.writeText(shareMessage).catch(() => {});
-            window.open('https://www.facebook.com/', '_blank', 'noopener,noreferrer');
           } else if (channel === 'instagram') {
             await navigator.clipboard.writeText(shareMessage);
           } else {
@@ -180,9 +172,7 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
             ? 'Property details and link copied to clipboard.'
             : channel === 'instagram'
               ? 'The property caption and link were copied to your clipboard.'
-              : channel === 'facebook' && facebookType === 'story'
-                ? 'The property caption was copied. Choose Story in Facebook to continue.'
-                : `Opened ${channel}.`;
+              : `Opened ${channel}.`;
           toast({ title: 'Property ready to share', description });
         } catch {
           toast({ title: 'Could not share property', description: 'Please try again.', variant: 'destructive' });
@@ -446,50 +436,19 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
 
                 <button
                   type="button"
-                  onClick={() => setShareChannel('facebook')}
+                  onClick={() => handleShare('facebook')}
                   disabled={shareProperty.isPending}
-                  className={`group flex w-full items-center gap-3 rounded-lg border p-3 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
-                    shareChannel === 'facebook' ? 'border-primary bg-primary/5' : 'border-border hover:bg-muted/60'
-                  }`}
+                  className="group flex w-full items-center gap-3 rounded-lg border border-border p-3 text-left transition-colors hover:bg-muted/60 disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#1877F2]">
                     <Facebook className="h-5 w-5 text-white" />
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium text-foreground">Facebook</p>
-                    <p className="text-xs text-muted-foreground">Choose a post or story</p>
+                    <p className="text-xs text-muted-foreground">Share this property on Facebook</p>
                   </div>
                   <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground transition-colors group-hover:text-foreground" />
                 </button>
-
-                {shareChannel === 'facebook' && (
-                  <div className="grid grid-cols-2 gap-2 pl-12">
-                    <Button
-                      type="button"
-                      variant={facebookShareType === 'post' ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => {
-                        setFacebookShareType('post');
-                        handleShare('facebook', 'post');
-                      }}
-                      disabled={shareProperty.isPending}
-                    >
-                      Share Post
-                    </Button>
-                    <Button
-                      type="button"
-                      variant={facebookShareType === 'story' ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => {
-                        setFacebookShareType('story');
-                        handleShare('facebook', 'story');
-                      }}
-                      disabled={shareProperty.isPending}
-                    >
-                      Share Story
-                    </Button>
-                  </div>
-                )}
 
                 <button
                   type="button"
