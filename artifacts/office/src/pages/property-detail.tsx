@@ -10,7 +10,7 @@ import {
   ArrowLeft, MapPin, Bed, Bath, Car, Square, Building2, Calendar, 
   Tag, Download, Share2, PenLine, CheckCircle2, FileText, Eye, 
   Activity, ArrowUpRight, ArrowDownRight, Loader2, Image as ImageIcon,
-  MessageCircle, Facebook, Instagram, Mail, Link as LinkIcon, Copy, ChevronRight
+  MessageCircle, Facebook, Instagram, Linkedin, Mail, Link as LinkIcon, Copy, ChevronRight
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -146,7 +146,7 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
     window.open(`${window.location.pathname.replace(/\/property\/\d+.*/, '')}/property/${propertyId}/brochure`, '_blank');
   };
 
-  const handleShare = async (channel: 'whatsapp' | 'facebook' | 'instagram' | 'email' | 'link') => {
+  const handleShare = async (channel: 'whatsapp' | 'facebook' | 'instagram' | 'linkedin' | 'email' | 'link') => {
     shareProperty.mutate({ id: propertyId, data: { channel } }, {
       onSuccess: async (res) => {
         const shareMessage = [
@@ -165,6 +165,8 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
             window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(res.url)}`, '_blank', 'noopener,noreferrer');
           } else if (channel === 'instagram') {
             await navigator.clipboard.writeText(shareMessage);
+          } else if (channel === 'linkedin') {
+            window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(res.url)}`, '_blank', 'noopener,noreferrer');
           } else {
             await navigator.clipboard.writeText(shareMessage);
           }
@@ -464,9 +466,25 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium text-foreground">Instagram</p>
-                    <p className="text-xs text-muted-foreground">Copy caption + link for Instagram</p>
+                    <p className="text-xs text-muted-foreground">Copy caption + link for an Instagram post</p>
                   </div>
                   <Copy className="h-4 w-4 shrink-0 text-muted-foreground transition-colors group-hover:text-foreground" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleShare('linkedin')}
+                  disabled={shareProperty.isPending}
+                  className="group flex w-full items-center gap-3 rounded-lg border border-border p-3 text-left transition-colors hover:bg-muted/60 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#0A66C2]">
+                    <Linkedin className="h-5 w-5 text-white" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-foreground">LinkedIn</p>
+                    <p className="text-xs text-muted-foreground">Share this property as a post</p>
+                  </div>
+                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground transition-colors group-hover:text-foreground" />
                 </button>
 
                 <div className="grid grid-cols-2 gap-2 pt-1">
