@@ -455,6 +455,8 @@ export interface Property {
   buildingSize?: number | null;
   features?: string[];
   photos?: string[];
+  /** Optional proposed viewing slots as ISO 8601 date-time strings. */
+  proposedViewingTimes?: string[];
   /** @nullable */
   videoUrl?: string | null;
   /** @nullable */
@@ -533,6 +535,8 @@ export interface PropertyInput {
   features?: string[];
   /** @minItems 1 */
   photos: string[];
+  /** Optional proposed viewing slots as ISO 8601 date-time strings. */
+  proposedViewingTimes?: string[];
   videoUrl?: string;
   coverImage?: string;
   agentId?: number;
@@ -567,6 +571,8 @@ export interface PropertyUpdate {
   features?: string[];
   /** @minItems 1 */
   photos?: string[];
+  /** Optional proposed viewing slots as ISO 8601 date-time strings. */
+  proposedViewingTimes?: string[];
   videoUrl?: string;
   coverImage?: string;
   agentId?: number;
@@ -1121,6 +1127,8 @@ export interface PublicProperty {
   buildingSize?: number | null;
   features: string[];
   photos: string[];
+  /** Optional proposed viewing slots as ISO 8601 date-time strings. */
+  proposedViewingTimes?: string[];
   /** @nullable */
   coverImage?: string | null;
   /** @nullable */

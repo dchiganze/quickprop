@@ -156,6 +156,7 @@ function toMobileProperty(property: ApiProperty): Property {
     features: property.features ?? [],
     description: property.description ?? '',
     photos: property.photos ?? [],
+    proposedViewingTimes: property.proposedViewingTimes ?? [],
     videoUrl: property.videoUrl ?? undefined,
     collaborationEnabled: property.collaborationEnabled ?? false,
     seller: {
@@ -202,6 +203,7 @@ function toServerProperty(property: Property, userId: string): PropertyInput {
     buildingSize: property.floorArea,
     features: property.features,
     photos: property.photos,
+    proposedViewingTimes: property.proposedViewingTimes ?? [],
     videoUrl: property.videoUrl,
     coverImage: property.photos[0],
     collaborationEnabled: property.collaborationEnabled ?? false,

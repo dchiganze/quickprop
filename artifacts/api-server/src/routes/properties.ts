@@ -111,6 +111,10 @@ router.post("/properties", async (req, res): Promise<void> => {
   }
   const user = await currentUser(req);
   const requestKey = mutationKey(req);
+  const propertyInput = {
+    ...parsed.data,
+    proposedViewingTimes: parsed.data.proposedViewingTimes?.map((time) => time.toISOString()),
+  };
   const result = await db.transaction(async (tx) => {
     let mutationId: number | null = null;
     if (requestKey && user) {
@@ -136,7 +140,7 @@ router.post("/properties", async (req, res): Promise<void> => {
     const [created] = await tx
       .insert(propertiesTable)
       .values({
-        ...parsed.data,
+        ...propertyInput,
         agentId: user?.id,
         reference: temporaryReference,
         normalizedAddress: normalizeText(parsed.data.address),

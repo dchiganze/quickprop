@@ -38,6 +38,7 @@ export const propertiesTable = pgTable("properties", {
   buildingSize: doublePrecision("building_size"),
   features: text("features").array().notNull().default([]),
   photos: text("photos").array().notNull().default([]),
+  proposedViewingTimes: text("proposed_viewing_times").array().notNull().default([]),
   videoUrl: text("video_url"),
   coverImage: text("cover_image"),
   agentId: integer("agent_id").references(() => usersTable.id),

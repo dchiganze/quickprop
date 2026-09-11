@@ -34,6 +34,7 @@ export interface Property {
   features: string[];
   description: string;
   photos: string[];
+  proposedViewingTimes?: string[];
   videoUrl?: string;
   /**
    * Makes this listing available to agents outside the listing agent's branch

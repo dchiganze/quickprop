@@ -2303,6 +2303,10 @@ components:
         photos:
           type: array
           items: { type: string }
+        proposedViewingTimes:
+          type: array
+          description: Optional proposed viewing slots as ISO 8601 date-time strings.
+          items: { type: string, format: date-time }
         videoUrl: { type: ["string", "null"] }
         coverImage: { type: ["string", "null"] }
         agentId: { type: ["integer", "null"] }
@@ -2364,6 +2368,10 @@ components:
           type: array
           minItems: 1
           items: { type: string }
+        proposedViewingTimes:
+          type: array
+          description: Optional proposed viewing slots as ISO 8601 date-time strings.
+          items: { type: string, format: date-time }
         videoUrl: { type: string }
         coverImage: { type: string }
         agentId: { type: integer }
@@ -2402,6 +2410,10 @@ components:
           type: array
           minItems: 1
           items: { type: string }
+        proposedViewingTimes:
+          type: array
+          description: Optional proposed viewing slots as ISO 8601 date-time strings.
+          items: { type: string, format: date-time }
         videoUrl: { type: string }
         coverImage: { type: string }
         agentId: { type: integer }
@@ -2925,6 +2937,10 @@ components:
         photos:
           type: array
           items: { type: string }
+        proposedViewingTimes:
+          type: array
+          description: Optional proposed viewing slots as ISO 8601 date-time strings.
+          items: { type: string, format: date-time }
         coverImage: { type: ["string", "null"] }
         agentId: { type: ["integer", "null"] }
         views: { type: integer }

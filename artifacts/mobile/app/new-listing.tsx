@@ -18,14 +18,31 @@ import { PROPERTY_FEATURES, Property } from '@/types';
 import { apiOrigin } from '@/contexts/AuthContext';
 import { addMyAgencyToProperty, findPropertyDuplicates } from '@/utils/multiAgent';
 
-const TOTAL_STEPS = 10;
+const TOTAL_STEPS = 11;
 const STEP_LABELS = [
   'Photos', 'Video', 'Location', 'Listing Type', 'Property Details',
-  'Features', 'Description', 'Seller Details', 'Collaboration', 'Review & Publish',
+  'Features', 'Description', 'Seller Details', 'Collaboration', 'Viewing Times', 'Review & Publish',
 ];
 
 const CURRENCIES = ['USD', 'ZAR', 'ZWL', 'GBP', 'EUR'];
 const MANDATE_TYPES: Array<'open' | 'sole'> = ['open', 'sole'];
+const VIEWING_TIME_OPTIONS = ['09:00', '11:00', '14:00', '16:00'];
+
+function dateKey(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function viewingDates(): Date[] {
+  return Array.from({ length: 14 }, (_, index) => {
+    const date = new Date();
+    date.setHours(0, 0, 0, 0);
+    date.setDate(date.getDate() + index + 1);
+    return date;
+  });
+}
 
 interface FormData {
   photos: string[];
@@ -54,6 +71,7 @@ interface FormData {
   mandateType: 'open' | 'sole';
   sellerNotes: string;
   collaborationEnabled: boolean;
+  proposedViewingTimes: string[];
 }
 
 const defaultForm: FormData = {
@@ -66,6 +84,7 @@ const defaultForm: FormData = {
   mandateExpiry: new Date(Date.now() + 90 * 86400000).toISOString().split('T')[0],
   mandateType: 'sole', sellerNotes: '',
   collaborationEnabled: false,
+  proposedViewingTimes: [],
 };
 
 function Stepper({ value, onChange, min = 0, max = 20 }: { value: number; onChange: (n: number) => void; min?: number; max?: number }) {
@@ -157,6 +176,7 @@ export default function NewListingScreen() {
   const [form, setForm] = useState<FormData>(defaultForm);
   const [saving, setSaving] = useState(false);
   const [validationAttempted, setValidationAttempted] = useState(false);
+  const [viewingDate, setViewingDate] = useState(dateKey(viewingDates()[0]));
 
   const set = (key: keyof FormData, value: any) => setForm(f => ({
     ...f,
@@ -171,6 +191,14 @@ export default function NewListingScreen() {
     } else {
       set('features', [...current, feature]);
     }
+  };
+
+  const toggleViewingTime = (time: string) => {
+    const slot = new Date(`${viewingDate}T${time}:00`).toISOString();
+    set('proposedViewingTimes', form.proposedViewingTimes.includes(slot)
+      ? form.proposedViewingTimes.filter(value => value !== slot)
+      : [...form.proposedViewingTimes, slot].sort());
+    Haptics.selectionAsync();
   };
 
   const handleRecordVideo = async () => {
@@ -310,6 +338,7 @@ export default function NewListingScreen() {
       features: form.features,
       description: form.description,
       photos: form.photos,
+       proposedViewingTimes: form.proposedViewingTimes,
         collaborationEnabled: form.collaborationEnabled,
        videoUrl: form.videoUri || undefined,
       seller: {
@@ -754,7 +783,87 @@ export default function NewListingScreen() {
         </View>
       );
 
-      case 9: return ( // Review & Publish
+      case 9: return (
+        <View style={styles.stepContent}>
+          <Text style={[styles.stepHeading, { color: colors.foreground }]}>Want to organise a viewing time?</Text>
+          <Text style={[styles.stepSub, { color: colors.mutedForeground }]}>
+            This is optional. Suggest a few times for interested buyers, and you can confirm the final appointment later.
+          </Text>
+          <View style={[styles.viewingCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <View style={styles.viewingHeader}>
+              <View style={[styles.viewingIcon, { backgroundColor: colors.accent + '18' }]}>
+                <Ionicons name="calendar-outline" size={22} color={colors.accent} />
+              </View>
+              <View style={styles.viewingHeaderCopy}>
+                <Text style={[styles.viewingTitle, { color: colors.foreground }]}>Propose viewing slots</Text>
+                <Text style={[styles.viewingHint, { color: colors.mutedForeground }]}>
+                  Select one or more times that work for the seller.
+                </Text>
+              </View>
+            </View>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.dateRow}>
+              {viewingDates().map(date => {
+                const selected = dateKey(date) === viewingDate;
+                return (
+                  <TouchableOpacity
+                    key={dateKey(date)}
+                    style={[styles.dateChip, { backgroundColor: selected ? colors.primary : colors.secondary, borderColor: selected ? colors.primary : colors.border }]}
+                    onPress={() => { setViewingDate(dateKey(date)); Haptics.selectionAsync(); }}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected }}
+                  >
+                    <Text style={[styles.dateWeekday, { color: selected ? '#FFFFFFCC' : colors.mutedForeground }]}>
+                      {date.toLocaleDateString(undefined, { weekday: 'short' })}
+                    </Text>
+                    <Text style={[styles.dateDay, { color: selected ? '#FFF' : colors.foreground }]}>
+                      {date.getDate()}
+                    </Text>
+                    <Text style={[styles.dateMonth, { color: selected ? '#FFFFFFCC' : colors.mutedForeground }]}>
+                      {date.toLocaleDateString(undefined, { month: 'short' })}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+            <View style={styles.timeGrid}>
+              {VIEWING_TIME_OPTIONS.map(time => {
+                const slot = new Date(`${viewingDate}T${time}:00`).toISOString();
+                const selected = form.proposedViewingTimes.includes(slot);
+                return (
+                  <TouchableOpacity
+                    key={time}
+                    style={[styles.timeChip, { backgroundColor: selected ? colors.accent : colors.secondary, borderColor: selected ? colors.accent : colors.border }]}
+                    onPress={() => toggleViewingTime(time)}
+                    accessibilityRole="checkbox"
+                    accessibilityState={{ checked: selected }}
+                  >
+                    <Ionicons name={selected ? 'checkmark-circle' : 'time-outline'} size={17} color={selected ? '#FFF' : colors.primary} />
+                    <Text style={[styles.timeText, { color: selected ? '#FFF' : colors.foreground }]}>{time}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+            {form.proposedViewingTimes.length > 0 ? (
+              <View style={[styles.selectionNote, { backgroundColor: colors.accent + '12', borderColor: colors.accent }]}>
+                <Ionicons name="checkmark-circle" size={17} color={colors.accent} />
+                <Text style={[styles.selectionNoteText, { color: colors.foreground }]}>
+                  {form.proposedViewingTimes.length} proposed time{form.proposedViewingTimes.length === 1 ? '' : 's'} selected
+                </Text>
+                <TouchableOpacity onPress={() => set('proposedViewingTimes', [])}>
+                  <Text style={[styles.clearTimesText, { color: colors.primary }]}>Clear</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View style={[styles.skipInfo, { backgroundColor: colors.secondary, borderColor: colors.border }]}>
+                <Ionicons name="information-circle-outline" size={16} color={colors.primary} />
+                <Text style={[styles.skipInfoText, { color: colors.mutedForeground }]}>You can skip this and arrange a viewing after publishing.</Text>
+              </View>
+            )}
+          </View>
+        </View>
+      );
+
+      case 10: return ( // Review & Publish
         <ScrollView showsVerticalScrollIndicator={false}>
           <Text style={[styles.stepHeading, { color: colors.foreground }]}>Review & Publish</Text>
           <Text style={[styles.stepSub, { color: colors.mutedForeground }]}>Confirm your listing details before publishing.</Text>
@@ -771,6 +880,7 @@ export default function NewListingScreen() {
               { label: 'Features', value: form.features.length > 0 ? `${form.features.length} selected` : 'None' },
               { label: 'Seller', value: form.sellerName || 'Not entered' },
                { label: 'Mandate', value: `${normalizeMandateType(form.mandateType)} · ${form.mandateExpiry}` },
+               { label: 'Viewing times', value: form.proposedViewingTimes.length ? `${form.proposedViewingTimes.length} proposed` : 'Not added' },
             ].map(({ label, value }, i, arr) => (
               <View key={label} style={[styles.reviewRow, i < arr.length - 1 && { borderBottomWidth: 1, borderBottomColor: colors.border }]}>
                 <Text style={[styles.reviewLabel, { color: colors.mutedForeground }]}>{label}</Text>
@@ -902,6 +1012,21 @@ const styles = StyleSheet.create({
   disclosureText: { flex: 1, gap: 3 },
   disclosureTitle: { fontSize: 14, fontWeight: '700' },
   disclosureSub: { fontSize: 12, lineHeight: 17 },
+  viewingCard: { borderRadius: 16, borderWidth: 1, padding: 14, gap: 16 },
+  viewingHeader: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  viewingIcon: { width: 44, height: 44, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
+  viewingHeaderCopy: { flex: 1, gap: 3 },
+  viewingTitle: { fontSize: 15, fontWeight: '800' },
+  viewingHint: { fontSize: 12, lineHeight: 17 },
+  dateRow: { gap: 8, paddingVertical: 2 },
+  dateChip: { width: 64, alignItems: 'center', borderRadius: 12, borderWidth: 1, paddingVertical: 9, gap: 2 },
+  dateWeekday: { fontSize: 11, fontWeight: '700' },
+  dateDay: { fontSize: 20, fontWeight: '800' },
+  dateMonth: { fontSize: 11, fontWeight: '600' },
+  timeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  timeChip: { flexDirection: 'row', alignItems: 'center', gap: 6, width: '48%', borderRadius: 11, borderWidth: 1, paddingVertical: 11, paddingHorizontal: 12 },
+  timeText: { fontSize: 14, fontWeight: '700' },
+  clearTimesText: { fontSize: 12, fontWeight: '800' },
   input: { borderRadius: 12, borderWidth: 1, paddingHorizontal: 14, paddingVertical: 12, fontSize: 15 },
   textArea: { paddingVertical: 12, minHeight: 100 },
   listingTypeGrid: { gap: 12 },

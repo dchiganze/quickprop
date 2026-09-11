@@ -27,6 +27,8 @@ export interface PropertyUpdate {
   features?: string[];
   /** @minItems 1 */
   photos?: string[];
+  /** Optional proposed viewing slots as ISO 8601 date-time strings. */
+  proposedViewingTimes?: Date[];
   videoUrl?: string;
   coverImage?: string;
   agentId?: number;

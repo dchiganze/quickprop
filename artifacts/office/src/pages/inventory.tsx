@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'wouter';
 import { 
-  Search, Filter, Plus, Home, MapPin, DollarSign, LayoutGrid, List, ArrowUpDown, ChevronDown, Sparkles
+  Search, Filter, Plus, Home, MapPin, DollarSign, LayoutGrid, List, ArrowUpDown, ChevronDown, Sparkles, CalendarDays, Clock3, CheckCircle2
 } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import {
@@ -30,12 +30,25 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 
+const VIEWING_TIME_OPTIONS = ['09:00', '11:00', '14:00', '16:00'];
+
+function tomorrowDate() {
+  const date = new Date();
+  date.setDate(date.getDate() + 1);
+  return date.toISOString().slice(0, 10);
+}
+
+function viewingSlot(date: string, time: string) {
+  return new Date(`${date}T${time}:00`).toISOString();
+}
+
 function AddPropertyDialog() {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
     title: '', propertyType: 'house', listingType: 'sale', price: '', suburb: '', city: 'Harare',
-    bedrooms: '', bathrooms: '', description: '', photoUrl: '',
+    bedrooms: '', bathrooms: '', description: '', photoUrl: '', proposedViewingTimes: [] as string[],
   });
+  const [viewingDate, setViewingDate] = useState(tomorrowDate);
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const createProperty = useCreateProperty({
@@ -45,13 +58,24 @@ function AddPropertyDialog() {
         queryClient.invalidateQueries({ queryKey: getGetPipelineQueryKey() });
         toast({ title: 'Mandate created', description: `${created.reference} — ${created.title}` });
         setOpen(false);
-        setForm({ title: '', propertyType: 'house', listingType: 'sale', price: '', suburb: '', city: 'Harare', bedrooms: '', bathrooms: '', description: '', photoUrl: '' });
+         setForm({ title: '', propertyType: 'house', listingType: 'sale', price: '', suburb: '', city: 'Harare', bedrooms: '', bathrooms: '', description: '', photoUrl: '', proposedViewingTimes: [] });
+         setViewingDate(tomorrowDate());
       },
       onError: () => toast({ title: 'Could not create property', variant: 'destructive' }),
     },
   });
   const duplicateCheck = useCheckPropertyDuplicate();
   const addAgency = useAddPropertyAgencyRelationship();
+
+  const toggleViewingTime = (time: string) => {
+    const slot = viewingSlot(viewingDate, time);
+    setForm((current) => ({
+      ...current,
+      proposedViewingTimes: current.proposedViewingTimes.includes(slot)
+        ? current.proposedViewingTimes.filter((value) => value !== slot)
+        : [...current.proposedViewingTimes, slot].sort(),
+    }));
+  };
 
   const submit = async () => {
     if (!form.title || !form.price || !form.suburb || !form.photoUrl) {
@@ -69,6 +93,7 @@ function AddPropertyDialog() {
       bathrooms: form.bathrooms ? Number(form.bathrooms) : undefined,
       description: form.description || undefined,
       photos: [form.photoUrl],
+      proposedViewingTimes: form.proposedViewingTimes,
     };
     try {
       const duplicate = await duplicateCheck.mutateAsync({
@@ -185,6 +210,52 @@ function AddPropertyDialog() {
           <div className="grid gap-2">
             <Label htmlFor="np-photo">Primary photo URL</Label>
             <Input id="np-photo" type="url" value={form.photoUrl} onChange={(e) => setForm({ ...form, photoUrl: e.target.value })} placeholder="https://…" />
+          </div>
+          <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-4">
+            <div className="flex items-start gap-3">
+              <div className="rounded-md bg-primary/10 p-2 text-primary">
+                <CalendarDays className="w-4 h-4" />
+              </div>
+              <div>
+                <Label className="text-sm">Want to organise a viewing time?</Label>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Optional. Propose a few times for interested buyers and confirm the final appointment later.
+                </p>
+              </div>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="np-viewing-date">Choose a date</Label>
+              <Input
+                id="np-viewing-date"
+                type="date"
+                min={tomorrowDate()}
+                value={viewingDate}
+                onChange={(e) => setViewingDate(e.target.value)}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              {VIEWING_TIME_OPTIONS.map((time) => {
+                const selected = form.proposedViewingTimes.includes(viewingSlot(viewingDate, time));
+                return (
+                  <Button
+                    key={time}
+                    type="button"
+                    variant={selected ? 'default' : 'outline'}
+                    className="justify-start"
+                    onClick={() => toggleViewingTime(time)}
+                    aria-pressed={selected}
+                  >
+                    {selected ? <CheckCircle2 className="w-4 h-4 mr-2" /> : <Clock3 className="w-4 h-4 mr-2" />}
+                    {time}
+                  </Button>
+                );
+              })}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {form.proposedViewingTimes.length > 0
+                ? `${form.proposedViewingTimes.length} proposed time${form.proposedViewingTimes.length === 1 ? '' : 's'} selected`
+                : 'You can skip this and arrange a viewing after publishing.'}
+            </p>
           </div>
         </div>
         <DialogFooter>

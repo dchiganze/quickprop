@@ -33,6 +33,8 @@ export interface PublicProperty {
   buildingSize?: number | null;
   features: string[];
   photos: string[];
+  /** Optional proposed viewing slots as ISO 8601 date-time strings. */
+  proposedViewingTimes?: Date[];
   /** @nullable */
   coverImage?: string | null;
   /** @nullable */
