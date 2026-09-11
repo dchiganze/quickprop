@@ -151,44 +151,44 @@ export function QuickShareDialog() {
         </DialogHeader>
 
         {/* Mode selector — prominent cards */}
-        <div className="grid min-w-0 grid-cols-2 gap-2">
+        <div className="grid w-full min-w-0 grid-cols-2 gap-2 overflow-hidden">
           <button
             onClick={() => setMode('agent')}
-            className={`flex min-w-0 flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${
+            className={`flex w-full min-w-0 flex-col items-center gap-1.5 overflow-hidden rounded-xl border-2 p-2.5 transition-all ${
               mode === 'agent'
                 ? 'border-primary bg-primary/5'
                 : 'border-border hover:border-muted-foreground/30 hover:bg-muted/40'
             }`}
           >
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${mode === 'agent' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
-              <User className="w-5 h-5" />
+            <div className={`flex h-8 w-8 items-center justify-center rounded-full ${mode === 'agent' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
+              <User className="h-4 w-4" />
             </div>
-            <div className="text-center">
-              <p className="text-sm font-semibold text-foreground leading-tight">My Catalogue</p>
-              <p className="text-xs text-muted-foreground mt-0.5">Your listings only</p>
+            <div className="min-w-0 max-w-full text-center">
+              <p className="break-words text-xs font-semibold leading-tight text-foreground">My Catalogue</p>
+              <p className="mt-0.5 break-words text-[11px] leading-tight text-muted-foreground">Your listings only</p>
             </div>
             {mode === 'agent' && (
-              <Badge variant="secondary" className="text-xs">{publicProps.length}</Badge>
+              <Badge variant="secondary" className="text-[11px]">{publicProps.length}</Badge>
             )}
           </button>
 
           <button
             onClick={() => setMode('company')}
-            className={`flex min-w-0 flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${
+            className={`flex w-full min-w-0 flex-col items-center gap-1.5 overflow-hidden rounded-xl border-2 p-2.5 transition-all ${
               mode === 'company'
                 ? 'border-primary bg-primary/5'
                 : 'border-border hover:border-muted-foreground/30 hover:bg-muted/40'
             }`}
           >
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${mode === 'company' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
-              <Building2 className="w-5 h-5" />
+            <div className={`flex h-8 w-8 items-center justify-center rounded-full ${mode === 'company' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
+              <Building2 className="h-4 w-4" />
             </div>
-            <div className="text-center">
-              <p className="text-sm font-semibold text-foreground leading-tight">Company Catalogue</p>
-              <p className="text-xs text-muted-foreground mt-0.5">All agency listings</p>
+            <div className="min-w-0 max-w-full text-center">
+              <p className="break-words text-xs font-semibold leading-tight text-foreground">Company Catalogue</p>
+              <p className="mt-0.5 break-words text-[11px] leading-tight text-muted-foreground">All agency listings</p>
             </div>
             {mode === 'company' && (
-              <Badge variant="secondary" className="text-xs">{publicProps.length}</Badge>
+              <Badge variant="secondary" className="text-[11px]">{publicProps.length}</Badge>
             )}
           </button>
         </div>
