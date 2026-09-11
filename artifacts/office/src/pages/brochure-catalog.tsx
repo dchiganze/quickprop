@@ -113,7 +113,7 @@ export default function BrochureCatalog() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               {agencyLogo && (
-                <div className="w-14 h-14 flex items-center justify-center">
+                <div className="w-[84px] h-[84px] flex items-center justify-center">
                   <img src={agencyLogo} alt={`${agencyName} logo`} className="max-w-full max-h-full object-contain" />
                 </div>
               )}
