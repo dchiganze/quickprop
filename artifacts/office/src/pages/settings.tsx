@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
-import { Building2, Palette, Bell } from 'lucide-react';
+import { Building2, Palette, Bell, Loader2 } from 'lucide-react';
 import {
   useGetListingHousekeepingPreferences,
   useUpdateListingHousekeepingPreferences,
@@ -24,6 +24,11 @@ export default function Settings() {
   const { toast } = useToast();
   const [reminderPreferences, setReminderPreferences] = useState(DEFAULT_REMINDER_PREFERENCES);
   const [saved, setSaved] = useState(false);
+  const logoInputRef = useRef<HTMLInputElement>(null);
+  const [logoUrl, setLogoUrl] = useState<string | null>(() => (
+    typeof window === 'undefined' ? null : localStorage.getItem('quickprop-agency-logo')
+  ));
+  const [logoUploading, setLogoUploading] = useState(false);
 
   useEffect(() => {
     if (preferencesQuery.data) {
@@ -55,6 +60,67 @@ export default function Settings() {
         });
       },
     });
+  };
+
+  const uploadLogo = async (file: File) => {
+    if (!['image/png', 'image/jpeg'].includes(file.type)) {
+      toast({
+        title: 'Unsupported logo format',
+        description: 'Choose a PNG or JPG image.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      toast({
+        title: 'Logo is too large',
+        description: 'Logo files must be 2 MB or smaller.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setLogoUploading(true);
+    try {
+      const request = await fetch('/api/storage/uploads/request-url', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: file.name, size: file.size, contentType: file.type }),
+      });
+      const target = await request.json().catch(() => null) as {
+        uploadURL?: string;
+        objectPath?: string;
+        error?: string;
+      } | null;
+      if (!request.ok || !target?.uploadURL || !target.objectPath) {
+        throw new Error(target?.error || 'Could not prepare the logo for upload.');
+      }
+
+      const upload = await fetch(target.uploadURL, {
+        method: 'PUT',
+        headers: { 'Content-Type': file.type },
+        body: file,
+      });
+      if (!upload.ok) throw new Error('Could not upload the logo.');
+
+      const url = `/api/storage${target.objectPath}`;
+      localStorage.setItem('quickprop-agency-logo', url);
+      setLogoUrl(url);
+      toast({
+        title: 'Logo uploaded',
+        description: 'Your agency logo is ready to use.',
+      });
+    } catch (error) {
+      toast({
+        title: 'Logo upload failed',
+        description: error instanceof Error ? error.message : 'Try again with a PNG or JPG image.',
+        variant: 'destructive',
+      });
+    } finally {
+      setLogoUploading(false);
+      if (logoInputRef.current) logoInputRef.current.value = '';
+    }
   };
 
   return (
@@ -99,11 +165,34 @@ export default function Settings() {
         <Card className="md:col-span-2">
           <CardContent className="p-6 space-y-4">
             <div className="flex items-center gap-6">
-              <div className="w-24 h-24 rounded border-2 border-dashed flex items-center justify-center text-muted-foreground bg-muted/50">
-                Logo
+              <div className="w-24 h-24 rounded border-2 border-dashed flex items-center justify-center text-muted-foreground bg-muted/50 overflow-hidden">
+                {logoUrl ? (
+                  <img src={logoUrl} alt="Agency logo preview" className="w-full h-full object-contain" />
+                ) : (
+                  'Logo'
+                )}
               </div>
               <div className="space-y-2">
-                <Button variant="outline" size="sm">Upload Logo</Button>
+                <input
+                  ref={logoInputRef}
+                  type="file"
+                  accept="image/png,image/jpeg"
+                  className="hidden"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    if (file) void uploadLogo(file);
+                  }}
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  type="button"
+                  onClick={() => logoInputRef.current?.click()}
+                  disabled={logoUploading}
+                >
+                  {logoUploading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                  {logoUploading ? 'Uploading…' : 'Upload Logo'}
+                </Button>
                 <p className="text-xs text-muted-foreground">PNG, JPG up to 2MB. Recommended 512x512px.</p>
               </div>
             </div>

@@ -105,7 +105,9 @@ router.get("/storage/objects/*path", async (req, res): Promise<void> => {
         ),
       ))
       .limit(1);
-    if (!publicProperty) {
+    const user = !publicProperty ? await currentUser(req) : null;
+    const isOwnedUpload = Boolean(user && objectName.startsWith(`uploads/${user.id}/`));
+    if (!publicProperty && !isOwnedUpload) {
       res.status(404).json({ error: "Object not found" });
       return;
     }
