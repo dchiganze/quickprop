@@ -181,6 +181,10 @@ export const CreatePropertyBody = zod.object({
   "mandateExpiry": zod.string().optional(),
   "commissionPercent": zod.number().optional(),
   "privateNotes": zod.string().optional(),
+  "sellerName": zod.string().optional(),
+  "sellerPhone": zod.string().optional(),
+  "sellerEmail": zod.email().optional(),
+  "sellerNotes": zod.string().optional(),
   "collaborationEnabled": zod.boolean().optional()
 })
 
@@ -362,6 +366,10 @@ export const UpdatePropertyBody = zod.object({
   "mandateExpiry": zod.string().optional(),
   "commissionPercent": zod.number().optional(),
   "privateNotes": zod.string().optional(),
+  "sellerName": zod.string().optional(),
+  "sellerPhone": zod.string().optional(),
+  "sellerEmail": zod.email().optional(),
+  "sellerNotes": zod.string().optional(),
   "collaborationEnabled": zod.boolean().optional()
 })
 

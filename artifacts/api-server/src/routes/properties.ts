@@ -111,9 +111,17 @@ router.post("/properties", async (req, res): Promise<void> => {
   }
   const user = await currentUser(req);
   const requestKey = mutationKey(req);
+  const {
+    sellerName,
+    sellerPhone,
+    sellerEmail,
+    sellerNotes,
+    ...propertyData
+  } = parsed.data;
   const propertyInput = {
-    ...parsed.data,
-    proposedViewingTimes: parsed.data.proposedViewingTimes?.map((time) => time.toISOString()),
+    ...propertyData,
+    proposedViewingTimes: propertyData.proposedViewingTimes?.map((time) => time.toISOString()),
+    privateNotes: sellerNotes?.trim() || propertyData.privateNotes,
   };
   const result = await db.transaction(async (tx) => {
     let mutationId: number | null = null;
@@ -137,13 +145,22 @@ router.post("/properties", async (req, res): Promise<void> => {
       mutationId = claim.id;
     }
     const temporaryReference = `pending-${randomUUID()}`;
+    const [seller] = sellerName?.trim()
+      ? await tx.insert(sellersTable).values({
+          name: sellerName.trim(),
+          phone: sellerPhone?.trim() || null,
+          email: sellerEmail?.trim() || null,
+          notes: sellerNotes?.trim() || null,
+        }).returning()
+      : [];
     const [created] = await tx
       .insert(propertiesTable)
       .values({
         ...propertyInput,
         agentId: user?.id,
+        sellerId: seller?.id ?? propertyData.sellerId,
         reference: temporaryReference,
-        normalizedAddress: normalizeText(parsed.data.address),
+        normalizedAddress: normalizeText(propertyData.address),
       })
       .returning();
     const [row] = await tx
@@ -234,10 +251,38 @@ router.patch("/properties/:id", async (req, res): Promise<void> => {
     res.status(400).json({ error: "A positive sale price is required when marking a property as sold." });
     return;
   }
+  const {
+    sellerName,
+    sellerPhone,
+    sellerEmail,
+    sellerNotes,
+    ...propertyData
+  } = parsed.data;
+  let sellerId = propertyData.sellerId ?? existing.sellerId;
+  if (sellerName?.trim()) {
+    if (sellerId) {
+      await db.update(sellersTable).set({
+        name: sellerName.trim(),
+        phone: sellerPhone?.trim() || null,
+        email: sellerEmail?.trim() || null,
+        notes: sellerNotes?.trim() || null,
+      }).where(eq(sellersTable.id, sellerId));
+    } else {
+      const [seller] = await db.insert(sellersTable).values({
+        name: sellerName.trim(),
+        phone: sellerPhone?.trim() || null,
+        email: sellerEmail?.trim() || null,
+        notes: sellerNotes?.trim() || null,
+      }).returning();
+      sellerId = seller.id;
+    }
+  }
   const normalizedData = {
-    ...parsed.data,
-    proposedViewingTimes: parsed.data.proposedViewingTimes?.map((time) => time.toISOString()),
-    mandateType: parsed.data.mandateType === "exclusive" ? "sole" : parsed.data.mandateType,
+    ...propertyData,
+    sellerId,
+    proposedViewingTimes: propertyData.proposedViewingTimes?.map((time) => time.toISOString()),
+    privateNotes: sellerNotes?.trim() || propertyData.privateNotes,
+    mandateType: propertyData.mandateType === "exclusive" ? "sole" : propertyData.mandateType,
   };
   const update: Record<string, unknown> = { ...normalizedData, updatedAt: new Date() };
   const meaningfulFields = ["title", "description", "price", "photos", "features", "address", "suburb", "bedrooms", "bathrooms", "buildingSize", "landSize"];

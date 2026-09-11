@@ -567,6 +567,10 @@ export interface PropertyInput {
   mandateExpiry?: string;
   commissionPercent?: number;
   privateNotes?: string;
+  sellerName?: string;
+  sellerPhone?: string;
+  sellerEmail?: string;
+  sellerNotes?: string;
   collaborationEnabled?: boolean;
 }
 
@@ -610,6 +614,10 @@ export interface PropertyUpdate {
   mandateExpiry?: string;
   commissionPercent?: number;
   privateNotes?: string;
+  sellerName?: string;
+  sellerPhone?: string;
+  sellerEmail?: string;
+  sellerNotes?: string;
   collaborationEnabled?: boolean;
 }
 
