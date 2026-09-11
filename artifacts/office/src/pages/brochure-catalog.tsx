@@ -1,5 +1,5 @@
 import React from 'react';
-import { useListProperties, useGetCurrentUser, useListUsers } from '@workspace/api-client-react';
+import { useListProperties, useGetCurrentUser, useListUsers, useGetAdminAgencySettings } from '@workspace/api-client-react';
 import { Bed, Bath, Car, Square, MapPin, Building2, Printer, ArrowLeft, Tag } from 'lucide-react';
 
 function formatPrice(price: number, currency: string, listingType: string) {
@@ -26,6 +26,7 @@ export default function BrochureCatalog() {
   const selectedPropIds = propParam ? new Set(propParam.split(',').map(Number)) : new Set<number>();
 
   const { data: currentUser } = useGetCurrentUser();
+  const { data: agencySettings } = useGetAdminAgencySettings();
   const { data: allProps, isLoading } = useListProperties();
   const { data: users } = useListUsers();
 
@@ -60,6 +61,8 @@ export default function BrochureCatalog() {
 
   const forSale = properties.filter(p => p.listingType === 'sale');
   const forRent = properties.filter(p => p.listingType === 'rent');
+  const agencyName = agencySettings?.agencyName || 'QuickProp';
+  const agencyLogo = agencySettings?.logoUrl;
 
   if (isLoading) {
     return (
@@ -109,15 +112,14 @@ export default function BrochureCatalog() {
         <div className="px-10 pt-10 pb-8 border-b-4 border-emerald-600">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-emerald-600 flex items-center justify-center">
-                <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6 text-white" stroke="currentColor" strokeWidth={2}>
-                  <path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z" />
-                  <path d="M9 21V12h6v9" />
-                </svg>
-              </div>
+              {agencyLogo && (
+                <div className="w-14 h-14 flex items-center justify-center">
+                  <img src={agencyLogo} alt={`${agencyName} logo`} className="max-w-full max-h-full object-contain" />
+                </div>
+              )}
               <div>
-                <div className="text-xl font-bold text-gray-900">QuickProp</div>
-                <div className="text-xs text-gray-500">Zimbabwe's Property Marketplace</div>
+                <div className="text-xl font-bold text-gray-900">{agencyName}</div>
+                <div className="text-[10px] text-gray-400 mt-0.5">powered by quickprop</div>
               </div>
             </div>
             <div className="text-right">
@@ -179,7 +181,7 @@ export default function BrochureCatalog() {
 
         {/* ── FOOTER ── */}
         <div className="mx-10 mt-10 pt-6 border-t border-gray-200 flex items-center justify-between text-xs text-gray-400">
-          <span>QuickProp · Zimbabwe's Property Marketplace · www.quickprop.co.zw</span>
+          <span>powered by quickprop</span>
           <span>Generated {new Date().toLocaleDateString()}</span>
         </div>
       </div>
