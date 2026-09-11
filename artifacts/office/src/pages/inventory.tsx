@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { Link, useLocation } from 'wouter';
 import { 
-  Search, Filter, Plus, Home, MapPin, DollarSign, LayoutGrid, List, ArrowUpDown, ChevronDown, Sparkles, CalendarDays, Clock3, CheckCircle2
+  Search, Filter, Plus, Home, MapPin, DollarSign, LayoutGrid, List, ArrowUpDown, ChevronDown, Sparkles, CalendarDays, Clock3, CheckCircle2, Upload, Image as ImageIcon, Video, X, Loader2
 } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import {
@@ -46,9 +46,15 @@ function AddPropertyDialog() {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
     title: '', propertyType: 'house', listingType: 'sale', price: '', suburb: '', city: 'Harare',
-    bedrooms: '', bathrooms: '', description: '', photoUrl: '', proposedViewingTimes: [] as string[],
+    bedrooms: '', bathrooms: '', description: '', proposedViewingTimes: [] as string[],
   });
   const [viewingDate, setViewingDate] = useState(tomorrowDate);
+  const [photoFiles, setPhotoFiles] = useState<File[]>([]);
+  const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [uploadError, setUploadError] = useState('');
+  const [uploading, setUploading] = useState(false);
+  const photoInputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const createProperty = useCreateProperty({
@@ -58,7 +64,10 @@ function AddPropertyDialog() {
         queryClient.invalidateQueries({ queryKey: getGetPipelineQueryKey() });
         toast({ title: 'Mandate created', description: `${created.reference} — ${created.title}` });
         setOpen(false);
-         setForm({ title: '', propertyType: 'house', listingType: 'sale', price: '', suburb: '', city: 'Harare', bedrooms: '', bathrooms: '', description: '', photoUrl: '', proposedViewingTimes: [] });
+         setForm({ title: '', propertyType: 'house', listingType: 'sale', price: '', suburb: '', city: 'Harare', bedrooms: '', bathrooms: '', description: '', proposedViewingTimes: [] });
+         setPhotoFiles([]);
+         setVideoFile(null);
+         setUploadError('');
          setViewingDate(tomorrowDate());
       },
       onError: () => toast({ title: 'Could not create property', variant: 'destructive' }),
@@ -77,66 +86,129 @@ function AddPropertyDialog() {
     }));
   };
 
-  const submit = async () => {
-    if (!form.title || !form.price || !form.suburb || !form.photoUrl) {
-      toast({ title: 'Title, price, suburb and a photo URL are required', variant: 'destructive' });
+  const addPhotoFiles = (incoming: FileList | null) => {
+    if (!incoming) return;
+    const files = Array.from(incoming);
+    const accepted = files.filter((file) => file.type.startsWith('image/') && file.size <= 25 * 1024 * 1024);
+    const rejected = files.filter((file) => !file.type.startsWith('image/') || file.size > 25 * 1024 * 1024);
+    if (rejected.length) {
+      toast({ title: 'Some photos were skipped', description: 'Photos must be image files no larger than 25 MB.', variant: 'destructive' });
+    }
+    setPhotoFiles((current) => [
+      ...current,
+      ...accepted.filter((file) => !current.some((existing) =>
+        existing.name === file.name && existing.size === file.size && existing.lastModified === file.lastModified
+      )),
+    ]);
+  };
+
+  const setListingVideo = (incoming: FileList | null) => {
+    const file = incoming?.[0];
+    if (!file) return;
+    if (!['video/mp4', 'video/quicktime', 'video/webm'].includes(file.type)) {
+      toast({ title: 'Unsupported video', description: 'Choose an MP4, MOV, or WebM video.', variant: 'destructive' });
       return;
     }
-    const input = {
-      title: form.title,
-      propertyType: form.propertyType,
-      listingType: form.listingType,
-      price: Number(form.price),
-      suburb: form.suburb,
-      city: form.city || 'Harare',
-      bedrooms: form.bedrooms ? Number(form.bedrooms) : undefined,
-      bathrooms: form.bathrooms ? Number(form.bathrooms) : undefined,
-      description: form.description || undefined,
-      photos: [form.photoUrl],
-      proposedViewingTimes: form.proposedViewingTimes,
-    };
+    if (file.size > 100 * 1024 * 1024) {
+      toast({ title: 'Video is too large', description: 'Videos must be 100 MB or smaller.', variant: 'destructive' });
+      return;
+    }
+    setVideoFile(file);
+  };
+
+  const uploadMedia = async (file: File) => {
+    const request = await fetch('/api/storage/uploads/request-url', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: file.name, size: file.size, contentType: file.type }),
+    });
+    const target = await request.json().catch(() => null) as { uploadURL?: string; objectPath?: string; error?: string } | null;
+    if (!request.ok || !target?.uploadURL || !target.objectPath) {
+      throw new Error(target?.error || `Could not prepare ${file.name} for upload.`);
+    }
+    const upload = await fetch(target.uploadURL, {
+      method: 'PUT',
+      headers: { 'Content-Type': file.type },
+      body: file,
+    });
+    if (!upload.ok) throw new Error(`Could not upload ${file.name}.`);
+    return `/api/storage${target.objectPath}`;
+  };
+
+  const submit = async () => {
+    if (!form.title || !form.price || !form.suburb || !photoFiles.length) {
+      toast({ title: 'Title, price, suburb and at least one photo are required', variant: 'destructive' });
+      return;
+    }
+    setUploading(true);
+    setUploadError('');
     try {
-      const duplicate = await duplicateCheck.mutateAsync({
+      const photos = await Promise.all(photoFiles.map(uploadMedia));
+      const videoUrl = videoFile ? await uploadMedia(videoFile) : undefined;
+      const input = {
+        title: form.title,
+        propertyType: form.propertyType,
+        listingType: form.listingType,
+        price: Number(form.price),
+        suburb: form.suburb,
+        city: form.city || 'Harare',
+        bedrooms: form.bedrooms ? Number(form.bedrooms) : undefined,
+        bathrooms: form.bathrooms ? Number(form.bathrooms) : undefined,
+        description: form.description || undefined,
+        photos,
+        videoUrl,
+        proposedViewingTimes: form.proposedViewingTimes,
+      };
+      try {
+        const duplicate = await duplicateCheck.mutateAsync({
+          data: {
+            address: form.suburb,
+            suburb: form.suburb,
+            city: form.city || 'Harare',
+            propertyType: form.propertyType,
+            bedrooms: input.bedrooms,
+            bathrooms: input.bathrooms,
+            price: input.price,
+            description: input.description,
+          },
+        });
+        const match = duplicate.matches[0];
+        if (match && duplicate.decision !== 'continue') {
+          const useExisting = window.confirm(
+            `Possible duplicate (${match.confidenceScore}% match): ${match.title} at ${match.suburb}.\n\nPress OK to add this office as an agency offer, or Cancel to create a separate record for admin review.`
+          );
+          if (useExisting) {
+            await addAgency.mutateAsync({
+              id: match.id,
+              data: {
+                askingPrice: input.price,
+                currency: 'USD',
+                mandateType: 'non_exclusive',
+                description: input.description,
+                verificationStatus: 'pending',
+              },
+            });
+            toast({ title: 'Agency offer added', description: `${match.reference} remains the canonical property.` });
+            setOpen(false);
+            return;
+          }
+        }
+      } catch {
+        // The create request remains available if duplicate checking is temporarily unavailable.
+      }
+      createProperty.mutate({
         data: {
-          address: form.suburb,
-          suburb: form.suburb,
-          city: form.city || 'Harare',
-          propertyType: form.propertyType,
-          bedrooms: input.bedrooms,
-          bathrooms: input.bathrooms,
-          price: input.price,
-          description: input.description,
+          ...input,
         },
       });
-      const match = duplicate.matches[0];
-      if (match && duplicate.decision !== 'continue') {
-        const useExisting = window.confirm(
-          `Possible duplicate (${match.confidenceScore}% match): ${match.title} at ${match.suburb}.\n\nPress OK to add this office as an agency offer, or Cancel to create a separate record for admin review.`
-        );
-        if (useExisting) {
-          await addAgency.mutateAsync({
-            id: match.id,
-            data: {
-              askingPrice: input.price,
-              currency: 'USD',
-              mandateType: 'non_exclusive',
-              description: input.description,
-              verificationStatus: 'pending',
-            },
-          });
-          toast({ title: 'Agency offer added', description: `${match.reference} remains the canonical property.` });
-          setOpen(false);
-          return;
-        }
-      }
-    } catch {
-      // The create request remains available if duplicate checking is temporarily unavailable.
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Upload failed. The mandate was not created.';
+      setUploadError(message);
+      toast({ title: 'Could not create property', description: message, variant: 'destructive' });
+    } finally {
+      setUploading(false);
     }
-    createProperty.mutate({
-      data: {
-        ...input,
-      },
-    });
   };
 
   return (
@@ -207,10 +279,74 @@ function AddPropertyDialog() {
             <Label htmlFor="np-desc">Description</Label>
             <Textarea id="np-desc" rows={3} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
           </div>
-          <div className="grid gap-2">
-            <Label htmlFor="np-photo">Primary photo URL</Label>
-            <Input id="np-photo" type="url" value={form.photoUrl} onChange={(e) => setForm({ ...form, photoUrl: e.target.value })} placeholder="https://…" />
+          <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-3">
+            <div className="flex items-start gap-3">
+              <div className="rounded-md bg-primary/10 p-2 text-primary"><ImageIcon className="w-4 h-4" /></div>
+              <div className="min-w-0 flex-1">
+                <Label className="text-sm">Property photos</Label>
+                <p className="text-xs text-muted-foreground mt-1">Upload as many local photos as you want. Each photo can be up to 25 MB.</p>
+              </div>
+              <Button type="button" variant="outline" size="sm" onClick={() => photoInputRef.current?.click()} className="gap-2 shrink-0">
+                <Upload className="w-4 h-4" /> Add photos
+              </Button>
+              <input
+                ref={photoInputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                className="hidden"
+                onChange={(event) => { addPhotoFiles(event.target.files); event.currentTarget.value = ''; }}
+              />
+            </div>
+            {photoFiles.length > 0 ? (
+              <div className="grid gap-2 sm:grid-cols-2">
+                {photoFiles.map((file) => (
+                  <div key={`${file.name}-${file.size}-${file.lastModified}`} className="flex items-center gap-2 rounded-md border bg-background px-3 py-2">
+                    <ImageIcon className="w-4 h-4 shrink-0 text-primary" />
+                    <span className="min-w-0 flex-1 truncate text-xs font-medium">{file.name}</span>
+                    <span className="text-[11px] text-muted-foreground">{(file.size / 1024 / 1024).toFixed(1)} MB</span>
+                    <button type="button" aria-label={`Remove ${file.name}`} onClick={() => setPhotoFiles((current) => current.filter((item) => item !== file))} className="text-muted-foreground hover:text-destructive">
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <button type="button" onClick={() => photoInputRef.current?.click()} className="w-full rounded-md border border-dashed border-primary/30 py-5 text-center text-xs text-muted-foreground hover:border-primary/60 hover:bg-primary/[0.03]">
+                Choose photos from this device
+              </button>
+            )}
           </div>
+          <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-3">
+            <div className="flex items-start gap-3">
+              <div className="rounded-md bg-primary/10 p-2 text-primary"><Video className="w-4 h-4" /></div>
+              <div className="min-w-0 flex-1">
+                <Label className="text-sm">Property video <span className="font-normal text-muted-foreground">(optional)</span></Label>
+                <p className="text-xs text-muted-foreground mt-1">Upload up to one MP4, MOV, or WebM video, up to 100 MB.</p>
+              </div>
+              <Button type="button" variant="outline" size="sm" onClick={() => videoInputRef.current?.click()} className="gap-2 shrink-0">
+                <Upload className="w-4 h-4" /> {videoFile ? 'Replace' : 'Add video'}
+              </Button>
+              <input
+                ref={videoInputRef}
+                type="file"
+                accept="video/mp4,video/quicktime,video/webm"
+                className="hidden"
+                onChange={(event) => { setListingVideo(event.target.files); event.currentTarget.value = ''; }}
+              />
+            </div>
+            {videoFile && (
+              <div className="flex items-center gap-2 rounded-md border bg-background px-3 py-2">
+                <Video className="w-4 h-4 shrink-0 text-primary" />
+                <span className="min-w-0 flex-1 truncate text-xs font-medium">{videoFile.name}</span>
+                <span className="text-[11px] text-muted-foreground">{(videoFile.size / 1024 / 1024).toFixed(1)} MB</span>
+                <button type="button" aria-label="Remove video" onClick={() => setVideoFile(null)} className="text-muted-foreground hover:text-destructive">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+          </div>
+          {uploadError && <p className="text-xs text-destructive">{uploadError}</p>}
           <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-4">
             <div className="flex items-start gap-3">
               <div className="rounded-md bg-primary/10 p-2 text-primary">
@@ -260,8 +396,8 @@ function AddPropertyDialog() {
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-          <Button onClick={submit} disabled={createProperty.isPending} data-testid="button-save-property">
-            {createProperty.isPending ? 'Creating...' : 'Create Mandate'}
+          <Button onClick={submit} disabled={createProperty.isPending || uploading} data-testid="button-save-property">
+            {uploading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Uploading...</> : createProperty.isPending ? 'Creating...' : 'Create Mandate'}
           </Button>
         </DialogFooter>
       </DialogContent>
