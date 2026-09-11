@@ -1,12 +1,10 @@
 import { Router, type IRouter } from "express";
 import { eq } from "drizzle-orm";
 import { agencySettingsTable, db } from "@workspace/db";
-import { requireRole } from "./auth";
+import { requireAuth } from "./auth";
 import { jsonify } from "../lib/helpers";
 
 const router: IRouter = Router();
-const adminOnly = requireRole("principal", "admin", "quickprop_admin");
-
 const DEFAULTS = {
   id: 1,
   agencyName: "QuickProp Real Estate",
@@ -36,11 +34,11 @@ function booleanValue(value: unknown, fallback: boolean) {
   return typeof value === "boolean" ? value : fallback;
 }
 
-router.get("/admin/agency-settings", adminOnly, async (_req, res): Promise<void> => {
+router.get("/admin/agency-settings", requireAuth, async (_req, res): Promise<void> => {
   res.json(jsonify(await getSettings()));
 });
 
-router.patch("/admin/agency-settings", adminOnly, async (req, res): Promise<void> => {
+router.patch("/admin/agency-settings", requireAuth, async (req, res): Promise<void> => {
   const current = await getSettings();
   const body = req.body ?? {};
   const requestedColor = stringValue(body.primaryColor, current.primaryColor);
