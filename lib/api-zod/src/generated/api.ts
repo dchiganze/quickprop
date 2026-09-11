@@ -183,7 +183,7 @@ export const CreatePropertyBody = zod.object({
   "privateNotes": zod.string().optional(),
   "sellerName": zod.string().optional(),
   "sellerPhone": zod.string().optional(),
-  "sellerEmail": zod.email().optional(),
+  "sellerEmail": zod.string().optional(),
   "sellerNotes": zod.string().optional(),
   "collaborationEnabled": zod.boolean().optional()
 })
@@ -368,7 +368,7 @@ export const UpdatePropertyBody = zod.object({
   "privateNotes": zod.string().optional(),
   "sellerName": zod.string().optional(),
   "sellerPhone": zod.string().optional(),
-  "sellerEmail": zod.email().optional(),
+  "sellerEmail": zod.string().optional(),
   "sellerNotes": zod.string().optional(),
   "collaborationEnabled": zod.boolean().optional()
 })

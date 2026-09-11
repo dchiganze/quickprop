@@ -2394,7 +2394,7 @@ components:
         privateNotes: { type: string }
         sellerName: { type: string }
         sellerPhone: { type: string }
-        sellerEmail: { type: string, format: email }
+        sellerEmail: { type: string }
         sellerNotes: { type: string }
         collaborationEnabled: { type: boolean }
     PropertyUpdate:
@@ -2446,7 +2446,7 @@ components:
         privateNotes: { type: string }
         sellerName: { type: string }
         sellerPhone: { type: string }
-        sellerEmail: { type: string, format: email }
+        sellerEmail: { type: string }
         sellerNotes: { type: string }
         collaborationEnabled: { type: boolean }
     MarkPropertySoldInput:
