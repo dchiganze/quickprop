@@ -142,7 +142,7 @@ export function QuickShareDialog() {
         </Button>
       </DialogTrigger>
 
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="w-[calc(100vw-2rem)] max-w-xl overflow-x-hidden">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Share2 className="w-5 h-5 text-primary" />
@@ -151,10 +151,10 @@ export function QuickShareDialog() {
         </DialogHeader>
 
         {/* Mode selector — prominent cards */}
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid min-w-0 grid-cols-2 gap-2">
           <button
             onClick={() => setMode('agent')}
-            className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${
+            className={`flex min-w-0 flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${
               mode === 'agent'
                 ? 'border-primary bg-primary/5'
                 : 'border-border hover:border-muted-foreground/30 hover:bg-muted/40'
@@ -174,7 +174,7 @@ export function QuickShareDialog() {
 
           <button
             onClick={() => setMode('company')}
-            className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${
+            className={`flex min-w-0 flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${
               mode === 'company'
                 ? 'border-primary bg-primary/5'
                 : 'border-border hover:border-muted-foreground/30 hover:bg-muted/40'
@@ -245,13 +245,13 @@ export function QuickShareDialog() {
             </div>
           )}
 
-          <div className="flex items-center gap-1.5 pt-1">
+          <div className="flex min-w-0 items-center gap-1.5 pt-1">
             <ExternalLink className="w-3 h-3 text-muted-foreground" />
             <a
               href={catalogUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-xs text-primary hover:underline truncate"
+              className="min-w-0 flex-1 truncate text-xs text-primary hover:underline"
             >
               {catalogUrl}
             </a>
