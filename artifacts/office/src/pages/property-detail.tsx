@@ -24,6 +24,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
+import {
+  buildPropertyShareCaption,
+  createPropertyShareCard,
+  shareCardWithCaption,
+} from '@/utils/shareCards';
 
 const PROPERTY_FEATURES = [
   'Solar', 'Borehole', 'Swimming Pool', 'Electric Fence',
@@ -158,7 +163,21 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
 
         try {
           if (channel === 'whatsapp') {
-            window.open(`https://wa.me/?text=${encodeURIComponent(shareMessage)}`, '_blank', 'noopener,noreferrer');
+            const caption = buildPropertyShareCaption(property, res.url);
+            const card = await createPropertyShareCard(property);
+            const result = await shareCardWithCaption(
+              card,
+              caption,
+              property.title,
+              `quickprop-${property.reference}.jpg`,
+            );
+            toast({
+              title: 'Property ready to share',
+              description: result === 'shared'
+                ? 'The property image and caption were sent to the share sheet.'
+                : 'The property image was downloaded and the caption was opened in WhatsApp.',
+            });
+            return;
           } else if (channel === 'email') {
             window.location.href = `mailto:?subject=${encodeURIComponent(property.title)}&body=${encodeURIComponent(shareMessage)}`;
           } else if (channel === 'facebook') {

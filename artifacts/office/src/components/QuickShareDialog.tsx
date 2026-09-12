@@ -13,6 +13,11 @@ import {
   Property,
   getListPropertiesQueryKey,
 } from '@workspace/api-client-react';
+import {
+  buildCatalogueShareCaption,
+  createCatalogueShareCard,
+  shareCardWithCaption,
+} from '@/utils/shareCards';
 
 type CatalogMode = 'company' | 'agent';
 
@@ -63,7 +68,7 @@ function buildWhatsAppText(
     lines.push('');
   }
 
-  lines.push(`Browse all listings: ${catalogUrl}`);
+  lines.push(`See full details on QuickProp: ${catalogUrl}`);
   lines.push('_Reply to enquire about any property_');
   return lines.join('\n');
 }
@@ -95,10 +100,22 @@ export function QuickShareDialog() {
   const forSale = publicProps.filter(p => p.listingType === 'sale');
   const forRent = publicProps.filter(p => p.listingType === 'rent');
 
-  const shareToWhatsApp = useCallback(() => {
+  const shareToWhatsApp = useCallback(async () => {
     const text = buildWhatsAppText(publicProps, mode, user?.name, catalogUrl);
-    const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
-    window.open(url, '_blank', 'noopener,noreferrer');
+    const cardText = buildCatalogueShareCaption(publicProps, mode, user?.name, catalogUrl);
+    const blob = await createCatalogueShareCard(publicProps, mode, user?.name);
+    const result = await shareCardWithCaption(
+      blob,
+      cardText || text,
+      'QuickProp Property Catalogue',
+      'quickprop-catalogue.jpg',
+    );
+    toast({
+      title: 'Catalogue ready to share',
+      description: result === 'shared'
+        ? 'The catalogue image and caption were sent to the share sheet.'
+        : 'The catalogue image was downloaded and the caption was opened in WhatsApp.',
+    });
   }, [publicProps, mode, user?.name, catalogUrl]);
 
   const shareToFacebook = useCallback(async () => {
