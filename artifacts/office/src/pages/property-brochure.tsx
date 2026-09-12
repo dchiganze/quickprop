@@ -98,7 +98,7 @@ export default function PropertyBrochure({ params }: { params: { id: string } })
           {/* ── HEADER BAND ── */}
           <div className="flex items-center justify-between px-10 py-5 border-b-4 border-emerald-600">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-md bg-emerald-600 flex items-center justify-center overflow-hidden">
+              <div className="w-[84px] h-[84px] rounded-md bg-emerald-600 flex items-center justify-center overflow-hidden">
                 {agencyLogo ? (
                   <img src={agencyLogo} alt={`${agencyName} logo`} className="w-full h-full object-contain bg-white p-1" />
                 ) : (
