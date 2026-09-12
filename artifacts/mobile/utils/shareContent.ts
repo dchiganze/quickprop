@@ -53,8 +53,7 @@ export function buildPropertyShareMessage(property: Property, agentName?: string
   lines.push('');
   lines.push(`📋 Ref: *${property.referenceNumber}*`);
   if (agentName) lines.push(`Agent: ${agentName}`);
-  lines.push(`Open in QuickProp Agent: ${links.appUrl}`);
-  lines.push(`View online: ${links.webUrl}`);
+  lines.push(`See full details on QuickProp: ${links.webUrl}`);
   return lines.join('\n');
 }
 
@@ -97,8 +96,7 @@ export function buildCatalogueShareMessage(
     lines.push('');
   }
 
-  lines.push(`Open in QuickProp Agent: ${links.appUrl}`);
-  lines.push(`Browse listings online: ${links.webUrl}`);
+  lines.push(`See full details on QuickProp: ${links.webUrl}`);
   lines.push('Reply to enquire about any property.');
   return lines.join('\n');
 }

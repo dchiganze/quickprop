@@ -13,9 +13,11 @@ import { catalogueShareLinks, propertyShareLinks } from '@/utils/shareLinks';
 import { buildCatalogueShareMessage, buildPropertyShareMessage, formatSharePrice } from '@/utils/shareContent';
 import {
   openWhatsAppMessage,
+  shareCatalogueToWhatsApp,
   sharePropertyToWhatsApp,
 } from '@/utils/whatsapp';
 import { SharePropertyCard, SharePropertyCardHandle } from '@/components/SharePropertyCard';
+import { ShareCatalogueCard, ShareCatalogueCardHandle } from '@/components/ShareCatalogueCard';
 
 type Step = 'hub' | 'property-select' | 'property-share' | 'catalogue-share';
 type CatalogMode = 'agent' | 'company';
@@ -39,6 +41,7 @@ export function ShareHubSheet({ visible, onClose }: Props) {
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
   const [sharing, setSharing] = useState(false);
   const shareCardRef = useRef<SharePropertyCardHandle>(null);
+  const catalogueCardRef = useRef<ShareCatalogueCardHandle>(null);
 
   const myProps = properties.filter(p => p.agentId === user?.id && p.status === 'published');
   const allProps = properties.filter(p => p.status === 'published');
@@ -105,7 +108,11 @@ export function ShareHubSheet({ visible, onClose }: Props) {
     try {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       const text = buildCatalogueShareMessage(activeProps, catalogMode, user?.name, user?.id);
-      await openWhatsAppMessage(text);
+      await shareCatalogueToWhatsApp(
+        text,
+        () => catalogueCardRef.current?.capture()
+          ?? Promise.reject(new Error('Unable to prepare the catalogue image.')),
+      );
       handleClose();
     } catch (e: unknown) {
       Alert.alert('Could not share catalogue', e instanceof Error ? e.message : 'Please try another sharing option.');
@@ -412,6 +419,14 @@ export function ShareHubSheet({ visible, onClose }: Props) {
               />
             </View>
           )}
+          <View style={s.catalogueCardHost} pointerEvents="none">
+            <ShareCatalogueCard
+              ref={catalogueCardRef}
+              properties={activeProps}
+              mode={catalogMode}
+              agentName={user?.name}
+            />
+          </View>
           {/* Handle */}
           <View style={[s.handle, { backgroundColor: colors.border }]} />
 

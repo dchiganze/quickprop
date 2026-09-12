@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import {
   View, Text, Modal, TouchableOpacity, StyleSheet, Share,
   ScrollView, Platform, Pressable, ActivityIndicator, Alert,
@@ -11,7 +11,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Property } from '@/types';
 import { catalogueShareLinks } from '@/utils/shareLinks';
 import { buildCatalogueShareMessage, formatSharePrice } from '@/utils/shareContent';
-import { openWhatsAppMessage } from '@/utils/whatsapp';
+import { shareCatalogueToWhatsApp } from '@/utils/whatsapp';
+import { ShareCatalogueCard, ShareCatalogueCardHandle } from '@/components/ShareCatalogueCard';
 
 type CatalogMode = 'agent' | 'company';
 
@@ -30,6 +31,7 @@ export function QuickShareSheet({ visible, onClose }: QuickShareSheetProps) {
   const { user } = useAuth();
   const [mode, setMode] = useState<CatalogMode>('agent');
   const [sharing, setSharing] = useState(false);
+  const catalogueCardRef = useRef<ShareCatalogueCardHandle>(null);
 
   const myProps = properties.filter(p => p.agentId === user?.id && p.status === 'published');
   const allProps = properties.filter(p => p.status === 'published');
@@ -47,7 +49,11 @@ export function QuickShareSheet({ visible, onClose }: QuickShareSheetProps) {
     try {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
        const text = buildCatalogueShareMessage(activeProps, mode, user?.name, mode === 'agent' ? user?.id : undefined);
-      await openWhatsAppMessage(text);
+       await shareCatalogueToWhatsApp(
+         text,
+         () => catalogueCardRef.current?.capture()
+           ?? Promise.reject(new Error('Unable to prepare the catalogue image.')),
+       );
       onClose();
     } catch (e: unknown) {
       Alert.alert('Could not share catalogue', e instanceof Error ? e.message : 'Please try another sharing option.');
@@ -120,6 +126,14 @@ export function QuickShareSheet({ visible, onClose }: QuickShareSheetProps) {
     >
       <Pressable style={styles.backdrop} onPress={onClose}>
         <Pressable style={[styles.sheet, { backgroundColor: colors.card }]} onPress={() => {}}>
+          <View style={styles.catalogueCardHost} pointerEvents="none">
+            <ShareCatalogueCard
+              ref={catalogueCardRef}
+              properties={activeProps}
+              mode={mode}
+              agentName={user?.name}
+            />
+          </View>
           {/* Handle */}
           <View style={[styles.handle, { backgroundColor: colors.border }]} />
 
@@ -338,4 +352,5 @@ const styles = StyleSheet.create({
   shareHint: { fontSize: 11 },
   moreBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 12, borderRadius: 12, borderWidth: 1 },
   moreBtnText: { fontSize: 14, fontWeight: '600' },
+  catalogueCardHost: { position: 'absolute', left: -1000, top: 0, width: 360, height: 450 },
 });

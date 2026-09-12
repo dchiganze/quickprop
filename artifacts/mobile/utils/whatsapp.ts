@@ -92,6 +92,44 @@ export async function sharePropertyToWhatsApp(
   return { caption, sharedPhoto: true };
 }
 
+export async function shareCatalogueToWhatsApp(
+  caption: string,
+  captureCard: () => Promise<string>,
+): Promise<{ caption: string; sharedPhoto: boolean }> {
+  await Clipboard.setStringAsync(caption);
+
+  if (Platform.OS === 'web') {
+    await openWhatsAppMessage(caption);
+    return { caption, sharedPhoto: false };
+  }
+
+  const cardUri = await captureCard();
+  try {
+    const { default: NativeShare } = await import('react-native-share');
+    await NativeShare.open({
+      url: cardUri,
+      type: 'image/jpeg',
+      message: caption,
+      title: 'QuickProp Property Catalogue',
+      failOnCancel: false,
+      useInternalStorage: true,
+    });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message.toLowerCase() : '';
+    if (message.includes('cancel') || message.includes('dismiss')) {
+      return { caption, sharedPhoto: true };
+    }
+    if (!(await Sharing.isAvailableAsync())) throw error;
+    await Sharing.shareAsync(cardUri, {
+      dialogTitle: 'Share catalogue to WhatsApp',
+      mimeType: 'image/jpeg',
+      UTI: 'public.jpeg',
+    });
+  }
+
+  return { caption, sharedPhoto: true };
+}
+
 export type PropertySocialDestination = 'facebook' | 'instagram' | 'linkedin' | 'tiktok';
 
 export async function sharePropertyToSocial(

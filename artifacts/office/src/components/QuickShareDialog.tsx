@@ -116,7 +116,7 @@ export function QuickShareDialog() {
         ? 'The catalogue image and caption were sent to the share sheet.'
         : 'The catalogue image was downloaded and the caption was opened in WhatsApp.',
     });
-  }, [publicProps, mode, user?.name, catalogUrl]);
+  }, [publicProps, mode, user?.name, catalogUrl, toast]);
 
   const shareToFacebook = useCallback(async () => {
     const text = buildWhatsAppText(publicProps, mode, user?.name, catalogUrl);
