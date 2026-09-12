@@ -1,11 +1,12 @@
 import React from 'react';
-import { useGetProperty, useGetCurrentUser } from '@workspace/api-client-react';
+import { useGetProperty, useGetCurrentUser, useGetAdminAgencySettings } from '@workspace/api-client-react';
 import { Bed, Bath, Car, Square, Building2, MapPin, Phone, Mail, Printer, ArrowLeft } from 'lucide-react';
 
 export default function PropertyBrochure({ params }: { params: { id: string } }) {
   const propertyId = parseInt(params.id, 10);
   const { data: property, isLoading } = useGetProperty(propertyId);
   const { data: user } = useGetCurrentUser();
+  const { data: agencySettings } = useGetAdminAgencySettings();
 
   if (isLoading) {
     return (
@@ -22,6 +23,10 @@ export default function PropertyBrochure({ params }: { params: { id: string } })
       </div>
     );
   }
+
+  const agencyName = agencySettings?.agencyName || 'QuickProp';
+  const agencyLogo = agencySettings?.logoUrl;
+  const publicPropertyUrl = `https://www.quickprop.melios.co.zw/properties/${property.id}`;
 
   const formatPrice = () => {
     const p = property.price;
@@ -93,15 +98,24 @@ export default function PropertyBrochure({ params }: { params: { id: string } })
           {/* ── HEADER BAND ── */}
           <div className="flex items-center justify-between px-10 py-5 border-b-4 border-emerald-600">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-md bg-emerald-600 flex items-center justify-center">
-                <svg viewBox="0 0 24 24" fill="none" className="w-5 h-5 text-white" stroke="currentColor" strokeWidth={2}>
-                  <path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z" />
-                  <path d="M9 21V12h6v9" />
-                </svg>
+              <div className="w-12 h-12 rounded-md bg-emerald-600 flex items-center justify-center overflow-hidden">
+                {agencyLogo ? (
+                  <img src={agencyLogo} alt={`${agencyName} logo`} className="w-full h-full object-contain bg-white p-1" />
+                ) : (
+                  <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6 text-white" stroke="currentColor" strokeWidth={2}>
+                    <path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z" />
+                    <path d="M9 21V12h6v9" />
+                  </svg>
+                )}
               </div>
               <div>
-                <div className="text-lg font-bold text-gray-900 leading-tight">QuickProp</div>
-                <div className="text-xs text-gray-500 leading-tight">Zimbabwe's Property Marketplace</div>
+                <div className="text-lg font-bold text-gray-900 leading-tight">{agencyName}</div>
+                <div className="text-[10px] text-gray-400 leading-tight">
+                  powered by{' '}
+                  <a href="https://www.quickprop.co.zw" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2">
+                    quickprop.co.zw
+                  </a>
+                </div>
               </div>
             </div>
             <div className="text-right">
@@ -247,15 +261,25 @@ export default function PropertyBrochure({ params }: { params: { id: string } })
               {/* QR / CTA */}
               <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-center">
                 <div className="text-xs text-emerald-700 font-semibold mb-1">View online</div>
-                <div className="text-xs text-emerald-600 break-all">quickprop.co.zw/web/property/{property.id}</div>
+                <a
+                  href={publicPropertyUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-emerald-600 break-all underline underline-offset-2 hover:text-emerald-800"
+                >
+                  {publicPropertyUrl.replace(/^https?:\/\//, '')}
+                </a>
               </div>
             </div>
           </div>
 
           {/* ── FOOTER ── */}
           <div className="mt-auto px-10 py-4 bg-gray-900 flex items-center justify-between">
-            <div className="text-white text-sm font-semibold">QuickProp — Zimbabwe's Property Marketplace</div>
-            <div className="text-gray-400 text-xs">www.quickprop.co.zw · Ref: {property.reference}</div>
+            <div className="text-white text-sm font-semibold">{agencyName}</div>
+            <div className="text-gray-400 text-xs text-right">
+              <div>Powered by www.quickprop.co.zw</div>
+              <div>Ref: {property.reference}</div>
+            </div>
           </div>
         </div>
       </div>
