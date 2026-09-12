@@ -132,6 +132,7 @@ export function QuickShareSheet({ visible, onClose }: QuickShareSheetProps) {
               properties={activeProps}
               mode={mode}
               agentName={user?.name}
+              agentId={user?.id}
             />
           </View>
           {/* Handle */}

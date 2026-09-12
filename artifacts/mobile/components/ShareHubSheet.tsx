@@ -12,7 +12,6 @@ import { Property } from '@/types';
 import { catalogueShareLinks, propertyShareLinks } from '@/utils/shareLinks';
 import { buildCatalogueShareMessage, buildPropertyShareMessage, formatSharePrice } from '@/utils/shareContent';
 import {
-  openWhatsAppMessage,
   shareCatalogueToWhatsApp,
   sharePropertyToWhatsApp,
 } from '@/utils/whatsapp';
@@ -425,6 +424,7 @@ export function ShareHubSheet({ visible, onClose }: Props) {
               properties={activeProps}
               mode={catalogMode}
               agentName={user?.name}
+              agentId={user?.id}
             />
           </View>
           {/* Handle */}
@@ -460,6 +460,7 @@ export function ShareHubSheet({ visible, onClose }: Props) {
 const s = StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   shareCardHost: { position: 'absolute', left: -1000, top: 0, width: 360, height: 450 },
+  catalogueCardHost: { position: 'absolute', left: -1000, top: 0, width: 360, height: 450 },
   sheet: {
     borderTopLeftRadius: 26, borderTopRightRadius: 26,
     paddingHorizontal: 20, paddingBottom: Platform.OS === 'ios' ? 44 : 28, paddingTop: 12,

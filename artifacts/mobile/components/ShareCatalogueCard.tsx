@@ -14,15 +14,16 @@ interface ShareCatalogueCardProps {
   properties: Property[];
   mode: 'agent' | 'company';
   agentName?: string;
+  agentId?: string;
 }
 
 const CARD_WIDTH = 360;
 const CARD_HEIGHT = 450;
 
 export const ShareCatalogueCard = forwardRef<ShareCatalogueCardHandle, ShareCatalogueCardProps>(
-  function ShareCatalogueCard({ properties, mode, agentName }, ref) {
+  function ShareCatalogueCard({ properties, mode, agentName, agentId }, ref) {
     const viewShotRef = useRef<ViewShot>(null);
-    const shareUrl = catalogueShareLinks(mode === 'agent' ? undefined : undefined).webUrl;
+    const shareUrl = catalogueShareLinks(mode === 'agent' ? agentId : undefined).webUrl;
     const forSale = properties.filter(property => property.type === 'sale').length;
     const forRent = properties.filter(property => property.type === 'rent').length;
     const title = mode === 'agent' ? `${agentName?.split(' ')[0] ?? 'My'}'s Listings` : 'Property Catalogue';
