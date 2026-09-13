@@ -468,7 +468,7 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
             <ArrowLeft className="w-5 h-5" />
           </Button>
            <div className="min-w-0 flex-1">
-             <div className="relative -top-[1cm] flex items-center gap-3 mb-1">
+             <div className="relative -top-[0.5cm] flex items-center gap-3 mb-1">
                <h1 className="min-w-0 flex-1 truncate whitespace-nowrap text-3xl font-bold tracking-tight text-foreground">{property.title}</h1>
                <Badge variant="outline" className="shrink-0 uppercase font-bold tracking-wider">{property.reference}</Badge>
             </div>
