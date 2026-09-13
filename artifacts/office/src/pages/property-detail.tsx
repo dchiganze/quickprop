@@ -63,6 +63,7 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
   const [saleDialogOpen, setSaleDialogOpen] = useState(false);
   const [salePrice, setSalePrice] = useState('');
   const [editOpen, setEditOpen] = useState(false);
+  const [listingVisibility, setListingVisibility] = useState<'public' | 'internal_only'>('internal_only');
   const [edit, setEdit] = useState({
     title: '', propertyType: 'house', listingType: 'sale', price: '', negotiable: false,
     suburb: '', city: '', address: '', addressVisible: false, bedrooms: '', bathrooms: '',
@@ -106,6 +107,11 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
     });
    }, [property, seller]);
 
+  useEffect(() => {
+    if (!property) return;
+    setListingVisibility(property.status === 'public' ? 'public' : 'internal_only');
+  }, [property?.id, property?.status]);
+
   if (isLoading) {
     return <div className="p-8 space-y-6 max-w-[1200px] mx-auto">
       <Skeleton className="h-8 w-64" />
@@ -123,10 +129,19 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
       setSaleDialogOpen(true);
       return;
     }
-    updateProperty.mutate({ id: propertyId, data: { status: newStatus } }, {
+    const nextStatus = newStatus === 'public' ? 'public' : 'internal_only';
+    setListingVisibility(nextStatus);
+    updateProperty.mutate({ id: propertyId, data: { status: nextStatus } }, {
       onSuccess: () => {
-        toast({ title: 'Status updated', description: `Property status is now ${newStatus.replace('_', ' ')}` });
-      }
+        toast({
+          title: 'Status updated',
+          description: `Property status is now ${nextStatus === 'public' ? 'Publicly Listed' : 'Internally Only'}.`,
+        });
+      },
+      onError: () => {
+        setListingVisibility(property.status === 'public' ? 'public' : 'internal_only');
+        toast({ title: 'Could not update status', description: 'Please try again.', variant: 'destructive' });
+      },
     });
   };
 
@@ -406,7 +421,7 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
         </div>
         
         <div className="flex items-center gap-3 shrink-0">
-          <Select value={property.status === 'public' ? 'public' : 'internal_only'} onValueChange={handleStatusChange}>
+          <Select value={listingVisibility} onValueChange={handleStatusChange} disabled={updateProperty.isPending}>
             <SelectTrigger className="w-[180px] bg-card font-semibold capitalize">
               <SelectValue />
             </SelectTrigger>
