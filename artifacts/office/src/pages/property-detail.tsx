@@ -406,17 +406,13 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
         </div>
         
         <div className="flex items-center gap-3 shrink-0">
-          <Select value={property.status} onValueChange={handleStatusChange}>
+          <Select value={property.status === 'public' ? 'public' : 'internal_only'} onValueChange={handleStatusChange}>
             <SelectTrigger className="w-[180px] bg-card font-semibold capitalize">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="draft">Draft</SelectItem>
-              <SelectItem value="internal_only">Internal Only</SelectItem>
               <SelectItem value="public">Publicly Listed</SelectItem>
-              <SelectItem value="under_offer">Under Offer</SelectItem>
-              <SelectItem value="sold">Sold</SelectItem>
-              <SelectItem value="archived">Archived</SelectItem>
+              <SelectItem value="internal_only">Internally Only</SelectItem>
             </SelectContent>
           </Select>
           <Button variant="outline" className="shadow-sm" onClick={() => setEditOpen(true)}>
