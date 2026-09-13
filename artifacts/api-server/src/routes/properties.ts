@@ -51,6 +51,7 @@ const PIPELINE_STAGES = [
   "sold",
   "archived",
 ];
+const SELLING_STATUSES = ["available", "under_offer", "sold", "withdrawn"] as const;
 
 function mutationKey(req: Request): string | null {
   const value = req.get("Idempotency-Key")?.trim();
@@ -247,10 +248,16 @@ router.patch("/properties/:id", async (req, res): Promise<void> => {
     res.status(404).json({ error: "Property not found" });
     return;
   }
-  if (parsed.data.status === "sold" && (!parsed.data.salePrice || parsed.data.salePrice <= 0)) {
-    res.status(400).json({ error: "A positive sale price is required when marking a property as sold." });
+  if (parsed.data.salePrice != null && parsed.data.salePrice <= 0) {
+    res.status(400).json({ error: "Sale price must be positive when provided." });
     return;
   }
+  if (parsed.data.availabilityStatus && !SELLING_STATUSES.includes(parsed.data.availabilityStatus as typeof SELLING_STATUSES[number])) {
+    res.status(400).json({ error: "Invalid selling status." });
+    return;
+  }
+  const requestedSellingStatus = parsed.data.availabilityStatus
+    ?? (["under_offer", "sold", "withdrawn"].includes(parsed.data.status ?? "") ? parsed.data.status : undefined);
   const {
     sellerName,
     sellerPhone,
@@ -281,6 +288,7 @@ router.patch("/properties/:id", async (req, res): Promise<void> => {
     ...propertyData,
     sellerId,
     proposedViewingTimes: propertyData.proposedViewingTimes?.map((time) => time.toISOString()),
+    soldAt: propertyData.soldAt?.toISOString(),
     privateNotes: sellerNotes?.trim() || propertyData.privateNotes,
     mandateType: propertyData.mandateType === "exclusive" ? "sole" : propertyData.mandateType,
   };
@@ -296,13 +304,32 @@ router.patch("/properties/:id", async (req, res): Promise<void> => {
   if (parsed.data.status === "public" && existing.status !== "public") {
     update.publishedAt = new Date();
   }
-  if (parsed.data.status === "sold") {
-    update.pipelineStage = "sold";
+  const existingSellingStatus = ["available", "under_offer", "sold", "withdrawn"].includes(existing.availabilityStatus)
+    ? existing.availabilityStatus
+    : existing.status;
+  const sellingStatusChanged = requestedSellingStatus != null && requestedSellingStatus !== existingSellingStatus;
+  if (requestedSellingStatus === "under_offer") {
+    update.availabilityStatus = "under_offer";
+    update.pipelineStage = "under_offer";
+  } else if (requestedSellingStatus === "sold") {
     update.availabilityStatus = "sold";
+    update.pipelineStage = "sold";
     update.freshnessStatus = "inactive";
     update.nextConfirmationAt = null;
-    update.soldAt = new Date();
     update.soldBy = user?.id ?? null;
+    // Preserve the legacy mobile behavior for status-only sold updates while
+    // allowing the Office flow to leave the sale date blank.
+    if (parsed.data.status === "sold" && parsed.data.soldAt == null && existing.soldAt == null) {
+      update.soldAt = new Date();
+    }
+  } else if (requestedSellingStatus === "withdrawn") {
+    update.availabilityStatus = "withdrawn";
+    update.pipelineStage = "archived";
+    update.freshnessStatus = "inactive";
+    update.nextConfirmationAt = null;
+  } else if (requestedSellingStatus === "available") {
+    update.availabilityStatus = "available";
+    if (existing.pipelineStage === "under_offer") update.pipelineStage = "published";
   }
   const [row] = await db
     .update(propertiesTable)
@@ -321,8 +348,14 @@ router.patch("/properties/:id", async (req, res): Promise<void> => {
   }
   if (parsed.data.status && parsed.data.status !== existing.status) {
     await logActivity("status_change", `${row.reference} moved to ${row.status.replace(/_/g, " ")}`, "property", id, user?.name);
-    if (["sold", "rented", "withdrawn", "archived"].includes(parsed.data.status)) {
+    if (!sellingStatusChanged && ["sold", "rented", "withdrawn", "archived"].includes(parsed.data.status)) {
       await queuePrimaryReviewInvitation(id, parsed.data.status);
+    }
+  }
+  if (sellingStatusChanged) {
+    await logActivity("status_change", `${row.reference} selling status changed to ${requestedSellingStatus?.replace(/_/g, " ")}`, "property", id, user?.name);
+    if (["sold", "withdrawn"].includes(requestedSellingStatus ?? "")) {
+      await queuePrimaryReviewInvitation(id, requestedSellingStatus!);
     }
   }
   if (["public", "under_offer", "coming_soon"].includes(row.status)) {

@@ -1,5 +1,5 @@
 import { Router, type IRouter, type Request, type Response } from "express";
-import { eq, and, gte, lte, ilike, or, inArray, sql } from "drizzle-orm";
+import { eq, and, gte, lte, ilike, or, inArray, desc, sql } from "drizzle-orm";
 import { db, usersTable, branchesTable, propertiesTable, savedPropertiesTable } from "@workspace/db";
 import { jsonify } from "../lib/helpers";
 import {
@@ -17,6 +17,7 @@ import { hashPassword, isScryptHash, verifyPassword } from "../lib/passwords";
 const router: IRouter = Router();
 
 const PUBLIC_STATUSES = ["public", "under_offer", "coming_soon"];
+const PUBLIC_AVAILABILITY_STATUSES = ["available", "under_offer"];
 const BUYER_COOKIE = "qp_buyer";
 
 /* ─── helpers ─────────────────────────────────────────────────────────── */
@@ -45,7 +46,11 @@ async function agentWithBranch(agentId: number | null) {
     branchName = branch?.name ?? null;
   }
   const listings = await db.select().from(propertiesTable).where(
-    and(eq(propertiesTable.agentId, agent.id), inArray(propertiesTable.status, PUBLIC_STATUSES))
+    and(
+      eq(propertiesTable.agentId, agent.id),
+      inArray(propertiesTable.status, PUBLIC_STATUSES),
+      inArray(propertiesTable.availabilityStatus, PUBLIC_AVAILABILITY_STATUSES),
+    )
   );
   const reviewSummary = await getPublicReviewSummary(agent.id);
   return {
@@ -68,7 +73,10 @@ async function agentWithBranch(agentId: number | null) {
 /* ─── GET /public/stats ────────────────────────────────────────────────── */
 router.get("/public/stats", async (_req, res): Promise<void> => {
   const all = await db.select().from(propertiesTable).where(
-    inArray(propertiesTable.status, PUBLIC_STATUSES)
+    and(
+      inArray(propertiesTable.status, PUBLIC_STATUSES),
+      inArray(propertiesTable.availabilityStatus, PUBLIC_AVAILABILITY_STATUSES),
+    )
   );
   const forSale = all.filter((p) => p.listingType === "sale").length;
   const forRent = all.filter((p) => p.listingType === "rent").length;
@@ -85,7 +93,10 @@ router.get("/public/properties", async (req, res): Promise<void> => {
     page = "1", limit = "12", sort = "newest",
   } = req.query as Record<string, string>;
 
-  const conditions = [inArray(propertiesTable.status, PUBLIC_STATUSES)];
+  const conditions = [
+    inArray(propertiesTable.status, PUBLIC_STATUSES),
+    inArray(propertiesTable.availabilityStatus, PUBLIC_AVAILABILITY_STATUSES),
+  ];
   if (listingType) conditions.push(eq(propertiesTable.listingType, listingType));
   if (propertyType) conditions.push(eq(propertiesTable.propertyType, propertyType));
   if (suburb) {
@@ -171,7 +182,14 @@ router.get("/public/properties/:id", async (req, res): Promise<void> => {
     : eq(propertiesTable.reference, rawIdentifier.toUpperCase());
   const [found] = await db.select().from(propertiesTable).where(propertyIdentifier);
   const prop = found ? await getCanonicalProperty(found.id) : null;
-  if (!prop || !PUBLIC_STATUSES.includes(prop.status)) { res.status(404).json({ error: "Not found" }); return; }
+  if (
+    !prop
+    || !PUBLIC_STATUSES.includes(prop.status)
+    || !PUBLIC_AVAILABILITY_STATUSES.includes(prop.availabilityStatus)
+  ) {
+    res.status(404).json({ error: "Not found" });
+    return;
+  }
 
   // Increment views
   await db.update(propertiesTable).set({ views: (prop.views ?? 0) + 1 }).where(eq(propertiesTable.id, prop.id));
@@ -215,7 +233,11 @@ router.get("/public/agents", async (_req, res): Promise<void> => {
         branchName = branch?.name ?? null;
       }
       const listings = await db.select({ id: propertiesTable.id }).from(propertiesTable).where(
-        and(eq(propertiesTable.agentId, agent.id), inArray(propertiesTable.status, PUBLIC_STATUSES))
+        and(
+          eq(propertiesTable.agentId, agent.id),
+          inArray(propertiesTable.status, PUBLIC_STATUSES),
+          inArray(propertiesTable.availabilityStatus, PUBLIC_AVAILABILITY_STATUSES),
+        )
       );
       const reviewSummary = await getPublicReviewSummary(agent.id);
       return {
@@ -256,8 +278,28 @@ router.get("/public/agents/:id", async (req, res): Promise<void> => {
   }
 
   const listings = await db.select().from(propertiesTable).where(
-    and(eq(propertiesTable.agentId, agent.id), inArray(propertiesTable.status, PUBLIC_STATUSES))
+    and(
+      eq(propertiesTable.agentId, agent.id),
+      inArray(propertiesTable.status, PUBLIC_STATUSES),
+      inArray(propertiesTable.availabilityStatus, PUBLIC_AVAILABILITY_STATUSES),
+    )
   );
+
+  const sellingHistoryRows = await db.select({
+    id: propertiesTable.id,
+    reference: propertiesTable.reference,
+    title: propertiesTable.title,
+    suburb: propertiesTable.suburb,
+    city: propertiesTable.city,
+    currency: propertiesTable.currency,
+    salePrice: propertiesTable.salePrice,
+    soldAt: propertiesTable.soldAt,
+  }).from(propertiesTable).where(
+    and(
+      eq(propertiesTable.agentId, agent.id),
+      or(eq(propertiesTable.availabilityStatus, "sold"), eq(propertiesTable.status, "sold")),
+    )
+  ).orderBy(desc(propertiesTable.soldAt), desc(propertiesTable.updatedAt));
 
   const reviewSummary = await getPublicReviewSummary(agent.id);
   res.json(jsonify({
@@ -278,6 +320,7 @@ router.get("/public/agents/:id", async (req, res): Promise<void> => {
     },
     listings: listings.map(stripPrivate),
     reviews: reviewSummary.reviews,
+    sellingHistory: sellingHistoryRows,
   }));
 });
 

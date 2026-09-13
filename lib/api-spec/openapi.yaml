@@ -2431,10 +2431,12 @@ components:
         propertyType: { type: string }
         listingType: { type: string }
         status: { type: string }
+        availabilityStatus: { type: string, description: "available | under_offer | sold | withdrawn" }
         pipelineStage: { type: string }
         price: { type: number }
         negotiable: { type: boolean }
         salePrice: { type: number }
+        soldAt: { type: string, format: date-time }
         currency: { type: string }
         suburb: { type: string }
         city: { type: string }
@@ -2971,6 +2973,7 @@ components:
         propertyType: { type: string }
         listingType: { type: string }
         status: { type: string }
+        availabilityStatus: { type: string, description: "available | under_offer | sold | withdrawn" }
         price: { type: number }
         currency: { type: string }
         suburb: { type: string }
@@ -2993,6 +2996,8 @@ components:
           items: { type: string, format: date-time }
         coverImage: { type: ["string", "null"] }
         agentId: { type: ["integer", "null"] }
+        salePrice: { type: ["number", "null"] }
+        soldAt: { type: ["string", "null"] }
         views: { type: integer }
         enquiries: { type: integer }
         publishedAt: { type: ["string", "null"] }
@@ -3029,9 +3034,21 @@ components:
         branchName: { type: ["string", "null"] }
         activeListings: { type: integer }
         reviewSummary: { $ref: "#/components/schemas/AgentReviewSummary" }
+    PublicSellingHistory:
+      type: object
+      required: [id, reference, title, suburb, city, currency]
+      properties:
+        id: { type: integer }
+        reference: { type: string }
+        title: { type: string }
+        suburb: { type: string }
+        city: { type: string }
+        currency: { type: string }
+        salePrice: { type: ["number", "null"] }
+        soldAt: { type: ["string", "null"] }
     PublicAgentProfile:
       type: object
-      required: [agent, listings, reviews]
+      required: [agent, listings, reviews, sellingHistory]
       properties:
         agent: { $ref: "#/components/schemas/PublicAgent" }
         listings:
@@ -3040,6 +3057,9 @@ components:
         reviews:
           type: array
           items: { $ref: "#/components/schemas/PublicAgentReview" }
+        sellingHistory:
+          type: array
+          items: { $ref: "#/components/schemas/PublicSellingHistory" }
     AgentReviewSummary:
       type: object
       required: [averageRating, reviewCount]

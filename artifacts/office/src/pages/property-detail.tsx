@@ -41,6 +41,17 @@ const PROPERTY_FEATURES = [
   'Irrigation', 'Boma', 'Lapa', 'Outhouse',
 ];
 
+type SellingStatus = 'available' | 'under_offer' | 'sold' | 'withdrawn';
+
+function getSellingStatus(property: { status: string; availabilityStatus?: string }) {
+  if (['under_offer', 'sold', 'withdrawn'].includes(property.status)) {
+    return property.status as SellingStatus;
+  }
+  return ['available', 'under_offer', 'sold', 'withdrawn'].includes(property.availabilityStatus ?? '')
+    ? property.availabilityStatus as SellingStatus
+    : 'available';
+}
+
 export default function PropertyDetail({ params }: { params: { id: string } }) {
   const propertyId = parseInt(params.id, 10);
   const [, navigate] = useLocation();
@@ -62,8 +73,10 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
 
   const [saleDialogOpen, setSaleDialogOpen] = useState(false);
   const [salePrice, setSalePrice] = useState('');
+  const [saleDate, setSaleDate] = useState('');
   const [editOpen, setEditOpen] = useState(false);
   const [listingVisibility, setListingVisibility] = useState<'public' | 'internal_only'>('internal_only');
+  const [sellingStatus, setSellingStatus] = useState<SellingStatus>('available');
   const [edit, setEdit] = useState({
     title: '', propertyType: 'house', listingType: 'sale', price: '', negotiable: false,
     suburb: '', city: '', address: '', addressVisible: false, bedrooms: '', bathrooms: '',
@@ -112,6 +125,11 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
     setListingVisibility(property.status === 'public' ? 'public' : 'internal_only');
   }, [property?.id, property?.status]);
 
+  useEffect(() => {
+    if (!property) return;
+    setSellingStatus(getSellingStatus(property));
+  }, [property?.id, property?.status, property?.availabilityStatus]);
+
   if (isLoading) {
     return <div className="p-8 space-y-6 max-w-[1200px] mx-auto">
       <Skeleton className="h-8 w-64" />
@@ -123,12 +141,7 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
     return <div className="p-8">Property not found</div>;
   }
 
-  const handleStatusChange = (newStatus: string) => {
-    if (newStatus === 'sold') {
-      setSalePrice('');
-      setSaleDialogOpen(true);
-      return;
-    }
+  const handleVisibilityChange = (newStatus: string) => {
     const nextStatus = newStatus === 'public' ? 'public' : 'internal_only';
     setListingVisibility(nextStatus);
     updateProperty.mutate({ id: propertyId, data: { status: nextStatus } }, {
@@ -145,16 +158,53 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
     });
   };
 
-  const handleConfirmSale = () => {
-    const parsedSalePrice = Number(salePrice);
-    if (!Number.isFinite(parsedSalePrice) || parsedSalePrice <= 0) {
-      toast({ title: 'Sale price required', description: 'Enter a positive final sale price.', variant: 'destructive' });
+  const handleSellingStatusChange = (newStatus: string) => {
+    const nextStatus = newStatus as SellingStatus;
+    if (!['available', 'under_offer', 'sold', 'withdrawn'].includes(nextStatus)) return;
+    if (nextStatus === 'sold') {
+      setSalePrice(property.salePrice == null ? '' : String(property.salePrice));
+      setSaleDate(property.soldAt ? property.soldAt.slice(0, 10) : '');
+      setSaleDialogOpen(true);
       return;
     }
-    updateProperty.mutate({ id: propertyId, data: { status: 'sold', salePrice: parsedSalePrice } }, {
+
+    const previousStatus = sellingStatus;
+    setSellingStatus(nextStatus);
+    updateProperty.mutate({ id: propertyId, data: { availabilityStatus: nextStatus } }, {
+      onSuccess: () => {
+        toast({
+          title: 'Selling status updated',
+          description: `Property is now ${nextStatus === 'under_offer' ? 'Under Offer' : nextStatus === 'withdrawn' ? 'Withdrawn' : 'Available'}.`,
+        });
+      },
+      onError: () => {
+        setSellingStatus(previousStatus);
+        toast({ title: 'Could not update selling status', description: 'Please try again.', variant: 'destructive' });
+      },
+    });
+  };
+
+  const handleConfirmSale = () => {
+    const parsedSalePrice = salePrice.trim() ? Number(salePrice) : undefined;
+    if (parsedSalePrice != null && (!Number.isFinite(parsedSalePrice) || parsedSalePrice <= 0)) {
+      toast({ title: 'Invalid sale price', description: 'Enter a positive final sale price or leave it blank.', variant: 'destructive' });
+      return;
+    }
+    updateProperty.mutate({
+      id: propertyId,
+      data: {
+        availabilityStatus: 'sold',
+        ...(parsedSalePrice == null ? {} : { salePrice: parsedSalePrice }),
+        ...(saleDate ? { soldAt: new Date(`${saleDate}T00:00:00`).toISOString() } : {}),
+      },
+    }, {
       onSuccess: () => {
         setSaleDialogOpen(false);
-        toast({ title: 'Sale recorded', description: `Final sale price recorded as ${property.currency} ${parsedSalePrice.toLocaleString()}.` });
+        setSellingStatus('sold');
+        toast({
+          title: 'Selling status updated',
+          description: 'Property marked as Sold. Adding the sale price and date enhances your selling history on the marketplace.',
+        });
       },
       onError: (error) => {
         toast({ title: 'Could not record sale', description: error.message, variant: 'destructive' });
@@ -278,11 +328,11 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
       <Dialog open={saleDialogOpen} onOpenChange={setSaleDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Record completed sale</DialogTitle>
+            <DialogTitle>Mark property as sold</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              The asking price remains {property.currency} {property.price.toLocaleString()}. Enter the final price this property sold for.
+              Sale price and date are optional. Adding them enhances your selling history on the QuickProp marketplace.
             </p>
             <div className="space-y-2">
               <label htmlFor="sale-price" className="text-sm font-medium">Final sale price ({property.currency})</label>
@@ -295,10 +345,19 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
                 autoFocus
               />
             </div>
+            <div className="space-y-2">
+              <label htmlFor="sale-date" className="text-sm font-medium">Sale date (optional)</label>
+              <Input
+                id="sale-date"
+                type="date"
+                value={saleDate}
+                onChange={(event) => setSaleDate(event.target.value)}
+              />
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setSaleDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleConfirmSale} disabled={updateProperty.isPending}>Record sale</Button>
+            <Button onClick={handleConfirmSale} disabled={updateProperty.isPending}>Save sold status</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -421,7 +480,19 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
         </div>
         
         <div className="flex items-center gap-3 shrink-0">
-          <Select value={listingVisibility} onValueChange={handleStatusChange} disabled={updateProperty.isPending}>
+          <Select value={sellingStatus} onValueChange={handleSellingStatusChange} disabled={updateProperty.isPending}>
+            <SelectTrigger className="w-[205px] bg-card font-semibold" aria-label="Selling Status">
+              <span className="mr-1 text-muted-foreground">Selling Status:</span>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="available">Available</SelectItem>
+              <SelectItem value="under_offer">Under Offer</SelectItem>
+              <SelectItem value="sold">Sold</SelectItem>
+              <SelectItem value="withdrawn">Withdrawn</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={listingVisibility} onValueChange={handleVisibilityChange} disabled={updateProperty.isPending}>
             <SelectTrigger className="w-[180px] bg-card font-semibold capitalize">
               <SelectValue />
             </SelectTrigger>

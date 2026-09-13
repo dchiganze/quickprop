@@ -8,9 +8,11 @@
 import type { PublicAgent } from './publicAgent';
 import type { PublicAgentReview } from './publicAgentReview';
 import type { PublicProperty } from './publicProperty';
+import type { PublicSellingHistory } from './publicSellingHistory';
 
 export interface PublicAgentProfile {
   agent: PublicAgent;
   listings: PublicProperty[];
   reviews: PublicAgentReview[];
+  sellingHistory: PublicSellingHistory[];
 }

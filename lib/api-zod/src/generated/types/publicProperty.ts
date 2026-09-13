@@ -15,6 +15,8 @@ export interface PublicProperty {
   propertyType: string;
   listingType: string;
   status?: string;
+  /** available | under_offer | sold | withdrawn */
+  availabilityStatus?: string;
   price: number;
   currency: string;
   suburb: string;
@@ -39,6 +41,10 @@ export interface PublicProperty {
   coverImage?: string | null;
   /** @nullable */
   agentId?: number | null;
+  /** @nullable */
+  salePrice?: number | null;
+  /** @nullable */
+  soldAt?: string | null;
   views: number;
   enquiries: number;
   /** @nullable */

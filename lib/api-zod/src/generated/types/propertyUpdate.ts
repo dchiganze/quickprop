@@ -12,10 +12,13 @@ export interface PropertyUpdate {
   propertyType?: string;
   listingType?: string;
   status?: string;
+  /** available | under_offer | sold | withdrawn */
+  availabilityStatus?: string;
   pipelineStage?: string;
   price?: number;
   negotiable?: boolean;
   salePrice?: number;
+  soldAt?: Date;
   currency?: string;
   suburb?: string;
   city?: string;

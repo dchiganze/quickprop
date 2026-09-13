@@ -580,10 +580,13 @@ export interface PropertyUpdate {
   propertyType?: string;
   listingType?: string;
   status?: string;
+  /** available | under_offer | sold | withdrawn */
+  availabilityStatus?: string;
   pipelineStage?: string;
   price?: number;
   negotiable?: boolean;
   salePrice?: number;
+  soldAt?: string;
   currency?: string;
   suburb?: string;
   city?: string;
@@ -1144,6 +1147,8 @@ export interface PublicProperty {
   propertyType: string;
   listingType: string;
   status?: string;
+  /** available | under_offer | sold | withdrawn */
+  availabilityStatus?: string;
   price: number;
   currency: string;
   suburb: string;
@@ -1168,6 +1173,10 @@ export interface PublicProperty {
   coverImage?: string | null;
   /** @nullable */
   agentId?: number | null;
+  /** @nullable */
+  salePrice?: number | null;
+  /** @nullable */
+  soldAt?: string | null;
   views: number;
   enquiries: number;
   /** @nullable */
@@ -1215,6 +1224,19 @@ export interface PublicAgent {
   reviewSummary: AgentReviewSummary;
 }
 
+export interface PublicSellingHistory {
+  id: number;
+  reference: string;
+  title: string;
+  suburb: string;
+  city: string;
+  currency: string;
+  /** @nullable */
+  salePrice?: number | null;
+  /** @nullable */
+  soldAt?: string | null;
+}
+
 export interface PublicAgentReview {
   rating: number;
   reviewText: string;
@@ -1227,6 +1249,7 @@ export interface PublicAgentProfile {
   agent: PublicAgent;
   listings: PublicProperty[];
   reviews: PublicAgentReview[];
+  sellingHistory: PublicSellingHistory[];
 }
 
 export type PublicReviewInvitationStatus = typeof PublicReviewInvitationStatus[keyof typeof PublicReviewInvitationStatus];

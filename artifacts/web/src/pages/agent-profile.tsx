@@ -5,6 +5,7 @@ import { Layout } from "@/components/layout";
 import { PropertyCard } from "@/components/property-card";
 import { ReviewSummary, RatingStars } from "@/components/review-rating";
 import { Button } from "@/components/ui/button";
+import { formatPrice } from "@/lib/utils";
 
 function ProfileSkeleton() {
   return (
@@ -26,6 +27,14 @@ function formatReviewDate(createdAt: string) {
 
 function formatOutcome(outcome: string) {
   return outcome.replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function formatSaleDate(soldAt?: string | null) {
+  if (!soldAt) return "Date not shared";
+  const parsed = new Date(soldAt);
+  return Number.isNaN(parsed.getTime())
+    ? "Date not shared"
+    : parsed.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
 }
 
 export default function AgentProfile() {
@@ -56,7 +65,7 @@ export default function AgentProfile() {
     );
   }
 
-  const { agent, listings, reviews } = data;
+  const { agent, listings, reviews, sellingHistory } = data;
 
   return (
     <Layout>
@@ -144,6 +153,49 @@ export default function AgentProfile() {
                     <div className="mt-7 flex items-center justify-between gap-3 border-t border-border pt-4 text-xs text-muted-foreground">
                       <span>{formatOutcome(review.outcome)}</span>
                       <span>{formatReviewDate(review.createdAt)}</span>
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
+        </section>
+
+        <section className="mt-16 border-t border-border pt-12 sm:mt-20 sm:pt-16" data-testid="section-selling-history">
+          <div className="mb-7">
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-primary">Selling history</p>
+            <h2 className="mt-2 font-display text-4xl text-foreground">Completed sales by {agent.name}</h2>
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">
+              Sale price and date appear when the agent chooses to share them. These details help build a stronger selling history on QuickProp.
+            </p>
+          </div>
+          {sellingHistory.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-border bg-card p-10 text-center" data-testid="status-selling-history-empty">
+              <p className="font-display text-2xl text-foreground">No completed sales yet.</p>
+              <p className="mt-2 text-sm text-muted-foreground">Completed sales will appear here as the agent adds them.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
+              {sellingHistory.map((sale) => (
+                <article key={sale.id} className="rounded-2xl border border-border bg-card p-6" data-testid={`card-selling-history-${sale.id}`}>
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-xs font-bold uppercase tracking-[0.14em] text-primary">{sale.reference}</p>
+                      <h3 className="mt-2 font-display text-2xl leading-tight text-foreground">{sale.title}</h3>
+                    </div>
+                    <span className="rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-primary">Sold</span>
+                  </div>
+                  <p className="mt-4 text-sm text-muted-foreground">{sale.suburb}, {sale.city}</p>
+                  <div className="mt-6 grid grid-cols-2 gap-4 border-t border-border pt-4">
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">Sale price</p>
+                      <p className="mt-1 text-sm font-semibold text-foreground">
+                        {sale.salePrice != null ? formatPrice(sale.salePrice, sale.currency) : "Not shared"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">Sale date</p>
+                      <p className="mt-1 text-sm font-semibold text-foreground">{formatSaleDate(sale.soldAt)}</p>
                     </div>
                   </div>
                 </article>

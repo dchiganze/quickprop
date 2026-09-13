@@ -165,6 +165,7 @@ export * from './publicReviewInvitation';
 export * from './publicReviewInvitationAgent';
 export * from './publicReviewInvitationProperty';
 export * from './publicReviewInvitationStatus';
+export * from './publicSellingHistory';
 export * from './publishImportInput';
 export * from './publishImportResult';
 export * from './referenceRequest';
