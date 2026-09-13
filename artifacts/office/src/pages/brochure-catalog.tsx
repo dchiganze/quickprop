@@ -25,6 +25,14 @@ export default function BrochureCatalog() {
   const propParam = params.get('props') ?? '';
   const selectedPropIds = propParam ? new Set(propParam.split(',').map(Number)) : new Set<number>();
 
+  React.useEffect(() => {
+    const previousTitle = document.title;
+    document.title = '';
+    return () => {
+      document.title = previousTitle;
+    };
+  }, []);
+
   const { data: currentUser } = useGetCurrentUser();
   const { data: agencySettings } = useGetAdminAgencySettings();
   const { data: allProps, isLoading } = useListProperties();
