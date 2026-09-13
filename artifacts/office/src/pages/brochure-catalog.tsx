@@ -78,10 +78,12 @@ export default function BrochureCatalog() {
         @media print {
           .no-print { display: none !important; }
           body { margin: 0; background: white; }
+          .brochure-body { padding-top: 0 !important; }
+          .cover-header { padding-top: 0 !important; }
           .prop-card { break-inside: avoid; }
           .section-header { break-after: avoid; }
         }
-        @page { size: A4; margin: 15mm; }
+        @page { size: A4; margin: 10mm 15mm 15mm; }
       `}</style>
 
       {/* Action bar */}
@@ -106,10 +108,10 @@ export default function BrochureCatalog() {
       </div>
 
       {/* Brochure body */}
-      <div className="bg-white pt-16 pb-16 min-h-screen" style={{ maxWidth: '210mm', margin: '0 auto' }}>
+      <div className="brochure-body bg-white pt-16 pb-16 min-h-screen" style={{ maxWidth: '210mm', margin: '0 auto' }}>
 
         {/* ── COVER HEADER ── */}
-        <div className="px-10 pt-10 pb-8 border-b-4 border-emerald-600">
+        <div className="cover-header px-10 pt-10 pb-8 border-b-4 border-emerald-600">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               {agencyLogo && (
