@@ -462,14 +462,14 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
         </DialogContent>
       </Dialog>
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+       <div className="flex flex-col gap-4">
          <div className="flex min-w-0 items-center gap-4">
           <Button variant="ghost" size="icon" onClick={() => window.history.back()} className="rounded-full">
             <ArrowLeft className="w-5 h-5" />
           </Button>
            <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-3 mb-1">
-               <h1 className="relative -top-1 min-w-0 flex-1 truncate whitespace-nowrap text-3xl font-bold tracking-tight text-foreground">{property.title}</h1>
+             <div className="relative -top-[1cm] flex items-center gap-3 mb-1">
+               <h1 className="min-w-0 flex-1 truncate whitespace-nowrap text-3xl font-bold tracking-tight text-foreground">{property.title}</h1>
                <Badge variant="outline" className="shrink-0 uppercase font-bold tracking-wider">{property.reference}</Badge>
             </div>
             <div className="flex items-center gap-2 text-muted-foreground text-sm">
@@ -479,7 +479,7 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
           </div>
         </div>
         
-        <div className="flex items-center gap-3 shrink-0">
+         <div className="flex w-full flex-wrap items-center gap-3">
           <Select value={sellingStatus} onValueChange={handleSellingStatusChange} disabled={updateProperty.isPending}>
             <SelectTrigger className="w-[205px] bg-card font-semibold" aria-label="Selling Status">
               <span className="mr-1 text-muted-foreground">Selling Status:</span>
