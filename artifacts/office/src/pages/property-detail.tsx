@@ -481,7 +481,7 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
         
          <div className="flex w-full flex-wrap items-center gap-3">
           <Select value={sellingStatus} onValueChange={handleSellingStatusChange} disabled={updateProperty.isPending}>
-            <SelectTrigger className="w-[205px] bg-card font-semibold" aria-label="Selling Status">
+            <SelectTrigger className="w-[250px] whitespace-nowrap bg-card font-semibold" aria-label="Selling Status">
               <span className="mr-1 text-muted-foreground">Selling Status:</span>
               <SelectValue />
             </SelectTrigger>
