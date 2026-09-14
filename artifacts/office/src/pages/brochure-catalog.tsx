@@ -133,7 +133,7 @@ export default function BrochureCatalog() {
             </div>
           </div>
 
-          <div className="mt-6">
+          <div className="mt-[0.5cm]">
             <h1 className="text-3xl font-bold text-gray-900">{titleLine}</h1>
             <p className="text-gray-500 mt-1 text-sm">
               {forSale.length > 0 && `${forSale.length} for sale`}
