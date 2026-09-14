@@ -122,11 +122,11 @@ export default function BrochureCatalog() {
         <div className="cover-header px-10 pt-10 pb-8 border-b-4 border-emerald-600">
           <div className="flex items-center justify-between">
             {agencyLogo ? (
-              <div className="w-[147px] h-[147px] flex items-center justify-center">
-                <img src={agencyLogo} alt="Agency logo" className="max-w-full max-h-full object-contain" />
+              <div className="w-[147px] flex items-center justify-center">
+                <img src={agencyLogo} alt="Agency logo" className="block h-auto w-full object-contain" />
               </div>
             ) : (
-              <div className="w-[147px] h-[147px]" />
+              <div className="w-[147px]" />
             )}
             <div className="text-right">
               <div className="text-xs text-gray-500">{new Date().toLocaleDateString('en-ZW', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
