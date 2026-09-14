@@ -70,7 +70,6 @@ export default function BrochureCatalog() {
 
   const forSale = properties.filter(p => p.listingType === 'sale');
   const forRent = properties.filter(p => p.listingType === 'rent');
-  const agencyLogo = agencySettings?.logoUrl;
 
   if (isLoading) {
     return (
@@ -120,29 +119,6 @@ export default function BrochureCatalog() {
 
         {/* ── COVER HEADER ── */}
         <div className="cover-header px-10 pt-10 pb-8 border-b-4 border-emerald-600">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              {agencyLogo && (
-                <div className="w-[84px] h-[84px] flex items-center justify-center">
-                  <img src={agencyLogo} alt={`${agencyName} logo`} className="max-w-full max-h-full object-contain" />
-                </div>
-              )}
-              <div>
-                <div className="text-xl font-bold text-gray-900">{agencyName}</div>
-                <div className="text-[10px] text-gray-400 mt-0.5">
-                  powered by{' '}
-                  <a href="https://www.quickprop.co.zw" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-gray-600">
-                    www.quickprop.co.zw
-                  </a>
-                </div>
-              </div>
-            </div>
-            <div className="text-right">
-              <div className="text-xs text-gray-400 uppercase tracking-widest font-semibold">Property Catalogue</div>
-              <div className="text-xs text-gray-500 mt-0.5">{new Date().toLocaleDateString('en-ZW', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
-            </div>
-          </div>
-
           <div className="mt-6">
             <h1 className="text-3xl font-bold text-gray-900">{titleLine}</h1>
             <p className="text-gray-500 mt-1 text-sm">
