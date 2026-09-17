@@ -22,6 +22,7 @@ type BrochureMode = 'my' | 'company' | 'custom';
 type ListingFilter = 'sale' | 'rent';
 type PropertyGroup = 'residential' | 'commercial' | 'stand' | 'mine' | 'farm' | 'other_land';
 type LandGroupKey = Extract<PropertyGroup, 'stand' | 'mine' | 'farm' | 'other_land'>;
+type SetupStep = 'personnel' | 'listing' | 'property';
 
 const LAND_TYPE_GROUPS: Record<string, LandGroupKey> = {
   stand: 'stand',
@@ -124,6 +125,7 @@ export default function BrochureSetupScreen() {
   const { user } = useAuth();
   const { properties, isLoading } = useData();
   const [mode, setMode] = useState<BrochureMode>('my');
+  const [activeStep, setActiveStep] = useState<SetupStep>('personnel');
   const [listingFilters, setListingFilters] = useState<Set<ListingFilter>>(new Set(['sale', 'rent']));
   const [propertyGroups, setPropertyGroups] = useState<Set<PropertyGroup>>(
     new Set(['residential', 'commercial', 'stand', 'mine', 'farm', 'other_land']),
@@ -247,27 +249,61 @@ export default function BrochureSetupScreen() {
           </View>
         </View>
 
-        <View style={styles.section}>
-          <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>STARTING POINT</Text>
-          <ModeCard icon="person-outline" label="My Listings" detail="Your published properties" count={myProperties.length} selected={mode === 'my'} onPress={() => setMode('my')} colors={colors} />
-          <ModeCard icon="business-outline" label="Company Catalogue" detail="Every published listing" count={publishedProperties.length} selected={mode === 'company'} onPress={() => setMode('company')} colors={colors} />
-          <ModeCard icon="people-outline" label="Custom agents & listings" detail="Pick the exact properties" count={selectedPropertyIds.size} selected={mode === 'custom'} onPress={() => setMode('custom')} colors={colors} />
+        <View style={styles.stepper}>
+          {([
+            ['personnel', '01', 'Personnel', mode === 'my' ? 'My listings' : mode === 'company' ? 'Company' : 'Other agents'],
+            ['listing', '02', 'Sale / Rent', `${listingFilters.size} selected`],
+            ['property', '03', 'Property type', `${propertyGroups.size} selected`],
+          ] as const).map(([step, number, label, detail]) => (
+            <TouchableOpacity
+              key={step}
+              style={[
+                styles.stepCard,
+                {
+                  borderColor: activeStep === step ? colors.primary : colors.border,
+                  backgroundColor: activeStep === step ? colors.primary + '12' : colors.card,
+                },
+              ]}
+              onPress={() => setActiveStep(step)}
+              activeOpacity={0.8}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: activeStep === step }}
+            >
+              <View style={[styles.stepNumber, { backgroundColor: activeStep === step ? colors.primary : colors.muted }]}>
+                <Text style={[styles.stepNumberText, { color: activeStep === step ? colors.primaryForeground : colors.mutedForeground }]}>{number}</Text>
+              </View>
+              <View style={styles.stepCopy}>
+                <Text style={[styles.stepLabel, { color: colors.foreground }]} numberOfLines={1}>{label}</Text>
+                <Text style={[styles.stepDetail, { color: colors.mutedForeground }]} numberOfLines={1}>{detail}</Text>
+              </View>
+            </TouchableOpacity>
+          ))}
         </View>
 
-        <View style={[styles.panel, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>LISTING TYPE</Text>
+        {activeStep === 'personnel' && <View style={styles.section}>
+          <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>SELECT PERSONNEL</Text>
+          <ModeCard icon="person-outline" label="My Listings" detail="Your published properties" count={myProperties.length} selected={mode === 'my'} onPress={() => setMode('my')} colors={colors} />
+          <ModeCard icon="people-outline" label="Other Agents" detail="Pick agents and properties" count={selectedPropertyIds.size} selected={mode === 'custom'} onPress={() => setMode('custom')} colors={colors} />
+          <ModeCard icon="business-outline" label="Company Catalogue" detail="Every published listing" count={publishedProperties.length} selected={mode === 'company'} onPress={() => setMode('company')} colors={colors} />
+        </View>}
+
+        {activeStep === 'listing' && <View style={[styles.panel, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>SALE / RENT</Text>
           <CheckboxRow checked={listingFilters.has('sale')} label="For Sale" detail="Include sales listings only if selected" onPress={() => toggleSet<ListingFilter>(setListingFilters, 'sale')} colors={colors} />
           <CheckboxRow checked={listingFilters.has('rent')} label="To Rent" detail="Include rental listings only if selected" onPress={() => toggleSet<ListingFilter>(setListingFilters, 'rent')} colors={colors} />
-          <Text style={[styles.sectionLabel, { color: colors.mutedForeground, marginTop: 18 }]}>PROPERTY TYPE</Text>
+        </View>}
+
+        {activeStep === 'property' && <View style={[styles.panel, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>PROPERTY TYPE</Text>
           <CheckboxRow checked={propertyGroups.has('residential')} label="Residential" detail="Homes, apartments and townhouses" onPress={() => toggleSet<PropertyGroup>(setPropertyGroups, 'residential')} colors={colors} />
           <CheckboxRow checked={propertyGroups.has('commercial')} label="Commercial" detail="Offices, retail and industrial" onPress={() => toggleSet<PropertyGroup>(setPropertyGroups, 'commercial')} colors={colors} />
           <CheckboxRow checked={propertyGroups.has('stand')} label="Stands" detail={`${propertyGroupCount('stand')} available`} onPress={() => toggleSet<PropertyGroup>(setPropertyGroups, 'stand')} colors={colors} />
           <CheckboxRow checked={propertyGroups.has('mine')} label="Mines" detail={`${propertyGroupCount('mine')} available`} onPress={() => toggleSet<PropertyGroup>(setPropertyGroups, 'mine')} colors={colors} />
           <CheckboxRow checked={propertyGroups.has('farm')} label="Farms" detail={`${propertyGroupCount('farm')} available`} onPress={() => toggleSet<PropertyGroup>(setPropertyGroups, 'farm')} colors={colors} />
           <CheckboxRow checked={propertyGroups.has('other_land')} label="Other land" detail={`${propertyGroupCount('other_land')} available`} onPress={() => toggleSet<PropertyGroup>(setPropertyGroups, 'other_land')} colors={colors} />
-        </View>
+        </View>}
 
-        {mode === 'custom' && (
+        {activeStep === 'personnel' && mode === 'custom' && (
           <View style={[styles.panel, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <View style={styles.panelHeader}>
               <View>
@@ -347,6 +383,13 @@ const styles = StyleSheet.create({
   eyebrow: { fontSize: 10, fontWeight: '800', letterSpacing: 1.6 },
   title: { fontSize: 28, fontWeight: '800', letterSpacing: -0.7, marginTop: 5 },
   subtitle: { fontSize: 14, lineHeight: 20, marginTop: 5 },
+  stepper: { flexDirection: 'row', gap: 8, paddingHorizontal: 20, marginBottom: 16 },
+  stepCard: { flex: 1, minHeight: 68, borderWidth: 1.5, borderRadius: 14, padding: 9, gap: 7, justifyContent: 'center' },
+  stepNumber: { width: 26, height: 26, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
+  stepNumberText: { fontSize: 10, fontWeight: '800' },
+  stepCopy: { minWidth: 0 },
+  stepLabel: { fontSize: 11, fontWeight: '800' },
+  stepDetail: { fontSize: 10, marginTop: 2 },
   section: { paddingHorizontal: 20, gap: 10, marginBottom: 16 },
   sectionLabel: { fontSize: 10, fontWeight: '800', letterSpacing: 1.2, marginBottom: 8 },
   modeCard: { minHeight: 70, borderWidth: 1.5, borderRadius: 16, padding: 13, flexDirection: 'row', alignItems: 'center', gap: 11 },

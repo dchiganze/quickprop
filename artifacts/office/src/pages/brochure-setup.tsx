@@ -33,6 +33,7 @@ type BrochureMode = 'my' | 'company' | 'custom';
 type FilterKey = 'sale' | 'rent';
 type GroupKey = 'residential' | 'commercial' | 'stand' | 'mine' | 'farm' | 'other_land';
 type LandGroupKey = Extract<GroupKey, 'stand' | 'mine' | 'farm' | 'other_land'>;
+type SetupStep = 'personnel' | 'listing' | 'property';
 
 const PUBLIC_STATUSES = ['public', 'under_offer', 'coming_soon'];
 const LAND_TYPE_GROUPS: Record<string, LandGroupKey> = {
@@ -69,6 +70,7 @@ function initials(name?: string | null) {
 export default function BrochureSetup() {
   const [, setLocation] = useLocation();
   const [mode, setMode] = useState<BrochureMode>('my');
+  const [activeStep, setActiveStep] = useState<SetupStep>('personnel');
   const [listingTypes, setListingTypes] = useState<Set<FilterKey>>(new Set(['sale', 'rent']));
   const [propertyGroups, setPropertyGroups] = useState<Set<GroupKey>>(
     new Set(['residential', 'commercial', 'stand', 'mine', 'farm', 'other_land']),
@@ -235,14 +237,47 @@ export default function BrochureSetup() {
         </div>
       </div>
 
+      <div className="border-b border-border bg-card">
+        <div className="mx-auto grid max-w-6xl grid-cols-3 gap-2 px-5 py-4 sm:gap-3 sm:px-8 lg:px-10">
+          {([
+            ['personnel', '01', 'Select personnel', mode === 'my' ? 'My listings' : mode === 'company' ? 'Company catalogue' : 'Other agents'],
+            ['listing', '02', 'Sale / Rent', `${listingTypes.size} selected`],
+            ['property', '03', 'Property type', `${propertyGroups.size} selected`],
+          ] as const).map(([step, number, label, detail]) => (
+            <button
+              key={step}
+              type="button"
+              data-testid={`button-step-${step}`}
+              onClick={() => setActiveStep(step)}
+              className={`group flex min-h-[72px] items-center gap-2 rounded-xl border-2 px-3 py-3 text-left transition-all sm:gap-3 sm:px-4 ${
+                activeStep === step
+                  ? 'border-primary bg-primary/[0.06] shadow-sm'
+                  : 'border-border bg-background hover:border-primary/35 hover:bg-muted/30'
+              }`}
+              aria-pressed={activeStep === step}
+            >
+              <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs font-extrabold ${
+                activeStep === step ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
+              }`}>
+                {number}
+              </span>
+              <span className="min-w-0">
+                <span className="block truncate text-xs font-bold sm:text-sm">{label}</span>
+                <span className="mt-1 block truncate text-[10px] text-muted-foreground sm:text-xs">{detail}</span>
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
+
       <main className="mx-auto max-w-6xl px-5 py-7 sm:px-8 lg:px-10 lg:py-9">
         <div className="grid gap-7 lg:grid-cols-[minmax(0,1fr)_340px]">
           <section className="space-y-7">
-            <div>
+            {activeStep === 'personnel' && <div>
               <div className="mb-3 flex items-end justify-between gap-3">
                 <div>
-                  <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-muted-foreground">01 / Starting point</p>
-                  <h2 className="mt-1 text-xl font-bold tracking-tight">Choose what to include</h2>
+                  <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-muted-foreground">Select personnel</p>
+                  <h2 className="mt-1 text-xl font-bold tracking-tight">Who should this catalogue represent?</h2>
                 </div>
                 <Badge variant="secondary" className="hidden sm:inline-flex">{filteredProperties.length} matching listings</Badge>
               </div>
@@ -257,6 +292,15 @@ export default function BrochureSetup() {
                   onClick={() => setMode('my')}
                 />
                 <ModeCard
+                  mode="custom"
+                  selected={mode === 'custom'}
+                  icon={Users}
+                  label="Other Agents"
+                  description="Pick agents and properties"
+                  count={selectedPropIds.size}
+                  onClick={() => setMode('custom')}
+                />
+                <ModeCard
                   mode="company"
                   selected={mode === 'company'}
                   icon={Building2}
@@ -265,28 +309,23 @@ export default function BrochureSetup() {
                   count={publicProperties.length}
                   onClick={() => setMode('company')}
                 />
-                <ModeCard
-                  mode="custom"
-                  selected={mode === 'custom'}
-                  icon={Users}
-                  label="Custom selection"
-                  description="Pick agents and properties"
-                  count={selectedPropIds.size}
-                  onClick={() => setMode('custom')}
-                />
               </div>
-            </div>
+            </div>}
 
-            <div className="rounded-xl border border-border bg-card shadow-sm">
+            {activeStep !== 'personnel' && <div className="rounded-xl border border-border bg-card shadow-sm">
               <div className="flex items-start justify-between gap-4 border-b border-border px-5 py-4 sm:px-6">
                 <div>
-                  <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-muted-foreground">02 / Refine the brief</p>
-                  <h2 className="mt-1 text-xl font-bold tracking-tight">What should the catalogue show?</h2>
+                  <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
+                    {activeStep === 'listing' ? 'Sale / Rent' : 'Property type'}
+                  </p>
+                  <h2 className="mt-1 text-xl font-bold tracking-tight">
+                    {activeStep === 'listing' ? 'What kind of listing should it include?' : 'Which property types should it include?'}
+                  </h2>
                 </div>
                 <SlidersHorizontal className="mt-1 h-5 w-5 text-primary" />
               </div>
               <div className="grid gap-6 p-5 sm:grid-cols-2 sm:p-6">
-                <FilterGroup title="Listing type" icon={ListChecks}>
+                {activeStep === 'listing' && <FilterGroup title="Listing type" icon={ListChecks}>
                   <FilterButton
                     data-testid="checkbox-listing-type-sale"
                     checked={listingTypes.has('sale')}
@@ -301,8 +340,8 @@ export default function BrochureSetup() {
                     label="To Rent"
                     detail={`${baseProperties.filter((property) => property.listingType === 'rent').length} available`}
                   />
-                </FilterGroup>
-                <FilterGroup title="Property type" icon={Layers3}>
+                </FilterGroup>}
+                {activeStep === 'property' && <FilterGroup title="Property type" icon={Layers3}>
                   <FilterButton
                     data-testid="checkbox-property-group-residential"
                     checked={propertyGroups.has('residential')}
@@ -345,11 +384,11 @@ export default function BrochureSetup() {
                     label="Other land"
                     detail={`${baseProperties.filter((property) => propertyGroup(property.propertyType) === 'other_land').length} available`}
                   />
-                </FilterGroup>
+                </FilterGroup>}
               </div>
-            </div>
+            </div>}
 
-            {mode === 'custom' && (
+            {activeStep === 'personnel' && mode === 'custom' && (
               <div className="rounded-xl border border-border bg-card shadow-sm">
                 <div className="flex flex-col gap-3 border-b border-border px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
                   <div>
