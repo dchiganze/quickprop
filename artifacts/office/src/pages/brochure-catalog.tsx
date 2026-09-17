@@ -268,7 +268,7 @@ export default function BrochureCatalog() {
           max-width: 135mm;
           margin: 18px 0 0;
           color: var(--brochure-muted);
-          font-size: 12px;
+          font-size: 18px;
           line-height: 1.65;
         }
 
