@@ -8,7 +8,11 @@ function fmtPrice(p: Property): string {
     p.price >= 1_000_000
       ? `${p.currency} ${(p.price / 1_000_000).toFixed(2)}M`
       : `${p.currency} ${p.price.toLocaleString()}`;
-  return p.type === 'rent' ? `${val}/mo` : val;
+  return isRental(p) ? `${val}/mo` : val;
+}
+
+function isRental(p: Property): boolean {
+  return p.listingType === 'rent' || p.type === 'rent';
 }
 
 function fmtDate(): string {
@@ -18,7 +22,7 @@ function fmtDate(): string {
 function statusLabel(p: Property): { text: string; color: string } {
   if (p.status === 'sold') return { text: 'Sold', color: '#dc2626' };
   if (p.status === 'rented') return { text: 'Rented', color: '#7c3aed' };
-  if (p.type === 'rent') return { text: 'To Rent', color: '#2563eb' };
+  if (isRental(p)) return { text: 'To Rent', color: '#2563eb' };
   return { text: 'For Sale', color: '#059669' };
 }
 
@@ -246,15 +250,17 @@ function propertyCardHtml(p: Property): string {
 export function catalogueBrochureHtml(
   properties: Property[],
   agent: User | null,
-  mode: 'my' | 'company',
+  mode: 'my' | 'company' | 'custom',
 ): string {
   const titleLine = mode === 'my'
     ? `${agent?.name ?? 'Agent'}'s Property Catalogue`
-    : `${agent?.agency ?? 'Company'} Property Catalogue`;
+    : mode === 'custom'
+      ? 'Custom Property Catalogue'
+      : `${agent?.agency ?? 'Company'} Property Catalogue`;
   const catalogueUrl = catalogueShareLinks(mode === 'my' ? agent?.id : undefined).webUrl;
 
-  const forSale = properties.filter(p => p.type !== 'rent');
-  const forRent = properties.filter(p => p.type === 'rent');
+  const forSale = properties.filter(p => !isRental(p));
+  const forRent = properties.filter(isRental);
 
   const sectionHtml = (title: string, color: string, props: Property[]) =>
     props.length === 0 ? '' : `

@@ -3,7 +3,6 @@ import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, Alert,
   Modal, TextInput, Switch, Linking, Pressable, Appearance, ActivityIndicator, KeyboardAvoidingView,
 } from 'react-native';
-import { CatalogueBrochureSheet } from '@/components/BrochureSheet';
 import { ShareHubSheet } from '@/components/ShareHubSheet';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -177,7 +176,6 @@ export default function ProfileScreen() {
   const { properties, leads } = useData();
 
   // Sheet visibility
-  const [brochureOpen, setBrochureOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [aboutOpen, setAboutOpen] = useState(false);
 
@@ -416,7 +414,7 @@ export default function ProfileScreen() {
         <Row
           icon="document-text-outline"
           label="Generate PDF Brochure"
-          onPress={() => setBrochureOpen(true)}
+          onPress={() => router.push('/brochure')}
         />
       </View>
 
@@ -445,7 +443,6 @@ export default function ProfileScreen() {
       <Text style={[styles.version, { color: colors.mutedForeground }]}>QuickProp Agent v1.0.0 · Build 78</Text>
 
       {/* Sheets & Modals */}
-      <CatalogueBrochureSheet visible={brochureOpen} onClose={() => setBrochureOpen(false)} />
       <ShareHubSheet visible={shareOpen} onClose={() => setShareOpen(false)} />
       <AboutModal visible={aboutOpen} onClose={() => setAboutOpen(false)} />
 

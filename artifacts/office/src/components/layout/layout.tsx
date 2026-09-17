@@ -7,7 +7,6 @@ import {
   ShieldAlert, UserCircle, Bell, Search, LogOut, Loader2, Sparkles, UploadCloud
 } from 'lucide-react';
 import { QuickShareDialog } from '@/components/QuickShareDialog';
-import { BrochureCatalogDialog } from '@/components/BrochureCatalogDialog';
 
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -215,7 +214,18 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 Brochure settings
               </Link>
             </Button>
-            <BrochureCatalogDialog />
+             <Button
+               asChild
+               variant="outline"
+               size="sm"
+               data-testid="link-brochure-setup"
+               className="flex items-center gap-2 border-primary/40 text-primary hover:bg-primary/5 hover:text-primary font-semibold"
+             >
+               <Link href="/brochure-setup">
+                 <FileText className="w-4 h-4" />
+                 Brochure
+               </Link>
+             </Button>
             <QuickShareDialog />
             <NotificationsDropdown />
           </div>

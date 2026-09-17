@@ -9,3 +9,4 @@
 - [OpenAPI Contract Shape](openapi-contract-shape.md) — keep each operation's request and response blocks directly nested under its method so Orval can resolve the spec.
 - [GitHub Release Workflow Publishing](github-release-workflow.md) — workflow-file pushes require GitHub workflow scope and may be blocked by the connector proxy.
 - [QuickProp Sharing](quickprop-sharing.md) — browser file-sharing limits require a download-plus-caption fallback for WhatsApp.
+- [QuickProp Brochure Filtering](quickprop-brochure-filtering.md) — transaction type and property classification are separate mobile brochure dimensions.

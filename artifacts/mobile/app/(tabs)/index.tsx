@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, Alert,
 } from 'react-native';
-import { CatalogueBrochureSheet } from '@/components/BrochureSheet';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useNavigation } from 'expo-router';
@@ -22,7 +21,6 @@ export default function DashboardScreen() {
   const { user, logout } = useAuth();
   const { properties, leads, tasks } = useData();
   const [shareOpen, setShareOpen] = useState(false);
-  const [brochureOpen, setBrochureOpen] = useState(false);
 
   const activeListings = properties.filter(p => p.status === 'published').length;
   const draftListings = properties.filter(p => p.status === 'draft').length;
@@ -66,7 +64,7 @@ export default function DashboardScreen() {
     { label: 'New Listing', icon: 'add-circle' as const, accent: true, onPress: () => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}); router.push('/new-listing'); } },
     { label: 'Search Inventory', icon: 'search-outline' as const, accent: false, onPress: () => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}); router.push('/(tabs)/listings'); } },
     { label: 'Share Catalogue', icon: 'share-outline' as const, accent: true, onPress: () => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {}); setShareOpen(true); } },
-    { label: 'Generate Brochure', icon: 'document-text-outline' as const, accent: false, onPress: () => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}); setBrochureOpen(true); } },
+    { label: 'Generate Brochure', icon: 'document-text-outline' as const, accent: false, onPress: () => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}); router.push('/brochure'); } },
   ];
 
   return (
@@ -206,7 +204,6 @@ export default function DashboardScreen() {
     </ScrollView>
 
     <QuickShareSheet visible={shareOpen} onClose={() => setShareOpen(false)} />
-    <CatalogueBrochureSheet visible={brochureOpen} onClose={() => setBrochureOpen(false)} />
     </>
   );
 }

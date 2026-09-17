@@ -29,6 +29,11 @@ const STATUS_LABELS: Record<string, string> = {
 };
 const STOCK_PROPERTY_PHOTOS_BASE = `${import.meta.env.BASE_URL}stock-property-images/`;
 const GENERIC_PROPERTY_PHOTOS = ['house-exterior.jpg', 'house-interior.jpg', 'house-living.jpg'];
+const LAND_PROPERTY_TYPES = ['stand', 'mine', 'mining', 'farm', 'other_land', 'land', 'plot', 'vacant_land'];
+
+function getPropertyGroup(propertyType: string) {
+  return LAND_PROPERTY_TYPES.includes(propertyType.toLowerCase()) ? 'land' : 'residential_commercial';
+}
 
 function formatPrice(price: number, currency: string, listingType: string) {
   const formatted = price >= 1_000_000
@@ -59,6 +64,10 @@ export default function BrochureCatalog() {
   const params = new URLSearchParams(window.location.search);
   const mode = (params.get('mode') ?? 'company') as 'my' | 'company' | 'custom';
   const propParam = params.get('props') ?? '';
+  const listingTypesParam = params.get('listingTypes') ?? 'sale,rent';
+  const propertyGroupsParam = params.get('propertyGroups') ?? 'residential_commercial,land';
+  const listingTypes = new Set(listingTypesParam.split(',').filter(Boolean));
+  const propertyGroups = new Set(propertyGroupsParam.split(',').filter(Boolean));
   const selectedPropIds = propParam
     ? new Set(propParam.split(',').map(Number))
     : new Set<number>();
@@ -79,10 +88,16 @@ export default function BrochureCatalog() {
   const properties = React.useMemo(() => {
     if (!allProperties) return [];
     const published = allProperties.filter((property) => PUBLIC_STATUSES.includes(property.status));
-    if (mode === 'my') return published.filter((property) => property.agentId === currentUser?.id);
-    if (mode === 'custom') return published.filter((property) => selectedPropIds.has(property.id));
-    return published;
-  }, [allProperties, currentUser?.id, mode, propParam]);
+    const scoped = mode === 'my'
+      ? published.filter((property) => property.agentId === currentUser?.id)
+      : mode === 'custom'
+        ? published.filter((property) => selectedPropIds.has(property.id))
+        : published;
+    return scoped.filter((property) =>
+      listingTypes.has(property.listingType) &&
+      propertyGroups.has(getPropertyGroup(property.propertyType)),
+    );
+  }, [allProperties, currentUser?.id, mode, propParam, listingTypesParam, propertyGroupsParam]);
 
   const agentMap = React.useMemo(() => {
     const map: Record<number, string> = {};

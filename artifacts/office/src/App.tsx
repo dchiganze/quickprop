@@ -15,6 +15,7 @@ import Pipeline from '@/pages/pipeline';
 import PropertyDetail from '@/pages/property-detail';
 import PropertyBrochure from '@/pages/property-brochure';
 import BrochureCatalog from '@/pages/brochure-catalog';
+import BrochureSetup from '@/pages/brochure-setup';
 import Buyers from '@/pages/buyers';
 import Matches from '@/pages/matches';
 import Leads from '@/pages/leads';
@@ -91,6 +92,7 @@ function AppRouter() {
       <ProtectedRoute path="/housekeeping" component={Housekeeping} />
       <ProtectedRoute path="/imports" component={Imports} />
       <ProtectedRoute path="/imports/:id" component={Imports} />
+      <ProtectedRoute path="/brochure-setup" component={BrochureSetup} />
       <ProtectedBarePage path="/brochure-catalog" component={BrochureCatalog} />
       <ProtectedBarePage path="/property/:id/brochure" component={PropertyBrochure} />
       <ProtectedRoute path="/property/:id" component={PropertyDetail} />
