@@ -188,6 +188,8 @@ export default function BrochureCatalog() {
           padding: 88px 24px 48px;
           background: #ffffff;
           color: var(--brochure-ink);
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
         }
 
         .brochure-page {
@@ -199,6 +201,8 @@ export default function BrochureCatalog() {
           overflow: hidden;
           background: var(--brochure-paper);
           box-shadow: 0 20px 60px rgba(16, 42, 42, 0.12);
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
           break-inside: avoid;
           break-after: page;
           page-break-after: always;
@@ -213,6 +217,7 @@ export default function BrochureCatalog() {
           display: flex;
           flex-direction: column;
           justify-content: space-between;
+          padding-top: 7.5mm;
           background: var(--brochure-paper-warm);
         }
 
@@ -521,6 +526,8 @@ export default function BrochureCatalog() {
           padding: 13px 14px;
           color: white;
           background: var(--brochure-primary);
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
           font-size: 22px;
           font-weight: 800;
           letter-spacing: -0.05em;
@@ -671,6 +678,12 @@ export default function BrochureCatalog() {
           .brochure-page {
             margin: 0;
             box-shadow: none;
+          }
+          .property-price {
+            color: #ffffff !important;
+            background-color: var(--brochure-primary) !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
           }
         }
 
