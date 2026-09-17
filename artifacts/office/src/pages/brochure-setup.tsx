@@ -84,13 +84,17 @@ export default function BrochureSetup() {
     query: { queryKey: getListPropertiesQueryKey(), enabled: true },
   });
 
-  const agents = useMemo(
-    () => (users ?? []).filter((user) => user.role === 'agent' || user.role === 'admin'),
-    [users],
-  );
   const publicProperties = useMemo(
     () => (allPropsData ?? []).filter((property) => PUBLIC_STATUSES.includes(property.status)),
     [allPropsData],
+  );
+  const agents = useMemo(
+    () => (users ?? []).filter(
+      (user) =>
+        (user.role === 'agent' || user.role === 'admin') &&
+        publicProperties.some((property) => property.agentId === user.id),
+    ),
+    [publicProperties, users],
   );
   const propsByAgent = useMemo(() => {
     const map = new Map<number, typeof publicProperties>();
@@ -353,11 +357,21 @@ export default function BrochureSetup() {
                     <h2 className="mt-1 text-xl font-bold tracking-tight">Pick agents and properties</h2>
                   </div>
                   <div className="flex items-center gap-3 text-xs font-semibold">
-                    <button data-testid="button-select-all-properties" className="text-primary hover:underline" onClick={() => setSelectedPropIds(new Set(publicProperties.map((property) => property.id)))}>
-                      Select all
+                    <button
+                      type="button"
+                      data-testid="button-select-all-properties"
+                      className="text-primary hover:underline"
+                      onClick={() => setSelectedPropIds(new Set(publicProperties.map((property) => property.id)))}
+                    >
+                      Select all listings
                     </button>
                     <span className="text-border">|</span>
-                    <button data-testid="button-clear-all-properties" className="text-muted-foreground hover:text-foreground hover:underline" onClick={() => setSelectedPropIds(new Set())}>
+                    <button
+                      type="button"
+                      data-testid="button-clear-all-properties"
+                      className="text-muted-foreground hover:text-foreground hover:underline"
+                      onClick={() => setSelectedPropIds(new Set())}
+                    >
                       Clear
                     </button>
                   </div>
@@ -387,6 +401,7 @@ export default function BrochureSetup() {
                           </div>
                           <Badge variant="outline" className="shrink-0 text-xs">{selectedCount}/{agentProperties.length}</Badge>
                           <button
+                            type="button"
                             data-testid={`button-toggle-agent-${agent.id}`}
                             onClick={() => toggleAgentExpanded(agent.id)}
                             className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
