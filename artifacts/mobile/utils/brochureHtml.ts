@@ -253,10 +253,10 @@ export function catalogueBrochureHtml(
   mode: 'my' | 'company' | 'custom',
 ): string {
   const titleLine = mode === 'my'
-    ? `${agent?.name ?? 'Agent'}'s Property Catalogue`
+    ? `${agent?.name ?? 'Agent'}'s Property Brochure`
     : mode === 'custom'
-      ? 'Custom Property Catalogue'
-      : `${agent?.agency ?? 'Company'} Property Catalogue`;
+      ? 'Custom Property Brochure'
+      : `${agent?.agency ?? 'Company'} Property Brochure`;
   const catalogueUrl = catalogueShareLinks(mode === 'my' ? agent?.id : undefined).webUrl;
 
   const forSale = properties.filter(p => !isRental(p));
@@ -330,7 +330,7 @@ ${BASE_STYLES}
         </div>
       </div>
       <div>
-        <div class="cover-label">Property Catalogue</div>
+        <div class="cover-label">Property Brochure</div>
         <div class="cover-date">${fmtDate()}</div>
       </div>
     </div>
@@ -343,7 +343,7 @@ ${BASE_STYLES}
   <!-- Property sections -->
   <div class="body">
     ${properties.length === 0
-      ? `<div class="empty">No published listings to show in this catalogue.</div>`
+      ? `<div class="empty">No published listings to show in this brochure.</div>`
       : sectionHtml('For Sale', '#059669', forSale) + sectionHtml('To Rent', '#2563eb', forRent)
     }
   </div>

@@ -179,12 +179,12 @@ export function CatalogueBrochureSheet({ visible, onClose }: CatalogueBrochureSh
         if (!(await Sharing.isAvailableAsync())) {
           throw new Error('PDF sharing is not available on this device.');
         }
-        await Sharing.shareAsync(uri, { mimeType: 'application/pdf', dialogTitle: 'Share Property Catalogue' });
+        await Sharing.shareAsync(uri, { mimeType: 'application/pdf', dialogTitle: 'Share Property Brochure' });
       }
     } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : 'Could not generate catalogue. Please try again.';
+      const message = e instanceof Error ? e.message : 'Could not generate brochure. Please try again.';
       if (!message.toLowerCase().includes('cancel')) {
-        Alert.alert('Catalogue unavailable', message);
+        Alert.alert('Brochure unavailable', message);
       }
     } finally {
       setLoading(false);
@@ -203,7 +203,7 @@ export function CatalogueBrochureSheet({ visible, onClose }: CatalogueBrochureSh
             <Ionicons name="albums-outline" size={24} color={colors.primary} />
           </View>
           <View style={styles.headerText}>
-            <Text style={[styles.title, { color: colors.foreground }]}>Brochure Catalogue</Text>
+            <Text style={[styles.title, { color: colors.foreground }]}>Property Brochure</Text>
             <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>
               Choose which listings to include
             </Text>
@@ -256,7 +256,7 @@ export function CatalogueBrochureSheet({ visible, onClose }: CatalogueBrochureSh
         {loading && (
           <View style={styles.loadingRow}>
             <ActivityIndicator size="small" color={colors.primary} />
-            <Text style={[styles.loadingText, { color: colors.mutedForeground }]}>Generating catalogue…</Text>
+            <Text style={[styles.loadingText, { color: colors.mutedForeground }]}>Generating brochure…</Text>
           </View>
         )}
       </View>

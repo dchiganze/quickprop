@@ -141,10 +141,10 @@ export default function BrochureCatalog() {
 
   const agencyName = agencySettings?.agencyName || 'QuickProp';
   const titleLine = mode === 'my'
-    ? `${currentUser?.name ?? 'Agent'}'s Property Catalogue`
+    ? `${currentUser?.name ?? 'Agent'}'s Property Brochure`
     : mode === 'custom' && customAgentNames.length > 0
-      ? `${customAgentNames.join(', ')} — Property Catalogue`
-      : `${agencyName} Catalogue`;
+      ? `${customAgentNames.join(', ')} — Property Brochure`
+      : `${agencyName} Brochure`;
   const saleProperties = properties.filter((property) => property.listingType === 'sale');
   const rentalProperties = properties.filter((property) => property.listingType === 'rent');
   const pagesCount = properties.length > 0 ? properties.length + 1 : 2;
@@ -791,11 +791,11 @@ export default function BrochureCatalog() {
 
         {properties.length === 0 && (
           <section className="brochure-page about-page">
-            <p className="page-kicker">Catalogue status</p>
+            <p className="page-kicker">Brochure status</p>
             <div className="about-heading">
               <h2 className="about-title">No published listings</h2>
               <p className="about-copy about-empty">
-                Publish properties in the CRM to include them in this catalogue.
+                Publish properties in the CRM to include them in this brochure.
               </p>
             </div>
             <PageFooter

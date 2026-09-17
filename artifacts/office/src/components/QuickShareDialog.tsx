@@ -38,7 +38,7 @@ function buildWhatsAppText(
   catalogUrl: string,
 ) {
   const lines: string[] = [];
-  lines.push('*QuickProp — Property Catalogue*');
+  lines.push('*QuickProp — Property Brochure*');
   lines.push('_Your trusted Harare estate agency_');
   if (mode === 'agent' && agentName) lines.push(`_Agent: ${agentName}_`);
   lines.push('');
@@ -107,14 +107,14 @@ export function QuickShareDialog() {
     const result = await shareCardWithCaption(
       blob,
       cardText || text,
-      'QuickProp Property Catalogue',
-      'quickprop-catalogue.jpg',
+      'QuickProp Property Brochure',
+      'quickprop-brochure.jpg',
     );
     toast({
-      title: 'Catalogue ready to share',
+      title: 'Brochure ready to share',
       description: result === 'shared'
-        ? 'The catalogue image and caption were sent to the share sheet.'
-        : 'The catalogue image was downloaded and the caption was opened in WhatsApp.',
+        ? 'The brochure image and caption were sent to the share sheet.'
+        : 'The brochure image was downloaded and the caption was opened in WhatsApp.',
     });
   }, [publicProps, mode, user?.name, catalogUrl, toast]);
 
@@ -125,7 +125,7 @@ export function QuickShareDialog() {
     window.open(url, '_blank', 'noopener,noreferrer');
     toast({
       title: 'Facebook ready to share',
-      description: 'The catalogue link is open and the full caption is copied to your clipboard.',
+      description: 'The brochure link is open and the full caption is copied to your clipboard.',
     });
   }, [publicProps, mode, user?.name, catalogUrl, toast]);
 
@@ -141,8 +141,8 @@ export function QuickShareDialog() {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
       toast({
-        title: 'Catalogue caption copied',
-        description: 'Paste the full catalogue caption and link into Instagram.',
+        title: 'Brochure caption copied',
+        description: 'Paste the full brochure caption and link into Instagram.',
       });
     } catch {
       toast({ title: 'Could not copy', variant: 'destructive' });
@@ -171,7 +171,7 @@ export function QuickShareDialog() {
         <DialogHeader className="min-w-0">
           <DialogTitle className="flex items-center gap-2">
             <Share2 className="w-5 h-5 text-primary" />
-            QuickShare Catalogue
+            QuickShare Brochure
           </DialogTitle>
         </DialogHeader>
 
@@ -189,7 +189,7 @@ export function QuickShareDialog() {
               <User className="h-4 w-4" />
             </div>
             <div className="min-w-0 max-w-full text-center">
-              <p className="break-words text-xs font-semibold leading-tight text-foreground">My Catalogue</p>
+              <p className="break-words text-xs font-semibold leading-tight text-foreground">My Brochure</p>
               <p className="mt-0.5 break-words text-[11px] leading-tight text-muted-foreground">Your listings only</p>
             </div>
             {mode === 'agent' && (
@@ -209,7 +209,7 @@ export function QuickShareDialog() {
               <Building2 className="h-4 w-4" />
             </div>
             <div className="min-w-0 max-w-full text-center">
-              <p className="break-words text-xs font-semibold leading-tight text-foreground">Company Catalogue</p>
+              <p className="break-words text-xs font-semibold leading-tight text-foreground">Company Brochure</p>
               <p className="mt-0.5 break-words text-[11px] leading-tight text-muted-foreground">All agency listings</p>
             </div>
             {mode === 'company' && (
@@ -299,7 +299,7 @@ export function QuickShareDialog() {
             </div>
             <div className="flex-1">
               <p className="text-sm font-medium text-foreground">WhatsApp</p>
-              <p className="text-xs text-muted-foreground">Opens WhatsApp with your catalogue text</p>
+              <p className="text-xs text-muted-foreground">Opens WhatsApp with your brochure text</p>
             </div>
             <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
           </button>
@@ -314,7 +314,7 @@ export function QuickShareDialog() {
             </div>
             <div className="flex-1">
               <p className="text-sm font-medium text-foreground">Facebook</p>
-              <p className="text-xs text-muted-foreground">Share your catalogue link on Facebook</p>
+              <p className="text-xs text-muted-foreground">Share your brochure link on Facebook</p>
             </div>
             <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
           </button>
@@ -347,7 +347,7 @@ export function QuickShareDialog() {
             </div>
             <div className="flex-1">
               <p className="text-sm font-medium text-foreground">LinkedIn</p>
-              <p className="text-xs text-muted-foreground">Share your catalogue as a post</p>
+              <p className="text-xs text-muted-foreground">Share your brochure as a post</p>
             </div>
             <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
           </button>

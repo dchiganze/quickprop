@@ -132,7 +132,7 @@ export function BrochureCatalogDialog() {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <BookOpen className="w-5 h-5 text-primary" />
-            Generate Brochure Catalogue
+             Generate Property Brochure
           </DialogTitle>
         </DialogHeader>
 
@@ -166,7 +166,7 @@ export function BrochureCatalogDialog() {
               <Building2 className="w-5 h-5" />
             </div>
             <div className="flex-1">
-              <p className="font-semibold text-sm text-foreground">Company Catalogue</p>
+              <p className="font-semibold text-sm text-foreground">Company Brochure</p>
               <p className="text-xs text-muted-foreground">All published listings across the agency</p>
             </div>
             {mode === 'company' && <Badge variant="secondary" className="text-xs">{previewCount} props</Badge>}

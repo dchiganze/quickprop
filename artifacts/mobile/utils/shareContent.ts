@@ -65,7 +65,7 @@ export function buildCatalogueShareMessage(
 ): string {
   const links = catalogueShareLinks(mode === 'agent' ? agentId : undefined);
   const lines = [
-    'QuickProp — Property Catalogue',
+    'QuickProp — Property Brochure',
     'Your trusted Harare estate agency',
   ];
   if (mode === 'agent' && agentName) lines.push(`Agent: ${agentName}`);

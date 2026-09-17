@@ -110,11 +110,11 @@ export function ShareHubSheet({ visible, onClose }: Props) {
       await shareCatalogueToWhatsApp(
         text,
         () => catalogueCardRef.current?.capture()
-          ?? Promise.reject(new Error('Unable to prepare the catalogue image.')),
+           ?? Promise.reject(new Error('Unable to prepare the brochure image.')),
       );
       handleClose();
     } catch (e: unknown) {
-      Alert.alert('Could not share catalogue', e instanceof Error ? e.message : 'Please try another sharing option.');
+      Alert.alert('Could not share brochure', e instanceof Error ? e.message : 'Please try another sharing option.');
     } finally {
       setSharing(false);
     }
@@ -125,7 +125,7 @@ export function ShareHubSheet({ visible, onClose }: Props) {
     try {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       const text = buildCatalogueShareMessage(activeProps, catalogMode, user?.name, user?.id);
-      await Share.share({ title: 'QuickProp Property Catalogue', message: text });
+      await Share.share({ title: 'QuickProp Property Brochure', message: text });
       handleClose();
     } catch (e: unknown) {
       Alert.alert('Could not open Facebook', e instanceof Error ? e.message : 'Please try again.');
@@ -139,12 +139,12 @@ export function ShareHubSheet({ visible, onClose }: Props) {
     try {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       const text = buildCatalogueShareMessage(activeProps, catalogMode, user?.name, user?.id);
-      await Share.share({ title: 'QuickProp Property Catalogue', message: text });
+      await Share.share({ title: 'QuickProp Property Brochure', message: text });
       handleClose();
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : '';
       if (!message.toLowerCase().includes('cancel')) {
-        Alert.alert('Could not share catalogue', message || 'Please try again.');
+         Alert.alert('Could not share brochure', message || 'Please try again.');
       }
     } finally {
       setSharing(false);
@@ -181,7 +181,7 @@ export function ShareHubSheet({ visible, onClose }: Props) {
           <Ionicons name="person-outline" size={26} color="#10B981" />
         </View>
         <View style={s.hubText}>
-          <Text style={[s.hubLabel, { color: colors.foreground }]}>My Catalogue</Text>
+          <Text style={[s.hubLabel, { color: colors.foreground }]}>My Brochure</Text>
           <Text style={[s.hubDesc, { color: colors.mutedForeground }]}>{myProps.length} listing{myProps.length !== 1 ? 's' : ''} · your listings only</Text>
         </View>
         <Ionicons name="chevron-forward" size={18} color={colors.mutedForeground} />
@@ -196,7 +196,7 @@ export function ShareHubSheet({ visible, onClose }: Props) {
           <Ionicons name="business-outline" size={26} color="#8B5CF6" />
         </View>
         <View style={s.hubText}>
-          <Text style={[s.hubLabel, { color: colors.foreground }]}>Company Catalogue</Text>
+          <Text style={[s.hubLabel, { color: colors.foreground }]}>Company Brochure</Text>
           <Text style={[s.hubDesc, { color: colors.mutedForeground }]}>{allProps.length} listing{allProps.length !== 1 ? 's' : ''} · all agency listings</Text>
         </View>
         <Ionicons name="chevron-forward" size={18} color={colors.mutedForeground} />
@@ -305,7 +305,7 @@ export function ShareHubSheet({ visible, onClose }: Props) {
     return (
       <>
         <Text style={[s.sheetTitle, { color: colors.foreground }]}>
-          {isAgent ? 'My Catalogue' : 'Company Catalogue'}
+          {isAgent ? 'My Brochure' : 'Company Brochure'}
         </Text>
 
         {/* Catalogue preview */}

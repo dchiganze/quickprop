@@ -75,7 +75,7 @@ export default function InviteScreen() {
     : state === 'invite-ready'
       ? ['You’re invited to QuickProp Agent', 'Sign in to continue with this invitation.']
       : state === 'catalogue-ready'
-        ? ['Catalogue link received', user ? 'Open the sharing hub to view your catalogue.' : 'Sign in to access this catalogue.']
+        ? ['Brochure link received', user ? 'Open the sharing hub to view your brochure.' : 'Sign in to access this brochure.']
         : ['This link is incomplete', 'Ask the sender to share a new QuickProp Agent link.'];
 
   return (

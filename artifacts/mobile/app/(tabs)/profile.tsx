@@ -403,12 +403,12 @@ export default function ProfileScreen() {
         />
       </View>
 
-      {/* Catalogue */}
-      <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>CATALOGUE</Text>
+      {/* Brochure */}
+      <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>BROCHURE</Text>
       <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border }]}>
         <Row
           icon="share-outline"
-          label="Share My Catalogue"
+          label="Share My Brochure"
           onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {}); setShareOpen(true); }}
         />
         <Row

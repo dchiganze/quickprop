@@ -211,13 +211,13 @@ export default function BrochureSetupScreen() {
         const Sharing: typeof import('expo-sharing') = await import('expo-sharing');
         const { uri } = await Print.printToFileAsync({ html });
         if (!(await Sharing.isAvailableAsync())) throw new Error('PDF sharing is not available on this device.');
-        await Sharing.shareAsync(uri, { mimeType: 'application/pdf', dialogTitle: 'Share Property Catalogue' });
+        await Sharing.shareAsync(uri, { mimeType: 'application/pdf', dialogTitle: 'Share Property Brochure' });
       }
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Could not generate catalogue. Please try again.';
+      const message = error instanceof Error ? error.message : 'Could not generate brochure. Please try again.';
       if (!message.toLowerCase().includes('cancel')) {
         const { Alert } = await import('react-native');
-        Alert.alert('Catalogue unavailable', message);
+        Alert.alert('Brochure unavailable', message);
       }
     } finally {
       setLoading(false);
@@ -244,7 +244,7 @@ export default function BrochureSetupScreen() {
           </TouchableOpacity>
           <View style={styles.headerCopy}>
             <Text style={[styles.eyebrow, { color: colors.primary }]}>BROCHURE STUDIO</Text>
-            <Text style={[styles.title, { color: colors.foreground }]}>Build your catalogue</Text>
+            <Text style={[styles.title, { color: colors.foreground }]}>Build your brochure</Text>
             <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>Choose the listings your clients should see.</Text>
           </View>
         </View>
@@ -284,7 +284,7 @@ export default function BrochureSetupScreen() {
           <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>SELECT PERSONNEL</Text>
           <ModeCard icon="person-outline" label="My Listings" detail="Your published properties" count={myProperties.length} selected={mode === 'my'} onPress={() => setMode('my')} colors={colors} />
           <ModeCard icon="people-outline" label="Custom Agents" detail="Pick agents and properties" count={selectedPropertyIds.size} selected={mode === 'custom'} onPress={() => setMode('custom')} colors={colors} />
-          <ModeCard icon="business-outline" label="Company Catalogue" detail="Every published listing" count={publishedProperties.length} selected={mode === 'company'} onPress={() => setMode('company')} colors={colors} />
+          <ModeCard icon="business-outline" label="Company Brochure" detail="Every published listing" count={publishedProperties.length} selected={mode === 'company'} onPress={() => setMode('company')} colors={colors} />
         </View>}
 
         {activeStep === 'listing' && <View style={[styles.panel, { backgroundColor: colors.card, borderColor: colors.border }]}>
@@ -351,7 +351,7 @@ export default function BrochureSetupScreen() {
         <View style={[styles.summary, { backgroundColor: colors.primary }]}>
           <View style={styles.summaryTop}>
             <View>
-              <Text style={styles.summaryEyebrow}>CATALOGUE CHECK</Text>
+              <Text style={styles.summaryEyebrow}>BROCHURE CHECK</Text>
               <Text style={styles.summaryTitle}>{filteredProperties.length} matching listings</Text>
             </View>
             <Ionicons name="albums-outline" size={28} color={colors.primaryForeground} />

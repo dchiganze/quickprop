@@ -150,7 +150,7 @@ export function buildCatalogueShareCaption(
   const forSale = properties.filter(property => property.listingType === 'sale');
   const forRent = properties.filter(property => property.listingType === 'rent');
   const lines = [
-    '*QuickProp — Property Catalogue*',
+    '*QuickProp — Property Brochure*',
     '_Your trusted Harare estate agency_',
   ];
   if (mode === 'agent' && agentName) lines.push(`_Agent: ${agentName}_`);
@@ -264,7 +264,7 @@ export async function createCatalogueShareCard(
   ctx.fillText('QUICKPROP', x, 92);
   ctx.fillStyle = NAVY;
   ctx.font = '800 58px Arial';
-  const title = mode === 'agent' ? `${agentName?.split(' ')[0] ?? 'My'}'s Listings` : 'Property Catalogue';
+  const title = mode === 'agent' ? `${agentName?.split(' ')[0] ?? 'My'}'s Listings` : 'Property Brochure';
   let y = 174;
   y += drawText(ctx, title, x, y, contentWidth, 68, 2);
   ctx.fillStyle = MUTED;

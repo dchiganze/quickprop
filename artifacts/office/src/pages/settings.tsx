@@ -320,14 +320,14 @@ export default function Settings() {
         </Card>
 
         <div className="space-y-1 md:col-span-1">
-          <h3 className="font-semibold text-lg flex items-center"><BookOpen className="w-5 h-5 mr-2 text-primary" /> Catalogue Content</h3>
-          <p className="text-sm text-muted-foreground">The About Us page and tagline used in generated catalogues.</p>
+          <h3 className="font-semibold text-lg flex items-center"><BookOpen className="w-5 h-5 mr-2 text-primary" /> Brochure Content</h3>
+          <p className="text-sm text-muted-foreground">The About Us page and tagline used in generated brochures.</p>
         </div>
         <Card className="md:col-span-2">
           <CardContent className="p-6 space-y-4">
             {!canEditAgencySettings && (
               <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-                Only an administrator or principal can edit catalogue content.
+                Only an administrator or principal can edit brochure content.
               </div>
             )}
             <div className="space-y-2">
@@ -350,7 +350,7 @@ export default function Settings() {
                 onChange={(event) => setAgencySettings((current) => ({ ...current, aboutText: event.target.value }))}
                 disabled={agencySettingsQuery.isLoading || !canEditAgencySettings}
               />
-              <p className="text-xs text-muted-foreground">This text appears on the catalogue About Us page.</p>
+                <p className="text-xs text-muted-foreground">This text appears on the brochure About Us page.</p>
             </div>
           </CardContent>
         </Card>

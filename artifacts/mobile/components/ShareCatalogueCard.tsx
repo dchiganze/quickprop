@@ -26,12 +26,12 @@ export const ShareCatalogueCard = forwardRef<ShareCatalogueCardHandle, ShareCata
     const shareUrl = catalogueShareLinks(mode === 'agent' ? agentId : undefined).webUrl;
     const forSale = properties.filter(property => property.type === 'sale').length;
     const forRent = properties.filter(property => property.type === 'rent').length;
-    const title = mode === 'agent' ? `${agentName?.split(' ')[0] ?? 'My'}'s Listings` : 'Property Catalogue';
+    const title = mode === 'agent' ? `${agentName?.split(' ')[0] ?? 'My'}'s Listings` : 'Property Brochure';
 
     useImperativeHandle(ref, () => ({
       capture: async () => {
         const capture = viewShotRef.current?.capture;
-        if (!capture) throw new Error('Unable to prepare the catalogue image.');
+        if (!capture) throw new Error('Unable to prepare the brochure image.');
         return capture.call(viewShotRef.current);
       },
     }), []);

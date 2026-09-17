@@ -52,11 +52,11 @@ export function QuickShareSheet({ visible, onClose }: QuickShareSheetProps) {
        await shareCatalogueToWhatsApp(
          text,
          () => catalogueCardRef.current?.capture()
-           ?? Promise.reject(new Error('Unable to prepare the catalogue image.')),
+           ?? Promise.reject(new Error('Unable to prepare the brochure image.')),
        );
       onClose();
     } catch (e: unknown) {
-      Alert.alert('Could not share catalogue', e instanceof Error ? e.message : 'Please try another sharing option.');
+      Alert.alert('Could not share brochure', e instanceof Error ? e.message : 'Please try another sharing option.');
     } finally {
       setSharing(false);
     }
@@ -67,7 +67,7 @@ export function QuickShareSheet({ visible, onClose }: QuickShareSheetProps) {
     try {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
        const text = buildCatalogueShareMessage(activeProps, mode, user?.name, mode === 'agent' ? user?.id : undefined);
-       await Share.share({ title: 'QuickProp Property Catalogue', message: text });
+      await Share.share({ title: 'QuickProp Property Brochure', message: text });
       onClose();
     } catch (e: unknown) {
       Alert.alert('Could not open Facebook', e instanceof Error ? e.message : 'Please try again.');
@@ -82,13 +82,13 @@ export function QuickShareSheet({ visible, onClose }: QuickShareSheetProps) {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
        const text = buildCatalogueShareMessage(activeProps, mode, user?.name, mode === 'agent' ? user?.id : undefined);
       await Share.share({
-        title: 'QuickProp Property Catalogue',
+        title: 'QuickProp Property Brochure',
         message: text,
       });
       onClose();
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : '';
-      if (!message.toLowerCase().includes('cancel')) Alert.alert('Could not share catalogue', message || 'Please try again.');
+      if (!message.toLowerCase().includes('cancel')) Alert.alert('Could not share brochure', message || 'Please try again.');
     } finally {
       setSharing(false);
     }
@@ -100,12 +100,12 @@ export function QuickShareSheet({ visible, onClose }: QuickShareSheetProps) {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
        const text = buildCatalogueShareMessage(activeProps, mode, user?.name, mode === 'agent' ? user?.id : undefined);
       await Share.share({
-        title: 'QuickProp Property Catalogue',
+        title: 'QuickProp Property Brochure',
         message: text,
       });
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : '';
-      if (!message.toLowerCase().includes('cancel')) Alert.alert('Could not share catalogue', message || 'Please try again.');
+      if (!message.toLowerCase().includes('cancel')) Alert.alert('Could not share brochure', message || 'Please try again.');
     } finally {
       setSharing(false);
     }
@@ -162,7 +162,7 @@ export function QuickShareSheet({ visible, onClose }: QuickShareSheetProps) {
               <View style={[styles.modeIconWrap, { backgroundColor: mode === 'agent' ? colors.primary : colors.border }]}>
                 <Ionicons name="person" size={18} color={mode === 'agent' ? '#fff' : colors.mutedForeground} />
               </View>
-              <Text style={[styles.modeLabel, { color: colors.foreground }]}>My Catalogue</Text>
+              <Text style={[styles.modeLabel, { color: colors.foreground }]}>My Brochure</Text>
               <Text style={[styles.modeSub, { color: colors.mutedForeground }]}>Your listings only</Text>
               {mode === 'agent' && (
                 <View style={[styles.modeBadge, { backgroundColor: colors.primary + '20' }]}>
@@ -256,7 +256,7 @@ export function QuickShareSheet({ visible, onClose }: QuickShareSheetProps) {
                 <Ionicons name="logo-whatsapp" size={24} color="#FFF" />
               </View>
               {sharing ? <ActivityIndicator color={colors.primary} /> : <Text style={[styles.shareName, { color: colors.foreground }]}>WhatsApp</Text>}
-              <Text style={[styles.shareHint, { color: colors.mutedForeground }]}>Send catalogue</Text>
+              <Text style={[styles.shareHint, { color: colors.mutedForeground }]}>Send brochure</Text>
             </TouchableOpacity>
 
             {/* Facebook */}

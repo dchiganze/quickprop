@@ -223,7 +223,7 @@ export default function BrochureSetup() {
           <div className="mt-5 flex flex-col justify-between gap-5 md:flex-row md:items-end">
             <div>
               <h1 data-testid="text-brochure-setup-title" className="max-w-2xl text-3xl font-extrabold tracking-[-0.05em] text-foreground sm:text-4xl">
-                Build a catalogue your clients can act on.
+                Build a brochure your clients can act on.
               </h1>
               <p className="mt-3 max-w-xl text-sm leading-6 text-muted-foreground">
                 Choose a starting set, tighten the brief, and generate a print-ready brochure in a few clicks.
@@ -240,7 +240,7 @@ export default function BrochureSetup() {
       <div className="border-b border-border bg-card">
         <div className="mx-auto grid max-w-6xl grid-cols-3 gap-2 px-5 py-4 sm:gap-3 sm:px-8 lg:px-10">
           {([
-            ['personnel', '01', 'Select personnel', mode === 'my' ? 'My listings' : mode === 'company' ? 'Company catalogue' : 'Custom agents'],
+            ['personnel', '01', 'Select personnel', mode === 'my' ? 'My listings' : mode === 'company' ? 'Company brochure' : 'Custom agents'],
             ['listing', '02', 'Sale / Rent', `${listingTypes.size} selected`],
             ['property', '03', 'Property type', `${propertyGroups.size} selected`],
           ] as const).map(([step, number, label, detail]) => (
@@ -277,7 +277,7 @@ export default function BrochureSetup() {
               <div className="mb-3 flex items-end justify-between gap-3">
                 <div>
                   <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-muted-foreground">Select personnel</p>
-                  <h2 className="mt-1 text-xl font-bold tracking-tight">Who should this catalogue represent?</h2>
+                  <h2 className="mt-1 text-xl font-bold tracking-tight">Who should this brochure represent?</h2>
                 </div>
                 <Badge variant="secondary" className="hidden sm:inline-flex">{filteredProperties.length} matching listings</Badge>
               </div>
@@ -304,7 +304,7 @@ export default function BrochureSetup() {
                   mode="company"
                   selected={mode === 'company'}
                   icon={Building2}
-                  label="Company Catalogue"
+                  label="Company Brochure"
                   description="Every published listing"
                   count={publicProperties.length}
                   onClick={() => setMode('company')}
@@ -481,7 +481,7 @@ export default function BrochureSetup() {
               <div className="border-b border-sidebar-border px-5 py-5">
                 <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.16em] text-sidebar-primary">
                   <MapIcon className="h-4 w-4" />
-                  Catalogue check
+                  Brochure check
                 </div>
                 <h2 className="mt-3 text-2xl font-bold tracking-[-0.04em]">Ready when you are.</h2>
                 <p className="mt-2 text-sm leading-5 text-sidebar-foreground/65">
@@ -496,7 +496,7 @@ export default function BrochureSetup() {
               <div className="space-y-3 px-5 py-5">
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-sidebar-foreground/60">Source</span>
-                  <span data-testid="text-brochure-source" className="font-semibold">{mode === 'my' ? 'My listings' : mode === 'company' ? 'Company catalogue' : 'Custom selection'}</span>
+                  <span data-testid="text-brochure-source" className="font-semibold">{mode === 'my' ? 'My listings' : mode === 'company' ? 'Company brochure' : 'Custom selection'}</span>
                 </div>
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-sidebar-foreground/60">Filters</span>
@@ -512,7 +512,7 @@ export default function BrochureSetup() {
                   {canGenerate ? 'Generate brochure' : 'No matching listings'}
                   {canGenerate ? <ArrowRight className="h-4 w-4" /> : <Loader2 className="h-4 w-4" />}
                 </Button>
-                <p className="text-center text-[11px] leading-4 text-sidebar-foreground/45">The catalogue opens in the Office print view.</p>
+                <p className="text-center text-[11px] leading-4 text-sidebar-foreground/45">The brochure opens in the Office print view.</p>
               </div>
             </div>
 

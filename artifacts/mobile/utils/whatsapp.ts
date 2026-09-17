@@ -110,7 +110,7 @@ export async function shareCatalogueToWhatsApp(
       url: cardUri,
       type: 'image/jpeg',
       message: caption,
-      title: 'QuickProp Property Catalogue',
+       title: 'QuickProp Property Brochure',
       failOnCancel: false,
       useInternalStorage: true,
     });
@@ -121,7 +121,7 @@ export async function shareCatalogueToWhatsApp(
     }
     if (!(await Sharing.isAvailableAsync())) throw error;
     await Sharing.shareAsync(cardUri, {
-      dialogTitle: 'Share catalogue to WhatsApp',
+       dialogTitle: 'Share brochure to WhatsApp',
       mimeType: 'image/jpeg',
       UTI: 'public.jpeg',
     });
