@@ -20,7 +20,6 @@ import {
   useListUsers,
 } from '@workspace/api-client-react';
 
-const PUBLIC_SITE_URL = 'https://www.quickprop.melios.co.zw';
 const PUBLIC_STATUSES = ['public', 'under_offer', 'coming_soon'];
 const STATUS_LABELS: Record<string, string> = {
   public: 'For Sale',
@@ -159,20 +158,20 @@ export default function BrochureCatalog() {
           display: flex;
           align-items: flex-start;
           justify-content: flex-start;
-          min-height: 18mm;
+          min-height: 31.5mm;
         }
 
         .cover-logo img {
           display: block;
-          max-width: 58mm;
-          max-height: 18mm;
+          max-width: 101.5mm;
+          max-height: 31.5mm;
           object-fit: contain;
           object-position: left top;
         }
 
         .cover-logo-fallback {
           color: var(--brochure-ink);
-          font-size: 18px;
+          font-size: 31px;
           font-weight: 800;
           letter-spacing: -0.05em;
         }
@@ -574,11 +573,13 @@ export default function BrochureCatalog() {
           display: flex;
           flex-direction: column;
           gap: 3px;
+          font-size: 16px;
+          line-height: 1.2;
         }
 
         .page-footer-meta strong {
           color: var(--brochure-ink-soft);
-          font-size: 9px;
+          font-size: 18px;
         }
 
         .page-footer-logo {
@@ -625,7 +626,7 @@ export default function BrochureCatalog() {
 
         @media (max-width: 680px) {
           .brochure-page { padding: 32px 22px 96px; }
-          .cover-main { padding-top: 80px; }
+          .cover-main { padding-top: 10mm; }
           .cover-title { font-size: 42px; }
           .cover-stats { grid-template-columns: 1fr; }
           .cover-stat,
@@ -669,8 +670,6 @@ export default function BrochureCatalog() {
         <CoverPage
           agencyName={agencyName}
           agencyLogo={agencySettings?.logoUrl}
-          agencyWebsite={agencySettings?.website}
-          agencyPhone={agencySettings?.phone}
           tagline={tagline}
           titleLine={titleLine}
           totalProperties={properties.length}
@@ -719,7 +718,6 @@ export default function BrochureCatalog() {
             <PageFooter
               agencyName={agencyName}
               agencyLogo={agencySettings?.logoUrl}
-              agencyWebsite={agencySettings?.website}
               pageNumber={3}
               pageCount={3}
             />
@@ -733,8 +731,6 @@ export default function BrochureCatalog() {
 function CoverPage({
   agencyName,
   agencyLogo,
-  agencyWebsite,
-  agencyPhone,
   tagline,
   titleLine,
   totalProperties,
@@ -745,8 +741,6 @@ function CoverPage({
 }: {
   agencyName: string;
   agencyLogo?: string | null;
-  agencyWebsite?: string | null;
-  agencyPhone?: string | null;
   tagline: string;
   titleLine: string;
   totalProperties: number;
@@ -787,8 +781,6 @@ function CoverPage({
       <PageFooter
         agencyName={agencyName}
         agencyLogo={agencyLogo}
-        agencyWebsite={agencyWebsite}
-        agencyPhone={agencyPhone}
         pageNumber={pageNumber}
         pageCount={pageCount}
       />
@@ -842,7 +834,6 @@ function AboutPage({
       <PageFooter
         agencyName={agencyName}
         agencyLogo={agencyLogo}
-        agencyWebsite={agencyWebsite}
         pageNumber={pageNumber}
         pageCount={pageCount}
       />
@@ -934,7 +925,6 @@ function PropertyPage({
       <PageFooter
         agencyName={agencyName}
         agencyLogo={agencyLogo}
-        agencyWebsite={agencyWebsite}
         pageNumber={pageNumber}
         pageCount={pageCount}
       />
@@ -977,26 +967,18 @@ function CoverStat({ value, label }: { value: number; label: string }) {
 function PageFooter({
   agencyName,
   agencyLogo,
-  agencyWebsite,
-  agencyPhone,
   pageNumber,
   pageCount,
 }: {
   agencyName: string;
   agencyLogo?: string | null;
-  agencyWebsite?: string | null;
-  agencyPhone?: string | null;
   pageNumber: number;
   pageCount: number;
 }) {
   return (
     <footer className="page-footer">
       <div className="page-footer-meta">
-        <strong>{agencyName}</strong>
-        <span>
-          {agencyWebsite?.replace(/^https?:\/\//, '') || PUBLIC_SITE_URL.replace(/^https?:\/\//, '')}
-          {agencyPhone ? ` · ${agencyPhone}` : ''}
-        </span>
+        <strong>Powered by quickprop.co.zw</strong>
         <span>{String(pageNumber).padStart(2, '0')} / {String(pageCount).padStart(2, '0')}</span>
       </div>
       <div className="page-footer-logo" aria-label={`${agencyName} logo`}>
