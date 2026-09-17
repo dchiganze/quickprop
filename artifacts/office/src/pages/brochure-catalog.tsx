@@ -27,6 +27,8 @@ const STATUS_LABELS: Record<string, string> = {
   coming_soon: 'Coming Soon',
   sold: 'Sold',
 };
+const STOCK_PROPERTY_PHOTOS_BASE = `${import.meta.env.BASE_URL}stock-property-images/`;
+const GENERIC_PROPERTY_PHOTOS = ['house-exterior.jpg', 'house-interior.jpg', 'house-living.jpg'];
 
 function formatPrice(price: number, currency: string, listingType: string) {
   const formatted = price >= 1_000_000
@@ -36,10 +38,18 @@ function formatPrice(price: number, currency: string, listingType: string) {
 }
 
 function getPropertyPhotos(property: any): string[] {
-  return [...new Set([
+  const listingPhotos = [...new Set([
     property.coverImage,
     ...(Array.isArray(property.photos) ? property.photos : []),
   ].filter((photo): photo is string => typeof photo === 'string' && photo.trim().length > 0))];
+  const stockStart = Number(property.id ?? 0) % GENERIC_PROPERTY_PHOTOS.length;
+  const rotatedStockPhotos = [
+    ...GENERIC_PROPERTY_PHOTOS.slice(stockStart),
+    ...GENERIC_PROPERTY_PHOTOS.slice(0, stockStart),
+  ]
+    .map((photo) => `${STOCK_PROPERTY_PHOTOS_BASE}${photo}`);
+
+  return Array.from({ length: 3 }, (_, index) => listingPhotos[index] ?? rotatedStockPhotos[index]);
 }
 
 export default function BrochureCatalog() {
