@@ -1,29 +1,55 @@
 import React from 'react';
-import { useListProperties, useGetCurrentUser, useListUsers, useGetAdminAgencySettings } from '@workspace/api-client-react';
-import { Bed, Bath, Car, Square, MapPin, Building2, Printer, ArrowLeft, ArrowUpRight } from 'lucide-react';
-
-function formatPrice(price: number, currency: string, listingType: string) {
-  const f = price >= 1_000_000
-    ? `${currency} ${(price / 1_000_000).toFixed(2)}M`
-    : `${currency} ${price.toLocaleString()}`;
-  return listingType === 'rent' ? `${f}/mo` : f;
-}
-
-const STATUS_PILL: Record<string, { label: string }> = {
-  public:       { label: 'For Sale' },
-  under_offer:  { label: 'Under Offer' },
-  coming_soon:  { label: 'Coming Soon' },
-  sold:         { label: 'Sold' },
-};
+import {
+  ArrowLeft,
+  Bath,
+  Bed,
+  Building2,
+  Car,
+  Globe2,
+  Mail,
+  MapPin,
+  Phone,
+  Printer,
+  Quote,
+  Square,
+} from 'lucide-react';
+import {
+  useGetAdminAgencySettings,
+  useGetCurrentUser,
+  useListProperties,
+  useListUsers,
+} from '@workspace/api-client-react';
 
 const PUBLIC_SITE_URL = 'https://www.quickprop.melios.co.zw';
+const PUBLIC_STATUSES = ['public', 'under_offer', 'coming_soon'];
+const STATUS_LABELS: Record<string, string> = {
+  public: 'For Sale',
+  under_offer: 'Under Offer',
+  coming_soon: 'Coming Soon',
+  sold: 'Sold',
+};
+
+function formatPrice(price: number, currency: string, listingType: string) {
+  const formatted = price >= 1_000_000
+    ? `${currency} ${(price / 1_000_000).toFixed(2)}M`
+    : `${currency} ${price.toLocaleString()}`;
+  return listingType === 'rent' ? `${formatted}/mo` : formatted;
+}
+
+function getPropertyPhotos(property: any): string[] {
+  return [...new Set([
+    property.coverImage,
+    ...(Array.isArray(property.photos) ? property.photos : []),
+  ].filter((photo): photo is string => typeof photo === 'string' && photo.trim().length > 0))];
+}
 
 export default function BrochureCatalog() {
   const params = new URLSearchParams(window.location.search);
   const mode = (params.get('mode') ?? 'company') as 'my' | 'company' | 'custom';
-  // custom mode now passes individual prop IDs
   const propParam = params.get('props') ?? '';
-  const selectedPropIds = propParam ? new Set(propParam.split(',').map(Number)) : new Set<number>();
+  const selectedPropIds = propParam
+    ? new Set(propParam.split(',').map(Number))
+    : new Set<number>();
 
   React.useEffect(() => {
     const previousTitle = document.title;
@@ -35,42 +61,42 @@ export default function BrochureCatalog() {
 
   const { data: currentUser } = useGetCurrentUser();
   const { data: agencySettings } = useGetAdminAgencySettings();
-  const { data: allProps, isLoading } = useListProperties();
+  const { data: allProperties, isLoading } = useListProperties();
   const { data: users } = useListUsers();
 
-  const PUBLIC_STATUSES = ['public', 'under_offer', 'coming_soon'];
-
   const properties = React.useMemo(() => {
-    if (!allProps) return [];
-    const pub = allProps.filter(p => PUBLIC_STATUSES.includes(p.status));
-    if (mode === 'my') return pub.filter(p => p.agentId === currentUser?.id);
-    if (mode === 'custom') return pub.filter(p => selectedPropIds.has(p.id));
-    return pub; // company
-  }, [allProps, mode, currentUser, propParam]);
+    if (!allProperties) return [];
+    const published = allProperties.filter((property) => PUBLIC_STATUSES.includes(property.status));
+    if (mode === 'my') return published.filter((property) => property.agentId === currentUser?.id);
+    if (mode === 'custom') return published.filter((property) => selectedPropIds.has(property.id));
+    return published;
+  }, [allProperties, currentUser?.id, mode, propParam]);
 
   const agentMap = React.useMemo(() => {
-    const m: Record<number, string> = {};
-    (users ?? []).forEach(u => { m[u.id] = u.name ?? 'Agent'; });
-    return m;
+    const map: Record<number, string> = {};
+    (users ?? []).forEach((user) => {
+      map[user.id] = user.name ?? 'Agent';
+    });
+    return map;
   }, [users]);
 
-  // For custom, derive agent names from the selected properties
   const customAgentNames = React.useMemo(() => {
     if (mode !== 'custom') return [];
-    const ids = new Set(properties.map(p => p.agentId).filter(Boolean));
-    return [...ids].map(id => agentMap[id as number]).filter(Boolean);
-  }, [mode, properties, agentMap]);
+    const agentIds = new Set(properties.map((property) => property.agentId).filter(Boolean));
+    return [...agentIds].map((id) => agentMap[id as number]).filter(Boolean);
+  }, [agentMap, mode, properties]);
 
   const agencyName = agencySettings?.agencyName || 'QuickProp';
   const titleLine = mode === 'my'
     ? `${currentUser?.name ?? 'Agent'}'s Property Catalogue`
     : mode === 'custom' && customAgentNames.length > 0
-      ? customAgentNames.join(', ') + ' — Property Catalogue'
+      ? `${customAgentNames.join(', ')} — Property Catalogue`
       : `${agencyName} Catalogue`;
-
-  const forSale = properties.filter(p => p.listingType === 'sale');
-  const forRent = properties.filter(p => p.listingType === 'rent');
-  const agencyLogo = agencySettings?.logoUrl;
+  const saleProperties = properties.filter((property) => property.listingType === 'sale');
+  const rentalProperties = properties.filter((property) => property.listingType === 'rent');
+  const pagesCount = properties.length > 0 ? properties.length + 2 : 3;
+  const tagline = agencySettings?.tagline?.trim() ?? '';
+  const aboutText = agencySettings?.aboutText?.trim() ?? '';
 
   if (isLoading) {
     return (
@@ -88,7 +114,6 @@ export default function BrochureCatalog() {
           --brochure-ink-soft: #35504e;
           --brochure-primary: #0f766e;
           --brochure-primary-bright: #10b981;
-          --brochure-primary-soft: #dff5ed;
           --brochure-paper: #ffffff;
           --brochure-paper-warm: #f7faf8;
           --brochure-line: #dce8e4;
@@ -104,120 +129,36 @@ export default function BrochureCatalog() {
           color: var(--brochure-ink);
         }
 
-        .brochure-paper {
+        .brochure-page {
+          position: relative;
+          width: 210mm;
+          min-height: 297mm;
+          margin: 0 auto 24px;
+          padding: 16mm 15mm 25mm;
           overflow: hidden;
+          background: var(--brochure-paper);
           box-shadow: 0 20px 60px rgba(16, 42, 42, 0.12);
+          break-inside: avoid;
+          break-after: page;
+          page-break-after: always;
         }
 
-        .cover-header {
-          position: relative;
-          isolation: isolate;
-          overflow: hidden;
-          padding: 38px 40px 42px;
-          background: var(--brochure-paper-warm);
-          border-bottom: 1px solid var(--brochure-line);
+        .brochure-page:last-child {
+          break-after: auto;
+          page-break-after: auto;
         }
 
-        .cover-header::before,
-        .cover-header::after {
-          position: absolute;
-          z-index: -1;
-          display: block;
-          content: '';
-          pointer-events: none;
-          border: 1px solid rgba(16, 185, 129, 0.17);
-          border-radius: 999px;
-          transform: rotate(-13deg);
-        }
-
-        .cover-header::before {
-          top: 68px;
-          right: -130px;
-          width: 460px;
-          height: 210px;
-          box-shadow:
-            0 34px 0 rgba(16, 185, 129, 0.08),
-            0 68px 0 rgba(16, 185, 129, 0.06),
-            0 102px 0 rgba(16, 185, 129, 0.04);
-        }
-
-        .cover-header::after {
-          bottom: -140px;
-          left: -105px;
-          width: 360px;
-          height: 200px;
-          border-color: rgba(15, 118, 110, 0.13);
-          box-shadow:
-            0 28px 0 rgba(15, 118, 110, 0.07),
-            0 56px 0 rgba(15, 118, 110, 0.05);
-        }
-
-        .cover-topline {
-          position: relative;
-          z-index: 1;
+        .cover-page {
           display: flex;
-          align-items: flex-start;
+          flex-direction: column;
           justify-content: space-between;
-          gap: 24px;
-        }
-
-        .brochure-logo {
-          display: flex;
-          align-items: center;
-          justify-content: flex-start;
-          width: 148px;
-        }
-
-        .brochure-logo img {
-          display: block;
-          width: auto;
-          max-width: 148px;
-          max-height: 64px;
-          object-fit: contain;
-          object-position: left center;
-        }
-
-        .brochure-logo-fallback {
-          display: inline-flex;
-          align-items: center;
-          gap: 8px;
-          color: var(--brochure-ink);
-          font-size: 15px;
-          font-weight: 800;
-          letter-spacing: -0.03em;
-        }
-
-        .brochure-logo-mark {
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          width: 28px;
-          height: 28px;
-          color: white;
-          background: var(--brochure-primary);
-          border-radius: 9px;
-        }
-
-        .cover-date {
-          color: var(--brochure-muted);
-          font-size: 10px;
-          font-weight: 700;
-          letter-spacing: 0.14em;
-          text-align: right;
-          text-transform: uppercase;
-        }
-
-        .cover-copy {
-          position: relative;
-          z-index: 1;
-          max-width: 600px;
-          margin-top: 36px;
+          background: var(--brochure-paper-warm);
         }
 
         .cover-kicker,
-        .section-eyebrow,
-        .property-type,
-        .property-reference {
+        .page-kicker,
+        .property-kicker {
+          margin: 0;
           color: var(--brochure-primary);
           font-size: 10px;
           font-weight: 800;
@@ -225,41 +166,60 @@ export default function BrochureCatalog() {
           text-transform: uppercase;
         }
 
-        .cover-kicker {
-          margin: 0 0 10px;
+        .cover-main {
+          max-width: 690px;
+          padding-top: 50mm;
         }
 
         .cover-title {
-          max-width: 650px;
-          margin: 0;
+          max-width: 170mm;
+          margin: 12px 0 0;
           color: var(--brochure-ink);
-          font-size: clamp(2.2rem, 5vw, 3.8rem);
+          font-size: 54px;
           font-weight: 800;
-          letter-spacing: -0.065em;
-          line-height: 0.98;
+          letter-spacing: -0.07em;
+          line-height: 0.96;
+        }
+
+        .cover-tagline {
+          display: flex;
+          align-items: flex-start;
+          gap: 10px;
+          max-width: 125mm;
+          margin: 22px 0 0;
+          color: var(--brochure-ink-soft);
+          font-size: 17px;
+          font-weight: 500;
+          line-height: 1.45;
+        }
+
+        .cover-tagline svg {
+          flex: 0 0 auto;
+          margin-top: 3px;
+          color: var(--brochure-primary-bright);
         }
 
         .cover-description {
-          max-width: 470px;
+          max-width: 135mm;
           margin: 18px 0 0;
-          color: var(--brochure-ink-soft);
-          font-size: 13px;
+          color: var(--brochure-muted);
+          font-size: 12px;
           line-height: 1.65;
         }
 
         .cover-rule {
-          width: 64px;
+          width: 68px;
           height: 4px;
-          margin-top: 24px;
+          margin-top: 26px;
           background: var(--brochure-primary-bright);
           border-radius: 999px;
         }
 
         .cover-stats {
           display: grid;
-          grid-template-columns: repeat(3, minmax(0, 1fr));
-          max-width: 520px;
-          margin-top: 28px;
+          grid-template-columns: repeat(3, 1fr);
+          max-width: 135mm;
+          margin-top: 34px;
           border-top: 1px solid var(--brochure-line);
           border-bottom: 1px solid var(--brochure-line);
         }
@@ -276,157 +236,167 @@ export default function BrochureCatalog() {
         .cover-stat-value {
           display: block;
           color: var(--brochure-ink);
-          font-size: 21px;
+          font-size: 22px;
           font-weight: 800;
-          letter-spacing: -0.04em;
+          letter-spacing: -0.05em;
         }
 
         .cover-stat-label {
           display: block;
           margin-top: 3px;
           color: var(--brochure-muted);
-          font-size: 10px;
-          font-weight: 700;
-          letter-spacing: 0.06em;
-          text-transform: uppercase;
-        }
-
-        .listing-section {
-          padding: 34px 40px 0;
-        }
-
-        .section-heading {
-          display: flex;
-          align-items: flex-end;
-          justify-content: space-between;
-          gap: 20px;
-          margin-bottom: 18px;
-          padding-bottom: 13px;
-          border-bottom: 1px solid var(--brochure-line);
-        }
-
-        .section-eyebrow {
-          margin: 0 0 7px;
-          color: var(--brochure-muted);
-        }
-
-        .section-title {
-          margin: 0;
-          color: var(--brochure-ink);
-          font-size: 25px;
-          font-weight: 800;
-          letter-spacing: -0.045em;
-        }
-
-        .section-count {
-          color: var(--brochure-muted);
-          font-size: 11px;
+          font-size: 9px;
           font-weight: 700;
           letter-spacing: 0.08em;
           text-transform: uppercase;
         }
 
-        .property-list {
-          display: grid;
-          gap: 14px;
-        }
-
-        .prop-card {
+        .about-page {
           display: flex;
-          min-width: 0;
-          overflow: hidden;
-          background: var(--brochure-paper);
-          border: 1px solid var(--brochure-line);
-          border-radius: 16px;
-          break-inside: avoid;
+          flex-direction: column;
         }
 
-        .property-visual {
+        .about-heading {
+          max-width: 150mm;
+          margin-top: 25mm;
+        }
+
+        .about-title {
+          margin: 10px 0 0;
+          color: var(--brochure-ink);
+          font-size: 47px;
+          font-weight: 800;
+          letter-spacing: -0.07em;
+          line-height: 0.98;
+        }
+
+        .about-tagline {
+          max-width: 135mm;
+          margin: 20px 0 0;
+          color: var(--brochure-primary);
+          font-size: 21px;
+          font-weight: 700;
+          letter-spacing: -0.03em;
+          line-height: 1.25;
+        }
+
+        .about-rule {
+          width: 100%;
+          height: 1px;
+          margin: 25px 0 28px;
+          background: var(--brochure-line);
+        }
+
+        .about-copy {
+          max-width: 145mm;
+          margin: 0;
+          color: var(--brochure-ink-soft);
+          font-size: 16px;
+          line-height: 1.75;
+          white-space: pre-line;
+        }
+
+        .about-empty {
+          color: var(--brochure-muted);
+          font-style: italic;
+        }
+
+        .about-contact {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 14px;
+          max-width: 155mm;
+          margin-top: auto;
+          padding-top: 28px;
+          border-top: 1px solid var(--brochure-line);
+        }
+
+        .contact-item {
+          display: flex;
+          align-items: flex-start;
+          gap: 8px;
+          color: var(--brochure-ink-soft);
+          font-size: 10px;
+          line-height: 1.45;
+          overflow-wrap: anywhere;
+        }
+
+        .contact-item svg {
+          flex: 0 0 auto;
+          margin-top: 1px;
+          color: var(--brochure-primary);
+        }
+
+        .property-page {
+          display: flex;
+          flex-direction: column;
+        }
+
+        .property-page-header {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          gap: 16px;
+          margin-bottom: 13px;
+        }
+
+        .property-kicker {
+          color: var(--brochure-muted);
+        }
+
+        .property-reference {
+          color: var(--brochure-muted);
+          font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+          font-size: 9px;
+          font-weight: 700;
+          letter-spacing: 0.1em;
+          text-transform: uppercase;
+        }
+
+        .property-hero {
           position: relative;
-          flex: 0 0 218px;
-          min-height: 188px;
+          width: 100%;
+          height: 76mm;
           overflow: hidden;
-          background: #e8efec;
+          background: #e7efeb;
         }
 
-        .property-visual img {
-          position: absolute;
-          inset: 0;
+        .property-hero img,
+        .property-side-photo img {
+          display: block;
           width: 100%;
           height: 100%;
           object-fit: cover;
         }
 
-        .property-visual-empty {
-          position: absolute;
-          inset: 0;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: var(--brochure-primary);
-          background: linear-gradient(135deg, #edf6f2, #dbece5);
+        .property-lower {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) 67mm;
+          gap: 11mm;
+          margin-top: 10mm;
         }
 
-        .property-status {
-          position: absolute;
-          top: 12px;
-          left: 12px;
-          padding: 5px 8px;
-          color: white;
-          background: var(--brochure-primary);
-          border-radius: 5px;
-          font-size: 9px;
-          font-weight: 800;
-          letter-spacing: 0.1em;
-          text-transform: uppercase;
-        }
-
-        .property-status.status-under-offer {
-          background: var(--brochure-amber);
-        }
-
-        .property-status.status-sold {
-          background: var(--brochure-red);
-        }
-
-        .property-info {
-          display: flex;
-          flex: 1;
+        .property-copy {
           min-width: 0;
-          flex-direction: column;
-          padding: 17px 19px 15px;
-        }
-
-        .property-top {
-          display: flex;
-          align-items: flex-start;
-          justify-content: space-between;
-          gap: 18px;
-        }
-
-        .property-type {
-          margin: 0 0 6px;
-          color: var(--brochure-primary);
-          font-size: 9px;
         }
 
         .property-title {
-          margin: 0;
+          margin: 8px 0 0;
           color: var(--brochure-ink);
-          font-size: 17px;
+          font-size: 28px;
           font-weight: 800;
-          letter-spacing: -0.035em;
-          line-height: 1.15;
+          letter-spacing: -0.06em;
+          line-height: 1.02;
         }
 
         .property-location {
           display: flex;
           align-items: flex-start;
-          gap: 5px;
-          margin-top: 7px;
+          gap: 6px;
+          margin-top: 10px;
           color: var(--brochure-muted);
           font-size: 11px;
-          line-height: 1.35;
+          line-height: 1.4;
         }
 
         .property-location svg {
@@ -435,38 +405,21 @@ export default function BrochureCatalog() {
           color: var(--brochure-primary);
         }
 
-        .price-lockup {
-          flex: 0 0 auto;
-          min-width: 104px;
-          text-align: right;
-        }
-
-        .property-price {
-          display: block;
-          color: var(--brochure-primary);
-          font-size: 16px;
-          font-weight: 800;
-          letter-spacing: -0.04em;
-          line-height: 1.1;
-        }
-
-        .property-reference {
-          display: block;
-          margin-top: 6px;
-          color: var(--brochure-muted);
-          font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-          font-size: 8px;
-          letter-spacing: 0.08em;
+        .property-description {
+          margin: 19px 0 0;
+          color: var(--brochure-ink-soft);
+          font-size: 11px;
+          line-height: 1.6;
         }
 
         .property-specs {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 8px 14px;
-          margin-top: 15px;
-          padding: 10px 0;
-          border-top: 1px solid #edf2f0;
-          border-bottom: 1px solid #edf2f0;
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 9px 12px;
+          margin-top: 20px;
+          padding: 13px 0;
+          border-top: 1px solid var(--brochure-line);
+          border-bottom: 1px solid var(--brochure-line);
           color: var(--brochure-ink-soft);
           font-size: 10px;
         }
@@ -474,42 +427,22 @@ export default function BrochureCatalog() {
         .property-spec {
           display: inline-flex;
           align-items: center;
-          gap: 5px;
-          white-space: nowrap;
+          gap: 6px;
         }
 
         .property-spec svg {
           color: var(--brochure-primary);
         }
 
-        .property-description {
-          display: -webkit-box;
-          margin: 11px 0 0;
-          overflow: hidden;
-          color: var(--brochure-ink-soft);
-          font-size: 10px;
-          line-height: 1.5;
-          -webkit-box-orient: vertical;
-          -webkit-line-clamp: 2;
-        }
-
-        .property-bottom {
-          display: flex;
-          align-items: flex-end;
-          justify-content: space-between;
-          gap: 12px;
-          margin-top: auto;
-          padding-top: 11px;
-        }
-
         .property-tags {
           display: flex;
           flex-wrap: wrap;
           gap: 5px;
+          margin-top: 16px;
         }
 
         .property-tag {
-          padding: 4px 6px;
+          padding: 5px 7px;
           color: var(--brochure-ink-soft);
           background: var(--brochure-paper-warm);
           border: 1px solid var(--brochure-line);
@@ -518,102 +451,191 @@ export default function BrochureCatalog() {
           font-weight: 700;
         }
 
-        .property-link {
-          display: inline-flex;
-          flex: 0 0 auto;
-          align-items: center;
-          gap: 3px;
-          color: var(--brochure-primary);
-          font-size: 9px;
+        .property-price {
+          display: block;
+          margin-top: 22px;
+          padding: 13px 14px;
+          color: white;
+          background: var(--brochure-primary);
+          font-size: 22px;
           font-weight: 800;
-          text-decoration: none;
-          white-space: nowrap;
+          letter-spacing: -0.05em;
+          line-height: 1.1;
         }
 
-        .property-link:hover {
-          color: var(--brochure-ink);
+        .property-status {
+          display: inline-block;
+          margin-top: 12px;
+          padding: 5px 8px;
+          color: var(--brochure-primary);
+          border: 1px solid var(--brochure-primary-bright);
+          border-radius: 4px;
+          font-size: 8px;
+          font-weight: 800;
+          letter-spacing: 0.1em;
+          text-transform: uppercase;
         }
 
-        .property-agent {
-          margin-left: auto;
-          color: var(--brochure-muted);
-          font-size: 9px;
-          text-align: right;
+        .property-status.status-under-offer {
+          color: var(--brochure-amber);
+          border-color: #e7c47f;
         }
 
-        .brochure-footer {
+        .property-status.status-sold {
+          color: var(--brochure-red);
+          border-color: #e5aaaa;
+        }
+
+        .property-side-photos {
+          display: grid;
+          grid-template-rows: repeat(2, 1fr);
+          gap: 10px;
+        }
+
+        .property-side-photo {
+          position: relative;
+          min-height: 53mm;
+          overflow: hidden;
+          background: #e7efeb;
+        }
+
+        .photo-placeholder {
           display: flex;
           align-items: center;
-          justify-content: space-between;
-          gap: 18px;
-          margin: 34px 40px 0;
-          padding: 17px 0 27px;
+          justify-content: center;
+          height: 100%;
+          padding: 12px;
+          color: var(--brochure-muted);
+          background: var(--brochure-paper-warm);
+          border: 1px dashed var(--brochure-line);
+          font-size: 10px;
+          text-align: center;
+        }
+
+        .property-contact {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 7px 18px;
+          margin-top: auto;
+          padding-top: 16px;
           color: var(--brochure-muted);
           border-top: 1px solid var(--brochure-line);
           font-size: 9px;
         }
 
-        .brochure-footer a {
-          color: var(--brochure-primary);
-          font-weight: 800;
-          text-decoration: none;
+        .property-contact-item {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
         }
 
-        .empty-state {
-          margin: 34px 40px;
-          padding: 60px 24px;
+        .property-contact-item svg {
+          color: var(--brochure-primary);
+        }
+
+        .page-footer {
+          position: absolute;
+          right: 15mm;
+          bottom: 9mm;
+          left: 15mm;
+          display: flex;
+          align-items: flex-end;
+          justify-content: space-between;
+          gap: 18px;
+          padding-top: 9px;
           color: var(--brochure-muted);
-          text-align: center;
-          background: var(--brochure-paper-warm);
-          border: 1px solid var(--brochure-line);
-          border-radius: 16px;
+          border-top: 1px solid var(--brochure-line);
+          font-size: 8px;
+        }
+
+        .page-footer-meta {
+          display: flex;
+          flex-direction: column;
+          gap: 3px;
+        }
+
+        .page-footer-meta strong {
+          color: var(--brochure-ink-soft);
+          font-size: 9px;
+        }
+
+        .page-footer-logo {
+          display: flex;
+          align-items: center;
+          justify-content: flex-end;
+          width: 42mm;
+          min-height: 12mm;
+        }
+
+        .page-footer-logo img {
+          display: block;
+          max-width: 42mm;
+          max-height: 13mm;
+          object-fit: contain;
+          object-position: right bottom;
+        }
+
+        .page-footer-wordmark {
+          color: var(--brochure-ink);
+          font-size: 11px;
+          font-weight: 800;
+          letter-spacing: -0.04em;
         }
 
         @media print {
           .no-print { display: none !important; }
           body { margin: 0; background: white; }
           .brochure-canvas { min-height: 0; padding: 0; background: white; }
-          .brochure-paper { box-shadow: none; }
-          .cover-header { padding-top: 24px; }
-          .prop-card { break-inside: avoid; }
-          .section-heading { break-after: avoid; }
-          .listing-section { break-inside: avoid; }
+          .brochure-page {
+            margin: 0;
+            box-shadow: none;
+          }
         }
 
-        @media (max-width: 700px) {
-          .brochure-canvas { padding: 64px 0 0; }
-          .cover-header, .listing-section { padding-right: 22px; padding-left: 22px; }
+        @media (max-width: 900px) {
+          .brochure-canvas { padding: 74px 0 0; }
+          .brochure-page {
+            width: 100%;
+            min-height: 0;
+            margin-bottom: 18px;
+          }
+        }
+
+        @media (max-width: 680px) {
+          .brochure-page { padding: 32px 22px 96px; }
+          .cover-main { padding-top: 80px; }
+          .cover-title { font-size: 42px; }
           .cover-stats { grid-template-columns: 1fr; }
           .cover-stat,
           .cover-stat + .cover-stat {
-            padding: 11px 0;
+            padding: 10px 0;
             border-left: 0;
           }
           .cover-stat + .cover-stat { border-top: 1px solid var(--brochure-line); }
-          .prop-card { display: block; }
-          .property-visual { min-height: 180px; }
-          .property-bottom { align-items: flex-start; flex-direction: column; }
-          .property-agent { margin-left: 0; text-align: left; }
-          .brochure-footer { margin-right: 22px; margin-left: 22px; }
+          .about-contact { grid-template-columns: 1fr; }
+          .property-lower { grid-template-columns: 1fr; }
+          .property-hero { height: 58vw; }
+          .property-side-photos { grid-template-columns: repeat(2, 1fr); grid-template-rows: 42vw; }
+          .property-side-photo { min-height: 0; }
+          .page-footer { right: 22px; bottom: 24px; left: 22px; }
         }
 
-        @page { size: A4; margin: 10mm 12mm 13mm; }
+        @page { size: A4; margin: 0; }
       `}</style>
 
-      {/* Action bar */}
-      <div className="no-print fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between shadow-sm">
+      <div className="no-print fixed top-0 left-0 right-0 z-50 flex items-center justify-between border-b border-gray-200 bg-white px-6 py-3 shadow-sm">
         <button
           onClick={() => window.close()}
-          className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 transition-colors"
+          className="flex items-center gap-2 text-sm text-gray-600 transition-colors hover:text-gray-900"
         >
           <ArrowLeft className="w-4 h-4" />
           Close
         </button>
         <div className="flex items-center gap-3">
-          <span className="text-sm text-gray-500">{properties.length} properties · Print to save as PDF</span>
+          <span className="text-sm text-gray-500">{properties.length} properties · One property per page</span>
           <button
             onClick={() => window.print()}
-            className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition-colors"
+            className="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-700"
           >
             <Printer className="w-4 h-4" />
             Print / Save PDF
@@ -621,102 +643,295 @@ export default function BrochureCatalog() {
         </div>
       </div>
 
-      {/* Brochure body */}
-      <div className="brochure-canvas">
-        <div className="brochure-body brochure-paper bg-white min-h-screen" style={{ maxWidth: '210mm', margin: '0 auto' }}>
+      <main className="brochure-canvas">
+        <CoverPage
+          agencyName={agencyName}
+          agencyLogo={agencySettings?.logoUrl}
+          agencyWebsite={agencySettings?.website}
+          agencyPhone={agencySettings?.phone}
+          tagline={tagline}
+          titleLine={titleLine}
+          totalProperties={properties.length}
+          saleCount={saleProperties.length}
+          rentalCount={rentalProperties.length}
+          pageNumber={1}
+          pageCount={pagesCount}
+        />
 
-        {/* ── COVER HEADER ── */}
-        <section className="cover-header">
-          <div className="cover-topline">
-            <LogoLockup logoUrl={agencyLogo} agencyName={agencyName} />
-            <div className="cover-date">{new Date().toLocaleDateString('en-ZW', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
-          </div>
+        <AboutPage
+          agencyName={agencyName}
+          agencyLogo={agencySettings?.logoUrl}
+          agencyWebsite={agencySettings?.website}
+          agencyPhone={agencySettings?.phone}
+          agencyEmail={agencySettings?.email}
+          aboutText={aboutText}
+          tagline={tagline}
+          pageNumber={2}
+          pageCount={pagesCount}
+        />
 
-          <div className="cover-copy">
-            <p className="cover-kicker">Property catalogue</p>
-            <h1 className="cover-title">{titleLine}</h1>
-            <p className="cover-description">
-              A considered selection of published properties, presented through the QuickProp platform.
-            </p>
-            <div className="cover-rule" />
-            <div className="cover-stats">
-              <CoverStat value={properties.length} label="Published listings" />
-              <CoverStat value={forSale.length} label="For sale" />
-              <CoverStat value={forRent.length} label="To rent" />
-            </div>
-          </div>
-        </section>
+        {properties.map((property, index) => (
+          <PropertyPage
+            key={property.id}
+            property={property}
+            agentName={property.agentId ? agentMap[property.agentId] : null}
+            agencyName={agencyName}
+            agencyLogo={agencySettings?.logoUrl}
+            agencyWebsite={agencySettings?.website}
+            agencyPhone={agencySettings?.phone}
+            agencyEmail={agencySettings?.email}
+            pageNumber={index + 3}
+            pageCount={pagesCount}
+          />
+        ))}
 
         {properties.length === 0 && (
-          <div className="empty-state">
-            <Building2 className="w-12 h-12 mx-auto mb-3 opacity-40" />
-            <p className="text-lg font-medium">No published listings</p>
-            <p className="text-sm mt-1">Publish some properties in the CRM to generate a brochure.</p>
-          </div>
-        )}
-
-        {/* ── FOR SALE SECTION ── */}
-        {forSale.length > 0 && (
-          <section className="listing-section">
-            <div className="section-heading">
-              <div>
-                <p className="section-eyebrow">01 / Available now</p>
-                <h2 className="section-title">For Sale</h2>
-              </div>
-              <span className="section-count">{forSale.length} {forSale.length === 1 ? 'property' : 'properties'}</span>
+          <section className="brochure-page about-page">
+            <p className="page-kicker">Catalogue status</p>
+            <div className="about-heading">
+              <h2 className="about-title">No published listings</h2>
+              <p className="about-copy about-empty">
+                Publish properties in the CRM to include them in this catalogue.
+              </p>
             </div>
-            <div className="property-list">
-              {forSale.map(p => (
-                <PropertyCard key={p.id} property={p} agentMap={agentMap} />
-              ))}
-            </div>
+            <PageFooter
+              agencyName={agencyName}
+              agencyLogo={agencySettings?.logoUrl}
+              agencyWebsite={agencySettings?.website}
+              pageNumber={3}
+              pageCount={3}
+            />
           </section>
         )}
-
-        {/* ── TO RENT SECTION ── */}
-        {forRent.length > 0 && (
-          <section className="listing-section">
-            <div className="section-heading">
-              <div>
-                <p className="section-eyebrow">02 / Flexible living</p>
-                <h2 className="section-title">To Rent</h2>
-              </div>
-              <span className="section-count">{forRent.length} {forRent.length === 1 ? 'property' : 'properties'}</span>
-            </div>
-            <div className="property-list">
-              {forRent.map(p => (
-                <PropertyCard key={p.id} property={p} agentMap={agentMap} />
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* ── FOOTER ── */}
-        <footer className="brochure-footer">
-          <span>
-            Powered by{' '}
-            <a href="https://www.quickprop.co.zw" target="_blank" rel="noopener noreferrer">
-              QuickProp
-            </a>
-          </span>
-          <span>Generated {new Date().toLocaleDateString('en-ZW')}</span>
-        </footer>
-        </div>
-      </div>
+      </main>
     </>
   );
 }
 
-function LogoLockup({ logoUrl, agencyName }: { logoUrl?: string | null; agencyName: string }) {
+function CoverPage({
+  agencyName,
+  agencyLogo,
+  agencyWebsite,
+  agencyPhone,
+  tagline,
+  titleLine,
+  totalProperties,
+  saleCount,
+  rentalCount,
+  pageNumber,
+  pageCount,
+}: {
+  agencyName: string;
+  agencyLogo?: string | null;
+  agencyWebsite?: string | null;
+  agencyPhone?: string | null;
+  tagline: string;
+  titleLine: string;
+  totalProperties: number;
+  saleCount: number;
+  rentalCount: number;
+  pageNumber: number;
+  pageCount: number;
+}) {
   return (
-    <div className="brochure-logo" aria-label={`${agencyName} logo`}>
-      {logoUrl ? (
-        <img src={logoUrl} alt={`${agencyName} logo`} />
+    <section className="brochure-page cover-page">
+      <div>
+        <p className="cover-kicker">Property catalogue</p>
+        <div className="cover-main">
+          <h1 className="cover-title">{titleLine}</h1>
+          {tagline && (
+            <p className="cover-tagline">
+              <Quote className="w-4 h-4" />
+              {tagline}
+            </p>
+          )}
+          <p className="cover-description">
+            A considered selection of published properties, presented through the QuickProp platform.
+          </p>
+          <div className="cover-rule" />
+          <div className="cover-stats">
+            <CoverStat value={totalProperties} label="Published listings" />
+            <CoverStat value={saleCount} label="For sale" />
+            <CoverStat value={rentalCount} label="To rent" />
+          </div>
+        </div>
+      </div>
+      <PageFooter
+        agencyName={agencyName}
+        agencyLogo={agencyLogo}
+        agencyWebsite={agencyWebsite}
+        agencyPhone={agencyPhone}
+        pageNumber={pageNumber}
+        pageCount={pageCount}
+      />
+    </section>
+  );
+}
+
+function AboutPage({
+  agencyName,
+  agencyLogo,
+  agencyWebsite,
+  agencyPhone,
+  agencyEmail,
+  aboutText,
+  tagline,
+  pageNumber,
+  pageCount,
+}: {
+  agencyName: string;
+  agencyLogo?: string | null;
+  agencyWebsite?: string | null;
+  agencyPhone?: string | null;
+  agencyEmail?: string | null;
+  aboutText: string;
+  tagline: string;
+  pageNumber: number;
+  pageCount: number;
+}) {
+  return (
+    <section className="brochure-page about-page">
+      <p className="page-kicker">01 / The agency</p>
+      <div className="about-heading">
+        <h2 className="about-title">About us</h2>
+        {tagline && <p className="about-tagline">{tagline}</p>}
+        <div className="about-rule" />
+        <p className={`about-copy ${aboutText ? '' : 'about-empty'}`}>
+          {aboutText || 'Add your agency story in Agency Settings to complete this section.'}
+        </p>
+      </div>
+      <div className="about-contact">
+        {agencyPhone && (
+          <span className="contact-item"><Phone className="w-3.5 h-3.5" />{agencyPhone}</span>
+        )}
+        {agencyEmail && (
+          <span className="contact-item"><Mail className="w-3.5 h-3.5" />{agencyEmail}</span>
+        )}
+        {agencyWebsite && (
+          <span className="contact-item"><Globe2 className="w-3.5 h-3.5" />{agencyWebsite.replace(/^https?:\/\//, '')}</span>
+        )}
+      </div>
+      <PageFooter
+        agencyName={agencyName}
+        agencyLogo={agencyLogo}
+        agencyWebsite={agencyWebsite}
+        pageNumber={pageNumber}
+        pageCount={pageCount}
+      />
+    </section>
+  );
+}
+
+function PropertyPage({
+  property,
+  agentName,
+  agencyName,
+  agencyLogo,
+  agencyWebsite,
+  agencyPhone,
+  agencyEmail,
+  pageNumber,
+  pageCount,
+}: {
+  property: any;
+  agentName: string | null;
+  agencyName: string;
+  agencyLogo?: string | null;
+  agencyWebsite?: string | null;
+  agencyPhone?: string | null;
+  agencyEmail?: string | null;
+  pageNumber: number;
+  pageCount: number;
+}) {
+  const photos = getPropertyPhotos(property);
+  const statusLabel = STATUS_LABELS[property.status] ?? (property.listingType === 'rent' ? 'To Rent' : 'For Sale');
+  const statusClass = property.status === 'under_offer'
+    ? 'status-under-offer'
+    : property.status === 'sold'
+      ? 'status-sold'
+      : '';
+  const location = `${property.address ? `${property.address}, ` : ''}${property.suburb}, ${property.city}`;
+
+  return (
+    <section className="brochure-page property-page">
+      <div className="property-page-header">
+        <p className="property-kicker">{property.listingType === 'rent' ? 'To rent' : 'For sale'} · {property.propertyType.replace('_', ' ')}</p>
+        <span className="property-reference">Ref {property.reference}</span>
+      </div>
+
+      <PhotoSlot src={photos[0]} label="Main property image" className="property-hero" />
+
+      <div className="property-lower">
+        <div className="property-copy">
+          <h2 className="property-title">{property.title}</h2>
+          <div className="property-location">
+            <MapPin className="w-3.5 h-3.5" />
+            <span>{location}</span>
+          </div>
+          {property.description && <p className="property-description">{property.description}</p>}
+
+          <div className="property-specs">
+            {property.bedrooms != null && <span className="property-spec"><Bed className="w-3.5 h-3.5" />{property.bedrooms} bedrooms</span>}
+            {property.bathrooms != null && <span className="property-spec"><Bath className="w-3.5 h-3.5" />{property.bathrooms} bathrooms</span>}
+            {property.parking != null && <span className="property-spec"><Car className="w-3.5 h-3.5" />{property.parking} parking</span>}
+            {property.landSize != null && <span className="property-spec"><Square className="w-3.5 h-3.5" />{property.landSize} m²</span>}
+            <span className="property-spec"><Building2 className="w-3.5 h-3.5" />{property.propertyType.replace('_', ' ')}</span>
+          </div>
+
+          {(property.features ?? []).length > 0 && (
+            <div className="property-tags">
+              {(property.features ?? []).slice(0, 8).map((feature: string) => (
+                <span key={feature} className="property-tag">{feature}</span>
+              ))}
+            </div>
+          )}
+
+          <span className="property-price">{formatPrice(property.price, property.currency, property.listingType)}</span>
+          <span className={`property-status ${statusClass}`}>{statusLabel}</span>
+        </div>
+
+        <div className="property-side-photos">
+          <PhotoSlot src={photos[1]} label="Supporting property image" className="property-side-photo" />
+          <PhotoSlot src={photos[2]} label="Supporting property image" className="property-side-photo" />
+        </div>
+      </div>
+
+      <div className="property-contact">
+        {agentName && <span className="property-contact-item"><Building2 className="w-3 h-3" />{agentName}</span>}
+        {agencyPhone && <span className="property-contact-item"><Phone className="w-3 h-3" />{agencyPhone}</span>}
+        {agencyEmail && <span className="property-contact-item"><Mail className="w-3 h-3" />{agencyEmail}</span>}
+        {agencyWebsite && <span className="property-contact-item"><Globe2 className="w-3 h-3" />{agencyWebsite.replace(/^https?:\/\//, '')}</span>}
+      </div>
+
+      <PageFooter
+        agencyName={agencyName}
+        agencyLogo={agencyLogo}
+        agencyWebsite={agencyWebsite}
+        pageNumber={pageNumber}
+        pageCount={pageCount}
+      />
+    </section>
+  );
+}
+
+function PhotoSlot({
+  src,
+  label,
+  className,
+}: {
+  src?: string;
+  label: string;
+  className: string;
+}) {
+  return (
+    <div className={className}>
+      {src ? (
+        <img src={src} alt={label} />
       ) : (
-        <span className="brochure-logo-fallback">
-          <span className="brochure-logo-mark"><Building2 className="w-4 h-4" /></span>
-          <span>{agencyName}</span>
-        </span>
+        <div className="photo-placeholder">
+          <Building2 className="mr-2 h-4 w-4" />
+          Photo not available
+        </div>
       )}
     </div>
   );
@@ -731,94 +946,38 @@ function CoverStat({ value, label }: { value: number; label: string }) {
   );
 }
 
-function PropertyCard({ property: p, agentMap }: { property: any; agentMap: Record<number, string> }) {
-  const statusInfo = STATUS_PILL[p.status] ?? { label: p.listingType === 'rent' ? 'To Rent' : 'For Sale', color: '#059669' };
-  const agentName = p.agentId ? agentMap[p.agentId] : null;
-  const statusClass = p.status === 'under_offer'
-    ? 'status-under-offer'
-    : p.status === 'sold'
-      ? 'status-sold'
-      : '';
-
+function PageFooter({
+  agencyName,
+  agencyLogo,
+  agencyWebsite,
+  agencyPhone,
+  pageNumber,
+  pageCount,
+}: {
+  agencyName: string;
+  agencyLogo?: string | null;
+  agencyWebsite?: string | null;
+  agencyPhone?: string | null;
+  pageNumber: number;
+  pageCount: number;
+}) {
   return (
-    <article className="prop-card">
-      {/* Thumbnail */}
-      <div className="property-visual">
-        {p.coverImage ? (
-          <img src={p.coverImage} alt={p.title} />
+    <footer className="page-footer">
+      <div className="page-footer-meta">
+        <strong>{agencyName}</strong>
+        <span>
+          {agencyWebsite?.replace(/^https?:\/\//, '') || PUBLIC_SITE_URL.replace(/^https?:\/\//, '')}
+          {agencyPhone ? ` · ${agencyPhone}` : ''}
+        </span>
+        <span>{String(pageNumber).padStart(2, '0')} / {String(pageCount).padStart(2, '0')}</span>
+      </div>
+      <div className="page-footer-logo" aria-label={`${agencyName} logo`}>
+        {agencyLogo ? (
+          <img src={agencyLogo} alt={`${agencyName} logo`} />
         ) : (
-          <div className="property-visual-empty">
-            <Building2 className="w-8 h-8" />
-          </div>
+          <span className="page-footer-wordmark">{agencyName}</span>
         )}
-        <div
-          className={`property-status ${statusClass}`}
-        >
-          {statusInfo.label}
-        </div>
       </div>
-
-      {/* Details */}
-      <div className="property-info">
-        <div className="property-top">
-          <div className="min-w-0">
-            <p className="property-type">{p.propertyType.replace('_', ' ')}</p>
-            <h3 className="property-title">{p.title}</h3>
-            <div className="property-location">
-              <MapPin className="w-3 h-3" />
-              <span>{p.address ? `${p.address}, ` : ''}{p.suburb}, {p.city}</span>
-            </div>
-          </div>
-          <div className="price-lockup">
-            <span className="property-price">{formatPrice(p.price, p.currency, p.listingType)}</span>
-            <span className="property-reference">Ref {p.reference}</span>
-          </div>
-        </div>
-
-        {/* Specs */}
-        <div className="property-specs">
-          {p.bedrooms != null && (
-            <span className="property-spec"><Bed className="w-3.5 h-3.5" /> {p.bedrooms} bed</span>
-          )}
-          {p.bathrooms != null && (
-            <span className="property-spec"><Bath className="w-3.5 h-3.5" /> {p.bathrooms} bath</span>
-          )}
-          {p.parking != null && (
-            <span className="property-spec"><Car className="w-3.5 h-3.5" /> {p.parking} park</span>
-          )}
-          {p.landSize != null && (
-            <span className="property-spec"><Square className="w-3.5 h-3.5" /> {p.landSize} m²</span>
-          )}
-          <span className="property-spec">
-            <Building2 className="w-3.5 h-3.5" /> {p.propertyType.replace('_', ' ')}
-          </span>
-        </div>
-
-        {/* Description snippet */}
-        {p.description && (
-          <p className="property-description">{p.description}</p>
-        )}
-
-        {/* Features + agent */}
-        <div className="property-bottom">
-          <div className="property-tags">
-            {(p.features ?? []).slice(0, 4).map((f: string) => (
-              <span key={f} className="property-tag">{f}</span>
-            ))}
-          </div>
-          <a
-            href={`${PUBLIC_SITE_URL}/properties/${p.id}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="property-link"
-          >
-            View online <ArrowUpRight className="w-3 h-3" />
-          </a>
-          {agentName && (
-            <span className="property-agent">{agentName}</span>
-          )}
-        </div>
-      </div>
-    </article>
+    </footer>
   );
 }

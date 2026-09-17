@@ -3571,7 +3571,7 @@ components:
         staleOverdueDays: { type: integer }
     AgencySettings:
       type: object
-      required: [id, agencyName, phone, email, website, primaryColor, newLeadAlerts, mandateExpiryAlerts, weeklyReport, updatedAt]
+      required: [id, agencyName, phone, email, website, aboutText, tagline, primaryColor, newLeadAlerts, mandateExpiryAlerts, weeklyReport, updatedAt]
       properties:
         id: { type: integer }
         agencyName: { type: string }
@@ -3579,6 +3579,8 @@ components:
         email: { type: string }
         website: { type: string }
         logoUrl: { type: ["string", "null"] }
+        aboutText: { type: string }
+        tagline: { type: string }
         primaryColor: { type: string }
         newLeadAlerts: { type: boolean }
         mandateExpiryAlerts: { type: boolean }
@@ -3592,6 +3594,8 @@ components:
         email: { type: string }
         website: { type: string }
         logoUrl: { type: ["string", "null"] }
+        aboutText: { type: string }
+        tagline: { type: string }
         primaryColor: { type: string }
         newLeadAlerts: { type: boolean }
         mandateExpiryAlerts: { type: boolean }

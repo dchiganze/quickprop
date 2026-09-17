@@ -13,6 +13,8 @@ export const agencySettingsTable = pgTable("agency_settings", {
   email: text("email").notNull().default("info@quickprop.co.zw"),
   website: text("website").notNull().default("https://quickprop.co.zw"),
   logoUrl: text("logo_url"),
+  aboutText: text("about_text").notNull().default(""),
+  tagline: text("tagline").notNull().default(""),
   primaryColor: text("primary_color").notNull().default("#10B981"),
   newLeadAlerts: boolean("new_lead_alerts").notNull().default(true),
   mandateExpiryAlerts: boolean("mandate_expiry_alerts").notNull().default(true),

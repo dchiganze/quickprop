@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { eq } from "drizzle-orm";
 import { agencySettingsTable, db } from "@workspace/db";
-import { requireAuth } from "./auth";
+import { requireAuth, requireRole } from "./auth";
 import { jsonify } from "../lib/helpers";
 
 const router: IRouter = Router();
@@ -12,6 +12,8 @@ const DEFAULTS = {
   email: "info@quickprop.co.zw",
   website: "https://quickprop.co.zw",
   logoUrl: null,
+  aboutText: "",
+  tagline: "",
   primaryColor: "#10B981",
   newLeadAlerts: true,
   mandateExpiryAlerts: true,
@@ -38,7 +40,7 @@ router.get("/admin/agency-settings", requireAuth, async (_req, res): Promise<voi
   res.json(jsonify(await getSettings()));
 });
 
-router.patch("/admin/agency-settings", requireAuth, async (req, res): Promise<void> => {
+router.patch("/admin/agency-settings", requireAuth, requireRole("principal", "admin"), async (req, res): Promise<void> => {
   const current = await getSettings();
   const body = req.body ?? {};
   const requestedColor = stringValue(body.primaryColor, current.primaryColor);
@@ -48,6 +50,8 @@ router.patch("/admin/agency-settings", requireAuth, async (req, res): Promise<vo
     email: stringValue(body.email, current.email),
     website: stringValue(body.website, current.website),
     logoUrl: body.logoUrl === null ? null : stringValue(body.logoUrl, current.logoUrl ?? ""),
+    aboutText: stringValue(body.aboutText, current.aboutText),
+    tagline: stringValue(body.tagline, current.tagline),
     primaryColor: /^#[0-9A-Fa-f]{6}$/.test(requestedColor) ? requestedColor.toUpperCase() : current.primaryColor,
     newLeadAlerts: booleanValue(body.newLeadAlerts, current.newLeadAlerts),
     mandateExpiryAlerts: booleanValue(body.mandateExpiryAlerts, current.mandateExpiryAlerts),

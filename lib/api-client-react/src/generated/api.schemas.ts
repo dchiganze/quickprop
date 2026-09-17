@@ -1920,6 +1920,8 @@ export interface AgencySettings {
   website: string;
   /** @nullable */
   logoUrl?: string | null;
+  aboutText: string;
+  tagline: string;
   primaryColor: string;
   newLeadAlerts: boolean;
   mandateExpiryAlerts: boolean;
@@ -1934,6 +1936,8 @@ export interface AgencySettingsInput {
   website?: string;
   /** @nullable */
   logoUrl?: string | null;
+  aboutText?: string;
+  tagline?: string;
   primaryColor?: string;
   newLeadAlerts?: boolean;
   mandateExpiryAlerts?: boolean;

@@ -4,8 +4,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
-import { Building2, Palette, Bell, Loader2 } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { Building2, Palette, Bell, Loader2, BookOpen } from 'lucide-react';
 import {
+  useGetCurrentUser,
   useGetAdminAgencySettings,
   useUpdateAdminAgencySettings,
   useGetListingHousekeepingPreferences,
@@ -26,6 +28,8 @@ const DEFAULT_AGENCY_SETTINGS = {
   email: 'info@quickprop.co.zw',
   website: 'https://quickprop.co.zw',
   logoUrl: null as string | null,
+  aboutText: '',
+  tagline: '',
   primaryColor: '#10B981',
   newLeadAlerts: true,
   mandateExpiryAlerts: true,
@@ -33,6 +37,7 @@ const DEFAULT_AGENCY_SETTINGS = {
 };
 
 export default function Settings() {
+  const { data: currentUser } = useGetCurrentUser();
   const agencySettingsQuery = useGetAdminAgencySettings();
   const updateAgencySettings = useUpdateAdminAgencySettings();
   const preferencesQuery = useGetListingHousekeepingPreferences();
@@ -66,6 +71,8 @@ export default function Settings() {
         email: agencySettingsQuery.data.email,
         website: agencySettingsQuery.data.website,
         logoUrl: agencySettingsQuery.data.logoUrl ?? null,
+        aboutText: agencySettingsQuery.data.aboutText,
+        tagline: agencySettingsQuery.data.tagline,
         primaryColor: agencySettingsQuery.data.primaryColor,
         newLeadAlerts: agencySettingsQuery.data.newLeadAlerts,
         mandateExpiryAlerts: agencySettingsQuery.data.mandateExpiryAlerts,
@@ -167,6 +174,8 @@ export default function Settings() {
           email: next.email,
           website: next.website,
           logoUrl: next.logoUrl ?? null,
+          aboutText: next.aboutText,
+          tagline: next.tagline,
           primaryColor: next.primaryColor,
           newLeadAlerts: next.newLeadAlerts,
           mandateExpiryAlerts: next.mandateExpiryAlerts,
@@ -189,6 +198,8 @@ export default function Settings() {
     });
   };
 
+  const canEditAgencySettings = currentUser?.role === 'admin' || currentUser?.role === 'principal';
+
   return (
     <div className="p-8 max-w-[1000px] mx-auto space-y-8">
       <div>
@@ -208,7 +219,7 @@ export default function Settings() {
                 <Input
                   value={agencySettings.agencyName}
                   onChange={(event) => setAgencySettings((current) => ({ ...current, agencyName: event.target.value }))}
-                  disabled={agencySettingsQuery.isLoading}
+                  disabled={agencySettingsQuery.isLoading || !canEditAgencySettings}
                 />
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -217,7 +228,7 @@ export default function Settings() {
                 <Input
                   value={agencySettings.phone}
                   onChange={(event) => setAgencySettings((current) => ({ ...current, phone: event.target.value }))}
-                  disabled={agencySettingsQuery.isLoading}
+                   disabled={agencySettingsQuery.isLoading || !canEditAgencySettings}
                 />
               </div>
               <div className="space-y-2">
@@ -226,7 +237,7 @@ export default function Settings() {
                   type="email"
                   value={agencySettings.email}
                   onChange={(event) => setAgencySettings((current) => ({ ...current, email: event.target.value }))}
-                  disabled={agencySettingsQuery.isLoading}
+                 disabled={agencySettingsQuery.isLoading || !canEditAgencySettings}
                 />
               </div>
             </div>
@@ -236,7 +247,7 @@ export default function Settings() {
                 type="url"
                 value={agencySettings.website}
                 onChange={(event) => setAgencySettings((current) => ({ ...current, website: event.target.value }))}
-                disabled={agencySettingsQuery.isLoading}
+                 disabled={agencySettingsQuery.isLoading || !canEditAgencySettings}
               />
             </div>
           </CardContent>
@@ -272,7 +283,7 @@ export default function Settings() {
                   size="sm"
                   type="button"
                   onClick={() => logoInputRef.current?.click()}
-                  disabled={logoUploading}
+                   disabled={logoUploading || !canEditAgencySettings}
                 >
                   {logoUploading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                   {logoUploading ? 'Uploading…' : 'Upload Logo'}
@@ -283,18 +294,56 @@ export default function Settings() {
             <div className="space-y-2 pt-4 border-t">
               <Label>Primary Brand Color</Label>
               <div className="flex items-center gap-3">
-                <Input
+                 <Input
                   type="color"
                   value={agencySettings.primaryColor}
                   onChange={(event) => setAgencySettings((current) => ({ ...current, primaryColor: event.target.value.toUpperCase() }))}
+                  disabled={!canEditAgencySettings}
                   className="w-12 h-10 p-1 bg-background"
                 />
                 <Input
                   value={agencySettings.primaryColor}
                   onChange={(event) => setAgencySettings((current) => ({ ...current, primaryColor: event.target.value }))}
+                  disabled={!canEditAgencySettings}
                   className="font-mono max-w-[120px]"
                 />
               </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <div className="space-y-1 md:col-span-1">
+          <h3 className="font-semibold text-lg flex items-center"><BookOpen className="w-5 h-5 mr-2 text-primary" /> Catalogue Content</h3>
+          <p className="text-sm text-muted-foreground">The About Us page and tagline used in generated catalogues.</p>
+        </div>
+        <Card className="md:col-span-2">
+          <CardContent className="p-6 space-y-4">
+            {!canEditAgencySettings && (
+              <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                Only an administrator or principal can edit catalogue content.
+              </div>
+            )}
+            <div className="space-y-2">
+              <Label htmlFor="catalogue-tagline">Tagline / slogan</Label>
+              <Input
+                id="catalogue-tagline"
+                placeholder="Property is what we know best"
+                value={agencySettings.tagline}
+                onChange={(event) => setAgencySettings((current) => ({ ...current, tagline: event.target.value }))}
+                disabled={agencySettingsQuery.isLoading || !canEditAgencySettings}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="catalogue-about">About us</Label>
+              <Textarea
+                id="catalogue-about"
+                rows={7}
+                placeholder="Tell clients about your agency, experience, and approach."
+                value={agencySettings.aboutText}
+                onChange={(event) => setAgencySettings((current) => ({ ...current, aboutText: event.target.value }))}
+                disabled={agencySettingsQuery.isLoading || !canEditAgencySettings}
+              />
+              <p className="text-xs text-muted-foreground">This text appears on the catalogue About Us page.</p>
             </div>
           </CardContent>
         </Card>
@@ -389,7 +438,7 @@ export default function Settings() {
           size="lg"
           className="w-full md:w-auto font-semibold"
           onClick={saveAgencySettings}
-          disabled={agencySettingsQuery.isLoading || updateAgencySettings.isPending}
+          disabled={agencySettingsQuery.isLoading || updateAgencySettings.isPending || !canEditAgencySettings}
         >
           {updateAgencySettings.isPending ? 'Saving…' : saved ? 'Saved' : 'Save Changes'}
         </Button>
