@@ -125,7 +125,7 @@ export default function BrochureSetupScreen() {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const { properties, isLoading } = useData();
-  const { data: directoryUsers = [] } = useListUsers({
+  const { data: directoryUsers = [], refetch: refetchDirectoryUsers } = useListUsers({
     query: { enabled: true, queryKey: getListUsersQueryKey() },
   });
   const [mode, setMode] = useState<BrochureMode>('my');
@@ -172,24 +172,6 @@ export default function BrochureSetupScreen() {
   }, [publishedProperties]);
   const propertyGroupCount = (group: PropertyGroup) =>
     sourceProperties.filter((property) => propertyGroup(property) === group).length;
-  const brochureAgents = useMemo<BrochureAgent[]>(() => {
-    const directory = directoryUsers.map((directoryUser) => ({
-      id: String(directoryUser.id),
-      name: directoryUser.name,
-      email: directoryUser.email,
-      phone: directoryUser.phone,
-    }));
-    if (user && !directory.some((directoryUser) => String(directoryUser.id) === String(user.id))) {
-      directory.push({
-        id: String(user.id),
-        name: user.name,
-        email: user.email,
-        phone: user.phone,
-      });
-    }
-    return directory;
-  }, [directoryUsers, user]);
-
   const toggleSet = <T,>(setter: React.Dispatch<React.SetStateAction<Set<T>>>, value: T) => {
     setter((current) => {
       const next = new Set(current);
@@ -224,8 +206,24 @@ export default function BrochureSetupScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
     setLoading(true);
     try {
+      const refreshedDirectory = await refetchDirectoryUsers();
+      const availableUsers = refreshedDirectory.data ?? directoryUsers;
+      const agents: BrochureAgent[] = availableUsers.map((directoryUser) => ({
+        id: String(directoryUser.id),
+        name: directoryUser.name,
+        email: directoryUser.email,
+        phone: directoryUser.phone,
+      }));
+      if (user && !agents.some((directoryUser) => String(directoryUser.id) === String(user.id))) {
+        agents.push({
+          id: String(user.id),
+          name: user.name,
+          email: user.email,
+          phone: user.phone,
+        });
+      }
       const Print: typeof import('expo-print') = await import('expo-print');
-       const html = catalogueBrochureHtml(filteredProperties, user, mode, brochureAgents);
+      const html = catalogueBrochureHtml(filteredProperties, user, mode, agents);
       if (action === 'print') {
         await Print.printAsync({ html });
       } else {

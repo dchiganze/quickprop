@@ -37,7 +37,7 @@ const LOGO_SVG = `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/
 
 const BASE_STYLES = `
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif; background: #f3f4f6; color: #111827; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif; background: #ffffff; color: #111827; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   @media print {
     body { background: white; }
     @page { size: A4; margin: 0; }

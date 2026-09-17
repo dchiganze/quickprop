@@ -130,9 +130,9 @@ export default function BrochureCatalog() {
   }, [allProperties, currentUser?.id, mode, propParam, listingTypesParam, propertyGroupsParam]);
 
   const agentMap = React.useMemo(() => {
-    const map: Record<number, AgentContact> = {};
+    const map: Record<string, AgentContact> = {};
     (users ?? []).forEach((user) => {
-      map[user.id] = {
+      map[String(user.id)] = {
         name: user.name ?? 'Agent',
         email: user.email,
         phone: user.phone,
@@ -144,7 +144,7 @@ export default function BrochureCatalog() {
   const customAgentNames = React.useMemo(() => {
     if (mode !== 'custom') return [];
     const agentIds = new Set(properties.map((property) => property.agentId).filter(Boolean));
-    return [...agentIds].map((id) => agentMap[id as number]?.name).filter(Boolean);
+    return [...agentIds].map((id) => agentMap[String(id)]?.name).filter(Boolean);
   }, [agentMap, mode, properties]);
 
   const agencyName = agencySettings?.agencyName || 'QuickProp';
@@ -176,7 +176,7 @@ export default function BrochureCatalog() {
           --brochure-primary: #0f766e;
           --brochure-primary-bright: #10b981;
           --brochure-paper: #ffffff;
-          --brochure-paper-warm: #f7faf8;
+          --brochure-paper-warm: #ffffff;
           --brochure-line: #dce8e4;
           --brochure-muted: #71827f;
           --brochure-amber: #b7791f;
@@ -186,7 +186,7 @@ export default function BrochureCatalog() {
         .brochure-canvas {
           min-height: 100vh;
           padding: 88px 24px 48px;
-          background: #e9efec;
+          background: #ffffff;
           color: var(--brochure-ink);
         }
 
@@ -341,12 +341,6 @@ export default function BrochureCatalog() {
           white-space: pre-line;
         }
 
-        .cover-about .about-contact {
-          margin-top: 16px;
-          padding-top: 14px;
-          gap: 10px;
-        }
-
         .about-page {
           display: flex;
           flex-direction: column;
@@ -395,32 +389,6 @@ export default function BrochureCatalog() {
         .about-empty {
           color: var(--brochure-muted);
           font-style: italic;
-        }
-
-        .about-contact {
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 14px;
-          max-width: 155mm;
-          margin-top: auto;
-          padding-top: 28px;
-          border-top: 1px solid var(--brochure-line);
-        }
-
-        .contact-item {
-          display: flex;
-          align-items: flex-start;
-          gap: 8px;
-          color: var(--brochure-ink-soft);
-          font-size: 10px;
-          line-height: 1.45;
-          overflow-wrap: anywhere;
-        }
-
-        .contact-item svg {
-          flex: 0 0 auto;
-          margin-top: 1px;
-          color: var(--brochure-primary);
         }
 
         .property-page {
@@ -612,11 +580,21 @@ export default function BrochureCatalog() {
           display: flex;
           flex-wrap: wrap;
           gap: 7px 18px;
-          margin-top: auto;
-          padding-top: 16px;
-          color: var(--brochure-muted);
-          border-top: 1px solid var(--brochure-line);
-          font-size: 9px;
+          margin-top: 18px;
+          padding: 12px 14px;
+          color: var(--brochure-ink-soft);
+          background: var(--brochure-paper-warm);
+          border: 1px solid var(--brochure-line);
+          font-size: 17.5px;
+        }
+
+        .property-contact-label {
+          width: 100%;
+          color: var(--brochure-primary);
+          font-size: 14px;
+          font-weight: 800;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
         }
 
         .property-contact-item {
@@ -716,7 +694,6 @@ export default function BrochureCatalog() {
             border-left: 0;
           }
           .cover-stat + .cover-stat { border-top: 1px solid var(--brochure-line); }
-          .about-contact { grid-template-columns: 1fr; }
           .property-lower { grid-template-columns: 1fr; }
           .property-hero { height: 58vw; }
           .property-side-photos { grid-template-columns: repeat(2, 1fr); grid-template-rows: 42vw; }
@@ -751,9 +728,6 @@ export default function BrochureCatalog() {
         <CoverPage
           agencyName={agencyName}
           agencyLogo={agencySettings?.logoUrl}
-          agencyWebsite={agencySettings?.website}
-          agencyPhone={agencySettings?.phone}
-          agencyEmail={agencySettings?.email}
           aboutText={aboutText}
           tagline={tagline}
           titleLine={titleLine}
@@ -768,7 +742,7 @@ export default function BrochureCatalog() {
           <PropertyPage
             key={property.id}
             property={property}
-            agentContact={property.agentId ? agentMap[property.agentId] ?? null : null}
+            agentContact={property.agentId != null ? agentMap[String(property.agentId)] ?? null : null}
             agencyName={agencyName}
             agencyLogo={agencySettings?.logoUrl}
             agencyWebsite={agencySettings?.website}
@@ -802,9 +776,6 @@ export default function BrochureCatalog() {
 function CoverPage({
   agencyName,
   agencyLogo,
-  agencyWebsite,
-  agencyPhone,
-  agencyEmail,
   aboutText,
   tagline,
   titleLine,
@@ -816,9 +787,6 @@ function CoverPage({
 }: {
   agencyName: string;
   agencyLogo?: string | null;
-  agencyWebsite?: string | null;
-  agencyPhone?: string | null;
-  agencyEmail?: string | null;
   aboutText: string;
   tagline: string;
   titleLine: string;
@@ -852,17 +820,6 @@ function CoverPage({
             <p className={`cover-about-copy ${aboutText ? '' : 'about-empty'}`}>
               {aboutText || 'Add your agency story in Agency Settings to complete this section.'}
             </p>
-            <div className="about-contact">
-              {agencyPhone && (
-                <span className="contact-item"><Phone className="w-3.5 h-3.5" />{agencyPhone}</span>
-              )}
-              {agencyEmail && (
-                <span className="contact-item"><Mail className="w-3.5 h-3.5" />{agencyEmail}</span>
-              )}
-              {agencyWebsite && (
-                <span className="contact-item"><Globe2 className="w-3.5 h-3.5" />{agencyWebsite.replace(/^https?:\/\//, '')}</span>
-              )}
-            </div>
           </div>
         </div>
       </div>
@@ -963,6 +920,7 @@ function PropertyPage({
       </div>
 
       <div className="property-contact">
+        {agentContact && <span className="property-contact-label">Handling agent</span>}
         {agentContact?.name && <span className="property-contact-item"><Building2 className="w-3 h-3" />{agentContact.name}</span>}
         {agentContact?.email && <span className="property-contact-item"><Mail className="w-3 h-3" />{agentContact.email}</span>}
         {agentContact?.phone && <span className="property-contact-item"><Phone className="w-3 h-3" />{agentContact.phone}</span>}
