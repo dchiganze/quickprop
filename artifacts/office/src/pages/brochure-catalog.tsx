@@ -84,6 +84,16 @@ export default function BrochureCatalog() {
   const propertyGroupsParam = params.get('propertyGroups') ?? 'residential,commercial,stand,mine,farm,other_land';
   const listingTypes = new Set(listingTypesParam.split(',').filter(Boolean));
   const propertyGroups = new Set(propertyGroupsParam.split(',').filter(Boolean));
+  if (propertyGroups.has('residential_commercial')) {
+    propertyGroups.add('residential');
+    propertyGroups.add('commercial');
+  }
+  if (propertyGroups.has('land')) {
+    propertyGroups.add('stand');
+    propertyGroups.add('mine');
+    propertyGroups.add('farm');
+    propertyGroups.add('other_land');
+  }
   const selectedPropIds = propParam
     ? new Set(propParam.split(',').map(Number))
     : new Set<number>();
