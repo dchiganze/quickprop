@@ -189,7 +189,7 @@ export default function BrochureCatalog() {
 
         .cover-main {
           max-width: 690px;
-          padding-top: 50mm;
+          padding-top: 10mm;
         }
 
         .cover-title {
