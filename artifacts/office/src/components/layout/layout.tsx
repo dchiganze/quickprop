@@ -204,6 +204,17 @@ export function Layout({ children }: { children: React.ReactNode }) {
           </div>
           
           <div className="flex items-center gap-2">
+            <Button
+              asChild
+              variant="outline"
+              size="sm"
+              className="flex items-center gap-2 border-primary/40 text-primary hover:bg-primary/5 hover:text-primary font-semibold"
+            >
+              <Link href="/settings#brochure-settings">
+                <Settings className="w-4 h-4" />
+                Brochure settings
+              </Link>
+            </Button>
             <BrochureCatalogDialog />
             <QuickShareDialog />
             <NotificationsDropdown />

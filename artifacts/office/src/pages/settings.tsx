@@ -82,6 +82,13 @@ export default function Settings() {
     }
   }, [agencySettingsQuery.data]);
 
+  useEffect(() => {
+    if (window.location.hash !== '#brochure-settings') return;
+    window.requestAnimationFrame(() => {
+      document.getElementById('brochure-settings')?.scrollIntoView({ block: 'start' });
+    });
+  }, []);
+
   const saveReminderPreferences = () => {
     setSaved(false);
     updatePreferences.mutate({
@@ -253,7 +260,7 @@ export default function Settings() {
           </CardContent>
         </Card>
 
-        <div className="space-y-1 md:col-span-1">
+        <div id="brochure-settings" className="scroll-mt-6 space-y-1 md:col-span-1">
           <h3 className="font-semibold text-lg flex items-center"><Palette className="w-5 h-5 mr-2 text-primary" /> Branding</h3>
           <p className="text-sm text-muted-foreground">Logo and brochure appearance.</p>
         </div>
