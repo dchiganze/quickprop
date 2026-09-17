@@ -613,6 +613,12 @@ export default function BrochureCatalog() {
           font-size: 13.5px;
         }
 
+        .page-footer-meta a {
+          color: inherit;
+          text-decoration: underline;
+          text-underline-offset: 2px;
+        }
+
         .page-footer-logo {
           display: flex;
           align-items: center;
@@ -973,7 +979,12 @@ function PageFooter({
   return (
     <footer className="page-footer">
       <div className="page-footer-meta">
-        <strong>Powered by quickprop.co.zw</strong>
+        <strong>
+          Powered by{' '}
+          <a href="https://quickprop.co.zw" target="_blank" rel="noopener noreferrer">
+            quickprop.co.zw
+          </a>
+        </strong>
         <span>{String(pageNumber).padStart(2, '0')} / {String(pageCount).padStart(2, '0')}</span>
       </div>
       <div className="page-footer-logo" aria-label={`${agencyName} logo`}>
