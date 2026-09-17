@@ -53,6 +53,14 @@ type ViewingDateOption = {
   times: string[];
 };
 
+const STOCK_PROPERTY_PHOTOS_BASE = `${import.meta.env.BASE_URL}stock-property-images/`;
+const GENERIC_PROPERTY_PHOTOS = ['house-exterior.jpg', 'house-interior.jpg', 'house-living.jpg'];
+
+function getGenericPropertyPhoto(property: Property) {
+  const photoIndex = Math.abs(Number(property.id ?? 0)) % GENERIC_PROPERTY_PHOTOS.length;
+  return `${STOCK_PROPERTY_PHOTOS_BASE}${GENERIC_PROPERTY_PHOTOS[photoIndex]}`;
+}
+
 const PROPERTY_FEATURES = [
   'Solar', 'Borehole', 'Swimming Pool', 'Electric Fence',
   'Staff Quarters', 'Cottage', 'Fitted Kitchen', 'Generator',
@@ -692,14 +700,7 @@ function PropertyCard({ property }: { property: Property }) {
     <Link href={`/property/${property.id}`} className="group">
       <Card className="overflow-hidden hover-elevate transition-all duration-200 h-full flex flex-col border-border/60">
         <div className="relative aspect-[4/3] bg-muted overflow-hidden">
-          {property.coverImage ? (
-            <img src={property.coverImage} alt={property.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-          ) : (
-            <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground/50 bg-muted/50">
-              <Home className="w-10 h-10 mb-2" />
-              <span className="text-xs font-medium uppercase tracking-wider">No Image</span>
-            </div>
-          )}
+          <PropertyCardImage property={property} />
           <div className="absolute top-3 left-3 flex gap-2">
             <Badge className={`font-semibold capitalize shadow-sm ${getStatusColor(property.status)}`}>
               {property.status.replace('_', ' ')}
@@ -732,6 +733,39 @@ function PropertyCard({ property }: { property: Property }) {
         </CardContent>
       </Card>
     </Link>
+  );
+}
+
+function PropertyCardImage({ property }: { property: Property }) {
+  const primaryImage = [property.coverImage, ...(property.photos ?? [])]
+    .find((photo): photo is string => typeof photo === 'string' && photo.trim().length > 0);
+  const fallbackImage = getGenericPropertyPhoto(property);
+  const [imageState, setImageState] = useState<'primary' | 'fallback' | 'none'>(
+    primaryImage ? 'primary' : 'fallback',
+  );
+
+  useEffect(() => {
+    setImageState(primaryImage ? 'primary' : 'fallback');
+  }, [primaryImage, fallbackImage]);
+
+  const image = imageState === 'primary' ? primaryImage : imageState === 'fallback' ? fallbackImage : undefined;
+
+  if (!image) {
+    return (
+      <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground/50 bg-muted/50">
+        <Home className="w-10 h-10 mb-2" />
+        <span className="text-xs font-medium uppercase tracking-wider">No Image</span>
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={image}
+      alt={property.title}
+      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+      onError={() => setImageState((current) => current === 'primary' ? 'fallback' : 'none')}
+    />
   );
 }
 
