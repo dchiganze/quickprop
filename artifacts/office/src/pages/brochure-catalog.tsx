@@ -219,7 +219,7 @@ export default function BrochureCatalog() {
         .cover-logo {
           display: flex;
           align-items: flex-start;
-          justify-content: flex-start;
+          justify-content: center;
           min-height: 31.5mm;
         }
 
@@ -228,7 +228,7 @@ export default function BrochureCatalog() {
           max-width: 101.5mm;
           max-height: 31.5mm;
           object-fit: contain;
-          object-position: left top;
+          object-position: center top;
         }
 
         .cover-logo-fallback {
