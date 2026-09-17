@@ -155,6 +155,28 @@ export default function BrochureCatalog() {
           background: var(--brochure-paper-warm);
         }
 
+        .cover-logo {
+          display: flex;
+          align-items: flex-start;
+          justify-content: flex-start;
+          min-height: 18mm;
+        }
+
+        .cover-logo img {
+          display: block;
+          max-width: 58mm;
+          max-height: 18mm;
+          object-fit: contain;
+          object-position: left top;
+        }
+
+        .cover-logo-fallback {
+          color: var(--brochure-ink);
+          font-size: 18px;
+          font-weight: 800;
+          letter-spacing: -0.05em;
+        }
+
         .cover-kicker,
         .page-kicker,
         .property-kicker {
@@ -736,7 +758,13 @@ function CoverPage({
   return (
     <section className="brochure-page cover-page">
       <div>
-        <p className="cover-kicker">Property catalogue</p>
+        <div className="cover-logo" aria-label={`${agencyName} logo`}>
+          {agencyLogo ? (
+            <img src={agencyLogo} alt={`${agencyName} logo`} />
+          ) : (
+            <span className="cover-logo-fallback">{agencyName}</span>
+          )}
+        </div>
         <div className="cover-main">
           <h1 className="cover-title">{titleLine}</h1>
           {tagline && (
