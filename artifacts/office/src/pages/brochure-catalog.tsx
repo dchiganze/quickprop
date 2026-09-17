@@ -326,7 +326,7 @@ export default function BrochureCatalog() {
         .cover-about-kicker {
           margin: 0;
           color: var(--brochure-primary);
-          font-size: 10px;
+          font-size: 15px;
           font-weight: 800;
           letter-spacing: 0.16em;
           text-transform: uppercase;
@@ -336,7 +336,7 @@ export default function BrochureCatalog() {
           max-width: 145mm;
           margin: 8px 0 0;
           color: var(--brochure-ink-soft);
-          font-size: 12px;
+          font-size: 18px;
           line-height: 1.55;
           white-space: pre-line;
         }
