@@ -1,6 +1,6 @@
 import React from 'react';
 import { useListProperties, useGetCurrentUser, useListUsers, useGetAdminAgencySettings } from '@workspace/api-client-react';
-import { Bed, Bath, Car, Square, MapPin, Building2, Printer, ArrowLeft, ArrowUpRight, Tag } from 'lucide-react';
+import { Bed, Bath, Car, Square, MapPin, Building2, Printer, ArrowLeft, ArrowUpRight } from 'lucide-react';
 
 function formatPrice(price: number, currency: string, listingType: string) {
   const f = price >= 1_000_000
@@ -9,11 +9,11 @@ function formatPrice(price: number, currency: string, listingType: string) {
   return listingType === 'rent' ? `${f}/mo` : f;
 }
 
-const STATUS_PILL: Record<string, { label: string; color: string }> = {
-  public:       { label: 'For Sale',     color: '#059669' },
-  under_offer:  { label: 'Under Offer',  color: '#d97706' },
-  coming_soon:  { label: 'Coming Soon',  color: '#2563eb' },
-  sold:         { label: 'Sold',         color: '#dc2626' },
+const STATUS_PILL: Record<string, { label: string }> = {
+  public:       { label: 'For Sale' },
+  under_offer:  { label: 'Under Offer' },
+  coming_soon:  { label: 'Coming Soon' },
+  sold:         { label: 'Sold' },
 };
 
 const PUBLIC_SITE_URL = 'https://www.quickprop.melios.co.zw';
@@ -166,7 +166,6 @@ export default function BrochureCatalog() {
           align-items: center;
           justify-content: flex-start;
           width: 148px;
-          min-height: 38px;
         }
 
         .brochure-logo img {
