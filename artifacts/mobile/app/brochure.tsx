@@ -251,7 +251,7 @@ export default function BrochureSetupScreen() {
 
         <View style={styles.stepper}>
           {([
-            ['personnel', '01', 'Personnel', mode === 'my' ? 'My listings' : mode === 'company' ? 'Company' : 'Other agents'],
+            ['personnel', '01', 'Personnel', mode === 'my' ? 'My listings' : mode === 'company' ? 'Company' : 'Custom agents'],
             ['listing', '02', 'Sale / Rent', `${listingFilters.size} selected`],
             ['property', '03', 'Property type', `${propertyGroups.size} selected`],
           ] as const).map(([step, number, label, detail]) => (
@@ -283,7 +283,7 @@ export default function BrochureSetupScreen() {
         {activeStep === 'personnel' && <View style={styles.section}>
           <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>SELECT PERSONNEL</Text>
           <ModeCard icon="person-outline" label="My Listings" detail="Your published properties" count={myProperties.length} selected={mode === 'my'} onPress={() => setMode('my')} colors={colors} />
-          <ModeCard icon="people-outline" label="Other Agents" detail="Pick agents and properties" count={selectedPropertyIds.size} selected={mode === 'custom'} onPress={() => setMode('custom')} colors={colors} />
+          <ModeCard icon="people-outline" label="Custom Agents" detail="Pick agents and properties" count={selectedPropertyIds.size} selected={mode === 'custom'} onPress={() => setMode('custom')} colors={colors} />
           <ModeCard icon="business-outline" label="Company Catalogue" detail="Every published listing" count={publishedProperties.length} selected={mode === 'company'} onPress={() => setMode('company')} colors={colors} />
         </View>}
 
@@ -317,7 +317,7 @@ export default function BrochureSetupScreen() {
             {agentGroups.map(([agentId, agentProperties]) => {
               const selectedCount = agentProperties.filter((property) => selectedPropertyIds.has(property.id)).length;
               const expanded = expandedAgents.has(agentId);
-              const agentName = agentId === user?.id ? user.name : `Agent ${agentId}`;
+               const agentName = agentId === user?.id ? `${user.name} (My Listings)` : `Agent ${agentId}`;
               return (
                 <View key={agentId} style={[styles.agentGroup, { borderTopColor: colors.border }]}>
                   <View style={styles.agentRow}>
@@ -328,7 +328,7 @@ export default function BrochureSetupScreen() {
                       onPress={() => toggleAgent(agentId, agentProperties)}
                       colors={colors}
                     />
-                    <TouchableOpacity onPress={() => toggleSet(setExpandedAgents, agentId)} style={styles.expandButton} accessibilityLabel={`${expanded ? 'Collapse' : 'Expand'} ${agentName} listings`}>
+                     <TouchableOpacity onPress={() => toggleSet(setExpandedAgents, agentId)} style={styles.expandButton} accessibilityLabel={`${expanded ? 'Collapse' : 'Expand'} ${agentName} listings`}>
                       <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={18} color={colors.mutedForeground} />
                     </TouchableOpacity>
                   </View>

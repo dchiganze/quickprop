@@ -240,7 +240,7 @@ export default function BrochureSetup() {
       <div className="border-b border-border bg-card">
         <div className="mx-auto grid max-w-6xl grid-cols-3 gap-2 px-5 py-4 sm:gap-3 sm:px-8 lg:px-10">
           {([
-            ['personnel', '01', 'Select personnel', mode === 'my' ? 'My listings' : mode === 'company' ? 'Company catalogue' : 'Other agents'],
+            ['personnel', '01', 'Select personnel', mode === 'my' ? 'My listings' : mode === 'company' ? 'Company catalogue' : 'Custom agents'],
             ['listing', '02', 'Sale / Rent', `${listingTypes.size} selected`],
             ['property', '03', 'Property type', `${propertyGroups.size} selected`],
           ] as const).map(([step, number, label, detail]) => (
@@ -295,7 +295,7 @@ export default function BrochureSetup() {
                   mode="custom"
                   selected={mode === 'custom'}
                   icon={Users}
-                  label="Other Agents"
+                  label="Custom Agents"
                   description="Pick agents and properties"
                   count={selectedPropIds.size}
                   onClick={() => setMode('custom')}
@@ -422,6 +422,7 @@ export default function BrochureSetup() {
                     const agentProperties = propsByAgent.get(agent.id) ?? [];
                     const selectedCount = agentProperties.filter((property) => selectedPropIds.has(property.id)).length;
                     const expanded = expandedAgents.has(agent.id);
+                    const agentLabel = agent.id === currentUser?.id ? `${agent.name} (My Listings)` : agent.name;
                     return (
                       <div key={agent.id}>
                         <div className="flex items-center gap-3 px-5 py-3 sm:px-6">
@@ -429,13 +430,13 @@ export default function BrochureSetup() {
                             data-testid={`checkbox-agent-${agent.id}`}
                             checked={agentProperties.length > 0 && selectedCount === agentProperties.length}
                             onCheckedChange={() => toggleAgent(agent.id)}
-                            aria-label={`Select ${agent.name}`}
+                            aria-label={`Select ${agentLabel}`}
                           />
                           <Avatar className="h-8 w-8 border border-primary/10">
                             <AvatarFallback className="bg-primary/10 text-xs font-bold text-primary">{initials(agent.name)}</AvatarFallback>
                           </Avatar>
                           <div className="min-w-0 flex-1">
-                            <p data-testid={`text-agent-name-${agent.id}`} className="truncate text-sm font-semibold">{agent.name}</p>
+                            <p data-testid={`text-agent-name-${agent.id}`} className="truncate text-sm font-semibold">{agentLabel}</p>
                             <p className="truncate text-xs text-muted-foreground">{agent.email}</p>
                           </div>
                           <Badge variant="outline" className="shrink-0 text-xs">{selectedCount}/{agentProperties.length}</Badge>
@@ -444,7 +445,7 @@ export default function BrochureSetup() {
                             data-testid={`button-toggle-agent-${agent.id}`}
                             onClick={() => toggleAgentExpanded(agent.id)}
                             className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                            aria-label={`${expanded ? 'Collapse' : 'Expand'} ${agent.name} listings`}
+                            aria-label={`${expanded ? 'Collapse' : 'Expand'} ${agentLabel} listings`}
                           >
                             {expanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                           </button>
