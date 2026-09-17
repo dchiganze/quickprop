@@ -29,10 +29,26 @@ const STATUS_LABELS: Record<string, string> = {
 };
 const STOCK_PROPERTY_PHOTOS_BASE = `${import.meta.env.BASE_URL}stock-property-images/`;
 const GENERIC_PROPERTY_PHOTOS = ['house-exterior.jpg', 'house-interior.jpg', 'house-living.jpg'];
-const LAND_PROPERTY_TYPES = ['stand', 'mine', 'mining', 'farm', 'other_land', 'land', 'plot', 'vacant_land'];
+type PropertyGroup = 'residential' | 'commercial' | 'stand' | 'mine' | 'farm' | 'other_land';
+type LandGroupKey = Extract<PropertyGroup, 'stand' | 'mine' | 'farm' | 'other_land'>;
+const LAND_TYPE_GROUPS: Record<string, LandGroupKey> = {
+  stand: 'stand',
+  stands: 'stand',
+  mine: 'mine',
+  mines: 'mine',
+  mining: 'mine',
+  farm: 'farm',
+  farms: 'farm',
+  other_land: 'other_land',
+  land: 'other_land',
+  plot: 'other_land',
+  vacant_land: 'other_land',
+};
+const COMMERCIAL_TYPES = new Set(['commercial', 'industrial', 'office', 'retail', 'warehouse', 'shop', 'business']);
 
-function getPropertyGroup(propertyType: string) {
-  return LAND_PROPERTY_TYPES.includes(propertyType.toLowerCase()) ? 'land' : 'residential_commercial';
+function getPropertyGroup(propertyType: string): PropertyGroup {
+  const normalized = propertyType.toLowerCase();
+  return LAND_TYPE_GROUPS[normalized] ?? (COMMERCIAL_TYPES.has(normalized) ? 'commercial' : 'residential');
 }
 
 function formatPrice(price: number, currency: string, listingType: string) {
@@ -65,7 +81,7 @@ export default function BrochureCatalog() {
   const mode = (params.get('mode') ?? 'company') as 'my' | 'company' | 'custom';
   const propParam = params.get('props') ?? '';
   const listingTypesParam = params.get('listingTypes') ?? 'sale,rent';
-  const propertyGroupsParam = params.get('propertyGroups') ?? 'residential_commercial,land';
+  const propertyGroupsParam = params.get('propertyGroups') ?? 'residential,commercial,stand,mine,farm,other_land';
   const listingTypes = new Set(listingTypesParam.split(',').filter(Boolean));
   const propertyGroups = new Set(propertyGroupsParam.split(',').filter(Boolean));
   const selectedPropIds = propParam

@@ -20,13 +20,27 @@ import { catalogueBrochureHtml } from '@/utils/brochureHtml';
 
 type BrochureMode = 'my' | 'company' | 'custom';
 type ListingFilter = 'sale' | 'rent';
-type PropertyGroup = 'residential_commercial' | 'land';
+type PropertyGroup = 'residential' | 'commercial' | 'stand' | 'mine' | 'farm' | 'other_land';
+type LandGroupKey = Extract<PropertyGroup, 'stand' | 'mine' | 'farm' | 'other_land'>;
 
-const LAND_TYPES = new Set(['stand', 'mine', 'mining', 'farm', 'other_land', 'land', 'plot', 'vacant_land']);
+const LAND_TYPE_GROUPS: Record<string, LandGroupKey> = {
+  stand: 'stand',
+  stands: 'stand',
+  mine: 'mine',
+  mines: 'mine',
+  mining: 'mine',
+  farm: 'farm',
+  farms: 'farm',
+  other_land: 'other_land',
+  land: 'other_land',
+  plot: 'other_land',
+  vacant_land: 'other_land',
+};
+const COMMERCIAL_TYPES = new Set(['commercial', 'industrial', 'office', 'retail', 'warehouse', 'shop', 'business']);
 
 function propertyGroup(property: Property): PropertyGroup {
   const type = (property.propertyType ?? property.type).toLowerCase();
-  return LAND_TYPES.has(type) ? 'land' : 'residential_commercial';
+  return LAND_TYPE_GROUPS[type] ?? (COMMERCIAL_TYPES.has(type) ? 'commercial' : 'residential');
 }
 
 function listingType(property: Property): ListingFilter {
@@ -111,7 +125,9 @@ export default function BrochureSetupScreen() {
   const { properties, isLoading } = useData();
   const [mode, setMode] = useState<BrochureMode>('my');
   const [listingFilters, setListingFilters] = useState<Set<ListingFilter>>(new Set(['sale', 'rent']));
-  const [propertyGroups, setPropertyGroups] = useState<Set<PropertyGroup>>(new Set(['residential_commercial', 'land']));
+  const [propertyGroups, setPropertyGroups] = useState<Set<PropertyGroup>>(
+    new Set(['residential', 'commercial', 'stand', 'mine', 'farm', 'other_land']),
+  );
   const [selectedPropertyIds, setSelectedPropertyIds] = useState<Set<string>>(new Set());
   const [expandedAgents, setExpandedAgents] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
@@ -148,6 +164,8 @@ export default function BrochureSetupScreen() {
     });
     return [...groups.entries()];
   }, [publishedProperties]);
+  const propertyGroupCount = (group: PropertyGroup) =>
+    sourceProperties.filter((property) => propertyGroup(property) === group).length;
 
   const toggleSet = <T,>(setter: React.Dispatch<React.SetStateAction<Set<T>>>, value: T) => {
     setter((current) => {
@@ -240,9 +258,13 @@ export default function BrochureSetupScreen() {
           <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>LISTING TYPE</Text>
           <CheckboxRow checked={listingFilters.has('sale')} label="For Sale" detail="Include sales listings only if selected" onPress={() => toggleSet<ListingFilter>(setListingFilters, 'sale')} colors={colors} />
           <CheckboxRow checked={listingFilters.has('rent')} label="To Rent" detail="Include rental listings only if selected" onPress={() => toggleSet<ListingFilter>(setListingFilters, 'rent')} colors={colors} />
-          <Text style={[styles.sectionLabel, { color: colors.mutedForeground, marginTop: 18 }]}>PROPERTY GROUP</Text>
-          <CheckboxRow checked={propertyGroups.has('residential_commercial')} label="Residential & Commercial" detail="Homes, apartments and business premises" onPress={() => toggleSet<PropertyGroup>(setPropertyGroups, 'residential_commercial')} colors={colors} />
-          <CheckboxRow checked={propertyGroups.has('land')} label="Stands / Mines / Farms / Other land" detail="Land and agricultural listings" onPress={() => toggleSet<PropertyGroup>(setPropertyGroups, 'land')} colors={colors} />
+          <Text style={[styles.sectionLabel, { color: colors.mutedForeground, marginTop: 18 }]}>PROPERTY TYPE</Text>
+          <CheckboxRow checked={propertyGroups.has('residential')} label="Residential" detail="Homes, apartments and townhouses" onPress={() => toggleSet<PropertyGroup>(setPropertyGroups, 'residential')} colors={colors} />
+          <CheckboxRow checked={propertyGroups.has('commercial')} label="Commercial" detail="Offices, retail and industrial" onPress={() => toggleSet<PropertyGroup>(setPropertyGroups, 'commercial')} colors={colors} />
+          <CheckboxRow checked={propertyGroups.has('stand')} label="Stands" detail={`${propertyGroupCount('stand')} available`} onPress={() => toggleSet<PropertyGroup>(setPropertyGroups, 'stand')} colors={colors} />
+          <CheckboxRow checked={propertyGroups.has('mine')} label="Mines" detail={`${propertyGroupCount('mine')} available`} onPress={() => toggleSet<PropertyGroup>(setPropertyGroups, 'mine')} colors={colors} />
+          <CheckboxRow checked={propertyGroups.has('farm')} label="Farms" detail={`${propertyGroupCount('farm')} available`} onPress={() => toggleSet<PropertyGroup>(setPropertyGroups, 'farm')} colors={colors} />
+          <CheckboxRow checked={propertyGroups.has('other_land')} label="Other land" detail={`${propertyGroupCount('other_land')} available`} onPress={() => toggleSet<PropertyGroup>(setPropertyGroups, 'other_land')} colors={colors} />
         </View>
 
         {mode === 'custom' && (

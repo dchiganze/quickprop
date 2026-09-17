@@ -31,13 +31,28 @@ import { Separator } from '@/components/ui/separator';
 
 type BrochureMode = 'my' | 'company' | 'custom';
 type FilterKey = 'sale' | 'rent';
-type GroupKey = 'residential_commercial' | 'land';
+type GroupKey = 'residential' | 'commercial' | 'stand' | 'mine' | 'farm' | 'other_land';
+type LandGroupKey = Extract<GroupKey, 'stand' | 'mine' | 'farm' | 'other_land'>;
 
 const PUBLIC_STATUSES = ['public', 'under_offer', 'coming_soon'];
-const LAND_TYPES = ['stand', 'mine', 'mining', 'farm', 'other_land', 'land', 'plot', 'vacant_land'];
+const LAND_TYPE_GROUPS: Record<string, LandGroupKey> = {
+  stand: 'stand',
+  stands: 'stand',
+  mine: 'mine',
+  mines: 'mine',
+  mining: 'mine',
+  farm: 'farm',
+  farms: 'farm',
+  other_land: 'other_land',
+  land: 'other_land',
+  plot: 'other_land',
+  vacant_land: 'other_land',
+};
+const COMMERCIAL_TYPES = new Set(['commercial', 'industrial', 'office', 'retail', 'warehouse', 'shop', 'business']);
 
 function propertyGroup(propertyType: string): GroupKey {
-  return LAND_TYPES.includes(propertyType.toLowerCase()) ? 'land' : 'residential_commercial';
+  const normalized = propertyType.toLowerCase();
+  return LAND_TYPE_GROUPS[normalized] ?? (COMMERCIAL_TYPES.has(normalized) ? 'commercial' : 'residential');
 }
 
 function formatPrice(price: number, currency: string, listingType: string) {
@@ -55,7 +70,9 @@ export default function BrochureSetup() {
   const [, setLocation] = useLocation();
   const [mode, setMode] = useState<BrochureMode>('my');
   const [listingTypes, setListingTypes] = useState<Set<FilterKey>>(new Set(['sale', 'rent']));
-  const [propertyGroups, setPropertyGroups] = useState<Set<GroupKey>>(new Set(['residential_commercial', 'land']));
+  const [propertyGroups, setPropertyGroups] = useState<Set<GroupKey>>(
+    new Set(['residential', 'commercial', 'stand', 'mine', 'farm', 'other_land']),
+  );
   const [selectedPropIds, setSelectedPropIds] = useState<Set<number>>(new Set());
   const [expandedAgents, setExpandedAgents] = useState<Set<number>>(new Set());
 
@@ -281,20 +298,48 @@ export default function BrochureSetup() {
                     detail={`${baseProperties.filter((property) => property.listingType === 'rent').length} available`}
                   />
                 </FilterGroup>
-                <FilterGroup title="Property group" icon={Layers3}>
+                <FilterGroup title="Property type" icon={Layers3}>
                   <FilterButton
-                    data-testid="checkbox-property-group-residential-commercial"
-                    checked={propertyGroups.has('residential_commercial')}
-                    onClick={() => toggleSetValue(setPropertyGroups, 'residential_commercial')}
-                    label="Residential & Commercial"
-                    detail="Homes, apartments, commercial"
+                    data-testid="checkbox-property-group-residential"
+                    checked={propertyGroups.has('residential')}
+                    onClick={() => toggleSetValue(setPropertyGroups, 'residential')}
+                    label="Residential"
+                    detail="Homes, apartments, townhouses"
                   />
                   <FilterButton
-                    data-testid="checkbox-property-group-land"
-                    checked={propertyGroups.has('land')}
-                    onClick={() => toggleSetValue(setPropertyGroups, 'land')}
-                    label="Stands / Mines / Farms / Other land"
-                    detail="Land and agricultural listings"
+                    data-testid="checkbox-property-group-commercial"
+                    checked={propertyGroups.has('commercial')}
+                    onClick={() => toggleSetValue(setPropertyGroups, 'commercial')}
+                    label="Commercial"
+                    detail="Offices, retail and industrial"
+                  />
+                  <FilterButton
+                    data-testid="checkbox-property-group-stand"
+                    checked={propertyGroups.has('stand')}
+                    onClick={() => toggleSetValue(setPropertyGroups, 'stand')}
+                    label="Stands"
+                    detail={`${baseProperties.filter((property) => propertyGroup(property.propertyType) === 'stand').length} available`}
+                  />
+                  <FilterButton
+                    data-testid="checkbox-property-group-mine"
+                    checked={propertyGroups.has('mine')}
+                    onClick={() => toggleSetValue(setPropertyGroups, 'mine')}
+                    label="Mines"
+                    detail={`${baseProperties.filter((property) => propertyGroup(property.propertyType) === 'mine').length} available`}
+                  />
+                  <FilterButton
+                    data-testid="checkbox-property-group-farm"
+                    checked={propertyGroups.has('farm')}
+                    onClick={() => toggleSetValue(setPropertyGroups, 'farm')}
+                    label="Farms"
+                    detail={`${baseProperties.filter((property) => propertyGroup(property.propertyType) === 'farm').length} available`}
+                  />
+                  <FilterButton
+                    data-testid="checkbox-property-group-other-land"
+                    checked={propertyGroups.has('other_land')}
+                    onClick={() => toggleSetValue(setPropertyGroups, 'other_land')}
+                    label="Other land"
+                    detail={`${baseProperties.filter((property) => propertyGroup(property.propertyType) === 'other_land').length} available`}
                   />
                 </FilterGroup>
               </div>
