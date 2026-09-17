@@ -1,6 +1,13 @@
 import { Property, User } from '@/types';
 import { catalogueShareLinks, propertyShareLinks } from '@/utils/shareLinks';
 
+export type BrochureAgent = {
+  id: string | number;
+  name: string;
+  email?: string | null;
+  phone?: string | null;
+};
+
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 function fmtPrice(p: Property): string {
@@ -215,10 +222,12 @@ ${BASE_STYLES}
 
 // ─── Catalogue ───────────────────────────────────────────────────────────────
 
-function propertyCardHtml(p: Property): string {
+function propertyCardHtml(p: Property, agents: BrochureAgent[], fallbackAgent: BrochureAgent | null): string {
   const st = statusLabel(p);
   const price = fmtPrice(p);
   const coverImg = p.photos?.[0];
+  const agent = agents.find(candidate => String(candidate.id) === String(p.agentId)) ??
+    (fallbackAgent && String(fallbackAgent.id) === String(p.agentId) ? fallbackAgent : null);
 
   const specs = [
     p.bedrooms != null ? `${p.bedrooms} bed` : '',
@@ -243,6 +252,14 @@ function propertyCardHtml(p: Property): string {
       ${specs ? `<div class="prop-specs">${specs}</div>` : ''}
       ${p.description ? `<div class="prop-desc">${p.description.slice(0, 160)}${p.description.length > 160 ? '…' : ''}</div>` : ''}
       <div class="prop-ref">${p.referenceNumber}</div>
+       ${agent ? `
+         <div class="prop-agent">
+           <span class="prop-agent-label">Handling agent</span>
+           <strong>${agent.name}</strong>
+           ${agent.email ? `<span class="prop-agent-contact">${agent.email}</span>` : ''}
+           ${agent.phone ? `<span class="prop-agent-contact">${agent.phone}</span>` : ''}
+         </div>
+       ` : ''}
     </div>
   </div>`;
 }
@@ -251,6 +268,7 @@ export function catalogueBrochureHtml(
   properties: Property[],
   agent: User | null,
   mode: 'my' | 'company' | 'custom',
+  agents: BrochureAgent[] = [],
 ): string {
   const titleLine = mode === 'my'
     ? `${agent?.name ?? 'Agent'}'s Property Brochure`
@@ -270,7 +288,7 @@ export function catalogueBrochureHtml(
       <span class="section-count">${props.length} ${props.length === 1 ? 'property' : 'properties'}</span>
     </div>
     <div class="props-list">
-      ${props.map(propertyCardHtml).join('')}
+       ${props.map(property => propertyCardHtml(property, agents, agent)).join('')}
     </div>`;
 
   return `<!DOCTYPE html>
@@ -311,6 +329,9 @@ ${BASE_STYLES}
 .prop-specs { font-size: 11px; color: #6b7280; }
 .prop-desc { font-size: 11px; color: #4b5563; line-height: 1.55; }
 .prop-ref { font-size: 10px; color: #9ca3af; font-weight: 600; font-family: monospace; margin-top: 2px; }
+.prop-agent { margin-top: 4px; padding-top: 6px; border-top: 1px solid #f3f4f6; font-size: 10px; color: #4b5563; line-height: 1.45; }
+.prop-agent-label { display: block; margin-bottom: 2px; color: #059669; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .7px; }
+.prop-agent-contact { display: inline-block; margin-right: 10px; }
 
 .footer { margin: 28px 36px 0; padding-top: 16px; border-top: 1px solid #e5e7eb; display: flex; justify-content: space-between; font-size: 10px; color: #9ca3af; }
 

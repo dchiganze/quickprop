@@ -10,7 +10,6 @@ import {
   MapPin,
   Phone,
   Printer,
-  Quote,
   Square,
 } from 'lucide-react';
 import {
@@ -45,6 +44,11 @@ const LAND_TYPE_GROUPS: Record<string, LandGroupKey> = {
   vacant_land: 'other_land',
 };
 const COMMERCIAL_TYPES = new Set(['commercial', 'industrial', 'office', 'retail', 'warehouse', 'shop', 'business']);
+type AgentContact = {
+  name: string;
+  email?: string | null;
+  phone?: string | null;
+};
 
 function getPropertyGroup(propertyType: string): PropertyGroup {
   const normalized = propertyType.toLowerCase();
@@ -126,9 +130,13 @@ export default function BrochureCatalog() {
   }, [allProperties, currentUser?.id, mode, propParam, listingTypesParam, propertyGroupsParam]);
 
   const agentMap = React.useMemo(() => {
-    const map: Record<number, string> = {};
+    const map: Record<number, AgentContact> = {};
     (users ?? []).forEach((user) => {
-      map[user.id] = user.name ?? 'Agent';
+      map[user.id] = {
+        name: user.name ?? 'Agent',
+        email: user.email,
+        phone: user.phone,
+      };
     });
     return map;
   }, [users]);
@@ -136,7 +144,7 @@ export default function BrochureCatalog() {
   const customAgentNames = React.useMemo(() => {
     if (mode !== 'custom') return [];
     const agentIds = new Set(properties.map((property) => property.agentId).filter(Boolean));
-    return [...agentIds].map((id) => agentMap[id as number]).filter(Boolean);
+    return [...agentIds].map((id) => agentMap[id as number]?.name).filter(Boolean);
   }, [agentMap, mode, properties]);
 
   const agencyName = agencySettings?.agencyName || 'QuickProp';
@@ -254,24 +262,6 @@ export default function BrochureCatalog() {
           font-weight: 800;
           letter-spacing: -0.07em;
           line-height: 0.96;
-        }
-
-        .cover-tagline {
-          display: flex;
-          align-items: flex-start;
-          gap: 10px;
-          max-width: 125mm;
-          margin: 22px 0 0;
-          color: var(--brochure-ink-soft);
-          font-size: 17px;
-          font-weight: 500;
-          line-height: 1.45;
-        }
-
-        .cover-tagline svg {
-          flex: 0 0 auto;
-          margin-top: 3px;
-          color: var(--brochure-primary-bright);
         }
 
         .cover-description {
@@ -778,12 +768,10 @@ export default function BrochureCatalog() {
           <PropertyPage
             key={property.id}
             property={property}
-            agentName={property.agentId ? agentMap[property.agentId] : null}
+            agentContact={property.agentId ? agentMap[property.agentId] ?? null : null}
             agencyName={agencyName}
             agencyLogo={agencySettings?.logoUrl}
             agencyWebsite={agencySettings?.website}
-            agencyPhone={agencySettings?.phone}
-            agencyEmail={agencySettings?.email}
             pageNumber={index + 2}
             pageCount={pagesCount}
           />
@@ -852,15 +840,7 @@ function CoverPage({
         </div>
         <div className="cover-main">
           <h1 className="cover-title">{titleLine}</h1>
-          {tagline && (
-            <p className="cover-tagline">
-              <Quote className="w-4 h-4" />
-              {tagline}
-            </p>
-          )}
-          <p className="cover-description">
-            A considered selection of published properties, presented through the QuickProp platform.
-          </p>
+          {tagline && <p className="cover-description">{tagline}</p>}
           <div className="cover-rule" />
           <div className="cover-stats">
             <CoverStat value={totalProperties} label="Published listings" />
@@ -898,22 +878,18 @@ function CoverPage({
 
 function PropertyPage({
   property,
-  agentName,
+  agentContact,
   agencyName,
   agencyLogo,
   agencyWebsite,
-  agencyPhone,
-  agencyEmail,
   pageNumber,
   pageCount,
 }: {
   property: any;
-  agentName: string | null;
+  agentContact: AgentContact | null;
   agencyName: string;
   agencyLogo?: string | null;
   agencyWebsite?: string | null;
-  agencyPhone?: string | null;
-  agencyEmail?: string | null;
   pageNumber: number;
   pageCount: number;
 }) {
@@ -987,9 +963,9 @@ function PropertyPage({
       </div>
 
       <div className="property-contact">
-        {agentName && <span className="property-contact-item"><Building2 className="w-3 h-3" />{agentName}</span>}
-        {agencyPhone && <span className="property-contact-item"><Phone className="w-3 h-3" />{agencyPhone}</span>}
-        {agencyEmail && <span className="property-contact-item"><Mail className="w-3 h-3" />{agencyEmail}</span>}
+        {agentContact?.name && <span className="property-contact-item"><Building2 className="w-3 h-3" />{agentContact.name}</span>}
+        {agentContact?.email && <span className="property-contact-item"><Mail className="w-3 h-3" />{agentContact.email}</span>}
+        {agentContact?.phone && <span className="property-contact-item"><Phone className="w-3 h-3" />{agentContact.phone}</span>}
         {agencyWebsite && <span className="property-contact-item"><Globe2 className="w-3 h-3" />{agencyWebsite.replace(/^https?:\/\//, '')}</span>}
       </div>
 

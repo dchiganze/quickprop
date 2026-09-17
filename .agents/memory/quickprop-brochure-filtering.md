@@ -20,3 +20,15 @@ The custom-agent picker includes the signed-in user's listings alongside other a
 **Why:** Agents need to combine their own listings with selected colleagues' properties without switching out of the custom selection mode.
 
 **How to apply:** Keep the current user's agent group selectable in the custom picker and distinguish it from other agent groups with the suffix.
+
+Every property entry in a generated brochure should identify its handling agent with the agent's name, email, and phone number when those details are available.
+
+**Why:** A brochure recipient needs a direct contact for the specific listing, not only the agency-wide contact shown on the cover.
+
+**How to apply:** Resolve the property's `agentId` against the user directory in Office and Mobile, and render the contact block on each property entry.
+
+The brochure cover uses the agency's optional tagline in the introductory text area; when no tagline is configured, that area is omitted rather than replaced with default copy.
+
+**Why:** Agency branding should control the cover message without showing generic platform copy when the field is intentionally blank.
+
+**How to apply:** Trim the stored tagline before rendering and conditionally render the cover description only when it has content.

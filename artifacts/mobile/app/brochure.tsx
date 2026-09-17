@@ -16,7 +16,8 @@ import { useColors } from '@/hooks/useColors';
 import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
 import { Property } from '@/types';
-import { catalogueBrochureHtml } from '@/utils/brochureHtml';
+import { catalogueBrochureHtml, BrochureAgent } from '@/utils/brochureHtml';
+import { getListUsersQueryKey, useListUsers } from '@workspace/api-client-react';
 
 type BrochureMode = 'my' | 'company' | 'custom';
 type ListingFilter = 'sale' | 'rent';
@@ -124,6 +125,9 @@ export default function BrochureSetupScreen() {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const { properties, isLoading } = useData();
+  const { data: directoryUsers = [] } = useListUsers({
+    query: { enabled: true, queryKey: getListUsersQueryKey() },
+  });
   const [mode, setMode] = useState<BrochureMode>('my');
   const [activeStep, setActiveStep] = useState<SetupStep>('personnel');
   const [listingFilters, setListingFilters] = useState<Set<ListingFilter>>(new Set(['sale', 'rent']));
@@ -168,6 +172,23 @@ export default function BrochureSetupScreen() {
   }, [publishedProperties]);
   const propertyGroupCount = (group: PropertyGroup) =>
     sourceProperties.filter((property) => propertyGroup(property) === group).length;
+  const brochureAgents = useMemo<BrochureAgent[]>(() => {
+    const directory = directoryUsers.map((directoryUser) => ({
+      id: String(directoryUser.id),
+      name: directoryUser.name,
+      email: directoryUser.email,
+      phone: directoryUser.phone,
+    }));
+    if (user && !directory.some((directoryUser) => String(directoryUser.id) === String(user.id))) {
+      directory.push({
+        id: String(user.id),
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+      });
+    }
+    return directory;
+  }, [directoryUsers, user]);
 
   const toggleSet = <T,>(setter: React.Dispatch<React.SetStateAction<Set<T>>>, value: T) => {
     setter((current) => {
@@ -204,7 +225,7 @@ export default function BrochureSetupScreen() {
     setLoading(true);
     try {
       const Print: typeof import('expo-print') = await import('expo-print');
-      const html = catalogueBrochureHtml(filteredProperties, user, mode);
+       const html = catalogueBrochureHtml(filteredProperties, user, mode, brochureAgents);
       if (action === 'print') {
         await Print.printAsync({ html });
       } else {
