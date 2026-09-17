@@ -93,7 +93,7 @@ export default function BrochureCatalog() {
       : `${agencyName} Catalogue`;
   const saleProperties = properties.filter((property) => property.listingType === 'sale');
   const rentalProperties = properties.filter((property) => property.listingType === 'rent');
-  const pagesCount = properties.length > 0 ? properties.length + 2 : 3;
+  const pagesCount = properties.length > 0 ? properties.length + 1 : 2;
   const tagline = agencySettings?.tagline?.trim() ?? '';
   const aboutText = agencySettings?.aboutText?.trim() ?? '';
 
@@ -270,6 +270,37 @@ export default function BrochureCatalog() {
           font-weight: 700;
           letter-spacing: 0.08em;
           text-transform: uppercase;
+        }
+
+        .cover-about {
+          max-width: 155mm;
+          margin-top: 22mm;
+          padding-top: 14px;
+          border-top: 1px solid var(--brochure-line);
+        }
+
+        .cover-about-kicker {
+          margin: 0;
+          color: var(--brochure-primary);
+          font-size: 10px;
+          font-weight: 800;
+          letter-spacing: 0.16em;
+          text-transform: uppercase;
+        }
+
+        .cover-about-copy {
+          max-width: 145mm;
+          margin: 8px 0 0;
+          color: var(--brochure-ink-soft);
+          font-size: 12px;
+          line-height: 1.55;
+          white-space: pre-line;
+        }
+
+        .cover-about .about-contact {
+          margin-top: 16px;
+          padding-top: 14px;
+          gap: 10px;
         }
 
         .about-page {
@@ -573,13 +604,13 @@ export default function BrochureCatalog() {
           display: flex;
           flex-direction: column;
           gap: 3px;
-          font-size: 16px;
+          font-size: 12px;
           line-height: 1.2;
         }
 
         .page-footer-meta strong {
           color: var(--brochure-ink-soft);
-          font-size: 18px;
+          font-size: 13.5px;
         }
 
         .page-footer-logo {
@@ -670,24 +701,16 @@ export default function BrochureCatalog() {
         <CoverPage
           agencyName={agencyName}
           agencyLogo={agencySettings?.logoUrl}
+          agencyWebsite={agencySettings?.website}
+          agencyPhone={agencySettings?.phone}
+          agencyEmail={agencySettings?.email}
+          aboutText={aboutText}
           tagline={tagline}
           titleLine={titleLine}
           totalProperties={properties.length}
           saleCount={saleProperties.length}
           rentalCount={rentalProperties.length}
           pageNumber={1}
-          pageCount={pagesCount}
-        />
-
-        <AboutPage
-          agencyName={agencyName}
-          agencyLogo={agencySettings?.logoUrl}
-          agencyWebsite={agencySettings?.website}
-          agencyPhone={agencySettings?.phone}
-          agencyEmail={agencySettings?.email}
-          aboutText={aboutText}
-          tagline={tagline}
-          pageNumber={2}
           pageCount={pagesCount}
         />
 
@@ -701,7 +724,7 @@ export default function BrochureCatalog() {
             agencyWebsite={agencySettings?.website}
             agencyPhone={agencySettings?.phone}
             agencyEmail={agencySettings?.email}
-            pageNumber={index + 3}
+            pageNumber={index + 2}
             pageCount={pagesCount}
           />
         ))}
@@ -718,8 +741,8 @@ export default function BrochureCatalog() {
             <PageFooter
               agencyName={agencyName}
               agencyLogo={agencySettings?.logoUrl}
-              pageNumber={3}
-              pageCount={3}
+              pageNumber={2}
+              pageCount={2}
             />
           </section>
         )}
@@ -731,6 +754,10 @@ export default function BrochureCatalog() {
 function CoverPage({
   agencyName,
   agencyLogo,
+  agencyWebsite,
+  agencyPhone,
+  agencyEmail,
+  aboutText,
   tagline,
   titleLine,
   totalProperties,
@@ -741,6 +768,10 @@ function CoverPage({
 }: {
   agencyName: string;
   agencyLogo?: string | null;
+  agencyWebsite?: string | null;
+  agencyPhone?: string | null;
+  agencyEmail?: string | null;
+  aboutText: string;
   tagline: string;
   titleLine: string;
   totalProperties: number;
@@ -776,60 +807,24 @@ function CoverPage({
             <CoverStat value={saleCount} label="For sale" />
             <CoverStat value={rentalCount} label="To rent" />
           </div>
+          <div className="cover-about">
+            <p className="cover-about-kicker">About us</p>
+            <p className={`cover-about-copy ${aboutText ? '' : 'about-empty'}`}>
+              {aboutText || 'Add your agency story in Agency Settings to complete this section.'}
+            </p>
+            <div className="about-contact">
+              {agencyPhone && (
+                <span className="contact-item"><Phone className="w-3.5 h-3.5" />{agencyPhone}</span>
+              )}
+              {agencyEmail && (
+                <span className="contact-item"><Mail className="w-3.5 h-3.5" />{agencyEmail}</span>
+              )}
+              {agencyWebsite && (
+                <span className="contact-item"><Globe2 className="w-3.5 h-3.5" />{agencyWebsite.replace(/^https?:\/\//, '')}</span>
+              )}
+            </div>
+          </div>
         </div>
-      </div>
-      <PageFooter
-        agencyName={agencyName}
-        agencyLogo={agencyLogo}
-        pageNumber={pageNumber}
-        pageCount={pageCount}
-      />
-    </section>
-  );
-}
-
-function AboutPage({
-  agencyName,
-  agencyLogo,
-  agencyWebsite,
-  agencyPhone,
-  agencyEmail,
-  aboutText,
-  tagline,
-  pageNumber,
-  pageCount,
-}: {
-  agencyName: string;
-  agencyLogo?: string | null;
-  agencyWebsite?: string | null;
-  agencyPhone?: string | null;
-  agencyEmail?: string | null;
-  aboutText: string;
-  tagline: string;
-  pageNumber: number;
-  pageCount: number;
-}) {
-  return (
-    <section className="brochure-page about-page">
-      <p className="page-kicker">01 / The agency</p>
-      <div className="about-heading">
-        <h2 className="about-title">About us</h2>
-        {tagline && <p className="about-tagline">{tagline}</p>}
-        <div className="about-rule" />
-        <p className={`about-copy ${aboutText ? '' : 'about-empty'}`}>
-          {aboutText || 'Add your agency story in Agency Settings to complete this section.'}
-        </p>
-      </div>
-      <div className="about-contact">
-        {agencyPhone && (
-          <span className="contact-item"><Phone className="w-3.5 h-3.5" />{agencyPhone}</span>
-        )}
-        {agencyEmail && (
-          <span className="contact-item"><Mail className="w-3.5 h-3.5" />{agencyEmail}</span>
-        )}
-        {agencyWebsite && (
-          <span className="contact-item"><Globe2 className="w-3.5 h-3.5" />{agencyWebsite.replace(/^https?:\/\//, '')}</span>
-        )}
       </div>
       <PageFooter
         agencyName={agencyName}
