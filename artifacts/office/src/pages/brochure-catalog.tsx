@@ -37,19 +37,22 @@ function formatPrice(price: number, currency: string, listingType: string) {
   return listingType === 'rent' ? `${formatted}/mo` : formatted;
 }
 
+function getGenericPropertyPhotos(property: any): string[] {
+  const stockStart = Number(property.id ?? 0) % GENERIC_PROPERTY_PHOTOS.length;
+  return [
+    ...GENERIC_PROPERTY_PHOTOS.slice(stockStart),
+    ...GENERIC_PROPERTY_PHOTOS.slice(0, stockStart),
+  ].map((photo) => `${STOCK_PROPERTY_PHOTOS_BASE}${photo}`);
+}
+
 function getPropertyPhotos(property: any): string[] {
   const listingPhotos = [...new Set([
     property.coverImage,
     ...(Array.isArray(property.photos) ? property.photos : []),
   ].filter((photo): photo is string => typeof photo === 'string' && photo.trim().length > 0))];
-  const stockStart = Number(property.id ?? 0) % GENERIC_PROPERTY_PHOTOS.length;
-  const rotatedStockPhotos = [
-    ...GENERIC_PROPERTY_PHOTOS.slice(stockStart),
-    ...GENERIC_PROPERTY_PHOTOS.slice(0, stockStart),
-  ]
-    .map((photo) => `${STOCK_PROPERTY_PHOTOS_BASE}${photo}`);
+  const genericPhotos = getGenericPropertyPhotos(property);
 
-  return Array.from({ length: 3 }, (_, index) => listingPhotos[index] ?? rotatedStockPhotos[index]);
+  return Array.from({ length: 3 }, (_, index) => listingPhotos[index] ?? genericPhotos[index]);
 }
 
 export default function BrochureCatalog() {
@@ -874,6 +877,7 @@ function PropertyPage({
   pageCount: number;
 }) {
   const photos = getPropertyPhotos(property);
+  const genericPhotos = getGenericPropertyPhotos(property);
   const statusLabel = STATUS_LABELS[property.status] ?? (property.listingType === 'rent' ? 'To Rent' : 'For Sale');
   const statusClass = property.status === 'under_offer'
     ? 'status-under-offer'
@@ -889,7 +893,12 @@ function PropertyPage({
         <span className="property-reference">Ref {property.reference}</span>
       </div>
 
-      <PhotoSlot src={photos[0]} label="Main property image" className="property-hero" />
+      <PhotoSlot
+        src={photos[0]}
+        fallbackSrc={genericPhotos[0]}
+        label="Main property image"
+        className="property-hero"
+      />
 
       <div className="property-lower">
         <div className="property-copy">
@@ -921,8 +930,18 @@ function PropertyPage({
         </div>
 
         <div className="property-side-photos">
-          <PhotoSlot src={photos[1]} label="Supporting property image" className="property-side-photo" />
-          <PhotoSlot src={photos[2]} label="Supporting property image" className="property-side-photo" />
+          <PhotoSlot
+            src={photos[1]}
+            fallbackSrc={genericPhotos[1]}
+            label="Supporting property image"
+            className="property-side-photo"
+          />
+          <PhotoSlot
+            src={photos[2]}
+            fallbackSrc={genericPhotos[2]}
+            label="Supporting property image"
+            className="property-side-photo"
+          />
         </div>
       </div>
 
@@ -945,17 +964,33 @@ function PropertyPage({
 
 function PhotoSlot({
   src,
+  fallbackSrc,
   label,
   className,
 }: {
   src?: string;
+  fallbackSrc?: string;
   label: string;
   className: string;
 }) {
+  const [imageState, setImageState] = React.useState<'primary' | 'fallback' | 'none'>(
+    src ? 'primary' : fallbackSrc ? 'fallback' : 'none',
+  );
+
+  React.useEffect(() => {
+    setImageState(src ? 'primary' : fallbackSrc ? 'fallback' : 'none');
+  }, [src, fallbackSrc]);
+
+  const imageSrc = imageState === 'primary' ? src : imageState === 'fallback' ? fallbackSrc : undefined;
+
   return (
     <div className={className}>
-      {src ? (
-        <img src={src} alt={label} />
+      {imageSrc ? (
+        <img
+          src={imageSrc}
+          alt={label}
+          onError={() => setImageState((current) => current === 'primary' && fallbackSrc ? 'fallback' : 'none')}
+        />
       ) : (
         <div className="photo-placeholder">
           <Building2 className="mr-2 h-4 w-4" />
