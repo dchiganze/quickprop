@@ -8,3 +8,9 @@ Mobile brochure filtering must treat transaction type (`sale`/`rent`) independen
 **Why:** A commercial or land listing can be for rent, so using the display/property type alone can place rental listings in the For Sale section and apply the wrong price treatment. The catalogue also needs to target one land category without including the others.
 
 **How to apply:** Use `listingType` for sale/rental filters, section grouping, and rental price labels; use `propertyType` or the display type only for residential/commercial/stand/mine/farm/other-land grouping.
+
+The brochure setup uses three horizontal steps: personnel, sale/rent, and property type. Only the active step expands its editable controls.
+
+**Why:** Separating scope, transaction type, and property type reduces the cognitive load of the setup while keeping every choice editable.
+
+**How to apply:** Keep the live matching summary and Generate Brochure action visible while switching steps, and preserve selections when moving between steps.
