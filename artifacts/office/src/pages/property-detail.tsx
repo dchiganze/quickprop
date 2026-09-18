@@ -69,6 +69,28 @@ function toDateTimeLocal(value: string) {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
+function futureViewingDate() {
+  const date = new Date();
+  date.setHours(0, 0, 0, 0);
+  date.setDate(date.getDate() + 1);
+  const pad = (part: number) => String(part).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+function formatViewingSlot(value: string) {
+  if (!value) return 'Select date and time';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'Select date and time';
+  return date.toLocaleString(undefined, {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+}
+
 async function uploadOfficeMedia(file: File): Promise<string> {
   const request = await fetch('/api/storage/uploads/request-url', {
     method: 'POST',
@@ -117,6 +139,10 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
   const [salePrice, setSalePrice] = useState('');
   const [saleDate, setSaleDate] = useState('');
   const [editOpen, setEditOpen] = useState(false);
+  const [viewingPickerOpen, setViewingPickerOpen] = useState(false);
+  const [activeViewingSlot, setActiveViewingSlot] = useState<number | null>(null);
+  const [viewingPickerDate, setViewingPickerDate] = useState('');
+  const [viewingPickerTime, setViewingPickerTime] = useState('');
   const [photoUploadPending, setPhotoUploadPending] = useState(false);
   const photoInputRef = useRef<HTMLInputElement>(null);
   const editPhotoInputRef = useRef<HTMLInputElement>(null);
@@ -404,6 +430,38 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
     } finally {
       setPhotoUploadPending(false);
     }
+  };
+
+  const openViewingPicker = (slotIndex: number) => {
+    const value = edit.proposedViewingTimes[slotIndex] ?? '';
+    setActiveViewingSlot(slotIndex);
+    setViewingPickerDate(value.slice(0, 10));
+    setViewingPickerTime(value.slice(11, 16));
+    setViewingPickerOpen(true);
+  };
+
+  const applyViewingPicker = () => {
+    if (activeViewingSlot == null || !viewingPickerDate || !viewingPickerTime) {
+      toast({ title: 'Choose a date and time', description: 'Both fields are required for a viewing slot.', variant: 'destructive' });
+      return;
+    }
+    if (viewingPickerDate < futureViewingDate()) {
+      toast({ title: 'Choose a future date', description: 'Viewing dates must be after today.', variant: 'destructive' });
+      return;
+    }
+
+    const proposedViewingTimes = [...edit.proposedViewingTimes];
+    proposedViewingTimes[activeViewingSlot] = `${viewingPickerDate}T${viewingPickerTime}`;
+    setEdit({ ...edit, proposedViewingTimes });
+    setViewingPickerOpen(false);
+  };
+
+  const clearViewingPicker = () => {
+    if (activeViewingSlot == null) return;
+    const proposedViewingTimes = [...edit.proposedViewingTimes];
+    proposedViewingTimes[activeViewingSlot] = '';
+    setEdit({ ...edit, proposedViewingTimes });
+    setViewingPickerOpen(false);
   };
 
   const handleShare = async (channel: 'whatsapp' | 'facebook' | 'instagram' | 'linkedin' | 'email' | 'link') => {
