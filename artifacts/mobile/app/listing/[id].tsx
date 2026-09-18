@@ -13,6 +13,7 @@ import { useColors } from '@/hooks/useColors';
 import { propertyShareLinks } from '@/utils/shareLinks';
 import { getPrimaryListingPhoto } from '@/utils/listingPhoto';
 import { SharePropertyCard, SharePropertyCardHandle } from '@/components/SharePropertyCard';
+import { SharePropertyCollage, SharePropertyCollageHandle } from '@/components/SharePropertyCollage';
 import { PropertyShareSheet } from '@/components/PropertyShareSheet';
 import { useData } from '@/contexts/DataContext';
 import { Property } from '@/types';
@@ -75,6 +76,7 @@ export default function ListingDetailScreen() {
   const [saleModalVisible, setSaleModalVisible] = useState(false);
   const [salePriceInput, setSalePriceInput] = useState('');
   const shareCardRef = useRef<SharePropertyCardHandle>(null);
+  const shareCollageRef = useRef<SharePropertyCollageHandle>(null);
 
   const handleAddAgency = async () => {
     if (!multiAgent || !user || !property) return;
@@ -229,6 +231,9 @@ export default function ListingDetailScreen() {
           property={property}
           shareUrl={propertyShareLinks(property).webUrl}
         />
+        <View style={styles.shareCollageHost}>
+          <SharePropertyCollage ref={shareCollageRef} property={property} />
+        </View>
       </View>
       {videoPlayerVisible && property.videoUrl && (
         <VideoPlayerModal uri={property.videoUrl} onClose={() => setVideoPlayerVisible(false)} />
@@ -615,6 +620,8 @@ export default function ListingDetailScreen() {
         property={property}
         captureCard={() => shareCardRef.current?.capture()
           ?? Promise.reject(new Error('Unable to prepare the property image.'))}
+        captureSocialCard={() => shareCollageRef.current?.capture()
+          ?? Promise.reject(new Error('Unable to prepare the property collage.'))}
       />
     </View>
   );
@@ -689,6 +696,7 @@ const styles = StyleSheet.create({
   infoValue: { fontSize: 14, fontWeight: '700' },
   videoPlayOverlay: { position: 'absolute' },
   shareCardHost: { position: 'absolute', left: -1000, top: 0, width: 360, height: 450 },
+  shareCollageHost: { position: 'absolute', left: 0, top: 450, width: 360, height: 360 },
   bottomBar: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingTop: 12, borderTopWidth: 1 },
   bottomBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, borderRadius: 12, paddingVertical: 11 },
   bottomBtnText: { fontSize: 13, fontWeight: '600' },

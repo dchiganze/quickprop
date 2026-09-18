@@ -27,6 +27,7 @@ interface PropertyShareSheetProps {
   visible: boolean;
   property: Property;
   captureCard: () => Promise<string>;
+  captureSocialCard: () => Promise<string>;
   onClose: () => void;
 }
 
@@ -87,6 +88,7 @@ export function PropertyShareSheet({
   visible,
   property,
   captureCard,
+  captureSocialCard,
   onClose,
 }: PropertyShareSheetProps) {
   const colors = useColors();
@@ -108,7 +110,10 @@ export function PropertyShareSheet({
       } else if (destination === 'share') {
         await sharePropertyGeneric(property, captureCard);
       } else {
-        await sharePropertyToSocial(property, destination, captureCard);
+        const socialCapture = destination === 'facebook' || destination === 'linkedin'
+          ? captureSocialCard
+          : captureCard;
+        await sharePropertyToSocial(property, destination, socialCapture);
       }
       closeSheet();
     } catch (error: unknown) {
@@ -129,7 +134,7 @@ export function PropertyShareSheet({
     try {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       if (choice === 'post') {
-        await sharePropertyToSocial(property, social, captureCard);
+        await sharePropertyToSocial(property, social, social === 'facebook' ? captureSocialCard : captureCard);
       } else if (social === 'facebook') {
         await sharePropertyToFacebookStory(property, captureCard);
       } else {

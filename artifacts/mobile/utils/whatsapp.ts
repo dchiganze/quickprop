@@ -4,7 +4,10 @@ import * as Sharing from 'expo-sharing';
 import { Property } from '@/types';
 import { shareProperty } from '@workspace/api-client-react';
 import { propertyShareLinks } from '@/utils/shareLinks';
-import { buildPropertyShareMessage } from '@/utils/shareContent';
+import {
+  buildPropertyShareMessage,
+  buildPropertySocialShareMessage,
+} from '@/utils/shareContent';
 
 /**
  * Share a prefilled text message to WhatsApp.
@@ -151,7 +154,10 @@ export async function sharePropertyToSocial(
     return;
   }
 
-  const caption = buildPropertyShareMessage(property);
+  const isSocialPost = destination === 'facebook' || destination === 'linkedin';
+  const caption = isSocialPost
+    ? buildPropertySocialShareMessage(property)
+    : buildPropertyShareMessage(property);
   await Clipboard.setStringAsync(caption).catch(() => {});
 
   if (Platform.OS === 'web') {
@@ -171,7 +177,7 @@ export async function sharePropertyToSocial(
   // Use the native chooser instead; the rendered JPEG is still delivered and
   // the copied caption can be pasted into the Facebook post composer.
   if (destination === 'facebook') {
-    await sharePropertyGeneric(property, captureCard, 'Share property to Facebook', false);
+    await sharePropertyGeneric(property, captureCard, 'Share property to Facebook', true, caption);
     return;
   }
 
@@ -185,7 +191,8 @@ export async function sharePropertyToSocial(
       property,
       captureCard,
       `Share property to ${destination.charAt(0).toUpperCase() + destination.slice(1)}`,
-      false,
+      true,
+      caption,
     );
     return;
   }
@@ -195,7 +202,7 @@ export async function sharePropertyToSocial(
   // system share sheet instead so the agent can select LinkedIn without
   // blocking the share modal indefinitely.
   if (destination === 'linkedin') {
-    await sharePropertyGeneric(property, captureCard, 'Share property to LinkedIn');
+    await sharePropertyGeneric(property, captureCard, 'Share property to LinkedIn', true, caption);
     return;
   }
 
@@ -296,8 +303,9 @@ export async function sharePropertyGeneric(
   captureCard: () => Promise<string>,
   dialogTitle = 'Share property',
   includeCaption = true,
+  captionOverride?: string,
 ): Promise<void> {
-  const caption = buildPropertyShareMessage(property);
+  const caption = captionOverride ?? buildPropertyShareMessage(property);
   await Clipboard.setStringAsync(caption).catch(() => {});
 
   if (Platform.OS === 'web') {

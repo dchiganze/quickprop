@@ -57,6 +57,16 @@ export function buildPropertyShareMessage(property: Property, agentName?: string
   return lines.join('\n');
 }
 
+export function buildPropertySocialShareMessage(property: Property): string {
+  const description = property.description.replace(/\s+/g, ' ').trim();
+  const catalogueUrl = catalogueShareLinks(property.agentId).webUrl;
+  const lines = [];
+
+  if (description) lines.push(description);
+  lines.push(`View my entire catalogue here: ${catalogueUrl}`);
+  return lines.join('\n\n');
+}
+
 export function buildCatalogueShareMessage(
   properties: Property[],
   mode: CatalogueMode,
