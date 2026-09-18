@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'wouter';
 import { 
   useGetProperty, useUpdateProperty, useGetPropertyPriceHistory, 
@@ -84,6 +84,8 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
   const [salePrice, setSalePrice] = useState('');
   const [saleDate, setSaleDate] = useState('');
   const [editOpen, setEditOpen] = useState(false);
+  const [photoUploadPending, setPhotoUploadPending] = useState(false);
+  const photoInputRef = useRef<HTMLInputElement>(null);
   const [listingVisibility, setListingVisibility] = useState<'public' | 'internal_only'>('internal_only');
   const [sellingStatus, setSellingStatus] = useState<SellingStatus>('available');
   const [edit, setEdit] = useState({
@@ -149,6 +151,8 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
   if (!property) {
     return <div className="p-8">Property not found</div>;
   }
+
+  const coverPhoto = property.coverImage || property.photos?.[0];
 
   const handleVisibilityChange = (newStatus: string) => {
     const nextStatus = newStatus === 'public' ? 'public' : 'internal_only';
@@ -223,6 +227,72 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
 
   const handleGenerateBrochure = () => {
     window.open(`${window.location.pathname.replace(/\/property\/\d+.*/, '')}/property/${propertyId}/brochure`, '_blank');
+  };
+
+  const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files ?? []);
+    event.target.value = '';
+    if (files.length === 0) return;
+
+    const accepted = files.filter((file) => file.type.startsWith('image/') && file.size <= 25 * 1024 * 1024);
+    const rejected = files.filter((file) => !file.type.startsWith('image/') || file.size > 25 * 1024 * 1024);
+    if (rejected.length > 0) {
+      toast({
+        title: 'Some photos were skipped',
+        description: 'Photos must be image files no larger than 25 MB.',
+        variant: 'destructive',
+      });
+    }
+    if (accepted.length === 0) return;
+
+    setPhotoUploadPending(true);
+    try {
+      const uploadedPhotos = await Promise.all(accepted.map(async (file) => {
+        const request = await fetch('/api/storage/uploads/request-url', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: file.name, size: file.size, contentType: file.type }),
+        });
+        const target = await request.json().catch(() => null) as {
+          uploadURL?: string;
+          objectPath?: string;
+          error?: string;
+        } | null;
+        if (!request.ok || !target?.uploadURL || !target.objectPath) {
+          throw new Error(target?.error || `Could not prepare ${file.name} for upload.`);
+        }
+
+        const upload = await fetch(target.uploadURL, {
+          method: 'PUT',
+          headers: { 'Content-Type': file.type },
+          body: file,
+        });
+        if (!upload.ok) throw new Error(`Could not upload ${file.name}.`);
+        return `/api/storage${target.objectPath}`;
+      }));
+
+      const photos = [...(property.photos ?? []), ...uploadedPhotos];
+      await updateProperty.mutateAsync({
+        id: propertyId,
+        data: {
+          photos,
+          ...(property.coverImage ? {} : { coverImage: photos[0] }),
+        },
+      });
+      toast({
+        title: 'Photos uploaded',
+        description: `${uploadedPhotos.length} ${uploadedPhotos.length === 1 ? 'photo was' : 'photos were'} added to this listing.`,
+      });
+    } catch (error) {
+      toast({
+        title: 'Could not upload photos',
+        description: error instanceof Error ? error.message : 'Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setPhotoUploadPending(false);
+    }
   };
 
   const handleShare = async (channel: 'whatsapp' | 'facebook' | 'instagram' | 'linkedin' | 'email' | 'link') => {
@@ -660,13 +730,29 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
         <div className="lg:col-span-2 space-y-8">
           {/* Cover Photo */}
           <div className="rounded-xl overflow-hidden aspect-video bg-muted relative border border-border shadow-sm">
-            {property.coverImage ? (
-              <img src={property.coverImage} alt={property.title} className="w-full h-full object-cover" />
+            {coverPhoto ? (
+              <img src={coverPhoto} alt={property.title} className="w-full h-full object-cover" />
             ) : (
               <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground">
                 <ImageIcon className="w-16 h-16 mb-4 opacity-50" />
                 <p>No photos uploaded</p>
-                <Button variant="outline" className="mt-4">Upload Photos</Button>
+                <input
+                  ref={photoInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                  onChange={handlePhotoUpload}
+                />
+                <Button
+                  variant="outline"
+                  className="mt-4"
+                  onClick={() => photoInputRef.current?.click()}
+                  disabled={photoUploadPending}
+                >
+                  {photoUploadPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {photoUploadPending ? 'Uploading...' : 'Upload Photos'}
+                </Button>
               </div>
             )}
             <div className="absolute top-4 left-4 flex gap-2">
