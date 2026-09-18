@@ -12,10 +12,13 @@ import { Property } from '@/types';
 import { catalogueShareLinks, propertyShareLinks } from '@/utils/shareLinks';
 import { buildCatalogueShareMessage, buildPropertyShareMessage, formatSharePrice } from '@/utils/shareContent';
 import {
+  PropertySocialDestination,
   shareCatalogueToWhatsApp,
   sharePropertyToWhatsApp,
+  sharePropertyToSocial,
 } from '@/utils/whatsapp';
 import { SharePropertyCard, SharePropertyCardHandle } from '@/components/SharePropertyCard';
+import { SharePropertyCollage, SharePropertyCollageHandle } from '@/components/SharePropertyCollage';
 import { ShareCatalogueCard, ShareCatalogueCardHandle } from '@/components/ShareCatalogueCard';
 
 type Step = 'hub' | 'property-select' | 'property-share' | 'catalogue-share';
@@ -40,6 +43,7 @@ export function ShareHubSheet({ visible, onClose }: Props) {
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
   const [sharing, setSharing] = useState(false);
   const shareCardRef = useRef<SharePropertyCardHandle>(null);
+  const shareCollageRef = useRef<SharePropertyCollageHandle>(null);
   const catalogueCardRef = useRef<ShareCatalogueCardHandle>(null);
 
   const myProps = properties.filter(p => p.agentId === user?.id && p.status === 'published');
@@ -96,6 +100,27 @@ export function ShareHubSheet({ visible, onClose }: Props) {
       setSharing(false);
     }
   }, [user?.name]);
+
+  const sharePropertySocial = useCallback(async (p: Property, destination: PropertySocialDestination) => {
+    setSharing(true);
+    try {
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      await sharePropertyToSocial(
+        p,
+        destination,
+        () => shareCollageRef.current?.capture()
+          ?? Promise.reject(new Error('Unable to prepare the property collage.')),
+      );
+      handleClose();
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : '';
+      if (!message.toLowerCase().includes('cancel') && !message.toLowerCase().includes('dismiss')) {
+        Alert.alert('Could not share listing', message || 'Please try another sharing option.');
+      }
+    } finally {
+      setSharing(false);
+    }
+  }, [user?.id]);
 
   // ── Catalogue share actions ────────────────────────────────────────────────
   const activeProps = catalogMode === 'agent' ? myProps : allProps;
@@ -263,7 +288,7 @@ export function ShareHubSheet({ visible, onClose }: Props) {
 
         <TouchableOpacity
           style={[s.shareBtn, { backgroundColor: '#25D366' + '14', borderColor: '#25D366' + '40' }]}
-           onPress={() => sharePropertyWhatsApp(p)}
+          onPress={() => sharePropertyWhatsApp(p)}
           disabled={sharing}
           activeOpacity={0.75}
         >
@@ -276,6 +301,26 @@ export function ShareHubSheet({ visible, onClose }: Props) {
           </View>
           {sharing ? <ActivityIndicator color={colors.primary} /> : <Ionicons name="chevron-forward" size={16} color={colors.mutedForeground} />}
         </TouchableOpacity>
+
+        <View style={s.socialShareRow}>
+          {(['facebook', 'linkedin'] as const).map(destination => (
+            <TouchableOpacity
+              key={destination}
+              style={[s.socialShareBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
+              onPress={() => sharePropertySocial(p, destination)}
+              disabled={sharing}
+              activeOpacity={0.75}
+            >
+              <View style={[s.socialShareIcon, { backgroundColor: destination === 'facebook' ? '#1877F2' : '#0A66C2' }]}>
+                <Ionicons name={destination === 'facebook' ? 'logo-facebook' : 'logo-linkedin'} size={21} color="#FFF" />
+              </View>
+              <Text style={[s.socialShareLabel, { color: colors.foreground }]}>
+                {destination === 'facebook' ? 'Facebook' : 'LinkedIn'}
+              </Text>
+              <Text style={[s.socialShareHint, { color: colors.mutedForeground }]}>Image + caption</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
 
         <TouchableOpacity
           style={[s.shareBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
@@ -410,11 +455,20 @@ export function ShareHubSheet({ visible, onClose }: Props) {
         <Pressable style={[s.sheet, { backgroundColor: colors.card }]} onPress={() => {}}>
           {selectedProperty && (
             <View style={s.shareCardHost} pointerEvents="none">
-                <SharePropertyCard
+              <SharePropertyCard
                 key={selectedProperty.id}
                 ref={shareCardRef}
                 property={selectedProperty}
-                 shareUrl={propertyShareLinks(selectedProperty).webUrl}
+                shareUrl={propertyShareLinks(selectedProperty).webUrl}
+              />
+            </View>
+          )}
+          {selectedProperty && (
+            <View style={s.shareCollageHost} pointerEvents="none">
+              <SharePropertyCollage
+                key={`collage-${selectedProperty.id}`}
+                ref={shareCollageRef}
+                property={selectedProperty}
               />
             </View>
           )}
@@ -460,6 +514,7 @@ export function ShareHubSheet({ visible, onClose }: Props) {
 const s = StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   shareCardHost: { position: 'absolute', left: -1000, top: 0, width: 360, height: 450 },
+  shareCollageHost: { position: 'absolute', left: -1000, top: 0, width: 360, height: 360 },
   catalogueCardHost: { position: 'absolute', left: -1000, top: 0, width: 360, height: 450 },
   sheet: {
     borderTopLeftRadius: 26, borderTopRightRadius: 26,
@@ -515,6 +570,11 @@ const s = StyleSheet.create({
   shareBtnText: { flex: 1 },
   shareBtnLabel: { fontSize: 15, fontWeight: '700', marginBottom: 2 },
   shareBtnSub: { fontSize: 12 },
+  socialShareRow: { flexDirection: 'row', gap: 10, marginBottom: 10 },
+  socialShareBtn: { flex: 1, alignItems: 'center', borderRadius: 14, borderWidth: 1, padding: 12, gap: 4 },
+  socialShareIcon: { width: 40, height: 40, borderRadius: 11, alignItems: 'center', justifyContent: 'center', marginBottom: 2 },
+  socialShareLabel: { fontSize: 13, fontWeight: '700' },
+  socialShareHint: { fontSize: 10 },
 
   // Catalogue share step
   catPreview: { borderRadius: 14, borderWidth: 1, padding: 14, marginBottom: 20, gap: 8 },
