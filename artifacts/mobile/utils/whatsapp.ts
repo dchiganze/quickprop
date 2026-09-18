@@ -135,6 +135,67 @@ export async function shareCatalogueToWhatsApp(
 
 export type PropertySocialDestination = 'facebook' | 'instagram' | 'linkedin' | 'tiktok';
 
+type BrowserFileShareData = {
+  files: File[];
+  text: string;
+  title: string;
+};
+
+type BrowserFileShareNavigator = Navigator & {
+  share?: (data: BrowserFileShareData) => Promise<void>;
+  canShare?: (data: Pick<BrowserFileShareData, 'files'>) => boolean;
+};
+
+async function shareWebSocialPost(
+  property: Property,
+  destination: 'facebook' | 'linkedin',
+  captureCard: () => Promise<string>,
+  caption: string,
+): Promise<void> {
+  const cardUri = await captureCard();
+  const browserNavigator = navigator as BrowserFileShareNavigator;
+
+  try {
+    const response = await fetch(cardUri);
+    if (!response.ok) throw new Error('Unable to prepare the property collage.');
+
+    const blob = await response.blob();
+    const fileName = `${property.referenceNumber || 'quickprop-property'}.jpg`;
+    const file = new File([blob], fileName, { type: 'image/jpeg' });
+
+    if (
+      typeof browserNavigator.share === 'function'
+      && typeof browserNavigator.canShare === 'function'
+      && browserNavigator.canShare({ files: [file] })
+    ) {
+      await browserNavigator.share({
+        files: [file],
+        text: caption,
+        title: `${property.referenceNumber} — ${property.suburb}`,
+      });
+      return;
+    }
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message.toLowerCase() : '';
+    if (message.includes('cancel') || message.includes('dismiss')) return;
+  }
+
+  // Desktop browsers and older mobile browsers cannot attach a local image to
+  // Facebook's or LinkedIn's URL composer. Leave the generated collage and
+  // caption ready so the user can add the image and paste the copied text.
+  const downloadLink = document.createElement('a');
+  downloadLink.href = cardUri;
+  downloadLink.download = `${property.referenceNumber || 'quickprop-property'}.jpg`;
+  document.body.appendChild(downloadLink);
+  downloadLink.click();
+  downloadLink.remove();
+
+  const shareUrl = destination === 'facebook'
+    ? `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(propertyShareLinks(property).webUrl)}`
+    : `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(propertyShareLinks(property).webUrl)}`;
+  await Linking.openURL(shareUrl);
+}
+
 export async function sharePropertyToSocial(
   property: Property,
   destination: PropertySocialDestination,
@@ -161,12 +222,8 @@ export async function sharePropertyToSocial(
   await Clipboard.setStringAsync(caption).catch(() => {});
 
   if (Platform.OS === 'web') {
-    if (destination === 'facebook') {
-      await Linking.openURL(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(propertyShareLinks(property).webUrl)}`);
-      return;
-    }
-    if (destination === 'linkedin') {
-      await Linking.openURL(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(propertyShareLinks(property).webUrl)}`);
+    if (destination === 'facebook' || destination === 'linkedin') {
+      await shareWebSocialPost(property, destination, captureCard, caption);
       return;
     }
     await Share.share({ message: caption });
