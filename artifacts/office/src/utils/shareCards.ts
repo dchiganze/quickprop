@@ -378,10 +378,12 @@ export async function shareCardWithCaption(
   title: string,
   fileName: string,
   fallbackUrl?: string | null,
+  openComposerDirectly = false,
 ): Promise<'shared' | 'downloaded'> {
   await navigator.clipboard?.writeText(caption).catch(() => {});
   const file = new File([blob], fileName, { type: 'image/jpeg' });
   const canShareFile = typeof navigator.share === 'function'
+    && !openComposerDirectly
     && (!navigator.canShare || navigator.canShare({ files: [file] }));
 
   if (canShareFile) {

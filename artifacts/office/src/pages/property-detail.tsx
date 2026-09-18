@@ -254,6 +254,7 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
               property.title,
               `quickprop-${property.reference}.jpg`,
               fallbackUrl,
+              channel === 'facebook' || channel === 'linkedin',
             );
             toast({
               title: `${channel[0].toUpperCase()}${channel.slice(1)} ready to share`,

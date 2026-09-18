@@ -153,36 +153,12 @@ async function shareWebSocialPost(
   caption: string,
 ): Promise<void> {
   const cardUri = await captureCard();
-  const browserNavigator = navigator as BrowserFileShareNavigator;
-
-  try {
-    const response = await fetch(cardUri);
-    if (!response.ok) throw new Error('Unable to prepare the property collage.');
-
-    const blob = await response.blob();
-    const fileName = `${property.referenceNumber || 'quickprop-property'}.jpg`;
-    const file = new File([blob], fileName, { type: 'image/jpeg' });
-
-    if (
-      typeof browserNavigator.share === 'function'
-      && typeof browserNavigator.canShare === 'function'
-      && browserNavigator.canShare({ files: [file] })
-    ) {
-      await browserNavigator.share({
-        files: [file],
-        text: caption,
-        title: `${property.referenceNumber} — ${property.suburb}`,
-      });
-      return;
-    }
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message.toLowerCase() : '';
-    if (message.includes('cancel') || message.includes('dismiss')) return;
-  }
 
   // Desktop browsers and older mobile browsers cannot attach a local image to
   // Facebook's or LinkedIn's URL composer. Leave the generated collage and
-  // caption ready so the user can add the image and paste the copied text.
+  // copied caption ready so the user can add the image if the composer
+  // requires it. Do not call navigator.share here: on Windows that opens the
+  // system share panel instead of the selected social network.
   const downloadLink = document.createElement('a');
   downloadLink.href = cardUri;
   downloadLink.download = `${property.referenceNumber || 'quickprop-property'}.jpg`;
@@ -207,29 +183,34 @@ export async function shareCatalogueToSocial(
 
   if (Platform.OS === 'web') {
     const cardUri = await captureCard();
-    const browserNavigator = navigator as BrowserFileShareNavigator;
 
-    try {
-      const response = await fetch(cardUri);
-      if (!response.ok) throw new Error('Unable to prepare the brochure image.');
-      const blob = await response.blob();
-      const file = new File([blob], 'quickprop-brochure.jpg', { type: 'image/jpeg' });
+    // Facebook and LinkedIn buttons should open their own composer directly,
+    // not the Windows/browser share panel. The generic "More" action below
+    // still uses the file-capable Web Share API when it is available.
+    if (!directDestination) {
+      const browserNavigator = navigator as BrowserFileShareNavigator;
+      try {
+        const response = await fetch(cardUri);
+        if (!response.ok) throw new Error('Unable to prepare the brochure image.');
+        const blob = await response.blob();
+        const file = new File([blob], 'quickprop-brochure.jpg', { type: 'image/jpeg' });
 
-      if (
-        typeof browserNavigator.share === 'function'
-        && typeof browserNavigator.canShare === 'function'
-        && browserNavigator.canShare({ files: [file] })
-      ) {
-        await browserNavigator.share({
-          files: [file],
-          text: caption,
-          title: dialogTitle,
-        });
-        return;
+        if (
+          typeof browserNavigator.share === 'function'
+          && typeof browserNavigator.canShare === 'function'
+          && browserNavigator.canShare({ files: [file] })
+        ) {
+          await browserNavigator.share({
+            files: [file],
+            text: caption,
+            title: dialogTitle,
+          });
+          return;
+        }
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message.toLowerCase() : '';
+        if (message.includes('cancel') || message.includes('dismiss')) return;
       }
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message.toLowerCase() : '';
-      if (message.includes('cancel') || message.includes('dismiss')) return;
     }
 
     const downloadLink = document.createElement('a');

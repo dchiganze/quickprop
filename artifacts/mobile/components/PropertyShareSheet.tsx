@@ -218,9 +218,7 @@ export function PropertyShareSheet({
                   <View style={styles.choiceCopy}>
                     <Text style={[styles.optionLabel, { color: colors.foreground }]}>Post</Text>
                     <Text style={[styles.optionDescription, { color: colors.mutedForeground }]}>
-                      {Platform.OS === 'web'
-                        ? `Choose ${socialLabel.charAt(0) + socialLabel.slice(1).toLowerCase()} from your share sheet`
-                        : `Open ${socialLabel.charAt(0) + socialLabel.slice(1).toLowerCase()}’s post composer`}
+                      Open {socialLabel.charAt(0) + socialLabel.slice(1).toLowerCase()}’s post composer
                     </Text>
                   </View>
                   <Ionicons name="chevron-forward" size={18} color={colors.mutedForeground} />

@@ -9,8 +9,8 @@ Web browsers cannot reliably attach a generated image directly to a WhatsApp Web
 
 **How to apply:** Generate the image card and caption together; use the Web Share API with a file when supported, otherwise download the card, copy the caption, and open WhatsApp with the caption so the user can attach the downloaded image.
 
-Facebook and LinkedIn browser URL composers cannot carry a local collage image; web sharing must use the browser file-share API first.
+For targeted Facebook and LinkedIn buttons on web, bypass the browser file-share API and open the platform composer directly.
 
-**Why:** Their `sharer` URLs accept only a public link, so they render a link preview and discard the locally captured image.
+**Why:** Their `sharer` URLs accept only a public link, so they cannot import a local collage; the browser file-share API instead opens the Windows/system share panel, which is an unwanted extra screen.
 
-**How to apply:** On web, capture the collage and call `navigator.share({ files, text })` when `navigator.canShare({ files })` supports it; otherwise download the collage, copy the caption, and let the user add the image manually.
+**How to apply:** For Facebook/LinkedIn, download the captured collage, copy the caption, and open the destination URL directly. Keep `navigator.share({ files, text })` for generic share actions where the system chooser is expected.

@@ -127,6 +127,7 @@ export function QuickShareDialog() {
       'QuickProp Property Brochure',
       'quickprop-brochure.jpg',
       `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(catalogUrl)}`,
+      true,
     );
     toast({
       title: 'Facebook ready to share',
@@ -145,6 +146,7 @@ export function QuickShareDialog() {
       'QuickProp Property Brochure',
       'quickprop-brochure.jpg',
       `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(catalogUrl)}`,
+      true,
     );
     toast({
       title: 'LinkedIn ready to share',
