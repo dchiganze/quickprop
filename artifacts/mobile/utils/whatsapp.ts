@@ -149,23 +149,8 @@ type BrowserFileShareNavigator = Navigator & {
 async function shareWebSocialPost(
   property: Property,
   destination: 'facebook' | 'linkedin',
-  captureCard: () => Promise<string>,
   caption: string,
 ): Promise<void> {
-  const cardUri = await captureCard();
-
-  // Desktop browsers and older mobile browsers cannot attach a local image to
-  // Facebook's or LinkedIn's URL composer. Leave the generated collage and
-  // copied caption ready so the user can add the image if the composer
-  // requires it. Do not call navigator.share here: on Windows that opens the
-  // system share panel instead of the selected social network.
-  const downloadLink = document.createElement('a');
-  downloadLink.href = cardUri;
-  downloadLink.download = `${property.referenceNumber || 'quickprop-property'}.jpg`;
-  document.body.appendChild(downloadLink);
-  downloadLink.click();
-  downloadLink.remove();
-
   const shareUrl = destination === 'facebook'
     ? `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(propertyShareLinks(property).previewUrl)}`
     : `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(propertyShareLinks(property).previewUrl)}`;
@@ -182,6 +167,11 @@ export async function shareCatalogueToSocial(
   await Clipboard.setStringAsync(caption).catch(() => {});
 
   if (Platform.OS === 'web') {
+    if (directDestination && fallbackUrl) {
+      await Linking.openURL(fallbackUrl);
+      return;
+    }
+
     const cardUri = await captureCard();
 
     // Facebook and LinkedIn buttons should open their own composer directly,
@@ -304,7 +294,7 @@ export async function sharePropertyToSocial(
 
   if (Platform.OS === 'web') {
     if (destination === 'facebook' || destination === 'linkedin') {
-      await shareWebSocialPost(property, destination, captureCard, caption);
+      await shareWebSocialPost(property, destination, caption);
       return;
     }
     await Share.share({ message: caption });

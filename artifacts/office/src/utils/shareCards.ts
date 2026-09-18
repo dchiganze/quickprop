@@ -404,3 +404,9 @@ export async function shareCardWithCaption(
   if (targetUrl) window.open(targetUrl, '_blank', 'noopener,noreferrer');
   return 'downloaded';
 }
+
+export async function openSocialShareLink(caption: string, targetUrl: string): Promise<void> {
+  await navigator.clipboard?.writeText(caption).catch(() => {});
+  const opened = window.open(targetUrl, '_blank', 'noopener,noreferrer');
+  if (!opened) window.location.assign(targetUrl);
+}

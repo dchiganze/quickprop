@@ -16,6 +16,7 @@ import {
 import {
   buildCatalogueShareCaption,
   createCatalogueShareCard,
+  openSocialShareLink,
   shareCardWithCaption,
 } from '@/utils/shareCards';
 import { getQuickPropPublicOrigin, QUICKPROP_SHARE_PREVIEW_VERSION } from '@/utils/shareLinks';
@@ -125,41 +126,27 @@ export function QuickShareDialog() {
 
   const shareToFacebook = useCallback(async () => {
     const caption = buildCatalogueShareCaption(publicProps, mode, user?.name, catalogUrl);
-    const blob = await createCatalogueShareCard(publicProps, mode, user?.name);
-    const result = await shareCardWithCaption(
-      blob,
+    await openSocialShareLink(
       caption,
-      'QuickProp Property Brochure',
-      'quickprop-brochure.jpg',
       `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(catalogPreviewUrl)}`,
-      true,
     );
     toast({
       title: 'Facebook ready to share',
-      description: result === 'shared'
-        ? 'The brochure image and caption were sent to the share sheet.'
-        : 'The brochure image was downloaded and the caption was copied for Facebook.',
+      description: 'The Facebook link was opened and the caption was copied. Facebook will load the preview image from QuickProp.',
     });
   }, [publicProps, mode, user?.name, catalogUrl, catalogPreviewUrl, toast]);
 
   const shareToLinkedIn = useCallback(async () => {
     const caption = buildCatalogueShareCaption(publicProps, mode, user?.name, catalogUrl);
-    const blob = await createCatalogueShareCard(publicProps, mode, user?.name);
-    const result = await shareCardWithCaption(
-      blob,
+    await openSocialShareLink(
       caption,
-      'QuickProp Property Brochure',
-      'quickprop-brochure.jpg',
       `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(catalogPreviewUrl)}`,
-      true,
     );
     toast({
       title: 'LinkedIn ready to share',
-      description: result === 'shared'
-        ? 'The brochure image and caption were sent to the share sheet.'
-        : 'The brochure image was downloaded and the caption was copied for LinkedIn.',
+      description: 'The LinkedIn link was opened and the caption was copied. LinkedIn will load the preview image from QuickProp.',
     });
-  }, [publicProps, mode, user?.name, catalogUrl, toast]);
+  }, [publicProps, mode, user?.name, catalogUrl, catalogPreviewUrl, toast]);
 
   const copyForInstagram = useCallback(async () => {
     try {

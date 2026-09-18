@@ -38,3 +38,9 @@ Version social preview URLs when the image or metadata implementation changes.
 **Why:** Facebook and LinkedIn can retain an earlier failed scrape even after the same URL starts returning valid metadata and an image.
 
 **How to apply:** Increment the preview query version in client links and preserve it in `og:url` and `og:image` for the next crawler request.
+
+Only public, currently available listings should produce crawler-facing social preview URLs.
+
+**Why:** Draft references can exist in the agent/office database but intentionally return 404 from the public share route; sending those URLs to Facebook produces a domain-only card.
+
+**How to apply:** Gate Facebook and LinkedIn actions on public listing status, and use direct URL sharing on web without downloading a local card image.

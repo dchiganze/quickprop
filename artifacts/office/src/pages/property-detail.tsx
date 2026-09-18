@@ -27,6 +27,7 @@ import { format } from 'date-fns';
 import {
   buildPropertyShareCaption,
   createPropertyShareCard,
+  openSocialShareLink,
   shareCardWithCaption,
 } from '@/utils/shareCards';
 import { getQuickPropPublicOrigin, QUICKPROP_SHARE_PREVIEW_VERSION } from '@/utils/shareLinks';
@@ -41,6 +42,9 @@ const PROPERTY_FEATURES = [
   'Study', 'Gym', 'Home Theatre', 'Wine Cellar',
   'Irrigation', 'Boma', 'Lapa', 'Outhouse',
 ];
+
+const PUBLIC_PROPERTY_STATUSES = new Set(['public', 'under_offer', 'coming_soon']);
+const PUBLIC_PROPERTY_AVAILABILITY = new Set(['available', 'under_offer']);
 
 type SellingStatus = 'available' | 'under_offer' | 'sold' | 'withdrawn';
 
@@ -218,6 +222,17 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
   };
 
   const handleShare = async (channel: 'whatsapp' | 'facebook' | 'instagram' | 'linkedin' | 'email' | 'link') => {
+    const canSharePublicPreview = PUBLIC_PROPERTY_STATUSES.has(property.status)
+      && PUBLIC_PROPERTY_AVAILABILITY.has(property.availabilityStatus ?? 'available');
+    if ((channel === 'facebook' || channel === 'linkedin') && !canSharePublicPreview) {
+      toast({
+        title: 'Publish this property first',
+        description: 'Facebook and LinkedIn previews are only available for public listings.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     shareProperty.mutate({ id: propertyId, data: { channel } }, {
       onSuccess: async (res) => {
         const publicOrigin = getQuickPropPublicOrigin();
@@ -246,19 +261,24 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
             });
             return;
           } else if (channel === 'facebook' || channel === 'linkedin' || channel === 'instagram') {
+            if (channel === 'facebook' || channel === 'linkedin') {
+              const fallbackUrl = channel === 'facebook'
+                ? `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(previewUrl)}`
+                : `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(previewUrl)}`;
+              await openSocialShareLink(shareMessage, fallbackUrl);
+              toast({
+                title: `${channel[0].toUpperCase()}${channel.slice(1)} ready to share`,
+                description: `The ${channel} link was opened and the caption was copied. Facebook will load the preview image from QuickProp.`,
+              });
+              return;
+            }
             const card = await createPropertyShareCard(property);
-            const fallbackUrl = channel === 'facebook'
-              ? `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(previewUrl)}`
-              : channel === 'linkedin'
-                ? `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(previewUrl)}`
-                : null;
             const result = await shareCardWithCaption(
               card,
               shareMessage,
               property.title,
               `quickprop-${property.reference}.jpg`,
-              fallbackUrl,
-              channel === 'facebook' || channel === 'linkedin',
+              null,
             );
             toast({
               title: `${channel[0].toUpperCase()}${channel.slice(1)} ready to share`,
@@ -556,7 +576,7 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
                 <button
                   type="button"
                   onClick={() => handleShare('facebook')}
-                  disabled={shareProperty.isPending}
+                  disabled={shareProperty.isPending || !PUBLIC_PROPERTY_STATUSES.has(property.status) || !PUBLIC_PROPERTY_AVAILABILITY.has(property.availabilityStatus ?? 'available')}
                   className="group flex w-full items-center gap-3 rounded-lg border border-border p-3 text-left transition-colors hover:bg-muted/60 disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#1877F2]">
@@ -564,7 +584,9 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium text-foreground">Facebook</p>
-                    <p className="text-xs text-muted-foreground">Share this property on Facebook</p>
+                    <p className="text-xs text-muted-foreground">
+                      {PUBLIC_PROPERTY_STATUSES.has(property.status) ? 'Share this property on Facebook' : 'Publish listing to share on Facebook'}
+                    </p>
                   </div>
                   <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground transition-colors group-hover:text-foreground" />
                 </button>
@@ -591,7 +613,7 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
                 <button
                   type="button"
                   onClick={() => handleShare('linkedin')}
-                  disabled={shareProperty.isPending}
+                  disabled={shareProperty.isPending || !PUBLIC_PROPERTY_STATUSES.has(property.status) || !PUBLIC_PROPERTY_AVAILABILITY.has(property.availabilityStatus ?? 'available')}
                   className="group flex w-full items-center gap-3 rounded-lg border border-border p-3 text-left transition-colors hover:bg-muted/60 disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#0A66C2]">
@@ -599,7 +621,9 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium text-foreground">LinkedIn</p>
-                    <p className="text-xs text-muted-foreground">Share this property as a post</p>
+                    <p className="text-xs text-muted-foreground">
+                      {PUBLIC_PROPERTY_STATUSES.has(property.status) ? 'Share this property as a post' : 'Publish listing to share on LinkedIn'}
+                    </p>
                   </div>
                   <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground transition-colors group-hover:text-foreground" />
                 </button>
