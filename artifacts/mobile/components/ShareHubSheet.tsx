@@ -157,6 +157,7 @@ export function ShareHubSheet({ visible, onClose }: Props) {
           ?? Promise.reject(new Error('Unable to prepare the brochure image.')),
         'Share brochure to Facebook',
         `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(catalogUrl)}`,
+        'facebook',
       );
       handleClose();
     } catch (e: unknown) {

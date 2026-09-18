@@ -201,6 +201,7 @@ export async function shareCatalogueToSocial(
   captureCard: () => Promise<string>,
   dialogTitle = 'Share property brochure',
   fallbackUrl?: string | null,
+  directDestination?: 'facebook' | 'linkedin',
 ): Promise<void> {
   await Clipboard.setStringAsync(caption).catch(() => {});
 
@@ -242,6 +243,11 @@ export async function shareCatalogueToSocial(
   }
 
   const cardUri = await captureCard();
+  if (directDestination) {
+    await shareNativeSocialPost(directDestination, cardUri, caption, dialogTitle);
+    return;
+  }
+
   try {
     const { default: NativeShare } = await import('react-native-share');
     await NativeShare.open({
@@ -263,6 +269,30 @@ export async function shareCatalogueToSocial(
     dialogTitle,
     mimeType: 'image/jpeg',
     UTI: 'public.jpeg',
+  });
+}
+
+async function shareNativeSocialPost(
+  destination: 'facebook' | 'linkedin',
+  cardUri: string,
+  caption: string,
+  title: string,
+): Promise<void> {
+  const { default: NativeShare } = await import('react-native-share');
+  const social = (destination === 'facebook'
+    ? NativeShare.Social.FACEBOOK
+    : NativeShare.Social.LINKEDIN) as Exclude<
+      import('react-native-share').Social,
+      import('react-native-share').Social.FacebookStories | import('react-native-share').Social.InstagramStories
+    >;
+
+  await NativeShare.shareSingle({
+    social,
+    url: cardUri,
+    type: 'image/jpeg',
+    message: caption,
+    title,
+    useInternalStorage: true,
   });
 }
 
@@ -300,36 +330,14 @@ export async function sharePropertyToSocial(
     return;
   }
 
-  // Facebook rejects a number of targeted image payloads on both platforms.
-  // Use the native chooser instead; the rendered JPEG is still delivered and
-  // the copied caption can be pasted into the Facebook post composer.
-  if (destination === 'facebook') {
-    await sharePropertyGeneric(property, captureCard, 'Share property to Facebook', true, caption);
-    return;
-  }
-
-  // iOS social apps are most reliable when they receive only the rendered
-  // image through the system share sheet. The caption was copied above so it
-  // can be pasted into the destination app after it opens. Keep this separate
-  // from Android, where the direct native share targets preserve the existing
-  // image-plus-caption behavior.
-  if (Platform.OS === 'ios') {
-    await sharePropertyGeneric(
-      property,
-      captureCard,
-      `Share property to ${destination.charAt(0).toUpperCase() + destination.slice(1)}`,
-      true,
+  if (destination === 'facebook' || destination === 'linkedin') {
+    const cardUri = await captureCard();
+    await shareNativeSocialPost(
+      destination,
+      cardUri,
       caption,
+      `Share property to ${destination.charAt(0).toUpperCase() + destination.slice(1)}`,
     );
-    return;
-  }
-
-  // LinkedIn's targeted react-native-share implementation can remain pending
-  // when the LinkedIn app is unavailable or rejects an image handoff. Use the
-  // system share sheet instead so the agent can select LinkedIn without
-  // blocking the share modal indefinitely.
-  if (destination === 'linkedin') {
-    await sharePropertyGeneric(property, captureCard, 'Share property to LinkedIn', true, caption);
     return;
   }
 
