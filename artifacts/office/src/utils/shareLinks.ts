@@ -15,7 +15,7 @@ export function getQuickPropPublicOrigin(currentOrigin?: string): string {
   const origin = currentOrigin ?? (typeof window !== 'undefined' ? window.location.origin : '');
   try {
     const url = new URL(origin);
-    return isDevelopmentHost(url.hostname) ? QUICKPROP_PUBLIC_ORIGIN : url.origin;
+    return isDevelopmentHost(url.hostname) ? url.origin : QUICKPROP_PUBLIC_ORIGIN;
   } catch {
     return QUICKPROP_PUBLIC_ORIGIN;
   }
