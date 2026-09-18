@@ -18,6 +18,7 @@ import {
   createCatalogueShareCard,
   shareCardWithCaption,
 } from '@/utils/shareCards';
+import { getQuickPropPublicOrigin } from '@/utils/shareLinks';
 
 type CatalogMode = 'company' | 'agent';
 
@@ -91,7 +92,7 @@ export function QuickShareDialog() {
   const properties = (mode === 'agent' ? myProps : allProps) ?? [];
   const publicProps = properties.filter(p => PUBLIC_STATUSES.includes(p.status));
 
-  const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+  const baseUrl = getQuickPropPublicOrigin();
   const catalogUrl =
     mode === 'agent' && user?.id
       ? `${baseUrl}/web/agents/${user.id}`

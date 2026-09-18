@@ -29,6 +29,7 @@ import {
   createPropertyShareCard,
   shareCardWithCaption,
 } from '@/utils/shareCards';
+import { getQuickPropPublicOrigin } from '@/utils/shareLinks';
 
 const PROPERTY_FEATURES = [
   'Solar', 'Borehole', 'Swimming Pool', 'Electric Fence',
@@ -219,11 +220,12 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
   const handleShare = async (channel: 'whatsapp' | 'facebook' | 'instagram' | 'linkedin' | 'email' | 'link') => {
     shareProperty.mutate({ id: propertyId, data: { channel } }, {
       onSuccess: async (res) => {
+        const publicOrigin = getQuickPropPublicOrigin();
         const catalogueUrl = property.agentId
-          ? `${window.location.origin}/web/agents/${property.agentId}`
-          : `${window.location.origin}/web/`;
-        const propertyUrl = res.url;
-        const previewUrl = `${window.location.origin}/api/share/properties/${encodeURIComponent(property.reference)}`;
+          ? `${publicOrigin}/web/agents/${property.agentId}`
+          : `${publicOrigin}/web/`;
+        const propertyUrl = `${publicOrigin}/properties/${encodeURIComponent(property.reference.toLowerCase())}`;
+        const previewUrl = `${publicOrigin}/api/share/properties/${encodeURIComponent(property.reference)}`;
         const shareMessage = buildPropertyShareCaption(property, propertyUrl, catalogueUrl);
 
         try {

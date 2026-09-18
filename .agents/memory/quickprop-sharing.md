@@ -20,3 +20,9 @@ Crawler-facing share pages must expose server-rendered Open Graph metadata and a
 **Why:** Social crawlers may not execute the marketplace React app, and local browser blobs cannot be fetched by the platforms.
 
 **How to apply:** Keep readable marketplace URLs for captions, but use a public preview URL for targeted social buttons. Let humans redirect to the normal page while crawlers receive `og:title`, `og:description`, and `og:image`.
+
+The published API must be revalidated after each share-preview change; a local public route can still return an authentication response when production is serving an older build.
+
+**Why:** Social crawlers only see the published deployment, not the local workflow, and a stale production API makes an otherwise correct preview link unusable.
+
+**How to apply:** Check the canonical production preview URL with an unauthenticated request after publishing. Require a 200 HTML response with `og:image`, and separately check the referenced JPEG returns 200 `image/jpeg`.

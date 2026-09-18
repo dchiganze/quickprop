@@ -5,8 +5,18 @@ import { Property } from '@/types';
  * EXPO_PUBLIC_DOMAIN is injected per deployment; the production domain is the
  * same one configured in the mobile app's support and marketing URLs.
  */
+const PRODUCTION_DOMAIN = 'www.quickprop.melios.co.zw';
 const configuredDomain = process.env.EXPO_PUBLIC_DOMAIN?.replace(/^https?:\/\//, '').replace(/\/+$/, '');
-export const QUICKPROP_WEB_URL = `https://${configuredDomain || 'quickprop.melios.co.zw'}`;
+const configuredHost = configuredDomain?.split('/')[0].toLowerCase();
+const isDevelopmentDomain = Boolean(
+  configuredHost && (
+    configuredHost === 'localhost' ||
+    configuredHost === '127.0.0.1' ||
+    configuredHost === '0.0.0.0' ||
+    configuredHost.endsWith('.replit.dev')
+  ),
+);
+export const QUICKPROP_WEB_URL = `https://${configuredHost && !isDevelopmentDomain ? configuredDomain : PRODUCTION_DOMAIN}`;
 export const QUICKPROP_AGENT_SCHEME = 'quickpropagent';
 
 function query(params: Record<string, string | undefined>): string {
