@@ -724,9 +724,9 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
                  <label className="text-sm font-medium">Proposed viewing times</label>
                  <p className="mt-1 text-xs text-muted-foreground">Choose up to 3 available days and times for buyers.</p>
                </div>
-               <div className="grid gap-3 sm:grid-cols-3">
+               <div className="grid min-w-0 gap-3 lg:grid-cols-3">
                  {Array.from({ length: 3 }, (_, index) => (
-                   <div key={`viewing-slot-${index}`} className="grid gap-2">
+                   <div key={`viewing-slot-${index}`} className="grid min-w-0 gap-2">
                      <label htmlFor={`edit-viewing-${index}`} className="text-xs font-medium text-muted-foreground">
                        Slot {index + 1}
                      </label>
@@ -734,6 +734,7 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
                        id={`edit-viewing-${index}`}
                        type="datetime-local"
                        min={toDateTimeLocal(new Date().toISOString())}
+                       className="min-w-0 text-sm"
                        value={edit.proposedViewingTimes[index] ?? ''}
                        onChange={(event) => {
                          const proposedViewingTimes = [...edit.proposedViewingTimes];
