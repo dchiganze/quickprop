@@ -23,6 +23,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
+import { Calendar as DateCalendar } from '@/components/ui/calendar';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import {
@@ -76,6 +77,30 @@ function futureViewingDate() {
   const pad = (part: number) => String(part).padStart(2, '0');
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 }
+
+function dateFromLocalValue(value: string) {
+  const [year, month, day] = value.split('-').map(Number);
+  if (![year, month, day].every(Number.isFinite)) return undefined;
+  return new Date(year, month - 1, day);
+}
+
+function futureViewingCalendarDate() {
+  return dateFromLocalValue(futureViewingDate()) ?? new Date();
+}
+
+function formatTimeOption(value: string) {
+  const [hours, minutes] = value.split(':').map(Number);
+  if (![hours, minutes].every(Number.isFinite)) return value;
+  return new Date(2000, 0, 1, hours, minutes).toLocaleTimeString(undefined, {
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+}
+
+const VIEWING_TIME_OPTIONS = Array.from({ length: 49 }, (_, index) => {
+  const totalMinutes = index * 30;
+  return `${String(Math.floor(totalMinutes / 60)).padStart(2, '0')}:${String(totalMinutes % 60).padStart(2, '0')}`;
+});
 
 function formatViewingSlot(value: string) {
   if (!value) return 'Select date and time';
@@ -666,23 +691,34 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
               Select a future date and a time when buyers can view the property.
             </p>
             <div className="grid gap-2">
-              <label htmlFor="viewing-picker-date" className="text-sm font-medium">Date</label>
-              <Input
-                id="viewing-picker-date"
-                type="date"
-                min={futureViewingDate()}
-                value={viewingPickerDate}
-                onChange={(event) => setViewingPickerDate(event.target.value)}
+              <label className="text-sm font-medium">Date</label>
+              <DateCalendar
+                mode="single"
+                selected={dateFromLocalValue(viewingPickerDate)}
+                defaultMonth={dateFromLocalValue(viewingPickerDate) ?? futureViewingCalendarDate()}
+                onSelect={(date) => {
+                  if (date) setViewingPickerDate(format(date, 'yyyy-MM-dd'));
+                }}
+                disabled={{ before: futureViewingCalendarDate() }}
+                className="w-full rounded-md border bg-background [--cell-size:2.5rem]"
+                classNames={{
+                  root: 'w-full',
+                  month: 'w-full',
+                }}
               />
             </div>
             <div className="grid gap-2">
               <label htmlFor="viewing-picker-time" className="text-sm font-medium">Time</label>
-              <Input
-                id="viewing-picker-time"
-                type="time"
-                value={viewingPickerTime}
-                onChange={(event) => setViewingPickerTime(event.target.value)}
-              />
+              <Select value={viewingPickerTime} onValueChange={setViewingPickerTime}>
+                <SelectTrigger id="viewing-picker-time">
+                  <SelectValue placeholder="Choose a time" />
+                </SelectTrigger>
+                <SelectContent>
+                  {VIEWING_TIME_OPTIONS.map((time) => (
+                    <SelectItem key={time} value={time}>{formatTimeOption(time)}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <DialogFooter className="flex-col-reverse gap-2 sm:flex-row sm:justify-between">
