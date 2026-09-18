@@ -10,7 +10,8 @@ import {
   ArrowLeft, MapPin, Bed, Bath, Car, Square, Building2, Calendar, 
   Tag, Download, Share2, PenLine, CheckCircle2, FileText, Eye, 
   Activity, ArrowUpRight, ArrowDownRight, Loader2, Image as ImageIcon,
-  MessageCircle, Facebook, Instagram, Linkedin, Mail, Link as LinkIcon, Copy, ChevronRight
+  MessageCircle, Facebook, Instagram, Linkedin, Mail, Link as LinkIcon, Copy, ChevronRight,
+  Upload, Video, X
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -61,6 +62,31 @@ function getSellingStatus(property: { status: string; availabilityStatus?: strin
     : 'available';
 }
 
+async function uploadOfficeMedia(file: File): Promise<string> {
+  const request = await fetch('/api/storage/uploads/request-url', {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: file.name, size: file.size, contentType: file.type }),
+  });
+  const target = await request.json().catch(() => null) as {
+    uploadURL?: string;
+    objectPath?: string;
+    error?: string;
+  } | null;
+  if (!request.ok || !target?.uploadURL || !target.objectPath) {
+    throw new Error(target?.error || `Could not prepare ${file.name} for upload.`);
+  }
+
+  const upload = await fetch(target.uploadURL, {
+    method: 'PUT',
+    headers: { 'Content-Type': file.type },
+    body: file,
+  });
+  if (!upload.ok) throw new Error(`Could not upload ${file.name}.`);
+  return `/api/storage${target.objectPath}`;
+}
+
 export default function PropertyDetail({ params }: { params: { id: string } }) {
   const propertyId = parseInt(params.id, 10);
   const [, navigate] = useLocation();
@@ -86,6 +112,8 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
   const [editOpen, setEditOpen] = useState(false);
   const [photoUploadPending, setPhotoUploadPending] = useState(false);
   const photoInputRef = useRef<HTMLInputElement>(null);
+  const editPhotoInputRef = useRef<HTMLInputElement>(null);
+  const editVideoInputRef = useRef<HTMLInputElement>(null);
   const [listingVisibility, setListingVisibility] = useState<'public' | 'internal_only'>('internal_only');
   const [sellingStatus, setSellingStatus] = useState<SellingStatus>('available');
   const [edit, setEdit] = useState({
@@ -118,6 +146,7 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
       rates: property.rates == null ? '' : String(property.rates),
        description: property.description ?? '',
       photos: (property.photos ?? []).join('\n'),
+      coverImage: property.coverImage ?? property.photos?.[0] ?? '',
       videoUrl: property.videoUrl ?? '',
       proposedViewingTimes: (property.proposedViewingTimes ?? []).join('\n'),
        features: property.features ?? [],
