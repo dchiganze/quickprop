@@ -120,7 +120,7 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
     title: '', propertyType: 'house', listingType: 'sale', price: '', negotiable: false,
     suburb: '', city: '', address: '', addressVisible: false, bedrooms: '', bathrooms: '',
     parking: '', landSize: '', buildingSize: '', levies: '', rates: '', description: '',
-    photos: '', videoUrl: '', proposedViewingTimes: '', features: [] as string[],
+    photos: '', coverImage: '', videoUrl: '', proposedViewingTimes: '', features: [] as string[],
     sellerName: '', sellerPhone: '', sellerEmail: '', mandateExpiry: '',
     mandateType: 'sole' as 'open' | 'sole', sellerNotes: '', collaborationEnabled: false,
   });
@@ -182,6 +182,7 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
   }
 
   const coverPhoto = property.coverImage || property.photos?.[0];
+  const editPhotoUrls = edit.photos.split(/\r?\n|,/).map((value) => value.trim()).filter(Boolean);
 
   const handleVisibilityChange = (newStatus: string) => {
     const nextStatus = newStatus === 'public' ? 'public' : 'internal_only';
@@ -324,6 +325,80 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
     }
   };
 
+  const handleEditPhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files ?? []);
+    event.target.value = '';
+    if (files.length === 0) return;
+
+    const accepted = files.filter((file) => file.type.startsWith('image/') && file.size <= 25 * 1024 * 1024);
+    const rejected = files.filter((file) => !file.type.startsWith('image/') || file.size > 25 * 1024 * 1024);
+    if (rejected.length > 0) {
+      toast({
+        title: 'Some photos were skipped',
+        description: 'Photos must be image files no larger than 25 MB.',
+        variant: 'destructive',
+      });
+    }
+    if (accepted.length === 0) return;
+
+    setPhotoUploadPending(true);
+    try {
+      const uploadedPhotos = await Promise.all(accepted.map(uploadOfficeMedia));
+      setEdit((current) => {
+        const photos = [
+          ...current.photos.split(/\r?\n|,/).map((value) => value.trim()).filter(Boolean),
+          ...uploadedPhotos,
+        ];
+        return {
+          ...current,
+          photos: photos.join('\n'),
+          coverImage: current.coverImage || uploadedPhotos[0],
+        };
+      });
+      toast({
+        title: 'Photos added',
+        description: `${uploadedPhotos.length} ${uploadedPhotos.length === 1 ? 'photo is' : 'photos are'} ready to save.`,
+      });
+    } catch (error) {
+      toast({
+        title: 'Could not upload photos',
+        description: error instanceof Error ? error.message : 'Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setPhotoUploadPending(false);
+    }
+  };
+
+  const handleEditVideoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    if (!file.type.startsWith('video/')) {
+      toast({ title: 'Unsupported video', description: 'Choose a video file.', variant: 'destructive' });
+      return;
+    }
+    if (file.size > 100 * 1024 * 1024) {
+      toast({ title: 'Video is too large', description: 'Videos must be 100 MB or smaller.', variant: 'destructive' });
+      return;
+    }
+
+    setPhotoUploadPending(true);
+    try {
+      const videoUrl = await uploadOfficeMedia(file);
+      setEdit((current) => ({ ...current, videoUrl }));
+      toast({ title: 'Video added', description: 'The video is ready to save with this listing.' });
+    } catch (error) {
+      toast({
+        title: 'Could not upload video',
+        description: error instanceof Error ? error.message : 'Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setPhotoUploadPending(false);
+    }
+  };
+
   const handleShare = async (channel: 'whatsapp' | 'facebook' | 'instagram' | 'linkedin' | 'email' | 'link') => {
     const canSharePublicPreview = PUBLIC_PROPERTY_STATUSES.has(property.status)
       && PUBLIC_PROPERTY_AVAILABILITY.has(property.availabilityStatus ?? 'available');
@@ -449,6 +524,7 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
         description: edit.description.trim() || undefined,
          features: edit.features,
         photos,
+        coverImage: edit.coverImage || photos[0],
         videoUrl: edit.videoUrl.trim() || undefined,
         proposedViewingTimes: edit.proposedViewingTimes.split(/\r?\n|,/).map((value) => value.trim()).filter(Boolean),
          sellerName: edit.sellerName.trim() || undefined,
@@ -562,7 +638,76 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
             </div>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="grid gap-2"><label htmlFor="edit-rates" className="text-sm font-medium">Rates / month</label><Input id="edit-rates" inputMode="decimal" value={edit.rates} onChange={(event) => setEdit({ ...edit, rates: event.target.value })} /></div>
-              <div className="grid gap-2"><label htmlFor="edit-video" className="text-sm font-medium">Video URL</label><Input id="edit-video" value={edit.videoUrl} onChange={(event) => setEdit({ ...edit, videoUrl: event.target.value })} placeholder="/api/storage/..." /></div>
+             <div className="grid gap-3">
+               <div className="flex items-center justify-between gap-3">
+                 <div>
+                   <label className="text-sm font-medium">Property video</label>
+                   <p className="text-xs text-muted-foreground">Upload a short walkthrough or paste a hosted video URL.</p>
+                 </div>
+                 <div className="flex shrink-0 gap-2">
+                   <input ref={editVideoInputRef} type="file" accept="video/*" className="hidden" onChange={handleEditVideoUpload} />
+                   <Button type="button" variant="outline" size="sm" onClick={() => editVideoInputRef.current?.click()} disabled={photoUploadPending}>
+                     {photoUploadPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Video className="mr-2 h-4 w-4" />}
+                     Add video
+                   </Button>
+                 </div>
+               </div>
+               {edit.videoUrl && (
+                 <div className="flex items-center gap-3 rounded-lg border bg-background p-2">
+                   <video src={edit.videoUrl} muted controls className="h-20 w-32 rounded object-cover" />
+                   <div className="min-w-0 flex-1">
+                     <p className="truncate text-xs text-muted-foreground">{edit.videoUrl}</p>
+                   </div>
+                   <Button type="button" variant="ghost" size="sm" onClick={() => setEdit({ ...edit, videoUrl: '' })}>
+                     <X className="mr-1 h-4 w-4" /> Remove
+                   </Button>
+                 </div>
+               )}
+               <Input id="edit-video" value={edit.videoUrl} onChange={(event) => setEdit({ ...edit, videoUrl: event.target.value })} placeholder="/api/storage/..." />
+             </div>
+             <div className="grid gap-3 rounded-lg border bg-muted/30 p-4">
+               <div className="flex items-start justify-between gap-3">
+                 <div>
+                   <label htmlFor="edit-photos" className="text-sm font-medium">Property photos</label>
+                   <p className="mt-1 text-xs text-muted-foreground">Add photos from your device or paste one URL per line.</p>
+                 </div>
+                 <div className="shrink-0">
+                   <input ref={editPhotoInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handleEditPhotoUpload} />
+                   <Button type="button" variant="outline" size="sm" onClick={() => editPhotoInputRef.current?.click()} disabled={photoUploadPending}>
+                     {photoUploadPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
+                     Add photos
+                   </Button>
+                 </div>
+               </div>
+               {editPhotoUrls.length > 0 && (
+                 <div className="flex flex-wrap gap-3">
+                   {editPhotoUrls.map((url, index) => (
+                     <div key={`${url}-${index}`} className="group relative h-24 w-32 overflow-hidden rounded-lg border bg-background">
+                       <img src={url} alt={`Property photo ${index + 1}`} className="h-full w-full object-cover" />
+                       {index === 0 && (
+                         <span className="absolute bottom-1 left-1 rounded bg-black/70 px-1.5 py-0.5 text-[10px] text-white">Cover</span>
+                       )}
+                       <button
+                         type="button"
+                         aria-label={`Remove photo ${index + 1}`}
+                         onClick={() => {
+                           const photos = editPhotoUrls.filter((_, photoIndex) => photoIndex !== index);
+                           setEdit({
+                             ...edit,
+                             photos: photos.join('\n'),
+                             coverImage: photos[0] ?? '',
+                           });
+                         }}
+                         className="absolute right-1 top-1 rounded-full bg-black/70 p-1 text-white opacity-0 transition-opacity group-hover:opacity-100"
+                       >
+                         <X className="h-3 w-3" />
+                       </button>
+                     </div>
+                   ))}
+                 </div>
+               )}
+               <Textarea id="edit-photos" rows={3} value={edit.photos} onChange={(event) => setEdit({ ...edit, photos: event.target.value })} />
+             </div>
             </div>
             <div className="grid gap-2"><label htmlFor="edit-photos" className="text-sm font-medium">Photos <span className="font-normal text-muted-foreground">(one URL per line)</span></label><Textarea id="edit-photos" rows={4} value={edit.photos} onChange={(event) => setEdit({ ...edit, photos: event.target.value })} /></div>
             <div className="grid gap-2"><label htmlFor="edit-viewings" className="text-sm font-medium">Proposed viewing times <span className="font-normal text-muted-foreground">(ISO date-time, one per line, up to 3)</span></label><Textarea id="edit-viewings" rows={3} value={edit.proposedViewingTimes} onChange={(event) => setEdit({ ...edit, proposedViewingTimes: event.target.value })} /></div>
