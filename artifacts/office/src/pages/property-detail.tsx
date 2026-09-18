@@ -707,7 +707,6 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
                )}
              </div>
             </div>
-            <div className="grid gap-2"><label htmlFor="edit-photos" className="text-sm font-medium">Photos <span className="font-normal text-muted-foreground">(one URL per line)</span></label><Textarea id="edit-photos" rows={4} value={edit.photos} onChange={(event) => setEdit({ ...edit, photos: event.target.value })} /></div>
             <div className="grid gap-2"><label htmlFor="edit-viewings" className="text-sm font-medium">Proposed viewing times <span className="font-normal text-muted-foreground">(ISO date-time, one per line, up to 3)</span></label><Textarea id="edit-viewings" rows={3} value={edit.proposedViewingTimes} onChange={(event) => setEdit({ ...edit, proposedViewingTimes: event.target.value })} /></div>
             <div className="grid gap-2"><label htmlFor="edit-description" className="text-sm font-medium">Description</label><Textarea id="edit-description" rows={4} value={edit.description} onChange={(event) => setEdit({ ...edit, description: event.target.value })} /></div>
              <div className="grid gap-3 rounded-lg border bg-muted/30 p-4">
