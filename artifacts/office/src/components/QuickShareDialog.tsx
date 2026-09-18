@@ -96,6 +96,10 @@ export function QuickShareDialog() {
     mode === 'agent' && user?.id
       ? `${baseUrl}/web/agents/${user.id}`
       : `${baseUrl}/web/`;
+  const catalogPreviewUrl =
+    mode === 'agent' && user?.id
+      ? `${baseUrl}/api/share/catalogues/agents/${user.id}`
+      : `${baseUrl}/api/share/catalogues/company`;
 
   const forSale = publicProps.filter(p => p.listingType === 'sale');
   const forRent = publicProps.filter(p => p.listingType === 'rent');
@@ -116,7 +120,7 @@ export function QuickShareDialog() {
         ? 'The brochure image and caption were sent to the share sheet.'
         : 'The brochure image was downloaded and the caption was opened in WhatsApp.',
     });
-  }, [publicProps, mode, user?.name, catalogUrl, toast]);
+  }, [publicProps, mode, user?.name, catalogUrl, catalogPreviewUrl, toast]);
 
   const shareToFacebook = useCallback(async () => {
     const caption = buildCatalogueShareCaption(publicProps, mode, user?.name, catalogUrl);
@@ -126,7 +130,7 @@ export function QuickShareDialog() {
       caption,
       'QuickProp Property Brochure',
       'quickprop-brochure.jpg',
-      `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(catalogUrl)}`,
+      `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(catalogPreviewUrl)}`,
       true,
     );
     toast({
@@ -135,7 +139,7 @@ export function QuickShareDialog() {
         ? 'The brochure image and caption were sent to the share sheet.'
         : 'The brochure image was downloaded and the caption was copied for Facebook.',
     });
-  }, [publicProps, mode, user?.name, catalogUrl, toast]);
+  }, [publicProps, mode, user?.name, catalogUrl, catalogPreviewUrl, toast]);
 
   const shareToLinkedIn = useCallback(async () => {
     const caption = buildCatalogueShareCaption(publicProps, mode, user?.name, catalogUrl);
@@ -145,7 +149,7 @@ export function QuickShareDialog() {
       caption,
       'QuickProp Property Brochure',
       'quickprop-brochure.jpg',
-      `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(catalogUrl)}`,
+      `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(catalogPreviewUrl)}`,
       true,
     );
     toast({

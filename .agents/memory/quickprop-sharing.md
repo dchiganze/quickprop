@@ -14,3 +14,9 @@ For targeted Facebook and LinkedIn buttons on web, bypass the browser file-share
 **Why:** Their `sharer` URLs accept only a public link, so they cannot import a local collage; the browser file-share API instead opens the Windows/system share panel, which is an unwanted extra screen.
 
 **How to apply:** For Facebook/LinkedIn, download the captured collage, copy the caption, and open the destination URL directly. Keep `navigator.share({ files, text })` for generic share actions where the system chooser is expected.
+
+Crawler-facing share pages must expose server-rendered Open Graph metadata and a public JPEG collage; client-only SPA metadata is not sufficient for Facebook or LinkedIn crawlers.
+
+**Why:** Social crawlers may not execute the marketplace React app, and local browser blobs cannot be fetched by the platforms.
+
+**How to apply:** Keep readable marketplace URLs for captions, but use a public preview URL for targeted social buttons. Let humans redirect to the normal page while crawlers receive `og:title`, `og:description`, and `og:image`.

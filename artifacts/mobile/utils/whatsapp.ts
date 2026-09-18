@@ -167,8 +167,8 @@ async function shareWebSocialPost(
   downloadLink.remove();
 
   const shareUrl = destination === 'facebook'
-    ? `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(propertyShareLinks(property).webUrl)}`
-    : `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(propertyShareLinks(property).webUrl)}`;
+    ? `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(propertyShareLinks(property).previewUrl)}`
+    : `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(propertyShareLinks(property).previewUrl)}`;
   await Linking.openURL(shareUrl);
 }
 

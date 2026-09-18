@@ -23,6 +23,7 @@ export function propertyShareLinks(property: Pick<Property, 'id' | 'referenceNum
     // References remain stable even when a queued offline listing is replaced
     // with its server ID. The public API accepts both IDs and references.
     webUrl: `${QUICKPROP_WEB_URL}/properties/${encodeURIComponent(property.referenceNumber)}`,
+    previewUrl: `${QUICKPROP_WEB_URL}/api/share/properties/${encodeURIComponent(property.referenceNumber)}`,
   };
 }
 
@@ -32,6 +33,7 @@ export function catalogueShareLinks(agentId?: string) {
   return {
     appUrl: `${QUICKPROP_AGENT_SCHEME}://invite?${appQuery}`,
     webUrl: `${QUICKPROP_WEB_URL}${cataloguePath}`,
+    previewUrl: `${QUICKPROP_WEB_URL}/api/share/catalogues/${agentId ? `agents/${encodeURIComponent(agentId)}` : 'company'}`,
   };
 }
 

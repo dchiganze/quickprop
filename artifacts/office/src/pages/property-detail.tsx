@@ -222,7 +222,9 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
         const catalogueUrl = property.agentId
           ? `${window.location.origin}/web/agents/${property.agentId}`
           : `${window.location.origin}/web/`;
-        const shareMessage = buildPropertyShareCaption(property, res.url, catalogueUrl);
+        const propertyUrl = res.url;
+        const previewUrl = `${window.location.origin}/api/share/properties/${encodeURIComponent(property.reference)}`;
+        const shareMessage = buildPropertyShareCaption(property, propertyUrl, catalogueUrl);
 
         try {
           if (channel === 'whatsapp') {
@@ -244,9 +246,9 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
           } else if (channel === 'facebook' || channel === 'linkedin' || channel === 'instagram') {
             const card = await createPropertyShareCard(property);
             const fallbackUrl = channel === 'facebook'
-              ? `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(res.url)}`
+              ? `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(previewUrl)}`
               : channel === 'linkedin'
-                ? `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(res.url)}`
+                ? `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(previewUrl)}`
                 : null;
             const result = await shareCardWithCaption(
               card,

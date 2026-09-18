@@ -18,6 +18,7 @@ import reviewsRouter from "./reviews";
 import rentalProfileRouter from "./rental-profile";
 import propertyAlertsRouter from "./property-alerts";
 import agencySettingsRouter from "./agency-settings";
+import shareRouter from "./share";
 
 const router: IRouter = Router();
 
@@ -31,6 +32,8 @@ router.use(publicRouter);
 router.use(rentalProfileRouter);
 router.use(propertyAlertsRouter);
 router.use(reviewsRouter);
+// Crawler-facing public share pages and generated social preview images.
+router.use(shareRouter);
 // All business routes below require a logged-in user.
 router.use(requireAuth);
 router.use(agencySettingsRouter);
