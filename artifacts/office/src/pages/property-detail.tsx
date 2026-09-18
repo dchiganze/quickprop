@@ -465,9 +465,11 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
 
   const openViewingPicker = (slotIndex: number) => {
     const value = edit.proposedViewingTimes[slotIndex] ?? '';
+    const dateValue = value.slice(0, 10);
+    const timeValue = value.slice(11, 16);
     setActiveViewingSlot(slotIndex);
-    setViewingPickerDate(value.slice(0, 10));
-    setViewingPickerTime(value.slice(11, 16));
+    setViewingPickerDate(dateValue);
+    setViewingPickerTime(isViewingDateTimeAllowed(dateValue, timeValue) ? timeValue : '');
     setViewingPickerOpen(true);
   };
 
@@ -476,8 +478,14 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
       toast({ title: 'Choose a date and time', description: 'Both fields are required for a viewing slot.', variant: 'destructive' });
       return;
     }
-    if (viewingPickerDate < futureViewingDate()) {
-      toast({ title: 'Choose a future date', description: 'Viewing dates must be after today.', variant: 'destructive' });
+    if (!isViewingDateTimeAllowed(viewingPickerDate, viewingPickerTime)) {
+      toast({
+        title: 'Choose a later time',
+        description: viewingPickerDate === minimumViewingDate()
+          ? 'Today’s viewing time must be at least one hour from now.'
+          : 'Choose a date and time in the future.',
+        variant: 'destructive',
+      });
       return;
     }
 
@@ -594,8 +602,19 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
   const handleEditSave = () => {
     const price = Number(edit.price);
     const photos = edit.photos.split(/\r?\n|,/).map((value) => value.trim()).filter(Boolean);
+    const invalidViewingTime = edit.proposedViewingTimes.some((value) => (
+      value && !isViewingDateTimeAllowed(value.slice(0, 10), value.slice(11, 16))
+    ));
+    if (invalidViewingTime) {
+      toast({
+        title: 'Update viewing times',
+        description: 'Today’s viewing time must be at least one hour from now. Future dates are also allowed.',
+        variant: 'destructive',
+      });
+      return;
+    }
     const proposedViewingTimes = edit.proposedViewingTimes
-      .filter((value) => value && value.slice(0, 10) >= futureViewingDate())
+      .filter(Boolean)
       .map((value) => new Date(value))
       .filter((value) => !Number.isNaN(value.getTime()))
       .slice(0, 3)
@@ -694,18 +713,22 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
           </DialogHeader>
           <div className="grid gap-4 py-2">
             <p className="text-sm text-muted-foreground">
-              Select a future date and a time when buyers can view the property.
+              Select today or a future date. Today’s viewing time must be at least one hour from now.
             </p>
             <div className="grid gap-2">
               <label className="text-sm font-medium">Date</label>
               <DateCalendar
                 mode="single"
                 selected={dateFromLocalValue(viewingPickerDate)}
-                defaultMonth={dateFromLocalValue(viewingPickerDate) ?? futureViewingCalendarDate()}
+                defaultMonth={dateFromLocalValue(viewingPickerDate) ?? minimumViewingCalendarDate()}
                 onSelect={(date) => {
-                  if (date) setViewingPickerDate(format(date, 'yyyy-MM-dd'));
+                  if (date) {
+                    const dateValue = format(date, 'yyyy-MM-dd');
+                    setViewingPickerDate(dateValue);
+                    setViewingPickerTime((current) => isViewingDateTimeAllowed(dateValue, current) ? current : '');
+                  }
                 }}
-                disabled={{ before: futureViewingCalendarDate() }}
+                disabled={{ before: minimumViewingCalendarDate() }}
                 className="w-full rounded-md border bg-background [--cell-size:2.5rem]"
                 classNames={{
                   root: 'w-full',
@@ -720,7 +743,9 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
                   <SelectValue placeholder="Choose a time" />
                 </SelectTrigger>
                 <SelectContent>
-                  {VIEWING_TIME_OPTIONS.map((time) => (
+                  {VIEWING_TIME_OPTIONS
+                    .filter((time) => isViewingDateTimeAllowed(viewingPickerDate, time))
+                    .map((time) => (
                     <SelectItem key={time} value={time}>{formatTimeOption(time)}</SelectItem>
                   ))}
                 </SelectContent>
