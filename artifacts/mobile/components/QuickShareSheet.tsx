@@ -11,7 +11,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Property } from '@/types';
 import { catalogueShareLinks } from '@/utils/shareLinks';
 import { buildCatalogueShareMessage, formatSharePrice } from '@/utils/shareContent';
-import { shareCatalogueToWhatsApp } from '@/utils/whatsapp';
+import { shareCatalogueToSocial, shareCatalogueToWhatsApp } from '@/utils/whatsapp';
 import { ShareCatalogueCard, ShareCatalogueCardHandle } from '@/components/ShareCatalogueCard';
 
 type CatalogMode = 'agent' | 'company';
@@ -66,8 +66,14 @@ export function QuickShareSheet({ visible, onClose }: QuickShareSheetProps) {
     setSharing(true);
     try {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-       const text = buildCatalogueShareMessage(activeProps, mode, user?.name, mode === 'agent' ? user?.id : undefined);
-      await Share.share({ title: 'QuickProp Property Brochure', message: text });
+      const text = buildCatalogueShareMessage(activeProps, mode, user?.name, mode === 'agent' ? user?.id : undefined);
+      await shareCatalogueToSocial(
+        text,
+        () => catalogueCardRef.current?.capture()
+          ?? Promise.reject(new Error('Unable to prepare the brochure image.')),
+        'Share brochure to Facebook',
+        `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(catalogUrl)}`,
+      );
       onClose();
     } catch (e: unknown) {
       Alert.alert('Could not open Facebook', e instanceof Error ? e.message : 'Please try again.');
@@ -80,11 +86,14 @@ export function QuickShareSheet({ visible, onClose }: QuickShareSheetProps) {
     setSharing(true);
     try {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-       const text = buildCatalogueShareMessage(activeProps, mode, user?.name, mode === 'agent' ? user?.id : undefined);
-      await Share.share({
-        title: 'QuickProp Property Brochure',
-        message: text,
-      });
+      const text = buildCatalogueShareMessage(activeProps, mode, user?.name, mode === 'agent' ? user?.id : undefined);
+      await shareCatalogueToSocial(
+        text,
+        () => catalogueCardRef.current?.capture()
+          ?? Promise.reject(new Error('Unable to prepare the brochure image.')),
+        'Share brochure to Instagram',
+        null,
+      );
       onClose();
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : '';
@@ -98,11 +107,13 @@ export function QuickShareSheet({ visible, onClose }: QuickShareSheetProps) {
     setSharing(true);
     try {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-       const text = buildCatalogueShareMessage(activeProps, mode, user?.name, mode === 'agent' ? user?.id : undefined);
-      await Share.share({
-        title: 'QuickProp Property Brochure',
-        message: text,
-      });
+      const text = buildCatalogueShareMessage(activeProps, mode, user?.name, mode === 'agent' ? user?.id : undefined);
+      await shareCatalogueToSocial(
+        text,
+        () => catalogueCardRef.current?.capture()
+          ?? Promise.reject(new Error('Unable to prepare the brochure image.')),
+        'Share property brochure',
+      );
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : '';
       if (!message.toLowerCase().includes('cancel')) Alert.alert('Could not share brochure', message || 'Please try again.');

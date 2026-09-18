@@ -219,16 +219,14 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
   const handleShare = async (channel: 'whatsapp' | 'facebook' | 'instagram' | 'linkedin' | 'email' | 'link') => {
     shareProperty.mutate({ id: propertyId, data: { channel } }, {
       onSuccess: async (res) => {
-        const shareMessage = [
-          property.title,
-          property.address ? `${property.address}, ${property.suburb}` : property.suburb,
-          `${property.currency} ${property.price.toLocaleString()}`,
-          `View online: ${res.url}`,
-        ].join('\n');
+        const catalogueUrl = property.agentId
+          ? `${window.location.origin}/web/agents/${property.agentId}`
+          : `${window.location.origin}/web/`;
+        const shareMessage = buildPropertyShareCaption(property, res.url, catalogueUrl);
 
         try {
           if (channel === 'whatsapp') {
-            const caption = buildPropertyShareCaption(property, res.url);
+            const caption = shareMessage;
             const card = await createPropertyShareCard(property);
             const result = await shareCardWithCaption(
               card,
@@ -243,22 +241,35 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
                 : 'The property image was downloaded and the caption was opened in WhatsApp.',
             });
             return;
+          } else if (channel === 'facebook' || channel === 'linkedin' || channel === 'instagram') {
+            const card = await createPropertyShareCard(property);
+            const fallbackUrl = channel === 'facebook'
+              ? `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(res.url)}`
+              : channel === 'linkedin'
+                ? `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(res.url)}`
+                : null;
+            const result = await shareCardWithCaption(
+              card,
+              shareMessage,
+              property.title,
+              `quickprop-${property.reference}.jpg`,
+              fallbackUrl,
+            );
+            toast({
+              title: `${channel[0].toUpperCase()}${channel.slice(1)} ready to share`,
+              description: result === 'shared'
+                ? 'The property collage and caption were sent to the share sheet.'
+                : `The property collage was downloaded and the caption was copied for ${channel}.`,
+            });
+            return;
           } else if (channel === 'email') {
             window.location.href = `mailto:?subject=${encodeURIComponent(property.title)}&body=${encodeURIComponent(shareMessage)}`;
-          } else if (channel === 'facebook') {
-            window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(res.url)}`, '_blank', 'noopener,noreferrer');
-          } else if (channel === 'instagram') {
-            await navigator.clipboard.writeText(shareMessage);
-          } else if (channel === 'linkedin') {
-            window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(res.url)}`, '_blank', 'noopener,noreferrer');
           } else {
             await navigator.clipboard.writeText(shareMessage);
           }
           const description = channel === 'link'
             ? 'Property details and link copied to clipboard.'
-            : channel === 'instagram'
-              ? 'The property caption and link were copied to your clipboard.'
-              : `Opened ${channel}.`;
+            : `Opened ${channel}.`;
           toast({ title: 'Property ready to share', description });
         } catch {
           toast({ title: 'Could not share property', description: 'Please try again.', variant: 'destructive' });

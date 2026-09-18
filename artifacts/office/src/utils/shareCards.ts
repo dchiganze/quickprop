@@ -101,6 +101,46 @@ function drawPlaceholder(ctx: CanvasRenderingContext2D, text: string) {
   ctx.textAlign = 'left';
 }
 
+function drawPhotoPlaceholder(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  text: string,
+) {
+  ctx.fillStyle = '#F1F5F9';
+  ctx.fillRect(x, y, width, height);
+  ctx.fillStyle = GREEN;
+  ctx.font = '800 42px Arial';
+  ctx.textAlign = 'center';
+  ctx.fillText('QuickProp', x + width / 2, y + height / 2 - 8);
+  ctx.fillStyle = MUTED;
+  ctx.font = '600 22px Arial';
+  ctx.fillText(text, x + width / 2, y + height / 2 + 34);
+  ctx.textAlign = 'left';
+}
+
+async function drawPhotoTile(
+  ctx: CanvasRenderingContext2D,
+  source: string | undefined,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+) {
+  if (!source) {
+    drawPhotoPlaceholder(ctx, x, y, width, height, 'Photo unavailable');
+    return;
+  }
+
+  try {
+    drawCoverImage(ctx, await loadImage(source), x, y, width, height);
+  } catch {
+    drawPhotoPlaceholder(ctx, x, y, width, height, 'Photo unavailable');
+  }
+}
+
 function makeCanvas(): HTMLCanvasElement {
   const canvas = document.createElement('canvas');
   canvas.width = CANVAS_WIDTH;
@@ -117,7 +157,11 @@ function canvasToBlob(canvas: HTMLCanvasElement): Promise<Blob> {
   });
 }
 
-export function buildPropertyShareCaption(property: Property, publicUrl: string): string {
+export function buildPropertyShareCaption(
+  property: Property,
+  publicUrl: string,
+  catalogueUrl = publicUrl,
+): string {
   const location = property.address && property.addressVisible
     ? `${property.address}, ${property.suburb}`
     : property.suburb;
@@ -137,7 +181,7 @@ export function buildPropertyShareCaption(property: Property, publicUrl: string)
     lines.push(`📝 ${description.slice(0, 220)}${description.length > 220 ? '…' : ''}`);
   }
   lines.push(`📋 Ref: *${property.reference}*`);
-  lines.push(`See full details on QuickProp: ${publicUrl}`);
+  lines.push(`View my entire catalogue here: ${catalogueUrl}`);
   return lines.join('\n');
 }
 
@@ -157,7 +201,7 @@ export function buildCatalogueShareCaption(
   lines.push('');
   if (forSale.length) lines.push(`*For Sale (${forSale.length} properties)*`);
   if (forRent.length) lines.push(`*To Rent (${forRent.length} properties)*`);
-  lines.push(`See full details on QuickProp: ${catalogueUrl}`);
+  lines.push(`View my entire catalogue here: ${catalogueUrl}`);
   return lines.join('\n');
 }
 
@@ -166,16 +210,16 @@ export async function createPropertyShareCard(property: Property): Promise<Blob>
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('Could not prepare the share image.');
 
-  const photo = property.photos?.[0];
-  if (photo) {
-    try {
-      drawCoverImage(ctx, await loadImage(photo), 0, 0, CANVAS_WIDTH, PHOTO_HEIGHT);
-    } catch {
-      drawPlaceholder(ctx, 'Property photo unavailable');
-    }
-  } else {
-    drawPlaceholder(ctx, 'Property photo unavailable');
-  }
+  const photoSources = [...new Set([
+    property.coverImage,
+    ...(property.photos ?? []),
+  ].filter((photo): photo is string => Boolean(photo)))];
+  const topPhotoHeight = Math.round((PHOTO_HEIGHT - 8) * 0.67);
+  const lowerPhotoHeight = PHOTO_HEIGHT - topPhotoHeight - 8;
+  const lowerPhotoWidth = (CANVAS_WIDTH - 8) / 2;
+  await drawPhotoTile(ctx, photoSources[0], 0, 0, CANVAS_WIDTH, topPhotoHeight);
+  await drawPhotoTile(ctx, photoSources[1] ?? photoSources[0], 0, topPhotoHeight + 8, lowerPhotoWidth, lowerPhotoHeight);
+  await drawPhotoTile(ctx, photoSources[2] ?? photoSources[1] ?? photoSources[0], lowerPhotoWidth + 8, topPhotoHeight + 8, lowerPhotoWidth, lowerPhotoHeight);
 
   ctx.fillStyle = GREEN;
   ctx.fillRect(0, PHOTO_HEIGHT, CANVAS_WIDTH, 8);
@@ -333,6 +377,7 @@ export async function shareCardWithCaption(
   caption: string,
   title: string,
   fileName: string,
+  fallbackUrl?: string | null,
 ): Promise<'shared' | 'downloaded'> {
   await navigator.clipboard?.writeText(caption).catch(() => {});
   const file = new File([blob], fileName, { type: 'image/jpeg' });
@@ -351,7 +396,9 @@ export async function shareCardWithCaption(
   download.click();
   window.setTimeout(() => URL.revokeObjectURL(imageUrl), 1000);
 
-  const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(caption)}`;
-  window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
+  const targetUrl = fallbackUrl === undefined
+    ? `https://wa.me/?text=${encodeURIComponent(caption)}`
+    : fallbackUrl;
+  if (targetUrl) window.open(targetUrl, '_blank', 'noopener,noreferrer');
   return 'downloaded';
 }

@@ -16,6 +16,11 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { getGetPublicMeQueryKey, getListSavedPropertiesQueryKey } from "@workspace/api-client-react";
+import {
+  buildPropertyShareCaption,
+  createPropertyShareCard,
+  shareCardWithCaption,
+} from "@/utils/shareCards";
 
 const enquirySchema = z.object({
   name: z.string().min(2, "Name is required"),
@@ -105,25 +110,28 @@ export default function PropertyDetail() {
   };
 
   const handleShare = async () => {
+    if (!data) return;
     const shareUrl = window.location.href;
-    const shareText = [
-      data?.property?.title,
-      data?.property?.address ? `${data.property.address}, ${data.property.suburb}` : data?.property?.suburb,
-      `${formatPrice(data?.property?.lowestPrice ?? data?.property?.price ?? 0, data?.property?.currency ?? "")}`,
-    ].filter(Boolean).join("\n");
+    const catalogueUrl = data?.agent?.id
+      ? new URL(`/agents/${data.agent.id}`, window.location.origin).toString()
+      : new URL('/agents', window.location.origin).toString();
 
     try {
-      if (navigator.share) {
-        await navigator.share({
-          title: data?.property?.title,
-          text: `${shareText}\n\nView online: ${shareUrl}`,
-          url: shareUrl,
-        });
-        return;
-      }
-
-      await navigator.clipboard.writeText(`${shareText}\n\nView online: ${shareUrl}`);
-      toast({ description: "Property details and link copied to clipboard" });
+      const property = data.property;
+      const caption = buildPropertyShareCaption(property, shareUrl, catalogueUrl);
+      const card = await createPropertyShareCard(property);
+      const result = await shareCardWithCaption(
+        card,
+        caption,
+        property.title,
+        `quickprop-${property.reference}.jpg`,
+        null,
+      );
+      toast({
+        description: result === 'shared'
+          ? "The property collage and full caption were sent to the share sheet."
+          : "The property collage was downloaded and the full caption was copied to your clipboard.",
+      });
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") return;
       toast({ variant: "destructive", description: "Could not share this property. Please try again." });

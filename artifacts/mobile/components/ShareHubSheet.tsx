@@ -13,6 +13,7 @@ import { catalogueShareLinks, propertyShareLinks } from '@/utils/shareLinks';
 import { buildCatalogueShareMessage, buildPropertyShareMessage, formatSharePrice } from '@/utils/shareContent';
 import {
   PropertySocialDestination,
+  shareCatalogueToSocial,
   shareCatalogueToWhatsApp,
   sharePropertyToWhatsApp,
   sharePropertyToSocial,
@@ -150,21 +151,32 @@ export function ShareHubSheet({ visible, onClose }: Props) {
     try {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       const text = buildCatalogueShareMessage(activeProps, catalogMode, user?.name, user?.id);
-      await Share.share({ title: 'QuickProp Property Brochure', message: text });
+      await shareCatalogueToSocial(
+        text,
+        () => catalogueCardRef.current?.capture()
+          ?? Promise.reject(new Error('Unable to prepare the brochure image.')),
+        'Share brochure to Facebook',
+        `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(catalogUrl)}`,
+      );
       handleClose();
     } catch (e: unknown) {
       Alert.alert('Could not open Facebook', e instanceof Error ? e.message : 'Please try again.');
     } finally {
       setSharing(false);
     }
-  }, [catalogUrl]);
+  }, [activeProps, catalogMode, user?.name, user?.id, catalogUrl]);
 
   const shareCatalogNative = useCallback(async () => {
     setSharing(true);
     try {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       const text = buildCatalogueShareMessage(activeProps, catalogMode, user?.name, user?.id);
-      await Share.share({ title: 'QuickProp Property Brochure', message: text });
+      await shareCatalogueToSocial(
+        text,
+        () => catalogueCardRef.current?.capture()
+          ?? Promise.reject(new Error('Unable to prepare the brochure image.')),
+        'Share property brochure',
+      );
       handleClose();
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : '';
@@ -174,7 +186,7 @@ export function ShareHubSheet({ visible, onClose }: Props) {
     } finally {
       setSharing(false);
     }
-  }, [activeProps, catalogMode, user?.name, catalogLinks.appUrl, catalogUrl]);
+  }, [activeProps, catalogMode, user?.name, user?.id, catalogLinks.appUrl, catalogUrl]);
 
   // ── Render steps ─────────────────────────────────────────────────────────
   const renderHub = () => (

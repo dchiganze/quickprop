@@ -119,30 +119,59 @@ export function QuickShareDialog() {
   }, [publicProps, mode, user?.name, catalogUrl, toast]);
 
   const shareToFacebook = useCallback(async () => {
-    const text = buildWhatsAppText(publicProps, mode, user?.name, catalogUrl);
-    await navigator.clipboard.writeText(text).catch(() => {});
-    const url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(catalogUrl)}`;
-    window.open(url, '_blank', 'noopener,noreferrer');
+    const caption = buildCatalogueShareCaption(publicProps, mode, user?.name, catalogUrl);
+    const blob = await createCatalogueShareCard(publicProps, mode, user?.name);
+    const result = await shareCardWithCaption(
+      blob,
+      caption,
+      'QuickProp Property Brochure',
+      'quickprop-brochure.jpg',
+      `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(catalogUrl)}`,
+    );
     toast({
       title: 'Facebook ready to share',
-      description: 'The brochure link is open and the full caption is copied to your clipboard.',
+      description: result === 'shared'
+        ? 'The brochure image and caption were sent to the share sheet.'
+        : 'The brochure image was downloaded and the caption was copied for Facebook.',
     });
   }, [publicProps, mode, user?.name, catalogUrl, toast]);
 
-  const shareToLinkedIn = useCallback(() => {
-    const url = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(catalogUrl)}`;
-    window.open(url, '_blank', 'noopener,noreferrer');
-  }, [catalogUrl]);
+  const shareToLinkedIn = useCallback(async () => {
+    const caption = buildCatalogueShareCaption(publicProps, mode, user?.name, catalogUrl);
+    const blob = await createCatalogueShareCard(publicProps, mode, user?.name);
+    const result = await shareCardWithCaption(
+      blob,
+      caption,
+      'QuickProp Property Brochure',
+      'quickprop-brochure.jpg',
+      `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(catalogUrl)}`,
+    );
+    toast({
+      title: 'LinkedIn ready to share',
+      description: result === 'shared'
+        ? 'The brochure image and caption were sent to the share sheet.'
+        : 'The brochure image was downloaded and the caption was copied for LinkedIn.',
+    });
+  }, [publicProps, mode, user?.name, catalogUrl, toast]);
 
   const copyForInstagram = useCallback(async () => {
     try {
-      const text = buildWhatsAppText(publicProps, mode, user?.name, catalogUrl);
-      await navigator.clipboard.writeText(text);
+      const caption = buildCatalogueShareCaption(publicProps, mode, user?.name, catalogUrl);
+      const blob = await createCatalogueShareCard(publicProps, mode, user?.name);
+      const result = await shareCardWithCaption(
+        blob,
+        caption,
+        'QuickProp Property Brochure',
+        'quickprop-brochure.jpg',
+        null,
+      );
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
       toast({
-        title: 'Brochure caption copied',
-        description: 'Paste the full brochure caption and link into Instagram.',
+        title: 'Brochure ready for Instagram',
+        description: result === 'shared'
+          ? 'The brochure image and caption were sent to the share sheet.'
+          : 'The brochure image was downloaded and the caption was copied for Instagram.',
       });
     } catch {
       toast({ title: 'Could not copy', variant: 'destructive' });

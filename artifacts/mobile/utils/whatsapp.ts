@@ -196,6 +196,76 @@ async function shareWebSocialPost(
   await Linking.openURL(shareUrl);
 }
 
+export async function shareCatalogueToSocial(
+  caption: string,
+  captureCard: () => Promise<string>,
+  dialogTitle = 'Share property brochure',
+  fallbackUrl?: string | null,
+): Promise<void> {
+  await Clipboard.setStringAsync(caption).catch(() => {});
+
+  if (Platform.OS === 'web') {
+    const cardUri = await captureCard();
+    const browserNavigator = navigator as BrowserFileShareNavigator;
+
+    try {
+      const response = await fetch(cardUri);
+      if (!response.ok) throw new Error('Unable to prepare the brochure image.');
+      const blob = await response.blob();
+      const file = new File([blob], 'quickprop-brochure.jpg', { type: 'image/jpeg' });
+
+      if (
+        typeof browserNavigator.share === 'function'
+        && typeof browserNavigator.canShare === 'function'
+        && browserNavigator.canShare({ files: [file] })
+      ) {
+        await browserNavigator.share({
+          files: [file],
+          text: caption,
+          title: dialogTitle,
+        });
+        return;
+      }
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message.toLowerCase() : '';
+      if (message.includes('cancel') || message.includes('dismiss')) return;
+    }
+
+    const downloadLink = document.createElement('a');
+    downloadLink.href = cardUri;
+    downloadLink.download = 'quickprop-brochure.jpg';
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    downloadLink.remove();
+    if (fallbackUrl) await Linking.openURL(fallbackUrl);
+    return;
+  }
+
+  const cardUri = await captureCard();
+  try {
+    const { default: NativeShare } = await import('react-native-share');
+    await NativeShare.open({
+      url: cardUri,
+      type: 'image/jpeg',
+      message: caption,
+      title: dialogTitle,
+      failOnCancel: false,
+      useInternalStorage: true,
+    });
+    return;
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message.toLowerCase() : '';
+    if (message.includes('cancel') || message.includes('dismiss')) return;
+    if (!(await Sharing.isAvailableAsync())) throw error;
+  }
+
+  await Sharing.shareAsync(cardUri, {
+    dialogTitle,
+    mimeType: 'image/jpeg',
+    UTI: 'public.jpeg',
+  });
+}
+
 export async function sharePropertyToSocial(
   property: Property,
   destination: PropertySocialDestination,
