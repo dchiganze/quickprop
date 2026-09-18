@@ -301,8 +301,14 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
             ? 'Property details and link copied to clipboard.'
             : `Opened ${channel}.`;
           toast({ title: 'Property ready to share', description });
-        } catch {
-          toast({ title: 'Could not share property', description: 'Please try again.', variant: 'destructive' });
+        } catch (error) {
+          toast({
+            title: 'Could not share property',
+            description: error instanceof Error
+              ? error.message
+              : 'The public QuickProp preview is not available yet.',
+            variant: 'destructive',
+          });
         }
       }
     });
