@@ -38,6 +38,16 @@ export function propertyShareLinks(property: Pick<Property, 'id' | 'referenceNum
   };
 }
 
+export async function ensurePublicSharePreview(previewUrl: string): Promise<void> {
+  const response = await fetch(previewUrl, {
+    cache: 'no-store',
+    redirect: 'follow',
+  });
+  if (!response.ok) {
+    throw new Error('This listing is not published on the live QuickProp site. Publish it before sharing.');
+  }
+}
+
 export function catalogueShareLinks(agentId?: string) {
   const cataloguePath = agentId ? `/agents/${encodeURIComponent(agentId)}` : '';
   const appQuery = query({ catalogue: agentId ? 'agent' : 'company', agentId });

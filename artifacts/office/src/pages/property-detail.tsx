@@ -30,7 +30,11 @@ import {
   openSocialShareLink,
   shareCardWithCaption,
 } from '@/utils/shareCards';
-import { getQuickPropPublicOrigin, QUICKPROP_SHARE_PREVIEW_VERSION } from '@/utils/shareLinks';
+import {
+  ensurePublicSharePreview,
+  getQuickPropPublicOrigin,
+  QUICKPROP_SHARE_PREVIEW_VERSION,
+} from '@/utils/shareLinks';
 
 const PROPERTY_FEATURES = [
   'Solar', 'Borehole', 'Swimming Pool', 'Electric Fence',
@@ -265,6 +269,7 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
               const fallbackUrl = channel === 'facebook'
                 ? `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(previewUrl)}`
                 : `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(previewUrl)}`;
+              await ensurePublicSharePreview(previewUrl);
               await openSocialShareLink(shareMessage, fallbackUrl);
               toast({
                 title: `${channel[0].toUpperCase()}${channel.slice(1)} ready to share`,

@@ -19,7 +19,11 @@ import {
   openSocialShareLink,
   shareCardWithCaption,
 } from '@/utils/shareCards';
-import { getQuickPropPublicOrigin, QUICKPROP_SHARE_PREVIEW_VERSION } from '@/utils/shareLinks';
+import {
+  ensurePublicSharePreview,
+  getQuickPropPublicOrigin,
+  QUICKPROP_SHARE_PREVIEW_VERSION,
+} from '@/utils/shareLinks';
 
 type CatalogMode = 'company' | 'agent';
 
@@ -125,27 +129,45 @@ export function QuickShareDialog() {
   }, [publicProps, mode, user?.name, catalogUrl, catalogPreviewUrl, toast]);
 
   const shareToFacebook = useCallback(async () => {
-    const caption = buildCatalogueShareCaption(publicProps, mode, user?.name, catalogUrl);
-    await openSocialShareLink(
-      caption,
-      `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(catalogPreviewUrl)}`,
-    );
-    toast({
-      title: 'Facebook ready to share',
-      description: 'The Facebook link was opened and the caption was copied. Facebook will load the preview image from QuickProp.',
-    });
+    try {
+      const caption = buildCatalogueShareCaption(publicProps, mode, user?.name, catalogUrl);
+      await ensurePublicSharePreview(catalogPreviewUrl);
+      await openSocialShareLink(
+        caption,
+        `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(catalogPreviewUrl)}`,
+      );
+      toast({
+        title: 'Facebook ready to share',
+        description: 'The Facebook link was opened and the caption was copied. Facebook will load the preview image from QuickProp.',
+      });
+    } catch (error) {
+      toast({
+        title: 'Publish listings before sharing',
+        description: error instanceof Error ? error.message : 'The public brochure preview is not available yet.',
+        variant: 'destructive',
+      });
+    }
   }, [publicProps, mode, user?.name, catalogUrl, catalogPreviewUrl, toast]);
 
   const shareToLinkedIn = useCallback(async () => {
-    const caption = buildCatalogueShareCaption(publicProps, mode, user?.name, catalogUrl);
-    await openSocialShareLink(
-      caption,
-      `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(catalogPreviewUrl)}`,
-    );
-    toast({
-      title: 'LinkedIn ready to share',
-      description: 'The LinkedIn link was opened and the caption was copied. LinkedIn will load the preview image from QuickProp.',
-    });
+    try {
+      const caption = buildCatalogueShareCaption(publicProps, mode, user?.name, catalogUrl);
+      await ensurePublicSharePreview(catalogPreviewUrl);
+      await openSocialShareLink(
+        caption,
+        `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(catalogPreviewUrl)}`,
+      );
+      toast({
+        title: 'LinkedIn ready to share',
+        description: 'The LinkedIn link was opened and the caption was copied. LinkedIn will load the preview image from QuickProp.',
+      });
+    } catch (error) {
+      toast({
+        title: 'Publish listings before sharing',
+        description: error instanceof Error ? error.message : 'The public brochure preview is not available yet.',
+        variant: 'destructive',
+      });
+    }
   }, [publicProps, mode, user?.name, catalogUrl, catalogPreviewUrl, toast]);
 
   const copyForInstagram = useCallback(async () => {

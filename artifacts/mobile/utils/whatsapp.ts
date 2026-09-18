@@ -3,7 +3,7 @@ import * as Clipboard from 'expo-clipboard';
 import * as Sharing from 'expo-sharing';
 import { Property } from '@/types';
 import { shareProperty } from '@workspace/api-client-react';
-import { propertyShareLinks } from '@/utils/shareLinks';
+import { ensurePublicSharePreview, propertyShareLinks } from '@/utils/shareLinks';
 import {
   buildPropertyShareMessage,
   buildPropertySocialShareMessage,
@@ -151,9 +151,11 @@ async function shareWebSocialPost(
   destination: 'facebook' | 'linkedin',
   caption: string,
 ): Promise<void> {
+  const previewUrl = propertyShareLinks(property).previewUrl;
+  await ensurePublicSharePreview(previewUrl);
   const shareUrl = destination === 'facebook'
-    ? `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(propertyShareLinks(property).previewUrl)}`
-    : `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(propertyShareLinks(property).previewUrl)}`;
+    ? `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(previewUrl)}`
+    : `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(previewUrl)}`;
   await Linking.openURL(shareUrl);
 }
 
