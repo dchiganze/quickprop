@@ -642,7 +642,7 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
                <div className="flex items-center justify-between gap-3">
                  <div>
                    <label className="text-sm font-medium">Property video</label>
-                   <p className="text-xs text-muted-foreground">Upload a short walkthrough or paste a hosted video URL.</p>
+                   <p className="text-xs text-muted-foreground">Upload a short walkthrough video.</p>
                  </div>
                  <div className="flex shrink-0 gap-2">
                    <input ref={editVideoInputRef} type="file" accept="video/*" className="hidden" onChange={handleEditVideoUpload} />
@@ -663,13 +663,12 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
                    </Button>
                  </div>
                )}
-               <Input id="edit-video" value={edit.videoUrl} onChange={(event) => setEdit({ ...edit, videoUrl: event.target.value })} placeholder="/api/storage/..." />
              </div>
              <div className="grid gap-3 rounded-lg border bg-muted/30 p-4">
                <div className="flex items-start justify-between gap-3">
                  <div>
                    <label htmlFor="edit-photos" className="text-sm font-medium">Property photos</label>
-                   <p className="mt-1 text-xs text-muted-foreground">Add photos from your device or paste one URL per line.</p>
+                   <p className="mt-1 text-xs text-muted-foreground">Add photos from your device.</p>
                  </div>
                  <div className="shrink-0">
                    <input ref={editPhotoInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handleEditPhotoUpload} />
@@ -706,7 +705,6 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
                    ))}
                  </div>
                )}
-               <Textarea id="edit-photos" rows={3} value={edit.photos} onChange={(event) => setEdit({ ...edit, photos: event.target.value })} />
              </div>
             </div>
             <div className="grid gap-2"><label htmlFor="edit-photos" className="text-sm font-medium">Photos <span className="font-normal text-muted-foreground">(one URL per line)</span></label><Textarea id="edit-photos" rows={4} value={edit.photos} onChange={(event) => setEdit({ ...edit, photos: event.target.value })} /></div>
