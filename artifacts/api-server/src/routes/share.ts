@@ -1,14 +1,10 @@
-import { execFile as execFileCallback } from "node:child_process";
-import { promises as fs } from "node:fs";
-import { promisify } from "node:util";
-import { randomUUID } from "node:crypto";
 import { Router, type IRouter, type Request, type Response } from "express";
 import { and, desc, eq, inArray } from "drizzle-orm";
+import Jimp from "jimp-compact";
 import { db, propertiesTable, usersTable } from "@workspace/db";
 import { getCanonicalProperty } from "../lib/multi-agent";
 import { getPrivateObjectDownloadUrl } from "./storage";
 
-const execFile = promisify(execFileCallback);
 const router: IRouter = Router();
 
 const PUBLIC_STATUSES = ["public", "under_offer", "coming_soon"] as const;
@@ -16,7 +12,6 @@ const PUBLIC_AVAILABILITY_STATUSES = ["available", "under_offer"] as const;
 const COLLAGE_WIDTH = 1_200;
 const COLLAGE_HEIGHT = 630;
 const TILE_WIDTH = 400;
-const MAGICK_TIMEOUT_MS = 30_000;
 
 type PublicProperty = NonNullable<Awaited<ReturnType<typeof getCanonicalProperty>>>;
 
@@ -37,6 +32,11 @@ function originFor(req: Request): string {
   const forwardedProto = text(req.headers["x-forwarded-proto"]).split(",")[0];
   const protocol = forwardedProto || req.protocol;
   return `${protocol}://${req.get("host")}`;
+}
+
+function previewCacheBuster(req: Request): string {
+  const version = text(req.query.v);
+  return version ? `?v=${encodeURIComponent(version)}` : "";
 }
 
 function propertyPublicPath(property: PublicProperty): string {
@@ -153,38 +153,28 @@ async function renderCollage(sources: string[], origin: string): Promise<Buffer>
   const available = images.filter((image): image is Buffer => image !== null);
   if (available.length === 0) throw new Error("No public property images are available.");
 
-  const workingDirectory = await fs.mkdtemp(`/tmp/quickprop-share-${randomUUID()}-`);
-  const inputPaths: string[] = [];
-  const outputPath = `${workingDirectory}/collage.jpg`;
-
-  try {
-    for (let index = 0; index < 3; index += 1) {
-      const image = available[index] ?? available[0];
-      const inputPath = `${workingDirectory}/photo-${index}.img`;
-      await fs.writeFile(inputPath, image);
-      inputPaths.push(inputPath);
-    }
-
-    const args = inputPaths.flatMap((inputPath) => [
-      inputPath,
-      "-auto-orient",
-      "-thumbnail",
-      `${TILE_WIDTH}x${COLLAGE_HEIGHT}^`,
-      "-gravity",
-      "center",
-      "-extent",
-      `${TILE_WIDTH}x${COLLAGE_HEIGHT}`,
-    ]);
-    args.push("+append", "-strip", "-interlace", "Plane", "-quality", "86", outputPath);
-
-    await execFile(process.env.MAGICK_BINARY || "magick", args, {
-      timeout: MAGICK_TIMEOUT_MS,
-      maxBuffer: 2 * 1024 * 1024,
-    });
-    return await fs.readFile(outputPath);
-  } finally {
-    await fs.rm(workingDirectory, { recursive: true, force: true }).catch(() => {});
+  const collage = await Jimp.create(COLLAGE_WIDTH, COLLAGE_HEIGHT, 0x071D35FF);
+  for (let index = 0; index < 3; index += 1) {
+    const image = await Jimp.read(available[index] ?? available[0]);
+    image.cover(
+      TILE_WIDTH,
+      COLLAGE_HEIGHT,
+      Jimp.HORIZONTAL_ALIGN_CENTER,
+      Jimp.VERTICAL_ALIGN_MIDDLE,
+    );
+    collage.composite(image, index * TILE_WIDTH, 0);
   }
+  return collage.getBufferAsync(Jimp.MIME_JPEG);
+}
+
+async function renderFallbackCard(): Promise<Buffer> {
+  const collage = await Jimp.create(COLLAGE_WIDTH, COLLAGE_HEIGHT, 0x071D35FF);
+  const colors = [0x0B6B61FF, 0x138A72FF, 0x32B67AFF];
+  for (let index = 0; index < colors.length; index += 1) {
+    const tile = await Jimp.create(TILE_WIDTH, COLLAGE_HEIGHT, colors[index]);
+    collage.composite(tile, index * TILE_WIDTH, 0);
+  }
+  return collage.getBufferAsync(Jimp.MIME_JPEG);
 }
 
 function htmlPage({
@@ -239,7 +229,9 @@ async function sendCollage(
   sources: string[],
 ): Promise<void> {
   try {
-    const collage = await renderCollage(sources, originFor(req));
+    const collage = sources.length > 0
+      ? await renderCollage(sources, originFor(req))
+      : await renderFallbackCard();
     res.setHeader("Cache-Control", "public, max-age=300, stale-while-revalidate=3600");
     res.type("jpg").send(collage);
   } catch (error) {
@@ -265,9 +257,10 @@ router.get("/share/properties/:reference", async (req, res): Promise<void> => {
   }
 
   const origin = originFor(req);
-  const shareUrl = `${origin}${propertySharePath(property)}`;
+  const cacheBuster = previewCacheBuster(req);
+  const shareUrl = `${origin}${propertySharePath(property)}${cacheBuster}`;
   const destinationUrl = `${origin}${propertyPublicPath(property)}`;
-  const imageUrl = `${origin}${propertyCardPath(property)}`;
+  const imageUrl = `${origin}${propertyCardPath(property)}${cacheBuster}`;
   res.setHeader("Cache-Control", "public, max-age=300, stale-while-revalidate=3600");
   res.type("html").send(htmlPage({
     title: propertyTitle(property),
@@ -291,6 +284,7 @@ async function sendCataloguePage(
   }
 
   const origin = originFor(req);
+  const cacheBuster = previewCacheBuster(req);
   const cataloguePath = agentId
     ? `/api/share/catalogues/agents/${agentId}`
     : "/api/share/catalogues/company";
@@ -301,8 +295,8 @@ async function sendCataloguePage(
   const description = agentId
     ? `View my entire catalogue here · ${properties.length} published ${properties.length === 1 ? "property" : "properties"}.`
     : `View the entire QuickProp catalogue here · ${properties.length} published ${properties.length === 1 ? "property" : "properties"}.`;
-  const shareUrl = `${origin}${cataloguePath}`;
-  const imageUrl = `${shareUrl}/card.jpg`;
+  const shareUrl = `${origin}${cataloguePath}${cacheBuster}`;
+  const imageUrl = `${origin}${cataloguePath}/card.jpg${cacheBuster}`;
 
   res.setHeader("Cache-Control", "public, max-age=300, stale-while-revalidate=3600");
   res.type("html").send(htmlPage({
@@ -322,7 +316,7 @@ async function sendCatalogueCard(
   const properties = await publicPropertiesForCatalogue(agentId);
   const sources = properties.flatMap(propertyPhotoSources).slice(0, 3);
   if (sources.length === 0) {
-    res.status(404).json({ error: "Catalogue image unavailable" });
+    await sendCollage(req, res, []);
     return;
   }
   await sendCollage(req, res, sources);

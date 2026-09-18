@@ -26,3 +26,15 @@ The published API must be revalidated after each share-preview change; a local p
 **Why:** Social crawlers only see the published deployment, not the local workflow, and a stale production API makes an otherwise correct preview link unusable.
 
 **How to apply:** Check the canonical production preview URL with an unauthenticated request after publishing. Require a 200 HTML response with `og:image`, and separately check the referenced JPEG returns 200 `image/jpeg`.
+
+Preview image generation must use dependencies bundled with the API rather than workspace-installed system binaries.
+
+**Why:** The development workflow had ImageMagick available, but the published API runtime did not, so image routes failed while metadata pages still returned 200.
+
+**How to apply:** Treat a 200 preview page as incomplete until its image is fetched from the same production runtime and verified as a valid JPEG.
+
+Version social preview URLs when the image or metadata implementation changes.
+
+**Why:** Facebook and LinkedIn can retain an earlier failed scrape even after the same URL starts returning valid metadata and an image.
+
+**How to apply:** Increment the preview query version in client links and preserve it in `og:url` and `og:image` for the next crawler request.

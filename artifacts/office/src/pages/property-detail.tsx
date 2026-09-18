@@ -29,7 +29,7 @@ import {
   createPropertyShareCard,
   shareCardWithCaption,
 } from '@/utils/shareCards';
-import { getQuickPropPublicOrigin } from '@/utils/shareLinks';
+import { getQuickPropPublicOrigin, QUICKPROP_SHARE_PREVIEW_VERSION } from '@/utils/shareLinks';
 
 const PROPERTY_FEATURES = [
   'Solar', 'Borehole', 'Swimming Pool', 'Electric Fence',
@@ -225,7 +225,7 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
           ? `${publicOrigin}/web/agents/${property.agentId}`
           : `${publicOrigin}/web/`;
         const propertyUrl = `${publicOrigin}/properties/${encodeURIComponent(property.reference.toLowerCase())}`;
-        const previewUrl = `${publicOrigin}/api/share/properties/${encodeURIComponent(property.reference)}`;
+        const previewUrl = `${publicOrigin}/api/share/properties/${encodeURIComponent(property.reference)}?v=${QUICKPROP_SHARE_PREVIEW_VERSION}`;
         const shareMessage = buildPropertyShareCaption(property, propertyUrl, catalogueUrl);
 
         try {

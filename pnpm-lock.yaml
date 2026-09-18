@@ -386,6 +386,9 @@ importers:
       express:
         specifier: ^5.2.1
         version: 5.2.1
+      jimp-compact:
+        specifier: 0.16.1-2
+        version: 0.16.1-2
       mammoth:
         specifier: ^1.12.1
         version: 1.12.1
@@ -4956,6 +4959,9 @@ packages:
 
   jimp-compact@0.16.1:
     resolution: {integrity: sha512-dZ6Ra7u1G8c4Letq/B5EzAxj4tLFHL+cGtdpR+PVm4yzPDj+lCk+AbivWt1eOM+ikzkowtyV7qSqX6qr3t71Ww==}
+
+  jimp-compact@0.16.1-2:
+    resolution: {integrity: sha512-b2A3rRT1TITzqmaO70U2/uunCh43BQVq7BfRwGPkD5xj8/WZsR3sPTy9DENt+dNZGsel3zBEm1UtYegUxjZW7A==}
 
   jiti@2.7.0:
     resolution: {integrity: sha512-AC/7JofJvZGrrneWNaEnJeOLUx+JlGt7tNa0wZiRPT4MY1wmfKjt2+6O2p2uz2+skll8OZZmJMNqeke7kKbNgQ==}
@@ -11500,6 +11506,8 @@ snapshots:
       supports-color: 8.1.1
 
   jimp-compact@0.16.1: {}
+
+  jimp-compact@0.16.1-2: {}
 
   jiti@2.7.0: {}
 

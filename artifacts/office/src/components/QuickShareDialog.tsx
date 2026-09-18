@@ -18,7 +18,7 @@ import {
   createCatalogueShareCard,
   shareCardWithCaption,
 } from '@/utils/shareCards';
-import { getQuickPropPublicOrigin } from '@/utils/shareLinks';
+import { getQuickPropPublicOrigin, QUICKPROP_SHARE_PREVIEW_VERSION } from '@/utils/shareLinks';
 
 type CatalogMode = 'company' | 'agent';
 
@@ -99,8 +99,8 @@ export function QuickShareDialog() {
       : `${baseUrl}/web/`;
   const catalogPreviewUrl =
     mode === 'agent' && user?.id
-      ? `${baseUrl}/api/share/catalogues/agents/${user.id}`
-      : `${baseUrl}/api/share/catalogues/company`;
+      ? `${baseUrl}/api/share/catalogues/agents/${user.id}?v=${QUICKPROP_SHARE_PREVIEW_VERSION}`
+      : `${baseUrl}/api/share/catalogues/company?v=${QUICKPROP_SHARE_PREVIEW_VERSION}`;
 
   const forSale = publicProps.filter(p => p.listingType === 'sale');
   const forRent = publicProps.filter(p => p.listingType === 'rent');

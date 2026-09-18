@@ -6,6 +6,7 @@ import { Property } from '@/types';
  * same one configured in the mobile app's support and marketing URLs.
  */
 const PRODUCTION_DOMAIN = 'www.quickprop.melios.co.zw';
+const SHARE_PREVIEW_VERSION = '2';
 const configuredDomain = process.env.EXPO_PUBLIC_DOMAIN?.replace(/^https?:\/\//, '').replace(/\/+$/, '');
 const configuredHost = configuredDomain?.split('/')[0].toLowerCase();
 const isDevelopmentDomain = Boolean(
@@ -33,7 +34,7 @@ export function propertyShareLinks(property: Pick<Property, 'id' | 'referenceNum
     // References remain stable even when a queued offline listing is replaced
     // with its server ID. The public API accepts both IDs and references.
     webUrl: `${QUICKPROP_WEB_URL}/properties/${encodeURIComponent(property.referenceNumber)}`,
-    previewUrl: `${QUICKPROP_WEB_URL}/api/share/properties/${encodeURIComponent(property.referenceNumber)}`,
+    previewUrl: `${QUICKPROP_WEB_URL}/api/share/properties/${encodeURIComponent(property.referenceNumber)}?v=${SHARE_PREVIEW_VERSION}`,
   };
 }
 
@@ -43,7 +44,7 @@ export function catalogueShareLinks(agentId?: string) {
   return {
     appUrl: `${QUICKPROP_AGENT_SCHEME}://invite?${appQuery}`,
     webUrl: `${QUICKPROP_WEB_URL}${cataloguePath}`,
-    previewUrl: `${QUICKPROP_WEB_URL}/api/share/catalogues/${agentId ? `agents/${encodeURIComponent(agentId)}` : 'company'}`,
+    previewUrl: `${QUICKPROP_WEB_URL}/api/share/catalogues/${agentId ? `agents/${encodeURIComponent(agentId)}` : 'company'}?v=${SHARE_PREVIEW_VERSION}`,
   };
 }
 
