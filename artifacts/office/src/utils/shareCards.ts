@@ -405,8 +405,20 @@ export async function shareCardWithCaption(
   return 'downloaded';
 }
 
-export async function openSocialShareLink(caption: string, targetUrl: string): Promise<void> {
+export function openShareWindow(): Window | null {
+  const opened = window.open('about:blank', '_blank');
+  if (opened) opened.opener = null;
+  return opened;
+}
+
+export async function openSocialShareLink(
+  caption: string,
+  targetUrl: string,
+  shareWindow?: Window | null,
+): Promise<boolean> {
   await navigator.clipboard?.writeText(caption).catch(() => {});
-  const opened = window.open(targetUrl, '_blank', 'noopener,noreferrer');
-  if (!opened) window.location.assign(targetUrl);
+  const opened = shareWindow ?? window.open(targetUrl, '_blank', 'noopener,noreferrer');
+  if (!opened) return false;
+  opened.location.href = targetUrl;
+  return true;
 }

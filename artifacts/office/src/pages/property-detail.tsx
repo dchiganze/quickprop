@@ -29,6 +29,7 @@ import { format } from 'date-fns';
 import {
   buildPropertyShareCaption,
   createPropertyShareCard,
+  openShareWindow,
   openSocialShareLink,
   shareCardWithCaption,
 } from '@/utils/shareCards';
@@ -515,6 +516,9 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
       });
       return;
     }
+    const shareWindow = channel === 'facebook' || channel === 'linkedin'
+      ? openShareWindow()
+      : null;
 
     shareProperty.mutate({ id: propertyId, data: { channel } }, {
       onSuccess: async (res) => {
@@ -550,7 +554,19 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
                 ? `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(previewUrl)}`
                 : `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(previewUrl)}`;
               await ensurePublicSharePreview(previewUrl);
-              await openSocialShareLink(shareMessage, previewMode ? previewUrl : fallbackUrl);
+              const opened = await openSocialShareLink(
+                shareMessage,
+                previewMode ? previewUrl : fallbackUrl,
+                shareWindow,
+              );
+              if (!opened) {
+                toast({
+                  title: 'Allow pop-ups to share',
+                  description: 'Your browser blocked the new sharing tab. Allow pop-ups for QuickProp and try again.',
+                  variant: 'destructive',
+                });
+                return;
+              }
               toast({
                 title: previewMode
                   ? `${channel[0].toUpperCase()}${channel.slice(1)} preview ready`
@@ -586,6 +602,7 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
             : `Opened ${channel}.`;
           toast({ title: 'Property ready to share', description });
         } catch (error) {
+          if (shareWindow && !shareWindow.closed) shareWindow.close();
           toast({
             title: 'Could not share property',
             description: error instanceof Error

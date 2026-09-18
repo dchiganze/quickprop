@@ -39,6 +39,11 @@ function previewCacheBuster(req: Request): string {
   return version ? `?v=${encodeURIComponent(version)}` : "";
 }
 
+function isSocialCrawler(req: Request): boolean {
+  const userAgent = text(req.headers["user-agent"]).toLowerCase();
+  return /(facebookexternalhit|facebot|linkedinbot|twitterbot|whatsapp|slackbot|telegrambot|discordbot)/.test(userAgent);
+}
+
 function propertyPublicPath(property: PublicProperty): string {
   return `/properties/${encodeURIComponent(property.reference.toLowerCase())}`;
 }
@@ -183,18 +188,32 @@ function htmlPage({
   imageUrl,
   shareUrl,
   destinationUrl,
+  redirectToDestination = true,
 }: {
   title: string;
   description: string;
   imageUrl: string;
   shareUrl: string;
   destinationUrl: string;
+  redirectToDestination?: boolean;
 }): string {
   const safeTitle = escapeHtml(title);
   const safeDescription = escapeHtml(description);
   const safeImageUrl = escapeHtml(imageUrl);
   const safeShareUrl = escapeHtml(shareUrl);
   const safeDestinationUrl = escapeHtml(destinationUrl);
+  const redirectHead = redirectToDestination
+    ? `<meta http-equiv="refresh" content="0;url=${safeDestinationUrl}">
+     <script>window.location.replace(${JSON.stringify(destinationUrl)});</script>`
+    : "";
+  const body = redirectToDestination
+    ? `<p>Opening QuickProp… <a href="${safeDestinationUrl}">Continue to the listing</a></p>`
+    : `<main>
+    <img src="${safeImageUrl}" alt="${safeTitle}" width="${COLLAGE_WIDTH}" height="${COLLAGE_HEIGHT}">
+    <h1>${safeTitle}</h1>
+    <p>${safeDescription}</p>
+    <p><a href="${safeDestinationUrl}">View this property on QuickProp</a></p>
+  </main>`;
 
   return `<!doctype html>
 <html lang="en">
@@ -214,11 +233,10 @@ function htmlPage({
     <meta name="twitter:title" content="${safeTitle}">
     <meta name="twitter:description" content="${safeDescription}">
     <meta name="twitter:image" content="${safeImageUrl}">
-    <meta http-equiv="refresh" content="0;url=${safeDestinationUrl}">
-    <script>window.location.replace(${JSON.stringify(destinationUrl)});</script>
+    ${redirectHead}
   </head>
   <body>
-    <p>Opening QuickProp… <a href="${safeDestinationUrl}">Continue to the listing</a></p>
+    ${body}
   </body>
 </html>`;
 }
@@ -268,6 +286,7 @@ router.get("/share/properties/:reference", async (req, res): Promise<void> => {
     imageUrl,
     shareUrl,
     destinationUrl,
+    redirectToDestination: !isSocialCrawler(req),
   }));
 });
 

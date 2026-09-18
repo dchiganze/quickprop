@@ -16,12 +16,14 @@ import {
 import {
   buildCatalogueShareCaption,
   createCatalogueShareCard,
+  openShareWindow,
   openSocialShareLink,
   shareCardWithCaption,
 } from '@/utils/shareCards';
 import {
   ensurePublicSharePreview,
   getQuickPropPublicOrigin,
+  isQuickPropPreview,
   QUICKPROP_SHARE_PREVIEW_VERSION,
 } from '@/utils/shareLinks';
 
@@ -129,18 +131,24 @@ export function QuickShareDialog() {
   }, [publicProps, mode, user?.name, catalogUrl, catalogPreviewUrl, toast]);
 
   const shareToFacebook = useCallback(async () => {
+    const shareWindow = openShareWindow();
     try {
       const caption = buildCatalogueShareCaption(publicProps, mode, user?.name, catalogUrl);
       await ensurePublicSharePreview(catalogPreviewUrl);
-      await openSocialShareLink(
+      const opened = await openSocialShareLink(
         caption,
-        `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(catalogPreviewUrl)}`,
+        isQuickPropPreview()
+          ? catalogPreviewUrl
+          : `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(catalogPreviewUrl)}`,
+        shareWindow,
       );
+      if (!opened) throw new Error('Your browser blocked the new sharing tab. Allow pop-ups for QuickProp and try again.');
       toast({
         title: 'Facebook ready to share',
         description: 'The Facebook link was opened and the caption was copied. Facebook will load the preview image from QuickProp.',
       });
     } catch (error) {
+      if (shareWindow && !shareWindow.closed) shareWindow.close();
       toast({
         title: 'Publish listings before sharing',
         description: error instanceof Error ? error.message : 'The public brochure preview is not available yet.',
@@ -150,18 +158,24 @@ export function QuickShareDialog() {
   }, [publicProps, mode, user?.name, catalogUrl, catalogPreviewUrl, toast]);
 
   const shareToLinkedIn = useCallback(async () => {
+    const shareWindow = openShareWindow();
     try {
       const caption = buildCatalogueShareCaption(publicProps, mode, user?.name, catalogUrl);
       await ensurePublicSharePreview(catalogPreviewUrl);
-      await openSocialShareLink(
+      const opened = await openSocialShareLink(
         caption,
-        `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(catalogPreviewUrl)}`,
+        isQuickPropPreview()
+          ? catalogPreviewUrl
+          : `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(catalogPreviewUrl)}`,
+        shareWindow,
       );
+      if (!opened) throw new Error('Your browser blocked the new sharing tab. Allow pop-ups for QuickProp and try again.');
       toast({
         title: 'LinkedIn ready to share',
         description: 'The LinkedIn link was opened and the caption was copied. LinkedIn will load the preview image from QuickProp.',
       });
     } catch (error) {
+      if (shareWindow && !shareWindow.closed) shareWindow.close();
       toast({
         title: 'Publish listings before sharing',
         description: error instanceof Error ? error.message : 'The public brochure preview is not available yet.',
