@@ -563,6 +563,12 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
   const handleEditSave = () => {
     const price = Number(edit.price);
     const photos = edit.photos.split(/\r?\n|,/).map((value) => value.trim()).filter(Boolean);
+    const proposedViewingTimes = edit.proposedViewingTimes
+      .filter((value) => value && value.slice(0, 10) >= futureViewingDate())
+      .map((value) => new Date(value))
+      .filter((value) => !Number.isNaN(value.getTime()))
+      .slice(0, 3)
+      .map((value) => value.toISOString());
     if (!edit.title.trim() || !edit.suburb.trim() || !edit.city.trim() || !Number.isFinite(price) || price <= 0 || photos.length === 0) {
       toast({ title: 'Title, location, price and photos are required', variant: 'destructive' });
       return;
@@ -591,12 +597,7 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
         photos,
         coverImage: edit.coverImage || photos[0],
         videoUrl: edit.videoUrl.trim() || undefined,
-        proposedViewingTimes: edit.proposedViewingTimes
-          .filter(Boolean)
-          .map((value) => new Date(value))
-          .filter((value) => !Number.isNaN(value.getTime()))
-          .slice(0, 3)
-          .map((value) => value.toISOString()),
+         proposedViewingTimes,
          sellerName: edit.sellerName.trim() || undefined,
          sellerPhone: edit.sellerPhone.trim() || undefined,
          sellerEmail: edit.sellerEmail.trim() || undefined,
@@ -650,6 +651,48 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
           <DialogFooter>
             <Button variant="outline" onClick={() => setSaleDialogOpen(false)}>Cancel</Button>
             <Button onClick={handleConfirmSale} disabled={updateProperty.isPending}>Save sold status</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={viewingPickerOpen} onOpenChange={setViewingPickerOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              Choose viewing slot {activeViewingSlot == null ? '' : activeViewingSlot + 1}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-2">
+            <p className="text-sm text-muted-foreground">
+              Select a future date and a time when buyers can view the property.
+            </p>
+            <div className="grid gap-2">
+              <label htmlFor="viewing-picker-date" className="text-sm font-medium">Date</label>
+              <Input
+                id="viewing-picker-date"
+                type="date"
+                min={futureViewingDate()}
+                value={viewingPickerDate}
+                onChange={(event) => setViewingPickerDate(event.target.value)}
+              />
+            </div>
+            <div className="grid gap-2">
+              <label htmlFor="viewing-picker-time" className="text-sm font-medium">Time</label>
+              <Input
+                id="viewing-picker-time"
+                type="time"
+                value={viewingPickerTime}
+                onChange={(event) => setViewingPickerTime(event.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter className="flex-col-reverse gap-2 sm:flex-row sm:justify-between">
+            <Button type="button" variant="ghost" onClick={clearViewingPicker} disabled={activeViewingSlot == null}>
+              Clear slot
+            </Button>
+            <div className="flex gap-2">
+              <Button type="button" variant="outline" onClick={() => setViewingPickerOpen(false)}>Cancel</Button>
+              <Button type="button" onClick={applyViewingPicker}>Use this slot</Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -788,18 +831,15 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
                      <label htmlFor={`edit-viewing-${index}`} className="text-xs font-medium text-muted-foreground">
                        Slot {index + 1}
                      </label>
-                     <Input
+                     <Button
                        id={`edit-viewing-${index}`}
-                       type="datetime-local"
-                       min={toDateTimeLocal(new Date().toISOString())}
-                       className="min-w-0 text-sm"
-                       value={edit.proposedViewingTimes[index] ?? ''}
-                       onChange={(event) => {
-                         const proposedViewingTimes = [...edit.proposedViewingTimes];
-                         proposedViewingTimes[index] = event.target.value;
-                         setEdit({ ...edit, proposedViewingTimes });
-                       }}
-                     />
+                       type="button"
+                       variant="outline"
+                       className="h-auto min-h-10 min-w-0 justify-start whitespace-normal text-left font-normal"
+                       onClick={() => openViewingPicker(index)}
+                     >
+                       {formatViewingSlot(edit.proposedViewingTimes[index] ?? '')}
+                     </Button>
                    </div>
                  ))}
                </div>
