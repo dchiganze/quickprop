@@ -62,6 +62,13 @@ function getSellingStatus(property: { status: string; availabilityStatus?: strin
     : 'available';
 }
 
+function toDateTimeLocal(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  const pad = (part: number) => String(part).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
 async function uploadOfficeMedia(file: File): Promise<string> {
   const request = await fetch('/api/storage/uploads/request-url', {
     method: 'POST',
@@ -120,7 +127,7 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
     title: '', propertyType: 'house', listingType: 'sale', price: '', negotiable: false,
     suburb: '', city: '', address: '', addressVisible: false, bedrooms: '', bathrooms: '',
     parking: '', landSize: '', buildingSize: '', levies: '', rates: '', description: '',
-    photos: '', coverImage: '', videoUrl: '', proposedViewingTimes: '', features: [] as string[],
+    photos: '', coverImage: '', videoUrl: '', proposedViewingTimes: [] as string[], features: [] as string[],
     sellerName: '', sellerPhone: '', sellerEmail: '', mandateExpiry: '',
     mandateType: 'sole' as 'open' | 'sole', sellerNotes: '', collaborationEnabled: false,
   });
@@ -148,7 +155,7 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
       photos: (property.photos ?? []).join('\n'),
       coverImage: property.coverImage ?? property.photos?.[0] ?? '',
       videoUrl: property.videoUrl ?? '',
-      proposedViewingTimes: (property.proposedViewingTimes ?? []).join('\n'),
+       proposedViewingTimes: (property.proposedViewingTimes ?? []).slice(0, 3).map(toDateTimeLocal),
        features: property.features ?? [],
        sellerName: seller?.name ?? '',
        sellerPhone: seller?.phone ?? '',
@@ -526,7 +533,12 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
         photos,
         coverImage: edit.coverImage || photos[0],
         videoUrl: edit.videoUrl.trim() || undefined,
-        proposedViewingTimes: edit.proposedViewingTimes.split(/\r?\n|,/).map((value) => value.trim()).filter(Boolean),
+        proposedViewingTimes: edit.proposedViewingTimes
+          .filter(Boolean)
+          .map((value) => new Date(value))
+          .filter((value) => !Number.isNaN(value.getTime()))
+          .slice(0, 3)
+          .map((value) => value.toISOString()),
          sellerName: edit.sellerName.trim() || undefined,
          sellerPhone: edit.sellerPhone.trim() || undefined,
          sellerEmail: edit.sellerEmail.trim() || undefined,
@@ -707,7 +719,32 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
                )}
              </div>
             </div>
-            <div className="grid gap-2"><label htmlFor="edit-viewings" className="text-sm font-medium">Proposed viewing times <span className="font-normal text-muted-foreground">(ISO date-time, one per line, up to 3)</span></label><Textarea id="edit-viewings" rows={3} value={edit.proposedViewingTimes} onChange={(event) => setEdit({ ...edit, proposedViewingTimes: event.target.value })} /></div>
+             <div className="grid gap-3 rounded-lg border bg-muted/30 p-4">
+               <div>
+                 <label className="text-sm font-medium">Proposed viewing times</label>
+                 <p className="mt-1 text-xs text-muted-foreground">Choose up to 3 available days and times for buyers.</p>
+               </div>
+               <div className="grid gap-3 sm:grid-cols-3">
+                 {Array.from({ length: 3 }, (_, index) => (
+                   <div key={`viewing-slot-${index}`} className="grid gap-2">
+                     <label htmlFor={`edit-viewing-${index}`} className="text-xs font-medium text-muted-foreground">
+                       Slot {index + 1}
+                     </label>
+                     <Input
+                       id={`edit-viewing-${index}`}
+                       type="datetime-local"
+                       min={toDateTimeLocal(new Date().toISOString())}
+                       value={edit.proposedViewingTimes[index] ?? ''}
+                       onChange={(event) => {
+                         const proposedViewingTimes = [...edit.proposedViewingTimes];
+                         proposedViewingTimes[index] = event.target.value;
+                         setEdit({ ...edit, proposedViewingTimes });
+                       }}
+                     />
+                   </div>
+                 ))}
+               </div>
+             </div>
             <div className="grid gap-2"><label htmlFor="edit-description" className="text-sm font-medium">Description</label><Textarea id="edit-description" rows={4} value={edit.description} onChange={(event) => setEdit({ ...edit, description: event.target.value })} /></div>
              <div className="grid gap-3 rounded-lg border bg-muted/30 p-4">
                <div><label className="text-sm font-medium">Property features</label><p className="mt-1 text-xs text-muted-foreground">{edit.features.length} selected. Choose all that apply.</p></div>
