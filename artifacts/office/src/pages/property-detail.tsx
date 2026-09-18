@@ -35,6 +35,7 @@ import {
 import {
   ensurePublicSharePreview,
   getQuickPropPublicOrigin,
+  isQuickPropPreview,
   QUICKPROP_SHARE_PREVIEW_VERSION,
 } from '@/utils/shareLinks';
 
@@ -518,6 +519,7 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
     shareProperty.mutate({ id: propertyId, data: { channel } }, {
       onSuccess: async (res) => {
         const publicOrigin = getQuickPropPublicOrigin();
+        const previewMode = isQuickPropPreview();
         const catalogueUrl = property.agentId
           ? `${publicOrigin}/web/agents/${property.agentId}`
           : `${publicOrigin}/web/`;
@@ -548,10 +550,14 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
                 ? `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(previewUrl)}`
                 : `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(previewUrl)}`;
               await ensurePublicSharePreview(previewUrl);
-              await openSocialShareLink(shareMessage, fallbackUrl);
+              await openSocialShareLink(shareMessage, previewMode ? previewUrl : fallbackUrl);
               toast({
-                title: `${channel[0].toUpperCase()}${channel.slice(1)} ready to share`,
-                description: `The ${channel} link was opened and the caption was copied. Facebook will load the preview image from QuickProp.`,
+                title: previewMode
+                  ? `${channel[0].toUpperCase()}${channel.slice(1)} preview ready`
+                  : `${channel[0].toUpperCase()}${channel.slice(1)} ready to share`,
+                description: previewMode
+                  ? 'The local QuickProp preview was opened and the caption was copied. External social sites require a published URL.'
+                  : `The ${channel} link was opened and the caption was copied. Facebook will load the preview image from QuickProp.`,
               });
               return;
             }

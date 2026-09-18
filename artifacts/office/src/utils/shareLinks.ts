@@ -11,6 +11,15 @@ function isDevelopmentHost(hostname: string): boolean {
   );
 }
 
+export function isQuickPropPreview(currentOrigin?: string): boolean {
+  const origin = currentOrigin ?? (typeof window !== 'undefined' ? window.location.origin : '');
+  try {
+    return isDevelopmentHost(new URL(origin).hostname);
+  } catch {
+    return false;
+  }
+}
+
 export function getQuickPropPublicOrigin(currentOrigin?: string): string {
   const origin = currentOrigin ?? (typeof window !== 'undefined' ? window.location.origin : '');
   try {
