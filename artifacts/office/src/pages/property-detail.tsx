@@ -70,10 +70,9 @@ function toDateTimeLocal(value: string) {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
-function futureViewingDate() {
+function minimumViewingDate() {
   const date = new Date();
   date.setHours(0, 0, 0, 0);
-  date.setDate(date.getDate() + 1);
   const pad = (part: number) => String(part).padStart(2, '0');
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 }
@@ -84,8 +83,8 @@ function dateFromLocalValue(value: string) {
   return new Date(year, month - 1, day);
 }
 
-function futureViewingCalendarDate() {
-  return dateFromLocalValue(futureViewingDate()) ?? new Date();
+function minimumViewingCalendarDate() {
+  return dateFromLocalValue(minimumViewingDate()) ?? new Date();
 }
 
 function formatTimeOption(value: string) {
@@ -95,6 +94,13 @@ function formatTimeOption(value: string) {
     hour: 'numeric',
     minute: '2-digit',
   });
+}
+
+function isViewingDateTimeAllowed(dateValue: string, timeValue: string) {
+  if (!dateValue || !timeValue || dateValue < minimumViewingDate()) return false;
+  const selected = new Date(`${dateValue}T${timeValue}:00`);
+  if (Number.isNaN(selected.getTime())) return false;
+  return dateValue !== minimumViewingDate() || selected.getTime() >= Date.now() + 60 * 60 * 1000;
 }
 
 const VIEWING_TIME_OPTIONS = Array.from({ length: 49 }, (_, index) => {
