@@ -31,6 +31,11 @@ interface PropertyShareSheetProps {
   onClose: () => void;
 }
 
+function canSharePublicPreview(property: Property): boolean {
+  return property.status === 'published'
+    && (!property.availabilityStatus || ['available', 'under_offer'].includes(property.availabilityStatus));
+}
+
 type ShareDestination = 'whatsapp' | 'share' | PropertySocialDestination;
 
 const SHARE_OPTIONS: Array<{
@@ -102,6 +107,13 @@ export function PropertyShareSheet({
 
   const handleShare = async (destination: ShareDestination) => {
     if (sharing) return;
+    if ((destination === 'facebook' || destination === 'linkedin') && !canSharePublicPreview(property)) {
+      Alert.alert(
+        'Publish this property first',
+        'Facebook and LinkedIn previews are only available for published listings.',
+      );
+      return;
+    }
     setSharing(destination);
     try {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -129,6 +141,13 @@ export function PropertyShareSheet({
 
   const handleSocialShare = async (social: 'facebook' | 'instagram', choice: 'post' | 'story') => {
     if (sharing) return;
+    if (social === 'facebook' && !canSharePublicPreview(property)) {
+      Alert.alert(
+        'Publish this property first',
+        'Facebook previews are only available for published listings.',
+      );
+      return;
+    }
     const shareKey = `${social}-${choice}` as const;
     setSharing(shareKey);
     try {
