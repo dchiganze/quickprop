@@ -60,6 +60,10 @@ function propertyPublicPath(property: PublicProperty): string {
   return `/properties/${encodeURIComponent(property.reference.toLowerCase())}`;
 }
 
+function agentPublicPath(agentId: number): string {
+  return `/agents/${encodeURIComponent(String(agentId))}`;
+}
+
 function propertySharePath(property: PublicProperty): string {
   return `/api/share/properties/${encodeURIComponent(property.reference)}`;
 }
@@ -287,9 +291,9 @@ function htmlPage({
     ? `<p>Opening QuickProp… <a href="${safeDestinationUrl}">Continue to the listing</a></p>`
     : `<main>
     <img src="${safeImageUrl}" alt="${safeTitle}" width="${COLLAGE_WIDTH}" height="${COLLAGE_HEIGHT}">
-    <h1>${safeTitle}</h1>
+    <h1><a href="${safeDestinationUrl}">${safeTitle}</a></h1>
     <p>${safeDescription}</p>
-    <p><a href="${safeDestinationUrl}">View this property on QuickProp</a></p>
+    <p><a href="${safeDestinationUrl}">View this agent's QuickProp marketplace profile</a></p>
   </main>`;
 
   return `<!doctype html>
@@ -355,7 +359,10 @@ router.get("/share/properties/:reference", async (req, res): Promise<void> => {
   const origin = originFor(req);
   const cacheBuster = previewCacheBuster(req);
   const shareUrl = `${origin}${propertySharePath(property)}${cacheBuster}`;
-  const destinationUrl = `${origin}${propertyPublicPath(property)}`;
+  const destinationPath = property.agentId
+    ? agentPublicPath(property.agentId)
+    : propertyPublicPath(property);
+  const destinationUrl = `${origin}${destinationPath}`;
   const imageUrl = `${origin}${propertyCardPath(property)}${cacheBuster}`;
   res.setHeader("Cache-Control", "public, max-age=300, stale-while-revalidate=3600");
   res.type("html").send(htmlPage({
