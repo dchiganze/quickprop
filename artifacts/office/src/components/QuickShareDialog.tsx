@@ -23,7 +23,6 @@ import {
 import {
   ensurePublicSharePreview,
   getQuickPropPublicOrigin,
-  isQuickPropPreview,
   QUICKPROP_SHARE_PREVIEW_VERSION,
 } from '@/utils/shareLinks';
 
@@ -137,9 +136,7 @@ export function QuickShareDialog() {
       await ensurePublicSharePreview(catalogPreviewUrl);
       const opened = await openSocialShareLink(
         caption,
-        isQuickPropPreview()
-          ? catalogPreviewUrl
-          : `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(catalogPreviewUrl)}`,
+        `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(catalogPreviewUrl)}`,
         shareWindow,
       );
       if (!opened) throw new Error('Your browser blocked the new sharing tab. Allow pop-ups for QuickProp and try again.');
@@ -164,9 +161,7 @@ export function QuickShareDialog() {
       await ensurePublicSharePreview(catalogPreviewUrl);
       const opened = await openSocialShareLink(
         caption,
-        isQuickPropPreview()
-          ? catalogPreviewUrl
-          : `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(catalogPreviewUrl)}`,
+        `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(catalogPreviewUrl)}`,
         shareWindow,
       );
       if (!opened) throw new Error('Your browser blocked the new sharing tab. Allow pop-ups for QuickProp and try again.');

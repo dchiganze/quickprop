@@ -556,7 +556,7 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
               await ensurePublicSharePreview(previewUrl);
               const opened = await openSocialShareLink(
                 shareMessage,
-                previewMode ? previewUrl : fallbackUrl,
+                fallbackUrl,
                 shareWindow,
               );
               if (!opened) {
@@ -569,10 +569,10 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
               }
               toast({
                 title: previewMode
-                  ? `${channel[0].toUpperCase()}${channel.slice(1)} preview ready`
+                  ? `${channel[0].toUpperCase()}${channel.slice(1)} share opened`
                   : `${channel[0].toUpperCase()}${channel.slice(1)} ready to share`,
                 description: previewMode
-                  ? 'The local QuickProp preview was opened and the caption was copied. External social sites require a published URL.'
+                  ? 'Facebook opened in a new tab using the Replit preview URL. The caption was copied.'
                   : `The ${channel} link was opened and the caption was copied. Facebook will load the preview image from QuickProp.`,
               });
               return;
