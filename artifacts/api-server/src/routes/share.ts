@@ -22,7 +22,7 @@ const LOWER_PHOTO_HEIGHT = HERO_HEIGHT;
 const HALF_TILE_WIDTH = (COLLAGE_WIDTH - PHOTO_ROW_GAP) / 2;
 const DETAILS_FOOTER_Y = 548;
 const DETAILS_FOOTER_HEIGHT = COLLAGE_HEIGHT - DETAILS_FOOTER_Y;
-const PROPERTY_SHARE_HEADLINE = "Click here to see all of my photos";
+const PROPERTY_SHARE_HEADLINE = "Click here to see all of my properties";
 
 type PublicProperty = NonNullable<Awaited<ReturnType<typeof getCanonicalProperty>>>;
 let shareDetailsFontPromise: ReturnType<typeof Jimp.loadFont> | undefined;
