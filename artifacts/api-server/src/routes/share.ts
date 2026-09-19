@@ -1,4 +1,6 @@
 import { Router, type IRouter, type Request, type Response } from "express";
+import { createRequire } from "node:module";
+import { dirname, join } from "node:path";
 import { and, desc, eq, inArray } from "drizzle-orm";
 import Jimp from "jimp-compact";
 import { db, propertiesTable, usersTable } from "@workspace/db";
@@ -6,14 +8,22 @@ import { getCanonicalProperty } from "../lib/multi-agent";
 import { getPrivateObjectDownloadUrl } from "./storage";
 
 const router: IRouter = Router();
+const apiRequire = createRequire(import.meta.url);
 
 const PUBLIC_STATUSES = ["public", "under_offer", "coming_soon"] as const;
 const PUBLIC_AVAILABILITY_STATUSES = ["available", "under_offer"] as const;
 const COLLAGE_WIDTH = 1_200;
 const COLLAGE_HEIGHT = 630;
 const TILE_WIDTH = 400;
+const HERO_HEIGHT = 390;
+const LOWER_PHOTO_Y = HERO_HEIGHT + 8;
+const LOWER_PHOTO_HEIGHT = COLLAGE_HEIGHT - LOWER_PHOTO_Y;
+const HALF_TILE_WIDTH = (COLLAGE_WIDTH - 8) / 2;
+const DETAILS_FOOTER_Y = 548;
+const DETAILS_FOOTER_HEIGHT = COLLAGE_HEIGHT - DETAILS_FOOTER_Y;
 
 type PublicProperty = NonNullable<Awaited<ReturnType<typeof getCanonicalProperty>>>;
+let shareDetailsFontPromise: ReturnType<typeof Jimp.loadFont> | undefined;
 
 function escapeHtml(value: string): string {
   return value
@@ -153,12 +163,77 @@ async function fetchImage(source: string, origin: string): Promise<Buffer | null
   }
 }
 
-async function renderCollage(sources: string[], origin: string): Promise<Buffer> {
+async function getShareDetailsFont() {
+  const fontPath = join(
+    dirname(apiRequire.resolve("jimp-compact")),
+    "..",
+    "fonts",
+    "open-sans",
+    "open-sans-32-white",
+    "open-sans-32-white.fnt",
+  );
+  shareDetailsFontPromise ??= Jimp.loadFont(fontPath);
+  return shareDetailsFontPromise;
+}
+
+async function renderCollage(
+  sources: string[],
+  origin: string,
+  property?: PublicProperty,
+): Promise<Buffer> {
   const images = await Promise.all(sources.map((source) => fetchImage(source, origin)));
   const available = images.filter((image): image is Buffer => image !== null);
   if (available.length === 0) throw new Error("No public property images are available.");
 
   const collage = await Jimp.create(COLLAGE_WIDTH, COLLAGE_HEIGHT, 0x071D35FF);
+  if (property) {
+    const hero = await Jimp.read(available[0]);
+    hero.cover(
+      COLLAGE_WIDTH,
+      HERO_HEIGHT,
+      Jimp.HORIZONTAL_ALIGN_CENTER,
+      Jimp.VERTICAL_ALIGN_MIDDLE,
+    );
+    collage.composite(hero, 0, 0);
+
+    for (const [index, x] of [0, HALF_TILE_WIDTH + 8].entries()) {
+      const image = await Jimp.read(available[index + 1] ?? available[0]);
+      image.cover(
+        HALF_TILE_WIDTH,
+        LOWER_PHOTO_HEIGHT,
+        Jimp.HORIZONTAL_ALIGN_CENTER,
+        Jimp.VERTICAL_ALIGN_MIDDLE,
+      );
+      collage.composite(image, x, LOWER_PHOTO_Y);
+    }
+
+    const detailsFooter = await Jimp.create(
+      COLLAGE_WIDTH,
+      DETAILS_FOOTER_HEIGHT,
+      0x071D35F0,
+    );
+    collage.composite(detailsFooter, 0, DETAILS_FOOTER_Y);
+
+    const detailsFont = await getShareDetailsFont();
+    const landSize = property.landSize != null
+      ? `${property.landSize.toLocaleString("en-US")} m²`
+      : "—";
+    const details = [
+      `Beds ${property.bedrooms ?? "—"}`,
+      `Baths ${property.bathrooms ?? "—"}`,
+      `Parking ${property.parking ?? "—"}`,
+      `Land ${landSize}`,
+    ].join("  |  ");
+    collage.print(detailsFont, 24, DETAILS_FOOTER_Y + 8, details);
+    collage.print(
+      detailsFont,
+      24,
+      DETAILS_FOOTER_Y + 45,
+      property.suburb || property.city || "Location unavailable",
+    );
+    return collage.getBufferAsync(Jimp.MIME_JPEG);
+  }
+
   for (let index = 0; index < 3; index += 1) {
     const image = await Jimp.read(available[index] ?? available[0]);
     image.cover(
@@ -245,10 +320,11 @@ async function sendCollage(
   req: Request,
   res: Response,
   sources: string[],
+  property?: PublicProperty,
 ): Promise<void> {
   try {
     const collage = sources.length > 0
-      ? await renderCollage(sources, originFor(req))
+      ? await renderCollage(sources, originFor(req), property)
       : await renderFallbackCard();
     res.setHeader("Cache-Control", "public, max-age=300, stale-while-revalidate=3600");
     res.type("jpg").send(collage);
@@ -264,7 +340,7 @@ router.get("/share/properties/:reference/card.jpg", async (req, res): Promise<vo
     res.status(404).json({ error: "Property not found" });
     return;
   }
-  await sendCollage(req, res, propertyPhotoSources(property));
+  await sendCollage(req, res, propertyPhotoSources(property), property);
 });
 
 router.get("/share/properties/:reference", async (req, res): Promise<void> => {
