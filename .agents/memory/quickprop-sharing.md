@@ -39,6 +39,12 @@ Version social preview URLs when the image or metadata implementation changes.
 
 **How to apply:** Increment the preview query version in client links and preserve it in `og:url` and `og:image` for the next crawler request.
 
+Social preview URLs should return metadata to crawlers but an HTTP redirect to the intended marketplace destination for normal visitors.
+
+**Why:** Facebook's in-app browser may ignore HTML or JavaScript redirects after a preview card click, making the card appear inert.
+
+**How to apply:** Detect social crawler user agents before the redirect; send crawlers the Open Graph page and send normal requests a 302 to the profile or listing destination.
+
 Only public, currently available listings should produce crawler-facing social preview URLs.
 
 **Why:** Draft references can exist in the agent/office database but intentionally return 404 from the public share route; sending those URLs to Facebook produces a domain-only card.

@@ -308,7 +308,7 @@ function htmlPage({
     <meta property="og:image" content="${safeImageUrl}">
     <meta property="og:image:width" content="${COLLAGE_WIDTH}">
     <meta property="og:image:height" content="${COLLAGE_HEIGHT}">
-    <meta property="og:url" content="${safeShareUrl}">
+    <meta property="og:url" content="${safeDestinationUrl}">
     <meta property="og:type" content="website">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="${safeTitle}">
@@ -363,6 +363,11 @@ router.get("/share/properties/:reference", async (req, res): Promise<void> => {
     ? agentPublicPath(property.agentId)
     : propertyPublicPath(property);
   const destinationUrl = `${origin}${destinationPath}`;
+  if (!isSocialCrawler(req)) {
+    res.redirect(302, destinationUrl);
+    return;
+  }
+
   const imageUrl = `${origin}${propertyCardPath(property)}${cacheBuster}`;
   res.setHeader("Cache-Control", "public, max-age=300, stale-while-revalidate=3600");
   res.type("html").send(htmlPage({
@@ -371,7 +376,7 @@ router.get("/share/properties/:reference", async (req, res): Promise<void> => {
     imageUrl,
     shareUrl,
     destinationUrl,
-    redirectToDestination: !isSocialCrawler(req),
+    redirectToDestination: false,
   }));
 });
 
