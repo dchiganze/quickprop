@@ -15,12 +15,14 @@ const PUBLIC_AVAILABILITY_STATUSES = ["available", "under_offer"] as const;
 const COLLAGE_WIDTH = 1_200;
 const COLLAGE_HEIGHT = 630;
 const TILE_WIDTH = 400;
-const HERO_HEIGHT = 390;
+const PHOTO_ROW_GAP = 8;
+const HERO_HEIGHT = (COLLAGE_HEIGHT - PHOTO_ROW_GAP) / 2;
 const LOWER_PHOTO_Y = HERO_HEIGHT + 8;
-const LOWER_PHOTO_HEIGHT = COLLAGE_HEIGHT - LOWER_PHOTO_Y;
-const HALF_TILE_WIDTH = (COLLAGE_WIDTH - 8) / 2;
+const LOWER_PHOTO_HEIGHT = HERO_HEIGHT;
+const HALF_TILE_WIDTH = (COLLAGE_WIDTH - PHOTO_ROW_GAP) / 2;
 const DETAILS_FOOTER_Y = 548;
 const DETAILS_FOOTER_HEIGHT = COLLAGE_HEIGHT - DETAILS_FOOTER_Y;
+const PROPERTY_SHARE_HEADLINE = "Click here to see all of my photos";
 
 type PublicProperty = NonNullable<Awaited<ReturnType<typeof getCanonicalProperty>>>;
 let shareDetailsFontPromise: ReturnType<typeof Jimp.loadFont> | undefined;
@@ -357,7 +359,7 @@ router.get("/share/properties/:reference", async (req, res): Promise<void> => {
   const imageUrl = `${origin}${propertyCardPath(property)}${cacheBuster}`;
   res.setHeader("Cache-Control", "public, max-age=300, stale-while-revalidate=3600");
   res.type("html").send(htmlPage({
-    title: propertyTitle(property),
+    title: PROPERTY_SHARE_HEADLINE,
     description: propertyDescription(property),
     imageUrl,
     shareUrl,
