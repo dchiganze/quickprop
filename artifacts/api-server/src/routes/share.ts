@@ -308,7 +308,7 @@ function htmlPage({
     <meta property="og:image" content="${safeImageUrl}">
     <meta property="og:image:width" content="${COLLAGE_WIDTH}">
     <meta property="og:image:height" content="${COLLAGE_HEIGHT}">
-    <meta property="og:url" content="${safeDestinationUrl}">
+    <meta property="og:url" content="${safeShareUrl}">
     <meta property="og:type" content="website">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="${safeTitle}">
