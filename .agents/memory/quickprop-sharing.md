@@ -45,6 +45,12 @@ Social preview URLs should return metadata to crawlers but an HTTP redirect to t
 
 **How to apply:** Detect social crawler user agents before the redirect; send crawlers the Open Graph page and send normal requests a 302 to the profile or listing destination.
 
+Keep `og:url` set to the metadata share URL, not the redirect destination.
+
+**Why:** Facebook may canonicalize the preview to the destination URL and replace the property card with the generic marketplace page.
+
+**How to apply:** Use the share URL for crawler metadata and a normal-request HTTP redirect for the eventual profile or listing click.
+
 Only public, currently available listings should produce crawler-facing social preview URLs.
 
 **Why:** Draft references can exist in the agent/office database but intentionally return 404 from the public share route; sending those URLs to Facebook produces a domain-only card.
