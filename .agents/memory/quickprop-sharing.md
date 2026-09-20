@@ -15,11 +15,11 @@ For targeted Facebook and LinkedIn buttons on web, bypass the browser file-share
 
 **How to apply:** For Facebook/LinkedIn, download the captured collage, copy the caption, and open the destination URL directly. Keep `navigator.share({ files, text })` for generic share actions where the system chooser is expected.
 
-Facebook custom caption prefill requires Meta's Share Dialog rather than the public `sharer.php` URL; the current URL-redirection form uses `dialog/share` with `app_id`, `href`, and `quote` only.
+Facebook's current web Share Dialog can load a public link preview, but it does not reliably prefill arbitrary post text; the current documentation does not list `quote` as a supported URL-redirection parameter.
 
-**Why:** Facebook ignores custom text parameters on the public sharer endpoint; the Share Dialog accepts a `quote` only when a configured Meta App ID and allowed app domain are used.
+**Why:** Meta's current composer may ignore `quote` and shows an empty post text field even when the preview image loads. App Domains make the public preview usable but do not enable caption injection.
 
-**How to apply:** Keep the public sharer as a fallback, and switch to `dialog/share` when the public App ID is injected into Office and the mobile build. Do not add the deprecated `redirect_uri` parameter. Never expose an App Secret in client code.
+**How to apply:** Open `dialog/share` for the preview, copy the caption to the clipboard, and tell the user to paste it into Facebook. Do not promise automatic caption prefill. Direct Page publishing is a separate Graph API flow requiring Page permissions and is not equivalent to personal-profile sharing.
 
 Crawler-facing share pages must expose server-rendered Open Graph metadata and a public JPEG collage; client-only SPA metadata is not sufficient for Facebook or LinkedIn crawlers.
 
