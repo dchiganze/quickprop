@@ -25,6 +25,8 @@ const DETAILS_FOOTER_HEIGHT = COLLAGE_HEIGHT - DETAILS_FOOTER_Y;
 
 type PublicProperty = NonNullable<Awaited<ReturnType<typeof getCanonicalProperty>>>;
 let shareDetailsFontPromise: ReturnType<typeof Jimp.loadFont> | undefined;
+const propertyShareImageCache = new Map<string, Promise<Buffer | null>>();
+const MAX_PROPERTY_SHARE_IMAGE_CACHE = 32;
 
 function escapeHtml(value: string): string {
   return value
@@ -252,6 +254,26 @@ async function renderCollage(
   return collage.getBufferAsync(Jimp.MIME_JPEG);
 }
 
+function propertyShareImageCacheKey(property: PublicProperty, origin: string): string {
+  return `${origin}:${property.reference}:${property.updatedAt.toISOString()}`;
+}
+
+function getPropertyShareImage(property: PublicProperty, origin: string): Promise<Buffer | null> {
+  const key = propertyShareImageCacheKey(property, origin);
+  const cached = propertyShareImageCache.get(key);
+  if (cached) return cached;
+
+  const imagePromise = renderCollage(propertyPhotoSources(property), origin, property)
+    .then((image) => image)
+    .catch(() => null);
+  propertyShareImageCache.set(key, imagePromise);
+  if (propertyShareImageCache.size > MAX_PROPERTY_SHARE_IMAGE_CACHE) {
+    const oldestKey = propertyShareImageCache.keys().next().value;
+    if (oldestKey) propertyShareImageCache.delete(oldestKey);
+  }
+  return imagePromise;
+}
+
 async function renderFallbackCard(): Promise<Buffer> {
   const collage = await Jimp.create(COLLAGE_WIDTH, COLLAGE_HEIGHT, 0x071D35FF);
   const colors = [0x0B6B61FF, 0x138A72FF, 0x32B67AFF];
@@ -305,8 +327,12 @@ function htmlPage({
     <meta property="og:title" content="${safeTitle}">
     <meta property="og:description" content="${safeDescription}">
     <meta property="og:image" content="${safeImageUrl}">
+    <meta property="og:image:secure_url" content="${safeImageUrl}">
+    <meta property="og:image:type" content="image/jpeg">
     <meta property="og:image:width" content="${COLLAGE_WIDTH}">
     <meta property="og:image:height" content="${COLLAGE_HEIGHT}">
+    <meta property="og:image:alt" content="${safeTitle}">
+    <meta property="og:site_name" content="QuickProp">
     <meta property="og:url" content="${safeShareUrl}">
     <meta property="og:type" content="website">
     <meta name="twitter:card" content="summary_large_image">
@@ -328,9 +354,12 @@ async function sendCollage(
   property?: PublicProperty,
 ): Promise<void> {
   try {
-    const collage = sources.length > 0
-      ? await renderCollage(sources, originFor(req), property)
+    const collage = property
+      ? await getPropertyShareImage(property, originFor(req))
+      : sources.length > 0
+        ? await renderCollage(sources, originFor(req))
       : await renderFallbackCard();
+    if (!collage) throw new Error("No public property images are available.");
     res.setHeader("Cache-Control", "public, max-age=300, stale-while-revalidate=3600");
     res.type("jpg").send(collage);
   } catch (error) {
@@ -366,6 +395,9 @@ router.get("/share/properties/:reference", async (req, res): Promise<void> => {
   }
 
   const imageUrl = `${origin}${propertyCardPath(property)}${cacheBuster}`;
+  // Start rendering while the crawler is still processing the metadata page,
+  // so its following og:image request can usually use the warm result.
+  void getPropertyShareImage(property, origin);
   res.setHeader("Cache-Control", "public, max-age=300, stale-while-revalidate=3600");
   res.type("html").send(htmlPage({
     title: propertyTitle(property),

@@ -1,5 +1,5 @@
 export const QUICKPROP_PUBLIC_ORIGIN = 'https://www.quickprop.melios.co.zw';
-export const QUICKPROP_SHARE_PREVIEW_VERSION = '7';
+export const QUICKPROP_SHARE_PREVIEW_VERSION = '8';
 
 function isDevelopmentHost(hostname: string): boolean {
   const host = hostname.toLowerCase();
