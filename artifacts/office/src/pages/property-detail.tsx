@@ -39,6 +39,7 @@ import {
   getFacebookShareUrl,
   getQuickPropPublicOrigin,
   isQuickPropPreview,
+  QUICKPROP_PUBLIC_ORIGIN,
   QUICKPROP_SHARE_PREVIEW_VERSION,
 } from '@/utils/shareLinks';
 
@@ -514,7 +515,11 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
 
     shareProperty.mutate({ id: propertyId, data: { channel } }, {
       onSuccess: async () => {
-        const publicOrigin = getQuickPropPublicOrigin();
+        // Social platforms cannot access a Replit/local preview URL. Always
+        // give them the canonical public QuickProp preview in development too.
+        const publicOrigin = channel === 'facebook' || channel === 'linkedin'
+          ? QUICKPROP_PUBLIC_ORIGIN
+          : getQuickPropPublicOrigin();
         const previewMode = isQuickPropPreview();
         const propertyUrl = `${publicOrigin}/properties/${encodeURIComponent(property.reference.toLowerCase())}`;
         const previewUrl = `${publicOrigin}/api/share/properties/${encodeURIComponent(property.reference)}?v=${QUICKPROP_SHARE_PREVIEW_VERSION}`;

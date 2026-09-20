@@ -24,6 +24,7 @@ import {
   ensurePublicSharePreview,
   getFacebookShareUrl,
   getQuickPropPublicOrigin,
+  QUICKPROP_PUBLIC_ORIGIN,
   QUICKPROP_SHARE_PREVIEW_VERSION,
 } from '@/utils/shareLinks';
 
@@ -108,6 +109,10 @@ export function QuickShareDialog() {
     mode === 'agent' && user?.id
       ? `${baseUrl}/api/share/catalogues/agents/${user.id}?v=${QUICKPROP_SHARE_PREVIEW_VERSION}`
       : `${baseUrl}/api/share/catalogues/company?v=${QUICKPROP_SHARE_PREVIEW_VERSION}`;
+  const socialCatalogPreviewUrl =
+    mode === 'agent' && user?.id
+      ? `${QUICKPROP_PUBLIC_ORIGIN}/api/share/catalogues/agents/${user.id}?v=${QUICKPROP_SHARE_PREVIEW_VERSION}`
+      : `${QUICKPROP_PUBLIC_ORIGIN}/api/share/catalogues/company?v=${QUICKPROP_SHARE_PREVIEW_VERSION}`;
 
   const forSale = publicProps.filter(p => p.listingType === 'sale');
   const forRent = publicProps.filter(p => p.listingType === 'rent');
@@ -134,10 +139,10 @@ export function QuickShareDialog() {
     const shareWindow = openShareWindow();
     try {
       const caption = buildCatalogueShareCaption(publicProps, mode, user?.name, catalogUrl);
-      await ensurePublicSharePreview(catalogPreviewUrl);
+      await ensurePublicSharePreview(socialCatalogPreviewUrl);
       const opened = await openSocialShareLink(
         caption,
-        getFacebookShareUrl(catalogPreviewUrl, caption),
+        getFacebookShareUrl(socialCatalogPreviewUrl, caption),
         shareWindow,
       );
       if (!opened) throw new Error('Your browser blocked the new sharing tab. Allow pop-ups for QuickProp and try again.');
@@ -153,16 +158,16 @@ export function QuickShareDialog() {
         variant: 'destructive',
       });
     }
-  }, [publicProps, mode, user?.name, catalogUrl, catalogPreviewUrl, toast]);
+  }, [publicProps, mode, user?.name, catalogUrl, socialCatalogPreviewUrl, toast]);
 
   const shareToLinkedIn = useCallback(async () => {
     const shareWindow = openShareWindow();
     try {
       const caption = buildCatalogueShareCaption(publicProps, mode, user?.name, catalogUrl);
-      await ensurePublicSharePreview(catalogPreviewUrl);
+      await ensurePublicSharePreview(socialCatalogPreviewUrl);
       const opened = await openSocialShareLink(
         caption,
-        `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(catalogPreviewUrl)}`,
+        `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(socialCatalogPreviewUrl)}`,
         shareWindow,
       );
       if (!opened) throw new Error('Your browser blocked the new sharing tab. Allow pop-ups for QuickProp and try again.');
@@ -178,7 +183,7 @@ export function QuickShareDialog() {
         variant: 'destructive',
       });
     }
-  }, [publicProps, mode, user?.name, catalogUrl, catalogPreviewUrl, toast]);
+  }, [publicProps, mode, user?.name, catalogUrl, socialCatalogPreviewUrl, toast]);
 
   const copyForInstagram = useCallback(async () => {
     try {
