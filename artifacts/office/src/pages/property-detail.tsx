@@ -36,6 +36,7 @@ import {
 } from '@/utils/shareCards';
 import {
   ensurePublicSharePreview,
+  FACEBOOK_SDK_SHARE_ENABLED,
   getFacebookShareUrl,
   getQuickPropPublicOrigin,
   isQuickPropPreview,
@@ -544,7 +545,7 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
           } else if (channel === 'facebook' || channel === 'linkedin' || channel === 'instagram') {
             if (channel === 'facebook' || channel === 'linkedin') {
               await ensurePublicSharePreview(previewUrl);
-              if (channel === 'facebook') {
+              if (channel === 'facebook' && FACEBOOK_SDK_SHARE_ENABLED) {
                 const sdkOpened = await openFacebookSdkShare(previewUrl, shareMessage);
                 if (sdkOpened) {
                   toast({
@@ -573,7 +574,7 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
                   : `${channel[0].toUpperCase()}${channel.slice(1)} ready to share`,
                 description: previewMode
                    ? channel === 'facebook'
-                     ? 'Facebook’s fallback Share Dialog opened and the caption was copied. Paste it into the post text field if needed.'
+                   ? 'Facebook’s Share Dialog opened and the caption was copied. Paste it into the post text field if needed.'
                      : 'The caption was also copied as a fallback.'
                   : `The ${channel} link was opened and your edited caption was copied.`,
               });

@@ -21,6 +21,7 @@ import {
   shareCardWithCaption,
 } from '@/utils/shareCards';
 import {
+  FACEBOOK_SDK_SHARE_ENABLED,
   ensurePublicSharePreview,
   getFacebookShareUrl,
   getQuickPropPublicOrigin,
@@ -140,7 +141,9 @@ export function QuickShareDialog() {
     try {
       const caption = buildCatalogueShareCaption(publicProps, mode, user?.name, catalogUrl);
       await ensurePublicSharePreview(socialCatalogPreviewUrl);
-      const sdkOpened = await openFacebookSdkShare(socialCatalogPreviewUrl, caption);
+      const sdkOpened = FACEBOOK_SDK_SHARE_ENABLED
+        ? await openFacebookSdkShare(socialCatalogPreviewUrl, caption)
+        : false;
       if (!sdkOpened) {
         const shareWindow = openShareWindow();
         const opened = await openSocialShareLink(

@@ -2,6 +2,7 @@ export const QUICKPROP_PUBLIC_ORIGIN = 'https://www.quickprop.melios.co.zw';
 export const QUICKPROP_SHARE_PREVIEW_VERSION = '8';
 const META_APP_ID = import.meta.env.VITE_META_APP_ID ?? import.meta.env.VITE_FACEBOOK_APP_ID;
 const META_SDK_VERSION = 'v25.0';
+export const FACEBOOK_SDK_SHARE_ENABLED = import.meta.env.VITE_ENABLE_FACEBOOK_SDK_SHARE === 'true';
 
 type FacebookShareResponse = {
   error_message?: string;
@@ -127,14 +128,9 @@ export async function openFacebookSdkShare(previewUrl: string, caption: string):
 }
 
 export function getFacebookShareUrl(previewUrl: string, caption: string): string {
-  if (META_APP_ID) {
-    // URL redirection remains a fallback. The SDK route is tried first because
-    // current Meta docs do not list quote for this direct URL form.
-    return `https://www.facebook.com/dialog/share?app_id=${encodeURIComponent(META_APP_ID)}&display=popup&href=${encodeURIComponent(previewUrl)}&quote=${encodeURIComponent(caption)}`;
-  }
-
-  // Keep the public sharer as a degraded fallback when a build has no Meta
-  // App ID. Facebook may ignore quote on this endpoint.
+  // The public sharer does not require the Meta app's App Domains allowlist.
+  // Keep the caption in the URL for clients that support quote, and copy it
+  // separately because Facebook may ignore it on this endpoint.
   return `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(previewUrl)}&quote=${encodeURIComponent(caption)}`;
 }
 
