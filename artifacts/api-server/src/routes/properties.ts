@@ -39,6 +39,7 @@ import { findDuplicateCandidates, normalizeText } from "../lib/multi-agent";
 import { queuePrimaryReviewInvitation } from "../lib/agent-reviews";
 import { matchPropertyToAlerts } from "../lib/property-alerts";
 import { logger } from "../lib/logger";
+import { isPublicProperty, syncPropertyToProduction } from "../lib/publication-sync";
 
 const router: IRouter = Router();
 
@@ -337,6 +338,18 @@ router.patch("/properties/:id", async (req, res): Promise<void> => {
     .where(ownership)
     .returning();
 
+  if (row && (isPublicProperty(row) || isPublicProperty(existing))) {
+    try {
+      await syncPropertyToProduction(row);
+    } catch (error) {
+      req.log.error({ err: error, propertyId: id }, "Unable to publish property update");
+      res.status(502).json({
+        error: "The listing was saved, but it could not be published to the live QuickProp site yet.",
+      });
+      return;
+    }
+  }
+
   if (parsed.data.price != null && parsed.data.price !== existing.price) {
     await db.insert(priceHistoryTable).values({
       propertyId: id,
@@ -487,6 +500,15 @@ router.post("/properties/:id/share", async (req, res): Promise<void> => {
   if (!existing) {
     res.status(404).json({ error: "Property not found" });
     return;
+  }
+  if (isPublicProperty(existing)) {
+    try {
+      await syncPropertyToProduction(existing);
+    } catch (error) {
+      req.log.error({ err: error, propertyId: id }, "Unable to publish property before sharing");
+      res.status(502).json({ error: "The listing could not be published to the live QuickProp site yet." });
+      return;
+    }
   }
   await db
     .update(propertiesTable)

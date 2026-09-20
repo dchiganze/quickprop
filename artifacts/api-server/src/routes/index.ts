@@ -19,6 +19,7 @@ import rentalProfileRouter from "./rental-profile";
 import propertyAlertsRouter from "./property-alerts";
 import agencySettingsRouter from "./agency-settings";
 import shareRouter from "./share";
+import publicationSyncRouter from "./publication-sync";
 
 const router: IRouter = Router();
 
@@ -34,6 +35,9 @@ router.use(propertyAlertsRouter);
 router.use(reviewsRouter);
 // Crawler-facing public share pages and generated social preview images.
 router.use(shareRouter);
+// Signed server-to-server publication requests from the development Office
+// app are handled before the normal user-authenticated business routes.
+router.use(publicationSyncRouter);
 // All business routes below require a logged-in user.
 router.use(requireAuth);
 router.use(agencySettingsRouter);
