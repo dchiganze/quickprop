@@ -15,11 +15,11 @@ For targeted Facebook and LinkedIn buttons on web, bypass the browser file-share
 
 **How to apply:** For Facebook/LinkedIn, download the captured collage, copy the caption, and open the destination URL directly. Keep `navigator.share({ files, text })` for generic share actions where the system chooser is expected.
 
-Facebook's current web Share Dialog can load a public link preview, but it does not reliably prefill arbitrary post text; the current documentation does not list `quote` as a supported URL-redirection parameter.
+Meta's general sharing overview mentions quote sharing, but the current Web Share Dialog URL-redirection reference omits `quote`; QuickProp's direct web URL test loads the preview while ignoring the caption.
 
-**Why:** Meta's current composer may ignore `quote` and shows an empty post text field even when the preview image loads. App Domains make the public preview usable but do not enable caption injection.
+**Why:** The platform documentation is inconsistent across the general overview and the web dialog reference, and the current Facebook web composer may ignore `quote` even when the preview image loads. App Domains make the public preview usable but do not guarantee caption injection.
 
-**How to apply:** Open `dialog/share` for the preview, copy the caption to the clipboard, and tell the user to paste it into Facebook. Do not promise automatic caption prefill. Direct Page publishing is a separate Graph API flow requiring Page permissions and is not equivalent to personal-profile sharing.
+**How to apply:** Open `dialog/share` for the preview, copy the caption to the clipboard, and tell the user to paste it into Facebook. Do not promise automatic prefill from URL redirection; a Facebook JS SDK or native SDK experiment must be treated as a separate, unverified path. Direct Page publishing is a separate Graph API flow requiring Page permissions and is not equivalent to personal-profile sharing.
 
 Crawler-facing share pages must expose server-rendered Open Graph metadata and a public JPEG collage; client-only SPA metadata is not sufficient for Facebook or LinkedIn crawlers.
 
