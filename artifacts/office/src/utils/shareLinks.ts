@@ -139,10 +139,19 @@ export function getFacebookShareUrl(previewUrl: string, caption: string): string
 }
 
 export async function ensurePublicSharePreview(previewUrl: string): Promise<void> {
-  const response = await fetch(previewUrl, {
-    cache: 'no-store',
-    redirect: 'follow',
-  });
+  let response: Response;
+  try {
+    response = await fetch(previewUrl, {
+      cache: 'no-store',
+      redirect: 'manual',
+    });
+  } catch {
+    throw new Error('This listing is not published on the live QuickProp site. Publish it before sharing.');
+  }
+  // The public preview intentionally redirects normal browsers to the
+  // marketplace page. Browsers expose that cross-origin redirect as an
+  // opaque response, even though the preview itself is reachable by Meta.
+  if (response.type === 'opaqueredirect') return;
   if (!response.ok) {
     throw new Error('This listing is not published on the live QuickProp site. Publish it before sharing.');
   }

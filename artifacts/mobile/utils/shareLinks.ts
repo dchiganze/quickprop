@@ -39,10 +39,16 @@ export function propertyShareLinks(property: Pick<Property, 'id' | 'referenceNum
 }
 
 export async function ensurePublicSharePreview(previewUrl: string): Promise<void> {
-  const response = await fetch(previewUrl, {
-    cache: 'no-store',
-    redirect: 'follow',
-  });
+  let response: Response;
+  try {
+    response = await fetch(previewUrl, {
+      cache: 'no-store',
+      redirect: 'manual',
+    });
+  } catch {
+    throw new Error('This listing is not published on the live QuickProp site. Publish it before sharing.');
+  }
+  if (response.type === 'opaqueredirect') return;
   if (!response.ok) {
     throw new Error('This listing is not published on the live QuickProp site. Publish it before sharing.');
   }
