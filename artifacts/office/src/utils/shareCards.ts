@@ -447,7 +447,7 @@ export async function shareCardWithCaption(
 }
 
 export function openShareWindow(): Window | null {
-  const opened = window.open('about:blank', '_blank');
+  const opened = window.open('about:blank', 'quickprop-social-share');
   if (!opened || opened === window) return null;
   opened.opener = null;
   return opened;

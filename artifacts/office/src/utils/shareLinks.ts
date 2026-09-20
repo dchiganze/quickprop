@@ -31,12 +31,10 @@ export function getQuickPropPublicOrigin(currentOrigin?: string): string {
 }
 
 export function getFacebookShareUrl(previewUrl: string, caption: string): string {
-  const metaAppId = import.meta.env.VITE_META_APP_ID ?? import.meta.env.VITE_FACEBOOK_APP_ID;
-  if (!metaAppId) {
-    return `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(previewUrl)}&quote=${encodeURIComponent(caption)}`;
-  }
-
-  return `https://www.facebook.com/dialog/share?app_id=${encodeURIComponent(metaAppId)}&display=popup&href=${encodeURIComponent(previewUrl)}&quote=${encodeURIComponent(caption)}&redirect_uri=${encodeURIComponent(QUICKPROP_PUBLIC_ORIGIN)}`;
+  // Use Facebook's public sharer endpoint. The app-dialog endpoint requires
+  // an app ID and an exact redirect configuration, and an invalid/stale
+  // configuration sends users to Facebook's "Page Isn't Available" screen.
+  return `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(previewUrl)}&quote=${encodeURIComponent(caption)}`;
 }
 
 export async function ensurePublicSharePreview(previewUrl: string): Promise<void> {
