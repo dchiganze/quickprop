@@ -58,6 +58,15 @@ export function catalogueShareLinks(agentId?: string) {
   };
 }
 
+export function getFacebookShareUrl(previewUrl: string, caption: string): string {
+  const metaAppId = process.env.EXPO_PUBLIC_META_APP_ID ?? process.env.EXPO_PUBLIC_FACEBOOK_APP_ID;
+  if (!metaAppId) {
+    return `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(previewUrl)}&quote=${encodeURIComponent(caption)}`;
+  }
+
+  return `https://www.facebook.com/dialog/share?app_id=${encodeURIComponent(metaAppId)}&display=popup&href=${encodeURIComponent(previewUrl)}&quote=${encodeURIComponent(caption)}&redirect_uri=${encodeURIComponent(QUICKPROP_WEB_URL)}`;
+}
+
 export function inviteShareLink(inviteToken: string) {
   const inviteQuery = query({ invite: inviteToken });
   return {

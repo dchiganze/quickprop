@@ -36,6 +36,7 @@ import {
 } from '@/utils/shareCards';
 import {
   ensurePublicSharePreview,
+  getFacebookShareUrl,
   getQuickPropPublicOrigin,
   isQuickPropPreview,
   QUICKPROP_SHARE_PREVIEW_VERSION,
@@ -537,7 +538,7 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
           } else if (channel === 'facebook' || channel === 'linkedin' || channel === 'instagram') {
             if (channel === 'facebook' || channel === 'linkedin') {
               const fallbackUrl = channel === 'facebook'
-                ? `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(previewUrl)}&quote=${encodeURIComponent(shareMessage)}`
+                ? getFacebookShareUrl(previewUrl, shareMessage)
                 : `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(previewUrl)}`;
               await ensurePublicSharePreview(previewUrl);
               const opened = await openSocialShareLink(shareMessage, fallbackUrl, shareWindow);

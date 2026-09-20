@@ -15,6 +15,12 @@ For targeted Facebook and LinkedIn buttons on web, bypass the browser file-share
 
 **How to apply:** For Facebook/LinkedIn, download the captured collage, copy the caption, and open the destination URL directly. Keep `navigator.share({ files, text })` for generic share actions where the system chooser is expected.
 
+Facebook custom caption prefill requires Meta's Share Dialog rather than the public `sharer.php` URL.
+
+**Why:** Facebook ignores custom text parameters on the public sharer endpoint; the Share Dialog accepts a `quote` only when a configured Meta App ID and allowed app domain are used.
+
+**How to apply:** Keep the public sharer as a fallback, and switch to `dialog/share` when the public App ID is injected into Office and the mobile build. Never expose an App Secret in client code.
+
 Crawler-facing share pages must expose server-rendered Open Graph metadata and a public JPEG collage; client-only SPA metadata is not sufficient for Facebook or LinkedIn crawlers.
 
 **Why:** Social crawlers may not execute the marketplace React app, and local browser blobs cannot be fetched by the platforms.

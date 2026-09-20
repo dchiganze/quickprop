@@ -9,7 +9,7 @@ import { useColors } from '@/hooks/useColors';
 import { useData } from '@/contexts/DataContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Property } from '@/types';
-import { catalogueShareLinks, propertyShareLinks } from '@/utils/shareLinks';
+import { catalogueShareLinks, getFacebookShareUrl, propertyShareLinks } from '@/utils/shareLinks';
 import { buildCatalogueShareMessage, buildPropertyShareMessage, formatSharePrice } from '@/utils/shareContent';
 import {
   PropertySocialDestination,
@@ -156,7 +156,7 @@ export function ShareHubSheet({ visible, onClose }: Props) {
         () => catalogueCardRef.current?.capture()
           ?? Promise.reject(new Error('Unable to prepare the brochure image.')),
         'Share brochure to Facebook',
-        `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(catalogLinks.previewUrl)}&quote=${encodeURIComponent(text)}`,
+        getFacebookShareUrl(catalogLinks.previewUrl, text),
         'facebook',
       );
       handleClose();

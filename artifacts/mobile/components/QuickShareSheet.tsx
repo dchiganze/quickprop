@@ -9,7 +9,7 @@ import { useColors } from '@/hooks/useColors';
 import { useData } from '@/contexts/DataContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Property } from '@/types';
-import { catalogueShareLinks } from '@/utils/shareLinks';
+import { catalogueShareLinks, getFacebookShareUrl } from '@/utils/shareLinks';
 import { buildCatalogueShareMessage, formatSharePrice } from '@/utils/shareContent';
 import { shareCatalogueToSocial, shareCatalogueToWhatsApp } from '@/utils/whatsapp';
 import { ShareCatalogueCard, ShareCatalogueCardHandle } from '@/components/ShareCatalogueCard';
@@ -72,7 +72,7 @@ export function QuickShareSheet({ visible, onClose }: QuickShareSheetProps) {
         () => catalogueCardRef.current?.capture()
           ?? Promise.reject(new Error('Unable to prepare the brochure image.')),
         'Share brochure to Facebook',
-        `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(catalogLinks.previewUrl)}&quote=${encodeURIComponent(text)}`,
+        getFacebookShareUrl(catalogLinks.previewUrl, text),
         'facebook',
       );
       onClose();
