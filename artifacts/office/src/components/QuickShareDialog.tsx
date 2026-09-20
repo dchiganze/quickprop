@@ -148,7 +148,7 @@ export function QuickShareDialog() {
       if (!opened) throw new Error('Your browser blocked the new sharing tab. Allow pop-ups for QuickProp and try again.');
       toast({
         title: 'Facebook ready to share',
-        description: 'The Facebook link was opened and the caption was copied. Facebook will load the preview image from QuickProp.',
+        description: 'Facebook’s Share Dialog was opened with the caption ready. Facebook will load the preview image from QuickProp.',
       });
     } catch (error) {
       if (shareWindow && !shareWindow.closed) shareWindow.close();

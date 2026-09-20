@@ -1,5 +1,6 @@
 export const QUICKPROP_PUBLIC_ORIGIN = 'https://www.quickprop.melios.co.zw';
 export const QUICKPROP_SHARE_PREVIEW_VERSION = '8';
+const META_APP_ID = import.meta.env.VITE_META_APP_ID ?? import.meta.env.VITE_FACEBOOK_APP_ID;
 
 function isDevelopmentHost(hostname: string): boolean {
   const host = hostname.toLowerCase();
@@ -31,9 +32,14 @@ export function getQuickPropPublicOrigin(currentOrigin?: string): string {
 }
 
 export function getFacebookShareUrl(previewUrl: string, caption: string): string {
-  // Use Facebook's public sharer endpoint. The app-dialog endpoint requires
-  // an app ID and an exact redirect configuration, and an invalid/stale
-  // configuration sends users to Facebook's "Page Isn't Available" screen.
+  if (META_APP_ID) {
+    // The Share Dialog is the supported Facebook flow for preloading quote
+    // text. It does not require Facebook Login permissions.
+    return `https://www.facebook.com/dialog/share?app_id=${encodeURIComponent(META_APP_ID)}&display=popup&href=${encodeURIComponent(previewUrl)}&quote=${encodeURIComponent(caption)}`;
+  }
+
+  // Keep the public sharer as a degraded fallback when a build has no Meta
+  // App ID. Facebook may ignore quote on this endpoint.
   return `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(previewUrl)}&quote=${encodeURIComponent(caption)}`;
 }
 

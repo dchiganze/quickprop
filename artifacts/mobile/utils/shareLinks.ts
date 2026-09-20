@@ -64,7 +64,9 @@ export function getFacebookShareUrl(previewUrl: string, caption: string): string
     return `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(previewUrl)}&quote=${encodeURIComponent(caption)}`;
   }
 
-  return `https://www.facebook.com/dialog/share?app_id=${encodeURIComponent(metaAppId)}&display=popup&href=${encodeURIComponent(previewUrl)}&quote=${encodeURIComponent(caption)}&redirect_uri=${encodeURIComponent(QUICKPROP_WEB_URL)}`;
+  // The Share Dialog supports preloaded quote text and does not require
+  // Facebook Login permissions. redirect_uri is deprecated for this dialog.
+  return `https://www.facebook.com/dialog/share?app_id=${encodeURIComponent(metaAppId)}&display=popup&href=${encodeURIComponent(previewUrl)}&quote=${encodeURIComponent(caption)}`;
 }
 
 export function inviteShareLink(inviteToken: string) {

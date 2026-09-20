@@ -560,7 +560,7 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
                   ? `${channel[0].toUpperCase()}${channel.slice(1)} share opened`
                   : `${channel[0].toUpperCase()}${channel.slice(1)} ready to share`,
                 description: previewMode
-                  ? 'The preview share opened. Facebook may not prefill post text, so your full caption was copied for pasting.'
+                  ? 'Facebook’s Share Dialog opened with your caption ready. The caption was also copied as a fallback.'
                   : `The ${channel} link was opened and your edited caption was copied.`,
               });
               return;
