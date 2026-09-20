@@ -448,7 +448,8 @@ export async function shareCardWithCaption(
 
 export function openShareWindow(): Window | null {
   const opened = window.open('about:blank', '_blank');
-  if (opened) opened.opener = null;
+  if (!opened || opened === window) return null;
+  opened.opener = null;
   return opened;
 }
 
@@ -459,7 +460,7 @@ export async function openSocialShareLink(
 ): Promise<boolean> {
   await navigator.clipboard?.writeText(caption).catch(() => {});
   const opened = shareWindow ?? window.open(targetUrl, '_blank', 'noopener,noreferrer');
-  if (!opened) return false;
-  opened.location.href = targetUrl;
+  if (!opened || opened === window) return false;
+  opened.location.replace(targetUrl);
   return true;
 }

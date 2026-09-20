@@ -22,7 +22,6 @@ const LOWER_PHOTO_HEIGHT = HERO_HEIGHT;
 const HALF_TILE_WIDTH = (COLLAGE_WIDTH - PHOTO_ROW_GAP) / 2;
 const DETAILS_FOOTER_Y = 548;
 const DETAILS_FOOTER_HEIGHT = COLLAGE_HEIGHT - DETAILS_FOOTER_Y;
-const PROPERTY_SHARE_HEADLINE = "Click here to see all of my properties";
 
 type PublicProperty = NonNullable<Awaited<ReturnType<typeof getCanonicalProperty>>>;
 let shareDetailsFontPromise: ReturnType<typeof Jimp.loadFont> | undefined;
@@ -359,9 +358,7 @@ router.get("/share/properties/:reference", async (req, res): Promise<void> => {
   const origin = originFor(req);
   const cacheBuster = previewCacheBuster(req);
   const shareUrl = `${origin}${propertySharePath(property)}${cacheBuster}`;
-  const destinationPath = property.agentId
-    ? agentPublicPath(property.agentId)
-    : propertyPublicPath(property);
+  const destinationPath = propertyPublicPath(property);
   const destinationUrl = `${origin}${destinationPath}`;
   if (!isSocialCrawler(req)) {
     res.redirect(302, destinationUrl);
@@ -371,7 +368,7 @@ router.get("/share/properties/:reference", async (req, res): Promise<void> => {
   const imageUrl = `${origin}${propertyCardPath(property)}${cacheBuster}`;
   res.setHeader("Cache-Control", "public, max-age=300, stale-while-revalidate=3600");
   res.type("html").send(htmlPage({
-    title: PROPERTY_SHARE_HEADLINE,
+    title: propertyTitle(property),
     description: propertyDescription(property),
     imageUrl,
     shareUrl,
