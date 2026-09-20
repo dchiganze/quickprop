@@ -57,14 +57,44 @@ export function buildPropertyShareMessage(property: Property, agentName?: string
   return lines.join('\n');
 }
 
-export function buildPropertySocialShareMessage(property: Property): string {
-  const description = property.description.replace(/\s+/g, ' ').trim();
-  const catalogueUrl = catalogueShareLinks(property.agentId).webUrl;
-  const lines = [];
+export function buildPropertySocialShareMessage(property: Property, agentName?: string): string {
+  const typeLabel = property.type === 'sale'
+    ? 'For Sale'
+    : property.type === 'rent'
+      ? 'To Rent'
+      : property.type.charAt(0).toUpperCase() + property.type.slice(1);
+  const title = property.title?.trim() || `${typeLabel} — ${property.suburb}`;
+  const location = property.showAddress && property.address
+    ? `${property.address}, ${property.suburb}`
+    : [property.suburb, property.city].filter(Boolean).join(', ');
+  const lines = [`${title}`, location ? `📍 ${location}` : '', `💰 ${formatSharePrice(property)}${property.negotiable ? ' (Negotiable)' : ''}`]
+    .filter(Boolean);
 
-  if (description) lines.push(description);
-  lines.push(`View my entire catalogue here: ${catalogueUrl}`);
-  return lines.join('\n\n');
+  const stats = [
+    property.bedrooms ? `${property.bedrooms} bed` : '',
+    property.bathrooms ? `${property.bathrooms} bath` : '',
+    property.garages ? `${property.garages} garage` : '',
+  ].filter(Boolean);
+  if (stats.length) lines.push(stats.join('  |  '));
+
+  const sizes = [
+    property.landSize ? `Land: ${property.landSize.toLocaleString()}m²` : '',
+    property.floorArea ? `Floor: ${property.floorArea.toLocaleString()}m²` : '',
+  ].filter(Boolean);
+  if (sizes.length) lines.push(`📐 ${sizes.join('  |  ')}`);
+
+  if (property.description.trim()) {
+    lines.push('', property.description.replace(/\s+/g, ' ').trim());
+  }
+  if (property.features.length) {
+    lines.push('', 'Features:', ...property.features.slice(0, 8).map(feature => `• ${feature}`));
+  }
+
+  const links = propertyShareLinks(property);
+  lines.push('', `Ref: ${property.referenceNumber}`);
+  if (agentName) lines.push(`Agent: ${agentName}`);
+  lines.push(`View full listing: ${links.webUrl}`);
+  return lines.join('\n');
 }
 
 export function buildCatalogueShareMessage(

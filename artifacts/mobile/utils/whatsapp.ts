@@ -273,6 +273,7 @@ export async function sharePropertyToSocial(
   property: Property,
   destination: PropertySocialDestination,
   captureCard: () => Promise<string>,
+  captionOverride?: string,
 ): Promise<void> {
   if (destination === 'tiktok') {
     // TikTok's iOS share extension accepts the image from Photos, but can
@@ -290,7 +291,7 @@ export async function sharePropertyToSocial(
 
   const isSocialPost = destination === 'facebook' || destination === 'linkedin';
   const caption = isSocialPost
-    ? buildPropertySocialShareMessage(property)
+    ? captionOverride ?? buildPropertySocialShareMessage(property)
     : buildPropertyShareMessage(property);
   await Clipboard.setStringAsync(caption).catch(() => {});
 

@@ -185,6 +185,47 @@ export function buildPropertyShareCaption(
   return lines.join('\n');
 }
 
+export function buildPropertySocialCaption(
+  property: Property,
+  publicUrl: string,
+): string {
+  const listingType = property.listingType === 'sale'
+    ? 'For Sale'
+    : property.listingType === 'rent'
+      ? 'To Rent'
+      : property.listingType;
+  const location = property.address && property.addressVisible
+    ? `${property.address}, ${property.suburb}`
+    : [property.suburb, property.city].filter(Boolean).join(', ');
+  const lines = [
+    property.title || `${listingType} — ${property.suburb}`,
+    location ? `📍 ${location}` : '',
+    `💰 ${formatPrice(property)}${property.negotiable ? ' (Negotiable)' : ''}`,
+  ].filter(Boolean);
+
+  const stats = [
+    property.bedrooms ? `${property.bedrooms} bed` : '',
+    property.bathrooms ? `${property.bathrooms} bath` : '',
+    property.parking ? `${property.parking} parking` : '',
+  ].filter(Boolean);
+  if (stats.length) lines.push(stats.join('  |  '));
+
+  const sizes = [
+    property.landSize ? `Land: ${property.landSize.toLocaleString()}m²` : '',
+    property.buildingSize ? `Floor: ${property.buildingSize.toLocaleString()}m²` : '',
+  ].filter(Boolean);
+  if (sizes.length) lines.push(`📐 ${sizes.join('  |  ')}`);
+
+  const description = property.description?.replace(/\s+/g, ' ').trim();
+  if (description) lines.push('', description);
+
+  const features = (property.features ?? []).filter(Boolean).slice(0, 8);
+  if (features.length) lines.push('', 'Features:', ...features.map(feature => `• ${feature}`));
+
+  lines.push('', `Ref: ${property.reference}`, `View full listing: ${publicUrl}`);
+  return lines.join('\n');
+}
+
 export function buildCatalogueShareCaption(
   properties: Property[],
   mode: 'company' | 'agent',

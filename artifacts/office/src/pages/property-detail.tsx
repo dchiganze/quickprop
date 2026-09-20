@@ -28,6 +28,7 @@ import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import {
   buildPropertyShareCaption,
+  buildPropertySocialCaption,
   createPropertyShareCard,
   openShareWindow,
   openSocialShareLink,
@@ -176,6 +177,10 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
   const [activeViewingSlot, setActiveViewingSlot] = useState<number | null>(null);
   const [viewingPickerDate, setViewingPickerDate] = useState('');
   const [viewingPickerTime, setViewingPickerTime] = useState('');
+  const [captionEditor, setCaptionEditor] = useState<{
+    channel: 'facebook' | 'linkedin';
+    caption: string;
+  } | null>(null);
   const [photoUploadPending, setPhotoUploadPending] = useState(false);
   const photoInputRef = useRef<HTMLInputElement>(null);
   const editPhotoInputRef = useRef<HTMLInputElement>(null);
@@ -505,39 +510,24 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
     setViewingPickerOpen(false);
   };
 
-  const handleShare = async (channel: 'whatsapp' | 'facebook' | 'instagram' | 'linkedin' | 'email' | 'link') => {
-    const canSharePublicPreview = PUBLIC_PROPERTY_STATUSES.has(property.status)
-      && PUBLIC_PROPERTY_AVAILABILITY.has(property.availabilityStatus ?? 'available');
-    if ((channel === 'facebook' || channel === 'linkedin') && !canSharePublicPreview) {
-      toast({
-        title: 'Publish this property first',
-        description: 'Facebook and LinkedIn previews are only available for public listings.',
-        variant: 'destructive',
-      });
-      return;
-    }
+  const performShare = (channel: 'whatsapp' | 'facebook' | 'instagram' | 'linkedin' | 'email' | 'link', shareMessage: string) => {
     const shareWindow = channel === 'facebook' || channel === 'linkedin'
       ? openShareWindow()
       : null;
 
     shareProperty.mutate({ id: propertyId, data: { channel } }, {
-      onSuccess: async (res) => {
+      onSuccess: async () => {
         const publicOrigin = getQuickPropPublicOrigin();
         const previewMode = isQuickPropPreview();
-        const catalogueUrl = property.agentId
-          ? `${publicOrigin}/web/agents/${property.agentId}`
-          : `${publicOrigin}/web/`;
         const propertyUrl = `${publicOrigin}/properties/${encodeURIComponent(property.reference.toLowerCase())}`;
         const previewUrl = `${publicOrigin}/api/share/properties/${encodeURIComponent(property.reference)}?v=${QUICKPROP_SHARE_PREVIEW_VERSION}`;
-        const shareMessage = buildPropertyShareCaption(property, propertyUrl, catalogueUrl);
 
         try {
           if (channel === 'whatsapp') {
-            const caption = shareMessage;
             const card = await createPropertyShareCard(property);
             const result = await shareCardWithCaption(
               card,
-              caption,
+              shareMessage,
               property.title,
               `quickprop-${property.reference}.jpg`,
             );
@@ -554,11 +544,7 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
                 ? `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(previewUrl)}`
                 : `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(previewUrl)}`;
               await ensurePublicSharePreview(previewUrl);
-              const opened = await openSocialShareLink(
-                shareMessage,
-                fallbackUrl,
-                shareWindow,
-              );
+              const opened = await openSocialShareLink(shareMessage, fallbackUrl, shareWindow);
               if (!opened) {
                 toast({
                   title: 'Allow pop-ups to share',
@@ -572,8 +558,8 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
                   ? `${channel[0].toUpperCase()}${channel.slice(1)} share opened`
                   : `${channel[0].toUpperCase()}${channel.slice(1)} ready to share`,
                 description: previewMode
-                  ? 'Facebook opened in a new tab using the Replit preview URL. The caption was copied.'
-                  : `The ${channel} link was opened and the caption was copied. Facebook will load the preview image from QuickProp.`,
+                  ? 'The preview share opened. Your edited caption was copied.'
+                  : `The ${channel} link was opened and your edited caption was copied.`,
               });
               return;
             }
@@ -611,8 +597,39 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
             variant: 'destructive',
           });
         }
-      }
+      },
     });
+  };
+
+  const handleShare = (channel: 'whatsapp' | 'facebook' | 'instagram' | 'linkedin' | 'email' | 'link') => {
+    const canSharePublicPreview = PUBLIC_PROPERTY_STATUSES.has(property.status)
+      && PUBLIC_PROPERTY_AVAILABILITY.has(property.availabilityStatus ?? 'available');
+    if ((channel === 'facebook' || channel === 'linkedin') && !canSharePublicPreview) {
+      toast({
+        title: 'Publish this property first',
+        description: 'Facebook and LinkedIn previews are only available for public listings.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    const publicOrigin = getQuickPropPublicOrigin();
+    const propertyUrl = `${publicOrigin}/properties/${encodeURIComponent(property.reference.toLowerCase())}`;
+    const shareMessage = channel === 'facebook' || channel === 'linkedin'
+      ? buildPropertySocialCaption(property, propertyUrl)
+      : buildPropertyShareCaption(property, propertyUrl);
+
+    if (channel === 'facebook' || channel === 'linkedin') {
+      setCaptionEditor({ channel, caption: shareMessage });
+      return;
+    }
+    performShare(channel, shareMessage);
+  };
+
+  const handleCaptionShare = () => {
+    if (!captionEditor) return;
+    const { channel, caption } = captionEditor;
+    setCaptionEditor(null);
+    performShare(channel, caption);
   };
 
   const confirmAvailability = () => {
@@ -691,6 +708,33 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
 
   return (
     <div className="p-8 max-w-[1600px] mx-auto space-y-6">
+      <Dialog open={!!captionEditor} onOpenChange={(open) => !open && setCaptionEditor(null)}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>
+              Prepare {captionEditor?.channel === 'facebook' ? 'Facebook' : 'LinkedIn'} post
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              QuickProp generated this caption from the listing. Review or tailor it before sharing.
+            </p>
+            <Textarea
+              value={captionEditor?.caption ?? ''}
+              onChange={(event) => captionEditor && setCaptionEditor({ ...captionEditor, caption: event.target.value })}
+              rows={12}
+              aria-label="Social post caption"
+            />
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setCaptionEditor(null)}>Cancel</Button>
+            <Button type="button" onClick={handleCaptionShare} disabled={!captionEditor?.caption.trim() || shareProperty.isPending}>
+              {shareProperty.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Share2 className="mr-2 h-4 w-4" />}
+              Share to {captionEditor?.channel === 'facebook' ? 'Facebook' : 'LinkedIn'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <Dialog open={saleDialogOpen} onOpenChange={setSaleDialogOpen}>
         <DialogContent>
           <DialogHeader>

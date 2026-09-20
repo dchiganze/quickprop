@@ -11,6 +11,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Property } from '@/types';
 import { catalogueShareLinks, propertyShareLinks } from '@/utils/shareLinks';
 import { buildCatalogueShareMessage, buildPropertyShareMessage, formatSharePrice } from '@/utils/shareContent';
+import { buildPropertySocialShareMessage } from '@/utils/shareContent';
+import { ShareCaptionEditor } from '@/components/ShareCaptionEditor';
 import {
   PropertySocialDestination,
   shareCatalogueToSocial,
@@ -43,6 +45,11 @@ export function ShareHubSheet({ visible, onClose }: Props) {
   const [catalogMode, setCatalogMode] = useState<CatalogMode>('agent');
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
   const [sharing, setSharing] = useState(false);
+  const [captionEditor, setCaptionEditor] = useState<{
+    property: Property;
+    destination: 'facebook' | 'linkedin';
+    caption: string;
+  } | null>(null);
   const shareCardRef = useRef<SharePropertyCardHandle>(null);
   const shareCollageRef = useRef<SharePropertyCollageHandle>(null);
   const catalogueCardRef = useRef<ShareCatalogueCardHandle>(null);
@@ -102,7 +109,11 @@ export function ShareHubSheet({ visible, onClose }: Props) {
     }
   }, [user?.name]);
 
-  const sharePropertySocial = useCallback(async (p: Property, destination: PropertySocialDestination) => {
+  const sharePropertySocial = useCallback(async (
+    p: Property,
+    destination: PropertySocialDestination,
+    captionOverride?: string,
+  ) => {
     setSharing(true);
     try {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -111,6 +122,7 @@ export function ShareHubSheet({ visible, onClose }: Props) {
         destination,
         () => shareCollageRef.current?.capture()
           ?? Promise.reject(new Error('Unable to prepare the property collage.')),
+        captionOverride,
       );
       handleClose();
     } catch (e: unknown) {
@@ -122,6 +134,14 @@ export function ShareHubSheet({ visible, onClose }: Props) {
       setSharing(false);
     }
   }, [user?.id]);
+
+  const preparePropertySocialShare = useCallback((p: Property, destination: 'facebook' | 'linkedin') => {
+    setCaptionEditor({
+      property: p,
+      destination,
+      caption: buildPropertySocialShareMessage(p, user?.name),
+    });
+  }, [user?.name]);
 
   // ── Catalogue share actions ────────────────────────────────────────────────
   const activeProps = catalogMode === 'agent' ? myProps : allProps;
@@ -320,7 +340,7 @@ export function ShareHubSheet({ visible, onClose }: Props) {
             <TouchableOpacity
               key={destination}
               style={[s.socialShareBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
-              onPress={() => sharePropertySocial(p, destination)}
+              onPress={() => preparePropertySocialShare(p, destination)}
               disabled={sharing}
               activeOpacity={0.75}
             >
@@ -457,7 +477,8 @@ export function ShareHubSheet({ visible, onClose }: Props) {
   };
 
   return (
-    <Modal
+    <>
+      <Modal
       visible={visible}
       animationType="slide"
       transparent
@@ -521,6 +542,20 @@ export function ShareHubSheet({ visible, onClose }: Props) {
         </Pressable>
       </Pressable>
     </Modal>
+      <ShareCaptionEditor
+        visible={!!captionEditor}
+        destination={captionEditor?.destination ?? 'facebook'}
+        caption={captionEditor?.caption ?? ''}
+        onChangeCaption={(caption) => captionEditor && setCaptionEditor({ ...captionEditor, caption })}
+        onCancel={() => setCaptionEditor(null)}
+        onShare={async () => {
+          if (!captionEditor) return;
+          const { property, destination, caption } = captionEditor;
+          setCaptionEditor(null);
+          await sharePropertySocial(property, destination, caption);
+        }}
+      />
+    </>
   );
 }
 
