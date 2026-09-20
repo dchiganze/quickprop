@@ -537,7 +537,7 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
           } else if (channel === 'facebook' || channel === 'linkedin' || channel === 'instagram') {
             if (channel === 'facebook' || channel === 'linkedin') {
               const fallbackUrl = channel === 'facebook'
-                ? `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(previewUrl)}`
+                ? `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(previewUrl)}&quote=${encodeURIComponent(shareMessage)}`
                 : `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(previewUrl)}`;
               await ensurePublicSharePreview(previewUrl);
               const opened = await openSocialShareLink(shareMessage, fallbackUrl, shareWindow);

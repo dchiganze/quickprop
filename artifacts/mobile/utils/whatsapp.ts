@@ -154,7 +154,7 @@ async function shareWebSocialPost(
   const previewUrl = propertyShareLinks(property).previewUrl;
   await ensurePublicSharePreview(previewUrl);
   const shareUrl = destination === 'facebook'
-    ? `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(previewUrl)}`
+    ? `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(previewUrl)}&quote=${encodeURIComponent(caption)}`
     : `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(previewUrl)}`;
   await Linking.openURL(shareUrl);
 }

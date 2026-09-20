@@ -72,7 +72,7 @@ export function QuickShareSheet({ visible, onClose }: QuickShareSheetProps) {
         () => catalogueCardRef.current?.capture()
           ?? Promise.reject(new Error('Unable to prepare the brochure image.')),
         'Share brochure to Facebook',
-        `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(catalogLinks.previewUrl)}`,
+        `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(catalogLinks.previewUrl)}&quote=${encodeURIComponent(text)}`,
         'facebook',
       );
       onClose();

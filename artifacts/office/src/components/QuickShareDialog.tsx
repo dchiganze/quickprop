@@ -136,7 +136,7 @@ export function QuickShareDialog() {
       await ensurePublicSharePreview(catalogPreviewUrl);
       const opened = await openSocialShareLink(
         caption,
-        `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(catalogPreviewUrl)}`,
+        `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(catalogPreviewUrl)}&quote=${encodeURIComponent(caption)}`,
         shareWindow,
       );
       if (!opened) throw new Error('Your browser blocked the new sharing tab. Allow pop-ups for QuickProp and try again.');
