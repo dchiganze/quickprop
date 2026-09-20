@@ -177,10 +177,6 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
   const [activeViewingSlot, setActiveViewingSlot] = useState<number | null>(null);
   const [viewingPickerDate, setViewingPickerDate] = useState('');
   const [viewingPickerTime, setViewingPickerTime] = useState('');
-  const [captionEditor, setCaptionEditor] = useState<{
-    channel: 'facebook' | 'linkedin';
-    caption: string;
-  } | null>(null);
   const [photoUploadPending, setPhotoUploadPending] = useState(false);
   const photoInputRef = useRef<HTMLInputElement>(null);
   const editPhotoInputRef = useRef<HTMLInputElement>(null);
@@ -618,18 +614,7 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
       ? buildPropertySocialCaption(property, propertyUrl)
       : buildPropertyShareCaption(property, propertyUrl);
 
-    if (channel === 'facebook' || channel === 'linkedin') {
-      setCaptionEditor({ channel, caption: shareMessage });
-      return;
-    }
     performShare(channel, shareMessage);
-  };
-
-  const handleCaptionShare = () => {
-    if (!captionEditor) return;
-    const { channel, caption } = captionEditor;
-    setCaptionEditor(null);
-    performShare(channel, caption);
   };
 
   const confirmAvailability = () => {
@@ -708,33 +693,6 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
 
   return (
     <div className="p-8 max-w-[1600px] mx-auto space-y-6">
-      <Dialog open={!!captionEditor} onOpenChange={(open) => !open && setCaptionEditor(null)}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>
-              Prepare {captionEditor?.channel === 'facebook' ? 'Facebook' : 'LinkedIn'} post
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3">
-            <p className="text-sm text-muted-foreground">
-              QuickProp generated this caption from the listing. Review or tailor it before sharing.
-            </p>
-            <Textarea
-              value={captionEditor?.caption ?? ''}
-              onChange={(event) => captionEditor && setCaptionEditor({ ...captionEditor, caption: event.target.value })}
-              rows={12}
-              aria-label="Social post caption"
-            />
-          </div>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setCaptionEditor(null)}>Cancel</Button>
-            <Button type="button" onClick={handleCaptionShare} disabled={!captionEditor?.caption.trim() || shareProperty.isPending}>
-              {shareProperty.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Share2 className="mr-2 h-4 w-4" />}
-              Share to {captionEditor?.channel === 'facebook' ? 'Facebook' : 'LinkedIn'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
       <Dialog open={saleDialogOpen} onOpenChange={setSaleDialogOpen}>
         <DialogContent>
           <DialogHeader>

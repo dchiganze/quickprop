@@ -14,8 +14,6 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { Property } from '@/types';
 import { useColors } from '@/hooks/useColors';
-import { buildPropertySocialShareMessage } from '@/utils/shareContent';
-import { ShareCaptionEditor } from '@/components/ShareCaptionEditor';
 import {
   PropertySocialDestination,
   sharePropertyGeneric,
@@ -101,10 +99,6 @@ export function PropertyShareSheet({
   const colors = useColors();
   const [sharing, setSharing] = useState<ShareDestination | 'facebook-post' | 'facebook-story' | 'instagram-post' | 'instagram-story' | null>(null);
   const [socialOptionsOpen, setSocialOptionsOpen] = useState<'facebook' | 'instagram' | null>(null);
-  const [captionEditor, setCaptionEditor] = useState<{
-    destination: 'facebook' | 'linkedin';
-    caption: string;
-  } | null>(null);
 
   const closeSheet = () => {
     setSocialOptionsOpen(null);
@@ -120,13 +114,6 @@ export function PropertyShareSheet({
       );
       return;
     }
-    if (destination === 'facebook' || destination === 'linkedin') {
-      setCaptionEditor({
-        destination,
-        caption: buildPropertySocialShareMessage(property),
-      });
-      return;
-    }
     setSharing(destination);
     try {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -135,7 +122,10 @@ export function PropertyShareSheet({
       } else if (destination === 'share') {
         await sharePropertyGeneric(property, captureCard);
       } else {
-        await sharePropertyToSocial(property, destination, captureCard);
+        const socialCapture = destination === 'facebook' || destination === 'linkedin'
+          ? captureSocialCard
+          : captureCard;
+        await sharePropertyToSocial(property, destination, socialCapture);
       }
       closeSheet();
     } catch (error: unknown) {
@@ -156,13 +146,6 @@ export function PropertyShareSheet({
         'Publish this property first',
         'Facebook previews are only available for published listings.',
       );
-      return;
-    }
-    if (choice === 'post' && social === 'facebook') {
-      setCaptionEditor({
-        destination: social,
-        caption: buildPropertySocialShareMessage(property),
-      });
       return;
     }
     const shareKey = `${social}-${choice}` as const;
@@ -195,8 +178,7 @@ export function PropertyShareSheet({
   const socialBrandColor = socialOptionsOpen === 'instagram' ? '#E1306C' : '#1877F2';
 
   return (
-    <>
-      <Modal
+    <Modal
         visible={visible}
         transparent
         animationType="slide"
@@ -333,33 +315,6 @@ export function PropertyShareSheet({
           </Pressable>
         </Pressable>
       </Modal>
-      <ShareCaptionEditor
-        visible={!!captionEditor}
-        destination={captionEditor?.destination ?? 'facebook'}
-        caption={captionEditor?.caption ?? ''}
-        onChangeCaption={(caption) => captionEditor && setCaptionEditor({ ...captionEditor, caption })}
-        onCancel={() => setCaptionEditor(null)}
-        onShare={async () => {
-          if (!captionEditor) return;
-          const { destination, caption } = captionEditor;
-          setCaptionEditor(null);
-          setSharing(destination);
-          try {
-            await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-            await sharePropertyToSocial(property, destination, captureSocialCard, caption);
-            closeSheet();
-          } catch (error: unknown) {
-            const message = error instanceof Error ? error.message.toLowerCase() : '';
-            if (!message.includes('cancel') && !message.includes('dismiss')) {
-              Alert.alert('Could not share property', 'That app is unavailable right now. Please choose another destination.');
-              await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
-            }
-          } finally {
-            setSharing(null);
-          }
-        }}
-      />
-    </>
   );
 }
 
