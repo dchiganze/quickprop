@@ -51,6 +51,12 @@ Social preview URLs should return metadata to crawlers but an HTTP redirect to t
 
 **How to apply:** Detect social crawler user agents before the redirect; send crawlers the Open Graph page and send normal requests a 302 to the profile or listing destination.
 
+Social buttons must use the canonical production preview URL even when the Office app is running in a Replit preview.
+
+**Why:** Replit preview origins such as localhost or `.replit.dev` are not reachable by Facebook and are rejected unless explicitly allowlisted; Meta needs the public QuickProp domain for both allowlisting and crawling.
+
+**How to apply:** Keep local origins for local-only actions, but construct Facebook and LinkedIn preview URLs from `https://www.quickprop.melios.co.zw` and revalidate that public route before opening the composer.
+
 Keep `og:url` set to the metadata share URL, not the redirect destination.
 
 **Why:** Facebook may canonicalize the preview to the destination URL and replace the property card with the generic marketplace page.
