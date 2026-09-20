@@ -600,6 +600,16 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
           });
         }
       },
+      onError: (error) => {
+        if (shareWindow && !shareWindow.closed) shareWindow.close();
+        toast({
+          title: 'Could not share property',
+          description: error instanceof Error
+            ? error.message
+            : 'The live QuickProp publishing service is not available yet.',
+          variant: 'destructive',
+        });
+      },
     });
   };
 
