@@ -24,6 +24,7 @@ import {
   ensurePublicSharePreview,
   getFacebookShareUrl,
   getQuickPropPublicOrigin,
+  openFacebookSdkShare,
   QUICKPROP_PUBLIC_ORIGIN,
   QUICKPROP_SHARE_PREVIEW_VERSION,
 } from '@/utils/shareLinks';
@@ -136,22 +137,26 @@ export function QuickShareDialog() {
   }, [publicProps, mode, user?.name, catalogUrl, catalogPreviewUrl, toast]);
 
   const shareToFacebook = useCallback(async () => {
-    const shareWindow = openShareWindow();
     try {
       const caption = buildCatalogueShareCaption(publicProps, mode, user?.name, catalogUrl);
       await ensurePublicSharePreview(socialCatalogPreviewUrl);
-      const opened = await openSocialShareLink(
-        caption,
-        getFacebookShareUrl(socialCatalogPreviewUrl, caption),
-        shareWindow,
-      );
-      if (!opened) throw new Error('Your browser blocked the new sharing tab. Allow pop-ups for QuickProp and try again.');
+      const sdkOpened = await openFacebookSdkShare(socialCatalogPreviewUrl, caption);
+      if (!sdkOpened) {
+        const shareWindow = openShareWindow();
+        const opened = await openSocialShareLink(
+          caption,
+          getFacebookShareUrl(socialCatalogPreviewUrl, caption),
+          shareWindow,
+        );
+        if (!opened) throw new Error('Your browser blocked the new sharing tab. Allow pop-ups for QuickProp and try again.');
+      }
       toast({
         title: 'Facebook ready to share',
-        description: 'Facebook’s Share Dialog was opened with the caption ready. Facebook will load the preview image from QuickProp.',
+        description: sdkOpened
+          ? 'Facebook’s SDK Share Dialog was opened with the caption supplied. Check whether it appears in the post text field.'
+          : 'Facebook’s Share Dialog was opened and the caption was copied. Paste it into the post text field if needed.',
       });
     } catch (error) {
-      if (shareWindow && !shareWindow.closed) shareWindow.close();
       toast({
         title: 'Publish listings before sharing',
         description: error instanceof Error ? error.message : 'The public brochure preview is not available yet.',

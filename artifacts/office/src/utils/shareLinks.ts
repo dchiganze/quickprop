@@ -109,7 +109,6 @@ export async function openFacebookSdkShare(previewUrl: string, caption: string):
   const ready = await facebookSdkPromise;
   if (!ready || !window.FB) return false;
 
-  await navigator.clipboard?.writeText(caption).catch(() => {});
   window.FB.ui(
     {
       method: 'share',
@@ -123,6 +122,7 @@ export async function openFacebookSdkShare(previewUrl: string, caption: string):
       }
     },
   );
+  await navigator.clipboard?.writeText(caption).catch(() => {});
   return true;
 }
 

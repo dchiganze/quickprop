@@ -558,7 +558,7 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
                 ? getFacebookShareUrl(previewUrl, shareMessage)
                 : `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(previewUrl)}`;
               const fallbackWindow = shareWindow ?? openShareWindow();
-              const opened = await openSocialShareLink(shareMessage, fallbackUrl, shareWindow);
+              const opened = await openSocialShareLink(shareMessage, fallbackUrl, fallbackWindow);
               if (!opened) {
                 toast({
                   title: 'Allow pop-ups to share',
