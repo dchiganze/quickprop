@@ -39,6 +39,7 @@ import {
   getFacebookShareUrl,
   getQuickPropPublicOrigin,
   isQuickPropPreview,
+  openFacebookSdkShare,
   QUICKPROP_PUBLIC_ORIGIN,
   QUICKPROP_SHARE_PREVIEW_VERSION,
 } from '@/utils/shareLinks';
@@ -509,7 +510,7 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
   };
 
   const performShare = (channel: 'whatsapp' | 'facebook' | 'instagram' | 'linkedin' | 'email' | 'link', shareMessage: string) => {
-    const shareWindow = channel === 'facebook' || channel === 'linkedin'
+    const shareWindow = channel === 'linkedin'
       ? openShareWindow()
       : null;
 
@@ -542,10 +543,21 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
             return;
           } else if (channel === 'facebook' || channel === 'linkedin' || channel === 'instagram') {
             if (channel === 'facebook' || channel === 'linkedin') {
+              await ensurePublicSharePreview(previewUrl);
+              if (channel === 'facebook') {
+                const sdkOpened = await openFacebookSdkShare(previewUrl, shareMessage);
+                if (sdkOpened) {
+                  toast({
+                    title: previewMode ? 'Facebook share opened' : 'Facebook ready to share',
+                    description: 'Facebook’s SDK Share Dialog was opened with the caption supplied. Check whether it appears in the post text field.',
+                  });
+                  return;
+                }
+              }
               const fallbackUrl = channel === 'facebook'
                 ? getFacebookShareUrl(previewUrl, shareMessage)
                 : `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(previewUrl)}`;
-              await ensurePublicSharePreview(previewUrl);
+              const fallbackWindow = shareWindow ?? openShareWindow();
               const opened = await openSocialShareLink(shareMessage, fallbackUrl, shareWindow);
               if (!opened) {
                 toast({
@@ -560,7 +572,9 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
                   ? `${channel[0].toUpperCase()}${channel.slice(1)} share opened`
                   : `${channel[0].toUpperCase()}${channel.slice(1)} ready to share`,
                 description: previewMode
-                  ? 'Facebook’s Share Dialog opened with your caption ready. The caption was also copied as a fallback.'
+                   ? channel === 'facebook'
+                     ? 'Facebook’s fallback Share Dialog opened and the caption was copied. Paste it into the post text field if needed.'
+                     : 'The caption was also copied as a fallback.'
                   : `The ${channel} link was opened and your edited caption was copied.`,
               });
               return;
