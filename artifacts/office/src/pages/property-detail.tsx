@@ -36,11 +36,9 @@ import {
 } from '@/utils/shareCards';
 import {
   ensurePublicSharePreview,
-  FACEBOOK_SDK_SHARE_ENABLED,
-  getFacebookShareUrl,
+  getFacebookShareLauncherUrl,
   getQuickPropPublicOrigin,
   isQuickPropPreview,
-  openFacebookSdkShare,
   QUICKPROP_PUBLIC_ORIGIN,
   QUICKPROP_SHARE_PREVIEW_VERSION,
 } from '@/utils/shareLinks';
@@ -545,18 +543,8 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
           } else if (channel === 'facebook' || channel === 'linkedin' || channel === 'instagram') {
             if (channel === 'facebook' || channel === 'linkedin') {
               await ensurePublicSharePreview(previewUrl);
-              if (channel === 'facebook' && FACEBOOK_SDK_SHARE_ENABLED) {
-                const sdkOpened = await openFacebookSdkShare(previewUrl, shareMessage);
-                if (sdkOpened) {
-                  toast({
-                    title: previewMode ? 'Facebook share opened' : 'Facebook ready to share',
-                    description: 'Facebook’s SDK Share Dialog was opened with the caption supplied. Check whether it appears in the post text field.',
-                  });
-                  return;
-                }
-              }
               const fallbackUrl = channel === 'facebook'
-                ? getFacebookShareUrl(previewUrl, shareMessage)
+                ? getFacebookShareLauncherUrl(previewUrl, shareMessage)
                 : `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(previewUrl)}`;
               const fallbackWindow = shareWindow ?? openShareWindow();
               const opened = await openSocialShareLink(shareMessage, fallbackUrl, fallbackWindow);
@@ -574,7 +562,7 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
                   : `${channel[0].toUpperCase()}${channel.slice(1)} ready to share`,
                 description: previewMode
                    ? channel === 'facebook'
-                   ? 'Facebook’s Share Dialog opened and the caption was copied. Paste it into the post text field if needed.'
+                   ? 'Facebook’s QuickProp launcher opened. It will try the SDK composer and keep a paste-ready caption available if needed.'
                      : 'The caption was also copied as a fallback.'
                   : `The ${channel} link was opened and your edited caption was copied.`,
               });

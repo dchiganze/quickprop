@@ -18,6 +18,7 @@ import Privacy from '@/pages/privacy';
 import Terms from '@/pages/terms';
 import NotFound from '@/pages/not-found';
 import RentalReference from '@/pages/rental-reference';
+import FacebookShareLauncher from '@/pages/facebook-share-launcher';
 
 const queryClient = new QueryClient();
 
@@ -36,6 +37,7 @@ function Router() {
       <Route path="/account" component={Account} />
       <Route path="/support" component={Support} />
       <Route path="/app" component={MobileMarketing} />
+      <Route path="/share/facebook" component={FacebookShareLauncher} />
       <Route path="/privacy" component={Privacy} />
       <Route path="/terms" component={Terms} />
       <Route component={NotFound} />

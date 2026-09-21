@@ -21,11 +21,9 @@ import {
   shareCardWithCaption,
 } from '@/utils/shareCards';
 import {
-  FACEBOOK_SDK_SHARE_ENABLED,
   ensurePublicSharePreview,
-  getFacebookShareUrl,
+  getFacebookShareLauncherUrl,
   getQuickPropPublicOrigin,
-  openFacebookSdkShare,
   QUICKPROP_PUBLIC_ORIGIN,
   QUICKPROP_SHARE_PREVIEW_VERSION,
 } from '@/utils/shareLinks';
@@ -141,23 +139,16 @@ export function QuickShareDialog() {
     try {
       const caption = buildCatalogueShareCaption(publicProps, mode, user?.name, catalogUrl);
       await ensurePublicSharePreview(socialCatalogPreviewUrl);
-      const sdkOpened = FACEBOOK_SDK_SHARE_ENABLED
-        ? await openFacebookSdkShare(socialCatalogPreviewUrl, caption)
-        : false;
-      if (!sdkOpened) {
-        const shareWindow = openShareWindow();
-        const opened = await openSocialShareLink(
-          caption,
-          getFacebookShareUrl(socialCatalogPreviewUrl, caption),
-          shareWindow,
-        );
-        if (!opened) throw new Error('Your browser blocked the new sharing tab. Allow pop-ups for QuickProp and try again.');
-      }
+      const shareWindow = openShareWindow();
+      const opened = await openSocialShareLink(
+        caption,
+        getFacebookShareLauncherUrl(socialCatalogPreviewUrl, caption),
+        shareWindow,
+      );
+      if (!opened) throw new Error('Your browser blocked the new sharing tab. Allow pop-ups for QuickProp and try again.');
       toast({
         title: 'Facebook ready to share',
-        description: sdkOpened
-          ? 'Facebook’s SDK Share Dialog was opened with the caption supplied. Check whether it appears in the post text field.'
-          : 'Facebook’s Share Dialog was opened and the caption was copied. Paste it into the post text field if needed.',
+        description: 'The QuickProp Facebook launcher was opened. It will try the SDK composer with your caption.',
       });
     } catch (error) {
       toast({
