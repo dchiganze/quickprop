@@ -27,12 +27,6 @@ The Facebook JavaScript SDK Share Dialog is blocked until the Meta app's App Dom
 
 **How to apply:** Use `sharer.php` plus clipboard caption as the stable web fallback. Keep the SDK path behind an explicit opt-in flag and only enable it after verifying the App ID and App Domains together.
 
-Browser SDK experiments should run from a public QuickProp share-launcher route, not directly from an ephemeral Replit preview.
-
-**Why:** Meta can validate the host that loads the SDK in addition to the shared preview hostname; the public launcher gives both checks a stable QuickProp origin while retaining a standard-sharer fallback.
-
-**How to apply:** Have Office open the public launcher with an encoded preview URL and caption. The launcher invokes `FB.ui` from the QuickProp domain and offers a manual retry plus the app-independent sharer if the SDK is unavailable.
-
 Crawler-facing share pages must expose server-rendered Open Graph metadata and a public JPEG collage; client-only SPA metadata is not sufficient for Facebook or LinkedIn crawlers.
 
 **Why:** Social crawlers may not execute the marketplace React app, and local browser blobs cannot be fetched by the platforms.
@@ -68,12 +62,6 @@ Social buttons must use the canonical production preview URL even when the Offic
 **Why:** Replit preview origins such as localhost or `.replit.dev` are not reachable by Facebook and are rejected unless explicitly allowlisted; Meta needs the public QuickProp domain for both allowlisting and crawling.
 
 **How to apply:** Keep local origins for local-only actions, but construct Facebook and LinkedIn preview URLs from `https://www.quickprop.melios.co.zw` and revalidate that public route before opening the composer.
-
-Facebook's JavaScript SDK composer should only be invoked from an explicit user click after the SDK has already loaded.
-
-**Why:** Calling `FB.ui` automatically after the public launcher loads can lose the browser's user-activation context, so Chrome may block the composer popup while the launcher incorrectly appears to have opened it.
-
-**How to apply:** Preload the SDK on the launcher page, enable a direct "Open Facebook composer" button once ready, and keep the standard sharer link available as a fallback.
 
 Keep `og:url` set to the metadata share URL, not the redirect destination.
 

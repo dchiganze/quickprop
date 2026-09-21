@@ -22,7 +22,7 @@ import {
 } from '@/utils/shareCards';
 import {
   ensurePublicSharePreview,
-  getFacebookShareLauncherUrl,
+  getFacebookShareUrl,
   getQuickPropPublicOrigin,
   QUICKPROP_PUBLIC_ORIGIN,
   QUICKPROP_SHARE_PREVIEW_VERSION,
@@ -143,13 +143,13 @@ export function QuickShareDialog() {
       const shareWindow = openShareWindow();
       const opened = await openSocialShareLink(
         caption,
-        getFacebookShareLauncherUrl(socialCatalogPreviewUrl, caption),
+        getFacebookShareUrl(socialCatalogPreviewUrl, caption),
         shareWindow,
       );
       if (!opened) throw new Error('Your browser blocked the new sharing tab. Allow pop-ups for QuickProp and try again.');
       toast({
         title: 'Facebook ready to share',
-        description: 'The QuickProp Facebook launcher was opened. It will try the SDK composer with your caption.',
+        description: 'The Facebook link opened and your caption was copied. Paste it into the post if needed.',
       });
     } catch (error) {
       toast({

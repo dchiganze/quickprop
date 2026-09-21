@@ -36,7 +36,7 @@ import {
 } from '@/utils/shareCards';
 import {
   ensurePublicSharePreview,
-  getFacebookShareLauncherUrl,
+  getFacebookShareUrl,
   getQuickPropPublicOrigin,
   isQuickPropPreview,
   QUICKPROP_PUBLIC_ORIGIN,
@@ -544,7 +544,7 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
             if (channel === 'facebook' || channel === 'linkedin') {
               await ensurePublicSharePreview(previewUrl);
               const fallbackUrl = channel === 'facebook'
-                ? getFacebookShareLauncherUrl(previewUrl, shareMessage)
+                ? getFacebookShareUrl(previewUrl, shareMessage)
                 : `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(previewUrl)}`;
               const fallbackWindow = shareWindow ?? openShareWindow();
               const opened = await openSocialShareLink(shareMessage, fallbackUrl, fallbackWindow);
@@ -561,9 +561,7 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
                   ? `${channel[0].toUpperCase()}${channel.slice(1)} share opened`
                   : `${channel[0].toUpperCase()}${channel.slice(1)} ready to share`,
                 description: previewMode
-                   ? channel === 'facebook'
-                   ? 'Facebook’s QuickProp launcher opened. It will try the SDK composer and keep a paste-ready caption available if needed.'
-                     : 'The caption was also copied as a fallback.'
+                   ? 'The link opened and your caption was copied. Paste it into the post if Facebook does not prefill it.'
                   : `The ${channel} link was opened and your edited caption was copied.`,
               });
               return;

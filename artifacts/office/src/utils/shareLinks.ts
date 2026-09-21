@@ -1,6 +1,5 @@
 export const QUICKPROP_PUBLIC_ORIGIN = 'https://www.quickprop.melios.co.zw';
 export const QUICKPROP_SHARE_PREVIEW_VERSION = '8';
-export const QUICKPROP_FACEBOOK_SHARE_LAUNCHER_PATH = '/share/facebook';
 
 function isDevelopmentHost(hostname: string): boolean {
   const host = hostname.toLowerCase();
@@ -31,12 +30,12 @@ export function getQuickPropPublicOrigin(currentOrigin?: string): string {
   }
 }
 
-export function getFacebookShareLauncherUrl(previewUrl: string, caption: string): string {
+export function getFacebookShareUrl(previewUrl: string, caption: string): string {
   const params = new URLSearchParams({
-    href: previewUrl,
+    u: previewUrl,
     quote: caption,
   });
-  return `${QUICKPROP_PUBLIC_ORIGIN}${QUICKPROP_FACEBOOK_SHARE_LAUNCHER_PATH}?${params.toString()}`;
+  return `https://www.facebook.com/sharer/sharer.php?${params.toString()}`;
 }
 
 export async function ensurePublicSharePreview(previewUrl: string): Promise<void> {
