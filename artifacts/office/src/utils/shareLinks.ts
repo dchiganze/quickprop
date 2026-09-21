@@ -1,5 +1,6 @@
 export const QUICKPROP_PUBLIC_ORIGIN = 'https://www.quickprop.melios.co.zw';
 export const QUICKPROP_SHARE_PREVIEW_VERSION = '8';
+const META_APP_ID = import.meta.env.VITE_META_APP_ID ?? import.meta.env.VITE_FACEBOOK_APP_ID;
 
 function isDevelopmentHost(hostname: string): boolean {
   const host = hostname.toLowerCase();
@@ -31,11 +32,19 @@ export function getQuickPropPublicOrigin(currentOrigin?: string): string {
 }
 
 export function getFacebookShareUrl(previewUrl: string, caption: string): string {
+  if (!META_APP_ID) {
+    return `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(previewUrl)}`;
+  }
+
   const params = new URLSearchParams({
-    u: previewUrl,
-    quote: caption,
+    app_id: META_APP_ID,
+    display: 'popup',
+    href: previewUrl,
   });
-  return `https://www.facebook.com/sharer/sharer.php?${params.toString()}`;
+  // Meta's supported URL dialog does not accept caption text. The caller
+  // copies the caption before opening this dialog.
+  void caption;
+  return `https://www.facebook.com/dialog/share?${params.toString()}`;
 }
 
 export async function ensurePublicSharePreview(previewUrl: string): Promise<void> {

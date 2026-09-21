@@ -27,11 +27,11 @@ Meta's general sharing overview mentions quote sharing, but the current Web Shar
 
 **How to apply:** Open `dialog/share` for the preview, copy the caption to the clipboard, and tell the user to paste it into Facebook. Do not promise automatic prefill from URL redirection; a Facebook JS SDK or native SDK experiment must be treated as a separate, unverified path. Direct Page publishing is a separate Graph API flow requiring Page permissions and is not equivalent to personal-profile sharing.
 
-The Facebook JavaScript SDK Share Dialog is blocked until the Meta app's App Domains configuration accepts the exact public hostname; the app-independent `sharer.php` route avoids that allowlist.
+The Facebook Share Dialog requires the Meta app ID and an App Domains entry for the exact public QuickProp hostname; the app-independent `sharer.php` URL is only a fallback.
 
 **Why:** A canonical public QuickProp preview can be reachable and crawler-valid while Meta's app-ID dialog still rejects it with "Can't load URL" when the app configuration does not match.
 
-**How to apply:** Use `sharer.php` plus clipboard caption as the stable web fallback. Keep the SDK path behind an explicit opt-in flag and only enable it after verifying the App ID and App Domains together.
+**How to apply:** Prefer the documented `dialog/share?app_id=...&display=popup&href=...` URL when the configured app ID is available. Copy the caption separately because URL redirection does not accept caption text; retain `sharer.php` as the no-app-ID fallback.
 
 Crawler-facing share pages must expose server-rendered Open Graph metadata and a public JPEG collage; client-only SPA metadata is not sufficient for Facebook or LinkedIn crawlers.
 
