@@ -137,10 +137,10 @@ export function QuickShareDialog() {
   }, [publicProps, mode, user?.name, catalogUrl, catalogPreviewUrl, toast]);
 
   const shareToFacebook = useCallback(async () => {
+    const shareWindow = openShareWindow();
     try {
       const caption = buildCatalogueShareCaption(publicProps, mode, user?.name, catalogUrl);
       await ensurePublicSharePreview(socialCatalogPreviewUrl);
-      const shareWindow = openShareWindow();
       const opened = await openSocialShareLink(
         caption,
         getFacebookShareUrl(socialCatalogPreviewUrl, caption),
@@ -152,6 +152,7 @@ export function QuickShareDialog() {
         description: 'The Facebook link opened and your caption was copied. Paste it into the post if needed.',
       });
     } catch (error) {
+      if (shareWindow && !shareWindow.closed) shareWindow.close();
       toast({
         title: 'Publish listings before sharing',
         description: error instanceof Error ? error.message : 'The public brochure preview is not available yet.',

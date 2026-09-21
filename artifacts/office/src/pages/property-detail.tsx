@@ -509,7 +509,7 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
   };
 
   const performShare = (channel: 'whatsapp' | 'facebook' | 'instagram' | 'linkedin' | 'email' | 'link', shareMessage: string) => {
-    const shareWindow = channel === 'linkedin'
+    const shareWindow = channel === 'facebook' || channel === 'linkedin'
       ? openShareWindow()
       : null;
 
