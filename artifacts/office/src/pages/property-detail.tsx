@@ -627,7 +627,9 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
       });
       return;
     }
-    const publicOrigin = getQuickPropPublicOrigin();
+    const publicOrigin = channel === 'facebook' || channel === 'linkedin'
+      ? QUICKPROP_PUBLIC_ORIGIN
+      : getQuickPropPublicOrigin();
     const propertyUrl = `${publicOrigin}/properties/${encodeURIComponent(property.reference.toLowerCase())}`;
     const shareMessage = channel === 'facebook' || channel === 'linkedin'
       ? buildPropertySocialCaption(property, propertyUrl)

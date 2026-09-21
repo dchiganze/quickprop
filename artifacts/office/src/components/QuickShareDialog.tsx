@@ -101,10 +101,11 @@ export function QuickShareDialog() {
   const publicProps = properties.filter(p => PUBLIC_STATUSES.includes(p.status));
 
   const baseUrl = getQuickPropPublicOrigin();
+  const socialBaseUrl = QUICKPROP_PUBLIC_ORIGIN;
   const catalogUrl =
     mode === 'agent' && user?.id
-      ? `${baseUrl}/web/agents/${user.id}`
-      : `${baseUrl}/web/`;
+      ? `${socialBaseUrl}/agents/${user.id}`
+      : `${socialBaseUrl}/`;
   const catalogPreviewUrl =
     mode === 'agent' && user?.id
       ? `${baseUrl}/api/share/catalogues/agents/${user.id}?v=${QUICKPROP_SHARE_PREVIEW_VERSION}`
