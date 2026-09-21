@@ -167,6 +167,54 @@ export function ShareHubSheet({ visible, onClose }: Props) {
     }
   }, [activeProps, catalogMode, user?.name, user?.id, catalogUrl]);
 
+  const shareCatalogInstagram = useCallback(async () => {
+    setSharing(true);
+    try {
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      const text = buildCatalogueShareMessage(activeProps, catalogMode, user?.name, user?.id);
+      await shareCatalogueToSocial(
+        text,
+        () => catalogueCardRef.current?.capture()
+          ?? Promise.reject(new Error('Unable to prepare the brochure image.')),
+        'Share brochure to Instagram',
+        null,
+        'instagram',
+      );
+      handleClose();
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : '';
+      if (!message.toLowerCase().includes('cancel') && !message.toLowerCase().includes('dismiss')) {
+        Alert.alert('Could not open Instagram', message || 'Please try again.');
+      }
+    } finally {
+      setSharing(false);
+    }
+  }, [activeProps, catalogMode, user?.name, user?.id]);
+
+  const shareCatalogLinkedIn = useCallback(async () => {
+    setSharing(true);
+    try {
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      const text = buildCatalogueShareMessage(activeProps, catalogMode, user?.name, user?.id);
+      await shareCatalogueToSocial(
+        text,
+        () => catalogueCardRef.current?.capture()
+          ?? Promise.reject(new Error('Unable to prepare the brochure image.')),
+        'Share brochure to LinkedIn',
+        null,
+        'linkedin',
+      );
+      handleClose();
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : '';
+      if (!message.toLowerCase().includes('cancel') && !message.toLowerCase().includes('dismiss')) {
+        Alert.alert('Could not open LinkedIn', message || 'Please try again.');
+      }
+    } finally {
+      setSharing(false);
+    }
+  }, [activeProps, catalogMode, user?.name, user?.id]);
+
   const shareCatalogNative = useCallback(async () => {
     setSharing(true);
     try {
@@ -415,7 +463,7 @@ export function ShareHubSheet({ visible, onClose }: Props) {
 
         <Text style={[s.sectionLabel, { color: colors.mutedForeground }]}>SHARE VIA</Text>
 
-        <View style={s.shareRow}>
+        <View style={[s.shareRow, { flexWrap: 'wrap' }]}>
           <TouchableOpacity
             style={[s.shareSmallBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
             onPress={shareCatalogWhatsApp}
@@ -438,6 +486,30 @@ export function ShareHubSheet({ visible, onClose }: Props) {
               <Ionicons name="logo-facebook" size={22} color="#FFF" />
             </View>
             <Text style={[s.shareSmallLabel, { color: colors.foreground }]}>Facebook</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[s.shareSmallBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
+            onPress={shareCatalogInstagram}
+            disabled={sharing || activeProps.length === 0}
+            activeOpacity={0.75}
+          >
+            <View style={[s.shareSmallIcon, { backgroundColor: '#E1306C' }]}>
+              <Ionicons name="logo-instagram" size={22} color="#FFF" />
+            </View>
+            <Text style={[s.shareSmallLabel, { color: colors.foreground }]}>Instagram</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[s.shareSmallBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
+            onPress={shareCatalogLinkedIn}
+            disabled={sharing || activeProps.length === 0}
+            activeOpacity={0.75}
+          >
+            <View style={[s.shareSmallIcon, { backgroundColor: '#0A66C2' }]}>
+              <Ionicons name="logo-linkedin" size={22} color="#FFF" />
+            </View>
+            <Text style={[s.shareSmallLabel, { color: colors.foreground }]}>LinkedIn</Text>
           </TouchableOpacity>
 
           <TouchableOpacity

@@ -10,7 +10,7 @@ import {
   ArrowLeft, MapPin, Bed, Bath, Car, Square, Building2, Calendar, 
   Tag, Download, Share2, PenLine, CheckCircle2, FileText, Eye, 
   Activity, ArrowUpRight, ArrowDownRight, Loader2, Image as ImageIcon,
-  MessageCircle, Facebook, Instagram, Linkedin, Mail, Link as LinkIcon, Copy, ChevronRight,
+  MessageCircle, Facebook, Linkedin, Mail, Link as LinkIcon, Copy, ChevronRight,
   Upload, Video, X
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -508,7 +508,7 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
     setViewingPickerOpen(false);
   };
 
-  const performShare = (channel: 'whatsapp' | 'facebook' | 'instagram' | 'linkedin' | 'email' | 'link', shareMessage: string) => {
+  const performShare = (channel: 'whatsapp' | 'facebook' | 'linkedin' | 'email' | 'link', shareMessage: string) => {
     const shareWindow = channel === 'facebook' || channel === 'linkedin'
       ? openShareWindow()
       : null;
@@ -540,7 +540,7 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
                 : 'The property image was downloaded and the caption was opened in WhatsApp.',
             });
             return;
-          } else if (channel === 'facebook' || channel === 'linkedin' || channel === 'instagram') {
+          } else if (channel === 'facebook' || channel === 'linkedin') {
             if (channel === 'facebook' || channel === 'linkedin') {
               await ensurePublicSharePreview(previewUrl);
               const fallbackUrl = channel === 'facebook'
@@ -566,21 +566,6 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
               });
               return;
             }
-            const card = await createPropertyShareCard(property);
-            const result = await shareCardWithCaption(
-              card,
-              shareMessage,
-              property.title,
-              `quickprop-${property.reference}.jpg`,
-              null,
-            );
-            toast({
-              title: `${channel[0].toUpperCase()}${channel.slice(1)} ready to share`,
-              description: result === 'shared'
-                ? 'The property collage and caption were sent to the share sheet.'
-                : `The property collage was downloaded and the caption was copied for ${channel}.`,
-            });
-            return;
           } else if (channel === 'email') {
             window.location.href = `mailto:?subject=${encodeURIComponent(property.title)}&body=${encodeURIComponent(shareMessage)}`;
           } else {
@@ -614,7 +599,7 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
     });
   };
 
-  const handleShare = (channel: 'whatsapp' | 'facebook' | 'instagram' | 'linkedin' | 'email' | 'link') => {
+  const handleShare = (channel: 'whatsapp' | 'facebook' | 'linkedin' | 'email' | 'link') => {
     const canSharePublicPreview = PUBLIC_PROPERTY_STATUSES.has(property.status)
       && PUBLIC_PROPERTY_AVAILABILITY.has(property.availabilityStatus ?? 'available');
     if ((channel === 'facebook' || channel === 'linkedin') && !canSharePublicPreview) {
@@ -1088,25 +1073,6 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
                     </p>
                   </div>
                   <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground transition-colors group-hover:text-foreground" />
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => handleShare('instagram')}
-                  disabled={shareProperty.isPending}
-                  className="group flex w-full items-center gap-3 rounded-lg border border-border p-3 text-left transition-colors hover:bg-muted/60 disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  <div
-                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
-                    style={{ background: 'linear-gradient(135deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)' }}
-                  >
-                    <Instagram className="h-5 w-5 text-white" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-foreground">Instagram</p>
-                    <p className="text-xs text-muted-foreground">Copy caption + link for an Instagram post</p>
-                  </div>
-                  <Copy className="h-4 w-4 shrink-0 text-muted-foreground transition-colors group-hover:text-foreground" />
                 </button>
 
                 <button

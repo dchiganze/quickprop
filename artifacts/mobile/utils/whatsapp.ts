@@ -164,7 +164,7 @@ export async function shareCatalogueToSocial(
   captureCard: () => Promise<string>,
   dialogTitle = 'Share property brochure',
   fallbackUrl?: string | null,
-  directDestination?: 'facebook' | 'linkedin',
+  directDestination?: 'facebook' | 'instagram' | 'linkedin',
 ): Promise<void> {
   await Clipboard.setStringAsync(caption).catch(() => {});
 
@@ -246,15 +246,17 @@ export async function shareCatalogueToSocial(
 }
 
 async function shareNativeSocialPost(
-  destination: 'facebook' | 'linkedin',
+  destination: 'facebook' | 'instagram' | 'linkedin',
   cardUri: string,
   caption: string,
   title: string,
 ): Promise<void> {
   const { default: NativeShare } = await import('react-native-share');
-  const social = (destination === 'facebook'
-    ? NativeShare.Social.FACEBOOK
-    : NativeShare.Social.LINKEDIN) as Exclude<
+  const social = ({
+    facebook: NativeShare.Social.FACEBOOK,
+    instagram: NativeShare.Social.INSTAGRAM,
+    linkedin: NativeShare.Social.LINKEDIN,
+  }[destination]) as Exclude<
       import('react-native-share').Social,
       import('react-native-share').Social.FacebookStories | import('react-native-share').Social.InstagramStories
     >;
@@ -288,7 +290,7 @@ export async function sharePropertyToSocial(
     return;
   }
 
-  const isSocialPost = destination === 'facebook' || destination === 'linkedin';
+  const isSocialPost = destination === 'facebook' || destination === 'instagram' || destination === 'linkedin';
   const caption = isSocialPost
     ? buildPropertySocialShareMessage(property)
     : buildPropertyShareMessage(property);
@@ -303,7 +305,7 @@ export async function sharePropertyToSocial(
     return;
   }
 
-  if (destination === 'facebook' || destination === 'linkedin') {
+  if (destination === 'facebook' || destination === 'instagram' || destination === 'linkedin') {
     const cardUri = await captureCard();
     await shareNativeSocialPost(
       destination,
@@ -342,7 +344,7 @@ export async function sharePropertyToSocial(
   }
 
   await Sharing.shareAsync(cardUri, {
-    dialogTitle: `Share property to ${destination.charAt(0).toUpperCase() + destination.slice(1)}`,
+    dialogTitle: 'Share property',
     mimeType: 'image/jpeg',
     UTI: 'public.jpeg',
   });

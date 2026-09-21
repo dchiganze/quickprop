@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { Share2, MessageCircle, Facebook, Instagram, Linkedin, Check, Copy, ExternalLink, ChevronRight, User, Building2 } from 'lucide-react';
+import { Share2, MessageCircle, Facebook, Linkedin, ExternalLink, ChevronRight, User, Building2 } from 'lucide-react';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
 } from '@/components/ui/dialog';
@@ -85,7 +85,6 @@ function buildWhatsAppText(
 export function QuickShareDialog() {
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<CatalogMode>('agent');
-  const [copied, setCopied] = useState(false);
   const { toast } = useToast();
 
   const { data: user } = useGetCurrentUser();
@@ -185,30 +184,6 @@ export function QuickShareDialog() {
       });
     }
   }, [publicProps, mode, user?.name, catalogUrl, socialCatalogPreviewUrl, toast]);
-
-  const copyForInstagram = useCallback(async () => {
-    try {
-      const caption = buildCatalogueShareCaption(publicProps, mode, user?.name, catalogUrl);
-      const blob = await createCatalogueShareCard(publicProps, mode, user?.name);
-      const result = await shareCardWithCaption(
-        blob,
-        caption,
-        'QuickProp Property Brochure',
-        'quickprop-brochure.jpg',
-        null,
-      );
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-      toast({
-        title: 'Brochure ready for Instagram',
-        description: result === 'shared'
-          ? 'The brochure image and caption were sent to the share sheet.'
-          : 'The brochure image was downloaded and the caption was copied for Instagram.',
-      });
-    } catch {
-      toast({ title: 'Could not copy', variant: 'destructive' });
-    }
-  }, [publicProps, mode, user?.name, catalogUrl, toast]);
 
   const suburbList = [...new Set(publicProps.map(p => p.suburb))].slice(0, 4).join(', ');
 
@@ -378,24 +353,6 @@ export function QuickShareDialog() {
               <p className="text-xs text-muted-foreground">Share your brochure link on Facebook</p>
             </div>
             <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
-          </button>
-
-          <button
-            onClick={copyForInstagram}
-            disabled={publicProps.length === 0}
-            className="w-full flex items-center gap-3 p-3 rounded-lg border border-border hover:bg-muted/60 transition-colors disabled:opacity-40 disabled:cursor-not-allowed text-left group"
-          >
-            <div className="w-9 h-9 rounded-full shrink-0 flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)' }}>
-              <Instagram className="w-5 h-5 text-white" />
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-medium text-foreground">Instagram</p>
-              <p className="text-xs text-muted-foreground">Copy caption + link for Instagram</p>
-            </div>
-            {copied
-              ? <Check className="w-4 h-4 text-green-500" />
-              : <Copy className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
-            }
           </button>
 
           <button

@@ -94,6 +94,7 @@ export function QuickShareSheet({ visible, onClose }: QuickShareSheetProps) {
           ?? Promise.reject(new Error('Unable to prepare the brochure image.')),
         'Share brochure to Instagram',
         null,
+        'instagram',
       );
       onClose();
     } catch (e: unknown) {
@@ -103,6 +104,28 @@ export function QuickShareSheet({ visible, onClose }: QuickShareSheetProps) {
       setSharing(false);
     }
   }, [activeProps, mode, user?.name, catalogLinks.appUrl, catalogUrl, onClose]);
+
+  const handleLinkedIn = useCallback(async () => {
+    setSharing(true);
+    try {
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      const text = buildCatalogueShareMessage(activeProps, mode, user?.name, mode === 'agent' ? user?.id : undefined);
+      await shareCatalogueToSocial(
+        text,
+        () => catalogueCardRef.current?.capture()
+          ?? Promise.reject(new Error('Unable to prepare the brochure image.')),
+        'Share brochure to LinkedIn',
+        null,
+        'linkedin',
+      );
+      onClose();
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : '';
+      if (!message.toLowerCase().includes('cancel')) Alert.alert('Could not share brochure', message || 'Please try again.');
+    } finally {
+      setSharing(false);
+    }
+  }, [activeProps, mode, user?.name, onClose]);
 
   const handleNativeShare = useCallback(async () => {
     setSharing(true);
@@ -297,6 +320,20 @@ export function QuickShareSheet({ visible, onClose }: QuickShareSheetProps) {
               </View>
               {sharing ? <ActivityIndicator color={colors.primary} /> : <Text style={[styles.shareName, { color: colors.foreground }]}>Instagram</Text>}
               <Text style={[styles.shareHint, { color: colors.mutedForeground }]}>Share sheet</Text>
+            </TouchableOpacity>
+
+            {/* LinkedIn */}
+            <TouchableOpacity
+              style={[styles.shareBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
+              onPress={handleLinkedIn}
+              disabled={activeProps.length === 0 || sharing}
+              activeOpacity={0.75}
+            >
+              <View style={[styles.shareIcon, { backgroundColor: '#0A66C2' }]}>
+                <Ionicons name="logo-linkedin" size={24} color="#FFF" />
+              </View>
+              {sharing ? <ActivityIndicator color={colors.primary} /> : <Text style={[styles.shareName, { color: colors.foreground }]}>LinkedIn</Text>}
+              <Text style={[styles.shareHint, { color: colors.mutedForeground }]}>Open post composer</Text>
             </TouchableOpacity>
           </View>
 
