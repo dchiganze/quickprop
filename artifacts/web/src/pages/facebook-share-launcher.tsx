@@ -100,16 +100,17 @@ function getFallbackUrl(href: string, quote: string): string {
 export default function FacebookShareLauncher() {
   const request = useMemo(() => getShareRequest(), []);
   const fallbackUrl = request ? getFallbackUrl(request.href, request.quote) : null;
-  const [status, setStatus] = useState<'loading' | 'opened' | 'fallback' | 'error'>(
+  const [status, setStatus] = useState<'loading' | 'ready' | 'opened' | 'fallback' | 'error'>(
     request ? 'loading' : 'error',
   );
+  const [sdkReady, setSdkReady] = useState(false);
   const [message, setMessage] = useState(
     request
-      ? 'Loading Facebook’s share composer…'
+      ? 'Preparing Facebook’s share composer…'
       : 'This share link is missing a valid QuickProp preview URL.',
   );
 
-  const openShare = useCallback(async () => {
+  const openShare = useCallback(() => {
     if (!request) return;
     if (!META_APP_ID) {
       setStatus('fallback');
@@ -117,10 +118,11 @@ export default function FacebookShareLauncher() {
       return;
     }
 
-    const ready = await loadFacebookSdk();
-    if (!ready || !window.FB) {
+    // Keep this call synchronous from the button handler. Browsers may block
+    // the SDK's popup if FB.ui runs after an awaited promise.
+    if (!sdkReady || !window.FB) {
       setStatus('fallback');
-      setMessage('Facebook’s SDK could not be loaded. Use the standard share button below.');
+      setMessage('Facebook’s SDK is not ready yet. Refresh this page and try again, or use the standard share button below.');
       return;
     }
 
@@ -143,12 +145,29 @@ export default function FacebookShareLauncher() {
     );
     setStatus('opened');
     setMessage('Facebook’s composer is opening with the caption supplied through the SDK.');
-  }, [request]);
+  }, [request, sdkReady]);
 
   useEffect(() => {
     document.title = 'Share on Facebook | QuickProp';
-    if (request) void openShare();
-  }, [openShare, request]);
+    if (!request || !META_APP_ID) return;
+
+    let active = true;
+    void loadFacebookSdk().then((ready) => {
+      if (!active) return;
+      if (ready && window.FB) {
+        setSdkReady(true);
+        setStatus('ready');
+        setMessage('Facebook is ready. Click the button below to open the composer with this caption.');
+      } else {
+        setStatus('fallback');
+        setMessage('Facebook’s SDK could not be loaded. Use the standard share button below.');
+      }
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [request]);
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-background px-6 py-12">
@@ -163,6 +182,17 @@ export default function FacebookShareLauncher() {
           {message}
         </p>
 
+        {request && META_APP_ID ? (
+          <button
+            type="button"
+            onClick={openShare}
+            disabled={!sdkReady}
+            className="mt-7 rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground transition hover:opacity-90 disabled:cursor-wait disabled:opacity-60"
+          >
+            {sdkReady ? 'Open Facebook composer' : 'Preparing Facebook…'}
+          </button>
+        ) : null}
+
         {request?.quote ? (
           <div className="mt-6 rounded-2xl border border-border bg-muted/50 p-4 text-left">
             <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
@@ -173,15 +203,6 @@ export default function FacebookShareLauncher() {
         ) : null}
 
         <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:justify-center">
-          {request && META_APP_ID ? (
-            <button
-              type="button"
-              onClick={() => void openShare()}
-              className="rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground transition hover:opacity-90"
-            >
-              Try Facebook again
-            </button>
-          ) : null}
           {fallbackUrl ? (
             <a
               href={fallbackUrl}
