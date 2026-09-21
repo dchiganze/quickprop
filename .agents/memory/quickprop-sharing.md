@@ -15,6 +15,12 @@ For targeted Facebook and LinkedIn buttons on web, bypass the browser file-share
 
 **How to apply:** For Facebook/LinkedIn, download the captured collage, copy the caption, and open the destination URL directly. Keep `navigator.share({ files, text })` for generic share actions where the system chooser is expected.
 
+When a social destination is reached after an async preview check, create the popup window synchronously from the original click and navigate it after the check completes.
+
+**Why:** Browsers can leave a delayed `about:blank` popup empty when `window.open` happens after an awaited request, even though the share action itself succeeds.
+
+**How to apply:** Pre-open a named share window on the click handler, close it on validation failure, and assign the final social URL once the preview check returns.
+
 Meta's general sharing overview mentions quote sharing, but the current Web Share Dialog URL-redirection reference omits `quote`; QuickProp's direct web URL test loads the preview while ignoring the caption.
 
 **Why:** The platform documentation is inconsistent across the general overview and the web dialog reference, and the current Facebook web composer may ignore `quote` even when the preview image loads. App Domains make the public preview usable but do not guarantee caption injection.
