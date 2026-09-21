@@ -69,6 +69,12 @@ Social buttons must use the canonical production preview URL even when the Offic
 
 **How to apply:** Keep local origins for local-only actions, but construct Facebook and LinkedIn preview URLs from `https://www.quickprop.melios.co.zw` and revalidate that public route before opening the composer.
 
+Facebook's JavaScript SDK composer should only be invoked from an explicit user click after the SDK has already loaded.
+
+**Why:** Calling `FB.ui` automatically after the public launcher loads can lose the browser's user-activation context, so Chrome may block the composer popup while the launcher incorrectly appears to have opened it.
+
+**How to apply:** Preload the SDK on the launcher page, enable a direct "Open Facebook composer" button once ready, and keep the standard sharer link available as a fallback.
+
 Keep `og:url` set to the metadata share URL, not the redirect destination.
 
 **Why:** Facebook may canonicalize the preview to the destination URL and replace the property card with the generic marketplace page.
