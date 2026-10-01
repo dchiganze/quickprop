@@ -1,0 +1,29 @@
+kind = "video"
+videoAspectRatio = "16:9"
+previewPath = "/quickprop-mobile-ui-film/"
+title = "QuickProp — Mobile UI Film"
+description = "A 10-second 16:9 QuickProp Agent film focused on the app's Matches and sharing screens, with five seconds dedicated to each."
+version = "1.0.0"
+id = "artifacts/quickprop-mobile-ui-film"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/quickprop-mobile-ui-film/" ]
+localPort = 22501
+
+[services.development]
+run = "pnpm --filter @workspace/quickprop-mobile-ui-film run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/quickprop-mobile-ui-film", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/quickprop-mobile-ui-film/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "22501"
+BASE_PATH = "/quickprop-mobile-ui-film/"
