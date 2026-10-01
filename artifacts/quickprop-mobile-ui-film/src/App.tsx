@@ -1,10 +1,5 @@
-import VideoTemplate from '@/components/video/VideoTemplate';
-import { WorkspaceControlledVideo } from '@/lib/video';
+import VideoWithControls from '@/components/video/VideoWithControls';
 
 export default function App() {
-  return (
-    <WorkspaceControlledVideo>
-      <VideoTemplate />
-    </WorkspaceControlledVideo>
-  );
+  return <VideoWithControls />;
 }
