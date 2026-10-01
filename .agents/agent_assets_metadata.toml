@@ -6,189 +6,228 @@ id = "rVE1no3kr9g-2Vrxg_ZWy"
 uri = "file://screenshots/login.jpg"
 type = "image"
 title = "Screenshot 1 — Login"
+logical_id = "49004005-d426-4d18-9156-dee28e9cd0f8"
 
 [[outputs]]
 id = "UVMip2qy2-oZRFqN6YcVe"
 uri = "file://screenshots/dashboard.jpg"
 type = "image"
 title = "Screenshot 2 — Dashboard"
+logical_id = "ea333b67-304e-4b48-baea-f20e02189c47"
 
 [[outputs]]
 id = "tkG2jWZRUPUaGOtJmBihn"
 uri = "file://screenshots/listings.jpg"
 type = "image"
 title = "Screenshot 3 — Listings"
+logical_id = "4783f82f-a249-4dc6-8421-7d595f7dd32b"
 
 [[outputs]]
 id = "22frgkBzawyqvDBjAjPdX"
 uri = "file://screenshots/leads.jpg"
 type = "image"
 title = "Screenshot 4 — Leads"
+logical_id = "4457031e-36f0-4017-8e12-0f71b08201fa"
 
 [[outputs]]
 id = "GL-9p9wre_EV_FhSz04ER"
 uri = "file://attached_assets/resized/IMG_3018.PNG"
 type = "image"
 title = "IMG_3018.PNG"
+logical_id = "2b99dd8d-53cb-4f88-a1e6-4b9455f3329c"
 
 [[outputs]]
 id = "5VQE3j41p4i7ZmURAbaU8"
 uri = "file://attached_assets/resized/IMG_3019.PNG"
 type = "image"
 title = "IMG_3019.PNG"
+logical_id = "76adcca4-42f9-4f62-9132-1b2a69bbd325"
 
 [[outputs]]
 id = "I7DEov2fLOgM9EHPaQAm8"
 uri = "file://attached_assets/resized/IMG_3020.PNG"
 type = "image"
 title = "IMG_3020.PNG"
+logical_id = "a73398e9-ee13-4f8c-9fee-28f879678fb9"
 
 [[outputs]]
 id = "yA0HA5lHcFdHuJXkv2pKT"
 uri = "file://attached_assets/resized/IMG_3021.PNG"
 type = "image"
 title = "IMG_3021.PNG"
+logical_id = "5ce77a3f-2038-435c-87d2-c3c1b6e65d22"
 
 [[outputs]]
 id = "ZMEP4evsS6hiFbTt6ivQd"
 uri = "file://attached_assets/resized/IMG_3022.PNG"
 type = "image"
 title = "IMG_3022.PNG"
+logical_id = "5276a9bc-9dd0-42ef-b6ba-92263aa673ff"
 
 [[outputs]]
 id = "VyGtucoZxxFZCv8eNqGIN"
 uri = "file://attached_assets/resized/IMG_3023.PNG"
 type = "image"
 title = "IMG_3023.PNG"
+logical_id = "d142e8cb-4a67-498c-b0fa-fc71803503f2"
 
 [[outputs]]
 id = "it8_0JzRQXAKod1YELEGV"
 uri = "file://attached_assets/resized/IMG_3024.PNG"
 type = "image"
 title = "IMG_3024.PNG"
+logical_id = "a6b5d4d8-ce8f-4d6a-9d43-a170785fb7c6"
 
 [[outputs]]
 id = "MLqyWkY_CzSa9kBPl_WOq"
 uri = "file://attached_assets/resized/IMG_3025.PNG"
 type = "image"
 title = "IMG_3025.PNG"
+logical_id = "1925e0c1-c4ca-4d77-b866-a515df85946d"
 
 [[outputs]]
 id = "6OXtB4drzH9fKBTOYsEGA"
 uri = "file://attached_assets/resized/IMG_3026.PNG"
 type = "image"
 title = "IMG_3026.PNG"
+logical_id = "79bff624-714f-45ec-a85b-5aa26bbf8073"
 
 [[outputs]]
 id = "_6hEg2TektNK_HfY_pWPC"
 uri = "file://attached_assets/resized/IMG_3027.PNG"
 type = "image"
 title = "IMG_3027.PNG"
+logical_id = "cc7c4f87-fe0d-4533-97f2-209ddb7c42b5"
 
 [[outputs]]
 id = "xTBjMccf0G9VMhokFo8O4"
 uri = "file://attached_assets/quickprop-icon-512.png"
 type = "image"
 title = "QuickProp Icon 512×512"
+logical_id = "83d316c3-38a4-4272-9012-2131c038d6fa"
 
 [[outputs]]
 id = "VAxoMldowxCqICUUYayeo"
 uri = "file://attached_assets/quickprop-icon-512-sharp.png"
 type = "image"
 title = "QuickProp Icon 512×512"
+logical_id = "958d3753-5311-4174-b593-2afd135587f5"
 
 [[outputs]]
 id = "C2s48Hak_DxtqLvzpSKk7"
 uri = "file://artifacts/mobile/assets/images/icon.png"
 type = "image"
 title = "icon.png (1024×1024)"
+logical_id = "9b0b047b-3773-485f-b6d6-52ddbdbbe5ff"
 
 [[outputs]]
 id = "HZ8hsP4bfJ5U49wSYXp4p"
 uri = "file://artifacts/mobile/assets/images/icon_2.png"
 type = "image"
 title = "icon_2.png (1024×1024)"
+logical_id = "cba23e6b-4b07-4d42-aec5-10cec8f318df"
 
 [[outputs]]
 id = "7wPw1ypM4408To6wL2eCr"
 uri = "file://artifacts/mobile/my-app/assets/images/logo-glow.png"
 type = "image"
 title = "logo-glow.png (604×604)"
+logical_id = "2253234e-35c5-433f-ab19-c92b8a330c8e"
 
 [[outputs]]
 id = "oYhEJqXfLOjZdEjGgEO8M"
 uri = "file://attached_assets/quickprop-agent-512.png"
 type = "image"
 title = "QuickProp Agent 512×512"
+logical_id = "12317681-0655-426f-848b-6340fed05884"
 
 [[outputs]]
 id = "1yiieYLTxBknZbPCswbvO"
 uri = "file://attached_assets/quickprop-agent-icon-512.png"
 type = "image"
 title = "QuickProp Agent 512×512"
+logical_id = "d294182f-8a1a-40cb-af9a-cdd875ef69ee"
 
 [[outputs]]
 id = "rV_VmnrvBrCpMrh1D8aQ5"
 uri = "file://attached_assets/quickprop-feature-graphic.png"
 type = "image"
 title = "QuickProp Agent — Feature Graphic 1024×500"
+logical_id = "b4837593-442f-41ee-9759-b751cc9e3401"
 
 [[outputs]]
 id = "METnE465WGx-xwpHVaFhs"
 uri = "file://attached_assets/16x9/f1086011-036a-42c6-969c-04e2286ef1f4_1784535991227.png"
 type = "image"
 title = "Screenshot 1 (1260×2240 — 9:16)"
+logical_id = "f1b4668c-cd24-49e9-bb29-e09cec45fd4b"
 
 [[outputs]]
 id = "ZnxhDmJsUZutvxw7g8obf"
 uri = "file://attached_assets/16x9/ce3e4173-1f11-4e26-99fb-3f5b1f1397e4_1784535998771.png"
 type = "image"
 title = "Screenshot 2 (1260×2240 — 9:16)"
+logical_id = "e2dd542f-d299-4e61-9364-9e2e02446bd4"
 
 [[outputs]]
 id = "wAdaZJbWHdgD_E9LZYJCh"
 uri = "file://attached_assets/16x9/f12bde69-d03c-42d7-97b5-837796174f15_1784536005897.png"
 type = "image"
 title = "Screenshot 3 (1260×2240 — 9:16)"
+logical_id = "42304b49-769d-43cf-a710-4f59f1deb2c5"
 
 [[outputs]]
 id = "V6Rc4o7XDuKW3FPrGrzRU"
 uri = "file://attached_assets/16x9/9094f442-6c36-4bad-8c0f-4d677a6e56ff_1784536009837.png"
 type = "image"
 title = "Screenshot 4 (1260×2240 — 9:16)"
+logical_id = "51a6a6c3-241b-4f61-b017-db0b9c797815"
 
 [[outputs]]
 id = "sbbCzT4qBOVMUVJ_hzamH"
 uri = "file://attached_assets/16x9/05dfbe50-0fef-4f71-9489-2fe8c7b35902_1784536012884.png"
 type = "image"
 title = "Screenshot 5 (1260×2240 — 9:16)"
+logical_id = "1849157a-c784-4e63-9188-bf79f6dc6a7e"
 
 [[outputs]]
 id = "hJjJP5XWMfcJwBOJIsTsv"
 uri = "file://attached_assets/16x9/16071cf6-ad6e-4f5a-b627-afc6a6ab111a_1784536016094.png"
 type = "image"
 title = "Screenshot 6 (1260×2240 — 9:16)"
+logical_id = "f48bb30e-3b24-4700-a16e-d0343c645757"
 
 [[outputs]]
 id = "wWegIoWHHj4r5w41xk1BE"
 uri = "file://attached_assets/16x9/fff147ee-7f7b-46e3-90b3-d46eb75a0ae6_1784536019461.png"
 type = "image"
 title = "Screenshot 7 (1260×2240 — 9:16)"
+logical_id = "987bfb36-cd67-4ed4-938b-a78a948d2f48"
 
 [[outputs]]
 id = "NGoXj1UPO5HvPccaCnxPK"
 uri = "file://attached_assets/16x9/f0754d08-4b11-4d65-af64-cf4cf62e9df2_1784536023329.png"
 type = "image"
 title = "Screenshot 8 (1260×2240 — 9:16)"
+logical_id = "ed248cc8-3170-461f-8a20-fca98cdce374"
 
 [[outputs]]
 id = "JYugVuUR6g884wRmA-L5A"
 uri = "file://attached_assets/16x9/82d8d908-75a1-4141-b1ed-8f01fa2d3f4c_1784536026761.png"
 type = "image"
 title = "Screenshot 9 (1260×2240 — 9:16)"
+logical_id = "1e9152b7-1dd9-4e79-b701-f598612cf286"
 
 [[outputs]]
 id = "HbmbflWIO7Ob82-BTyk0e"
 uri = "file://attached_assets/16x9/f912e7df-70c0-4f1a-aefd-935575115b6f_1784536029805.png"
 type = "image"
 title = "Screenshot 10 (1260×2240 — 9:16)"
+logical_id = "43683496-555b-4544-9d55-79ad90488c44"
+
+[[outputs]]
+id = "cLIpf_vJJMdAHvzMXrT6W"
+uri = "file://artifacts/quickprop-feature-film/public/audio/bg_music.mp3"
+type = "audio"
+title = "QuickProp background music"
+description = "Generated music: Polished upbeat electronic instrumental background music scoring a modern real-estate mobile app product film. Tight electronic percussion, warm synth bass, clean marimba-like plucks…"
