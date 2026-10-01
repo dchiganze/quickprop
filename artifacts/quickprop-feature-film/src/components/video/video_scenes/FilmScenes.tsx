@@ -152,15 +152,11 @@ export function DashboardScene() {
 }
 
 export function ListingScene() {
-  const [word, setWord] = useState(0);
   const [matches, setMatches] = useState(1);
   useSceneTimer([
-    { time: 580, callback: () => setWord(1) },
-    { time: 1080, callback: () => setWord(2) },
     { time: 1180, callback: () => setMatches(2) },
     { time: 1400, callback: () => setMatches(3) },
   ]);
-  const words = ['LIST.', 'MATCH.', 'MOVE.'];
 
   return (
     <motion.section
@@ -170,18 +166,6 @@ export function ListingScene() {
       exit={{ opacity: 0 }}
       transition={{ duration: 0.48, ease: EASE }}
     >
-      <AnimatePresence mode="sync">
-        <motion.div
-          key={word}
-          className="outline-word"
-          initial={{ opacity: 0, scale: 1.28, filter: 'blur(10px)' }}
-          animate={{ opacity: 0.58, scale: 1, filter: 'blur(0px)' }}
-          exit={{ opacity: 0, scale: 0.78, filter: 'blur(8px)' }}
-          transition={{ duration: 0.27, ease: EASE }}
-        >
-          {words[word]}
-        </motion.div>
-      </AnimatePresence>
       <motion.div
         className="listing-plane"
         initial={{ scale: 1.5, rotate: -8, filter: 'blur(10px)' }}

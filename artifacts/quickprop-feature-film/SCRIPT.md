@@ -38,15 +38,15 @@
 
 **Sound intent:** A clean opening pulse at 0.00s, two light percussive ticks under the stat cards, and a stronger lift into 2.20s if supported by the generated instrumental.
 
-### Shot 02 / 2.20–5.20s / 3.00s — “LIST. MATCH. MOVE.”
+### Shot 02 / 2.20–5.20s / 3.00s — “A LISTING FINDS ITS BUYER”
 
 **Purpose:** Show the core workflow: a listing becomes structured inventory and immediately produces a useful buyer match.
 
-**Exact content:** “LIST.” at 2.28s, “MATCH.” at 2.78s, “MOVE.” at 3.28s. Listing artwork reads “Borrowdale”, “US$285,000”, “4 beds”, “3 baths”, “Borehole”, and “3 buyer matches”. A small label reads “PUBLISHED”.
+**Exact content:** Listing artwork reads “Borrowdale”, “US$285,000”, “4 beds”, “3 baths”, “Borehole”, and “3 buyer matches”. A small label reads “PUBLISHED”.
 
-**Composition and artistic idea:** The green transition field splits open diagonally to reveal a deep-ink world. A large angled listing plane fills 70% of the short edge from centre-right, with a stylized architectural photo area, data rows, and a bright match badge. Oversized outlined words sit behind the plane, cropped by frame edges. The artistic idea is a listing card behaving like a folding property dossier: its sections physically unfold as information becomes useful.
+**Composition and artistic idea:** The green transition field splits open diagonally to reveal a deep-ink world. A large angled listing plane fills 70% of the short edge from centre-right, with a stylized architectural photo area, data rows, and a bright match badge. The artistic idea is a listing card behaving like a folding property dossier: its sections physically unfold as information becomes useful.
 
-**Timed choreography:** 0.00–0.35s relative: “LIST.” fires within 50ms of the wipe completing; the listing plane settles from 1.5× and 10px blur. 0.35–0.85s: image panel unfolds from the card’s top edge; price rolls up into place. 0.58s: “MATCH.” replaces “LIST.” behind the card. 0.85–1.35s: bed, bath, and borehole chips trace on in sequence. 1.10–1.65s: a path line sweeps from the listing to the buyer-match badge; badge counts 1 → 2 → 3 with three discrete snaps. 1.08s: “MOVE.” replaces “MATCH.” and remains faintly outlined behind the card. 1.72–2.35s: “PUBLISHED” stamps onto the top edge and the whole plane rotates from -4° to 1°, revealing depth. 2.35–3.00s: the photo panel pushes toward centre while the data layers shear away; the match badge remains attached until the incoming share card is visible.
+**Timed choreography:** 0.00–0.35s relative: the listing plane settles from 1.5× and 10px blur. 0.35–0.85s: image panel unfolds from the card’s top edge; price rolls up into place. 0.85–1.35s: bed, bath, and borehole chips trace on in sequence. 1.10–1.65s: a path line sweeps from the listing to the buyer-match badge; badge counts 1 → 2 → 3 with three discrete snaps. 1.72–2.35s: “PUBLISHED” stamps onto the top edge and the whole plane rotates from -4° to 1°, revealing depth. 2.35–3.00s: the photo panel pushes toward centre while the data layers shear away; the match badge remains attached until the incoming share card is visible.
 
 **Transition contract:** The listing’s image panel and match badge carry forward. The panel expands into the brochure image area; the circular badge becomes the share scene’s green aperture ring. Scale-through and diagonal split overlap for 300ms.
 
