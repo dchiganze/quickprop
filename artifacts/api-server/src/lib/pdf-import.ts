@@ -12,12 +12,9 @@ export function flattenPdfPageRows(pages: PdfPageRows[]): {
 
   for (const page of pages) {
     page.rows.forEach((row, index) => {
+      const listingNumber = rows.length + 1;
       rows.push(row);
-      sourceLocations.push(
-        index === 0
-          ? `section ${page.pageNumber}`
-          : `section ${page.pageNumber} listing ${index + 1}`,
-      );
+      sourceLocations.push(`section ${page.pageNumber} listing ${listingNumber}`);
     });
   }
 

@@ -136,6 +136,7 @@ function ImportHeader({ eyebrow, title, description, children }: { eyebrow: stri
 function ColumnMappingReview({
   reference,
   fileNames,
+  existingPdfDraftCount,
   rows,
   confirmed,
   pending,
@@ -147,6 +148,7 @@ function ColumnMappingReview({
 }: {
   reference: string;
   fileNames: string[];
+  existingPdfDraftCount: number;
   rows: ColumnMappingRow[];
   confirmed: boolean;
   pending: boolean;
@@ -188,6 +190,15 @@ function ColumnMappingReview({
             </div>
           </CardHeader>
           <CardContent className="space-y-4 p-5">
+            {existingPdfDraftCount > 0 && (
+              <Alert className="border-amber-300 bg-amber-50/70 text-amber-950">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Old PDF drafts will be reconciled</AlertTitle>
+                <AlertDescription>
+                  This import has {existingPdfDraftCount} existing PDF draft rows. Confirming will remove PDF drafts missing from the latest extraction only when they have no saved edits, duplicate decisions, assignments, or change history. Corrected, approved, and published rows will be kept.
+                </AlertDescription>
+              </Alert>
+            )}
             <div className="hidden grid-cols-[minmax(0,1fr)_32px_minmax(0,1fr)_36px] gap-3 px-1 text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground sm:grid">
               <span>Source heading</span><span /><span>QuickProp field</span><span />
             </div>
@@ -257,7 +268,9 @@ function ColumnMappingReview({
               <div className="flex items-start gap-3">
                 <Checkbox id="confirm-column-mapping" checked={confirmed} onCheckedChange={(value) => onConfirmedChange(value === true)} className="mt-0.5" />
                 <Label htmlFor="confirm-column-mapping" className="cursor-pointer text-sm leading-relaxed">
-                  I reviewed these column matches and confirm QuickProp should process the uploaded source using them.
+                  {existingPdfDraftCount > 0
+                    ? 'I reviewed these column matches and understand that unmatched PDF drafts with no saved edits or decisions will be removed when I confirm processing.'
+                    : 'I reviewed these column matches and confirm QuickProp should process the uploaded source using them.'}
                 </Label>
               </div>
               <div className="mt-4 flex flex-col-reverse justify-end gap-2 sm:flex-row">
@@ -631,6 +644,10 @@ function ImportDetail({ id }: { id: number }) {
     <ColumnMappingReview
       reference={detail.reference}
       fileNames={detail.files.map((file) => file.fileName)}
+      existingPdfDraftCount={detail.records.filter((record) => (
+        record.reviewStatus === 'draft'
+        && detail.files.some((file) => file.id === record.sourceFileId && file.fileName.toLowerCase().endsWith('.pdf'))
+      )).length}
       rows={mappingRows}
       confirmed={mappingConfirmed}
       pending={processSession.isPending}

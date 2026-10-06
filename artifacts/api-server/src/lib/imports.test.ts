@@ -4,6 +4,7 @@ import { and, eq, inArray } from "drizzle-orm";
 import { parseAiJsonResponse } from "./ai-import";
 import { findImportTitlePriceDuplicate, findDuplicateCandidatesInProperties, type DuplicateProperty } from "./multi-agent";
 import { findImportTitleValue } from "./import-title";
+import { findStalePdfDraftIds } from "./import-reconcile";
 import { flattenPdfPageRows } from "./pdf-import";
 
 const testDatabaseUrl = process.env.TEST_DATABASE_URL;
@@ -58,10 +59,28 @@ test("keeps every PDF listing and stable page locations for safe reprocessing", 
 
   assert.deepEqual(flattened.rows, [first, second, third]);
   assert.deepEqual(flattened.sourceLocations, [
-    "section 1",
+    "section 1 listing 1",
     "section 1 listing 2",
-    "section 2",
+    "section 2 listing 3",
   ]);
+  assert.equal(new Set(flattened.sourceLocations).size, flattened.rows.length);
+});
+
+test("stale PDF reconciliation only removes unmatched untouched draft rows", () => {
+  const rows = [
+    { id: 1, reviewStatus: "draft", correctedData: null, duplicateStatus: "clear", matchedPropertyId: null, agentId: null, agentMatchStatus: "unmatched" },
+    { id: 2, reviewStatus: "draft", correctedData: null, duplicateStatus: "clear", matchedPropertyId: null, agentId: null, agentMatchStatus: "unmatched" },
+    { id: 3, reviewStatus: "draft", correctedData: { title: "Corrected title" }, duplicateStatus: "clear", matchedPropertyId: null, agentId: null, agentMatchStatus: "unmatched" },
+    { id: 4, reviewStatus: "approved", correctedData: null, duplicateStatus: "clear", matchedPropertyId: null, agentId: null, agentMatchStatus: "unmatched" },
+    { id: 5, reviewStatus: "draft", correctedData: null, duplicateStatus: "clear", matchedPropertyId: null, agentId: null, agentMatchStatus: "unmatched" },
+    { id: 6, reviewStatus: "draft", correctedData: null, duplicateStatus: "keep_separate", matchedPropertyId: 90, agentId: null, agentMatchStatus: "unmatched" },
+    { id: 7, reviewStatus: "draft", correctedData: null, duplicateStatus: "clear", matchedPropertyId: null, agentId: 12, agentMatchStatus: "matched" },
+  ];
+
+  assert.deepEqual(
+    findStalePdfDraftIds(rows, new Set([2]), new Set([5])),
+    [1],
+  );
 });
 
 test("matches imported candidates against a preloaded property set", () => {

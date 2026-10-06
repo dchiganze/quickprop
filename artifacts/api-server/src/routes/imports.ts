@@ -26,6 +26,7 @@ import {
   type DuplicateProperty,
 } from "../lib/multi-agent";
 import { findImportTitleValue } from "../lib/import-title";
+import { findStalePdfDraftIds } from "../lib/import-reconcile";
 import { jsonify, logAudit } from "../lib/helpers";
 import { logger } from "../lib/logger";
 import { matchPropertyToAlerts } from "../lib/property-alerts";
@@ -769,12 +770,21 @@ async function processSession(
             record.reviewStatus !== "published"
             && (sourceType !== "image" || record.correctedData != null)
           ));
-          const existingByLocation = new Map(updatableRows.map((record) => [record.sourceLocation, record]));
-          const existingByIdentity = new Map<string, (typeof updatableRows)[number]>();
+          const existingByLocation = new Map<string, (typeof updatableRows)[number][]>();
+          const existingByIdentity = new Map<string, (typeof updatableRows)[number][]>();
           for (const record of updatableRows) {
+            const location = asText(record.sourceLocation);
+            if (location) {
+              existingByLocation.set(location, [...(existingByLocation.get(location) ?? []), record]);
+            }
             const identity = asText((record.sourceMetadata as LooseRecord)?.sourceIdentity);
-            if (identity) existingByIdentity.set(identity, record);
+            if (identity) {
+              existingByIdentity.set(identity, [...(existingByIdentity.get(identity) ?? []), record]);
+            }
           }
+          const matchedExistingIds = new Set<number>();
+          const firstUnmatched = (candidates: (typeof updatableRows)[number][] | undefined) =>
+            candidates?.find((record) => !matchedExistingIds.has(record.id));
           const protectedIdentities = new Set(
             retainedRows
               .filter((record) => !updatableRows.some((updatable) => updatable.id === record.id))
@@ -795,6 +805,10 @@ async function processSession(
               createdCount += 1;
               continue;
             }
+            const locationMatch = firstUnmatched(existingByLocation.get(sourceLocation));
+            const identityMatch = sourceIdentity
+              ? firstUnmatched(existingByIdentity.get(sourceIdentity))
+              : undefined;
             const data = normaliseRow(rawData, mapping);
             const confidence = confidenceFor(data, sourceType, extraction.fieldConfidence?.[rowIndex]);
             const confidenceValues = Object.values(confidence);
@@ -854,10 +868,11 @@ async function processSession(
             }
             const mandateStatus = mandateState(data.mandateExpiry);
             const existing = sourceType === "image" && sourceIdentity
-              ? existingByIdentity.get(sourceIdentity) ?? existingByLocation.get(sourceLocation)
+              ? identityMatch ?? locationMatch
               : sourceType === "pdf" && sourceIdentity
-                ? existingByLocation.get(sourceLocation) ?? existingByIdentity.get(sourceIdentity)
-                : existingByLocation.get(sourceLocation);
+                ? locationMatch ?? identityMatch
+                : locationMatch;
+            if (existing) matchedExistingIds.add(existing.id);
             const recordValues = {
               rawData,
               extractedData: data,
@@ -903,6 +918,21 @@ async function processSession(
             }));
             if (confidenceRows.length) await tx.insert(importFieldConfidenceTable).values(confidenceRows);
             createdCount += 1;
+          }
+          if (sourceType === "pdf") {
+            const staleDraftIds = findStalePdfDraftIds(retainedRows, matchedExistingIds);
+            if (staleDraftIds.length) {
+              const historicalRows = await tx
+                .select({ recordId: importChangesTable.recordId })
+                .from(importChangesTable)
+                .where(inArray(importChangesTable.recordId, staleDraftIds));
+              const historicalIds = new Set(historicalRows.map((row) => row.recordId));
+              const removableIds = staleDraftIds.filter((recordId) => !historicalIds.has(recordId));
+              if (removableIds.length) {
+                await tx.delete(importFieldConfidenceTable).where(inArray(importFieldConfidenceTable.recordId, removableIds));
+                await tx.delete(importRecordsTable).where(inArray(importRecordsTable.id, removableIds));
+              }
+            }
           }
           await tx.update(importFilesTable).set({
             processingStatus: "complete",

@@ -21,6 +21,12 @@ Every imported listing should preserve its title from a mapped or recognized Pro
 
 **How to apply:** Normalize title aliases before validation, and use exact title-plus-price matching only in bulk imports; do not change fuzzy matching used by other QuickProp flows.
 
+PDF retries must reconcile candidates one-to-one and remove only unmatched, unedited draft rows. Preserve corrected, reviewed, published, or audit-history records.
+
+**Why:** Earlier PDF attempts can leave stale titleless rows beside the latest extraction, inflating the ledger and hiding the current result.
+
+**How to apply:** Use stable unique source locations, match each prior row at most once, and perform stale-draft cleanup transactionally only after the user confirms reprocessing.
+
 The pdf-parse package entrypoint can execute its bundled fixture when loaded from the server's ESM bundle; use a Node-safe implementation import or another parser that does not initialize browser canvas globals during API startup.
 
 **Why:** A parser startup side effect prevented the API from listening even when no PDF was being processed.
