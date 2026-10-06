@@ -45,14 +45,16 @@ const formatDate = (value?: string) => value ? new Date(value).toLocaleString([]
 const isProcessing = (session?: ImportSession | null) => !!session && ['queued', 'processing', 'extracting', 'matching'].includes(session.status);
 
 function StatusPill({ value }: { value: string }) {
-  const tone = value === 'approved' || value === 'published' || value === 'ready'
+  const normalizedValue = value === 'uploading' ? 'ready' : value;
+  const label = value === 'uploading' ? 'Ready to process' : titleCase(value || 'pending');
+  const tone = normalizedValue === 'approved' || normalizedValue === 'published' || normalizedValue === 'ready'
     ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-    : value === 'rejected' || value === 'failed'
+    : normalizedValue === 'rejected' || normalizedValue === 'failed'
       ? 'border-red-200 bg-red-50 text-red-700'
-      : value === 'needs_review' || value === 'review'
+      : normalizedValue === 'needs_review' || normalizedValue === 'review'
         ? 'border-amber-200 bg-amber-50 text-amber-800'
         : 'border-slate-200 bg-slate-50 text-slate-600';
-  return <span className={cn('inline-flex items-center rounded border px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em]', tone)}>{titleCase(value || 'pending')}</span>;
+  return <span className={cn('inline-flex items-center rounded border px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em]', tone)}>{label}</span>;
 }
 
 function Confidence({ score, compact = false }: { score: number; compact?: boolean }) {
@@ -421,7 +423,7 @@ function ImportDetail({ id }: { id: number }) {
           <Button variant="outline" size="sm" onClick={downloadErrors} className="hidden gap-2 sm:flex"><Download className="h-3.5 w-3.5" /> Error report</Button>
           {processing ? <Button size="sm" variant="outline" onClick={() => refetch()} className="gap-2"><RefreshCw className="h-3.5 w-3.5" /> Poll now</Button> : <Button size="sm" onClick={startProcessing} disabled={processSession.isPending || detail.status === 'published'} className="gap-2">{processSession.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : failedSourceCount ? <RefreshCw className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}{failedSourceCount ? `Retry ${failedSourceCount} failed source${failedSourceCount === 1 ? '' : 's'}` : detail.totalRecords ? 'Re-run processing' : 'Process sources'}</Button>}
         </div>
-         <div className="mt-4 flex items-center gap-3 rounded border border-primary/15 bg-primary/[0.035] px-3 py-2.5">
+          <div className="mt-4 flex items-center gap-3 rounded border border-primary/15 bg-primary/[0.035] px-3 py-2.5">
            <div className="min-w-0 flex-1">
              <div className="mb-1.5 flex items-center justify-between gap-3 text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
                <span>Durable processing checkpoint</span>
@@ -430,10 +432,11 @@ function ImportDetail({ id }: { id: number }) {
              <Progress value={detail.progress} className="h-1.5" />
            </div>
            <div className="hidden text-right text-[10px] leading-relaxed text-muted-foreground sm:block">
-             <div>{titleCase(detail.currentStage || 'awaiting start')}</div>
-             <div>{detail.processingHeartbeatAt ? `Checkpointed ${formatDate(detail.processingHeartbeatAt)}` : 'Not started'}</div>
+              <div>{detail.status === 'uploading' ? 'Ready to process' : titleCase(detail.currentStage || 'awaiting start')}</div>
+              <div>{detail.processingHeartbeatAt ? `Checkpointed ${formatDate(detail.processingHeartbeatAt)}` : detail.status === 'uploading' ? 'Waiting for you to start' : 'Not started'}</div>
            </div>
          </div>
+          {detail.status === 'uploading' && <p className="mt-2 text-xs text-muted-foreground">Source files are uploaded. Select <span className="font-semibold text-foreground">Process sources</span> to extract draft records; nothing is published until you approve it.</p>}
       </div>
       <div className="mx-auto grid max-w-[1740px] grid-cols-1 gap-6 p-5 md:p-8 xl:grid-cols-[minmax(0,1fr)_292px]">
         <main className="min-w-0 space-y-5">
