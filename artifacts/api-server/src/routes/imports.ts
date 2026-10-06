@@ -23,6 +23,7 @@ import { findDuplicateCandidates, normalizeText } from "../lib/multi-agent";
 import { jsonify, logAudit } from "../lib/helpers";
 import { logger } from "../lib/logger";
 import { matchPropertyToAlerts } from "../lib/property-alerts";
+import { flattenPdfPageRows } from "../lib/pdf-import";
 
 const router: IRouter = Router();
 const IMPORT_EXTENSIONS = new Set([".xlsx", ".xls", ".csv", ".pdf", ".docx", ".txt", ".jpg", ".jpeg", ".png"]);
@@ -34,16 +35,18 @@ const IMPORT_FIELDS = [
 ] as const;
 type ImportField = typeof IMPORT_FIELDS[number];
 type LooseRecord = Record<string, unknown>;
-type VisionFieldSource = {
+type AiFieldSource = {
   confidence: number;
   evidence: string;
-  method: "gemini-vision";
+  method: "gemini-vision" | "gemini-pdf-text";
 };
 type ExtractionResult = {
   rows: LooseRecord[];
   sourceType: string;
+  extractionMethod?: string;
+  sourceLocations?: string[];
   fieldConfidence?: Record<string, number>[];
-  fieldSources?: Record<string, VisionFieldSource>[];
+  fieldSources?: Record<string, AiFieldSource>[];
   reviewFlags?: string[][];
   sourceIdentities?: string[];
 };
@@ -163,13 +166,24 @@ function confidenceValue(value: unknown, fallback = 0): number {
   return Math.max(0, Math.min(100, Math.round(parsed <= 1 ? parsed * 100 : parsed)));
 }
 
-function normaliseVisionRows(parsed: LooseRecord): {
+function normaliseAiRows(
+  parsed: LooseRecord,
+  options: {
+    method?: AiFieldSource["method"];
+    evidenceFallback?: string;
+    confidenceLabel?: string;
+    allowEmpty?: boolean;
+  } = {},
+): {
   rows: LooseRecord[];
   fieldConfidence: Record<string, number>[];
-  fieldSources: Record<string, VisionFieldSource>[];
+  fieldSources: Record<string, AiFieldSource>[];
   reviewFlags: string[][];
   sourceIdentities: string[];
 } {
+  const method = options.method ?? "gemini-vision";
+  const evidenceFallback = options.evidenceFallback ?? "Value read from the uploaded image.";
+  const confidenceLabel = options.confidenceLabel ?? "Low-confidence vision fields";
   const candidates = Array.isArray(parsed.records)
     ? parsed.records
     : parsed.fields && typeof parsed.fields === "object"
@@ -177,7 +191,7 @@ function normaliseVisionRows(parsed: LooseRecord): {
       : [parsed];
   const rows: LooseRecord[] = [];
   const fieldConfidence: Record<string, number>[] = [];
-  const fieldSources: Record<string, VisionFieldSource>[] = [];
+  const fieldSources: Record<string, AiFieldSource>[] = [];
   const reviewFlags: string[][] = [];
   const sourceIdentities: string[] = [];
 
@@ -195,7 +209,7 @@ function normaliseVisionRows(parsed: LooseRecord): {
       : {};
     const row: LooseRecord = {};
     const confidence: Record<string, number> = {};
-    const sources: Record<string, VisionFieldSource> = {};
+    const sources: Record<string, AiFieldSource> = {};
 
     for (const field of IMPORT_FIELDS) {
       const value = rawFields[field];
@@ -205,8 +219,8 @@ function normaliseVisionRows(parsed: LooseRecord): {
       confidence[field] = score;
       sources[field] = {
         confidence: score,
-        evidence: asText(rawEvidence[field]) || "Value read from the uploaded image.",
-        method: "gemini-vision",
+        evidence: asText(rawEvidence[field]) || evidenceFallback,
+        method,
       };
     }
 
@@ -239,13 +253,13 @@ function normaliseVisionRows(parsed: LooseRecord): {
         .filter(([, score]) => score < VISION_REVIEW_THRESHOLD)
         .map(([field]) => field);
       if (lowConfidenceFields.length) {
-        flags.push(`Low-confidence vision fields: ${lowConfidenceFields.join(", ")}`);
+        flags.push(`${confidenceLabel}: ${lowConfidenceFields.join(", ")}`);
       }
       reviewFlags.push([...new Set(flags)]);
     }
   }
 
-  if (!rows.length) throw new Error("Vision extraction found no listing fields in the image.");
+  if (!rows.length && !options.allowEmpty) throw new Error("Vision extraction found no listing fields in the image.");
   return { rows, fieldConfidence, fieldSources, reviewFlags, sourceIdentities };
 }
 
@@ -333,7 +347,7 @@ Rules:
     },
   }), 3);
   const parsed = parseJsonResponse(response.text?.trim() ?? "");
-  const normalised = normaliseVisionRows(parsed);
+  const normalised = normaliseAiRows(parsed);
   return {
     ...normalised,
     sourceType: "image",
@@ -359,8 +373,129 @@ async function extractRows(fileName: string, bytes: Buffer): Promise<ExtractionR
     // module, which would crash the API before it can listen.
     // @ts-expect-error pdf-parse v1 exposes its implementation without types.
     const parserModule = await import("pdf-parse/lib/pdf-parse.js");
-    const result = await parserModule.default(bytes);
-    return { rows: labelledTextToRow(result.text), sourceType: "pdf" };
+    const pageTexts: string[] = [];
+    const pageErrors: string[] = [];
+    const result = await parserModule.default(bytes, {
+      pagerender: async (pageData: {
+        getTextContent: (options: {
+          normalizeWhitespace: boolean;
+          disableCombineTextItems: boolean;
+        }) => Promise<{ items: Array<{ str: string; transform: number[] }> }>;
+      }) => {
+        const pageNumber = pageTexts.length + 1;
+        try {
+          const content = await pageData.getTextContent({
+            normalizeWhitespace: false,
+            disableCombineTextItems: false,
+          });
+          let lastY: number | undefined;
+          let text = "";
+          for (const item of content.items) {
+            const y = item.transform?.[5];
+            if (lastY !== undefined) text += y === lastY ? " " : "\n";
+            text += item.str;
+            if (typeof y === "number") lastY = y;
+          }
+          pageTexts.push(text);
+          return text;
+        } catch (error) {
+          pageErrors.push(`page ${pageNumber}: ${error instanceof Error ? error.message : String(error)}`);
+          pageTexts.push("");
+          return "";
+        }
+      },
+    });
+    if (pageErrors.length) throw new Error(`Could not read every PDF page. ${pageErrors.join("; ")}`);
+    if (pageTexts.length !== result.numpages) {
+      throw new Error(`PDF text extraction read ${pageTexts.length} of ${result.numpages} pages.`);
+    }
+    const pages = pageTexts
+      .map((text, index) => ({ pageNumber: index + 1, text: text.trim() }))
+      .filter((page) => page.text.length > 0);
+    if (!pages.length) throw new Error("This PDF contains no searchable text to extract.");
+
+    const pageResults = await batchProcess(pages, async (page) => {
+      const extraction = await withRetries(async () => {
+        const response = await ai.models.generateContent({
+          model: "gemini-2.5-flash",
+          contents: [{
+            role: "user",
+            parts: [{
+              text: `Extract every distinct real-estate property listing from this single PDF page. A page may contain multiple listings in cards, columns, or table rows; do not treat the whole page as one property and do not stop after a sample. Return one record per distinct listing. Ignore page headers, footers, agency-wide contact details, and disclaimers unless they are clearly attached to a specific listing. Never invent missing values.
+
+Return raw JSON only:
+{
+  "records": [
+    {
+      "fields": {
+        "title": "string or null",
+        "reference": "string or null",
+        "address": "string or null",
+        "suburb": "string or null",
+        "city": "string or null",
+        "price": "number or null",
+        "currency": "string or null",
+        "propertyType": "string or null",
+        "bedrooms": "number or null",
+        "bathrooms": "number or null",
+        "description": "string or null",
+        "agent": "string or null",
+        "agency": "string or null",
+        "mandateType": "string or null",
+        "mandateStart": "string or null",
+        "mandateExpiry": "string or null",
+        "availability": "string or null",
+        "contactName": "string or null",
+        "contactPhone": "string or null",
+        "contactEmail": "string or null",
+        "photos": [],
+        "listingUrl": "string or null"
+      },
+      "fieldConfidence": { "fieldName": 0 },
+      "fieldEvidence": { "fieldName": "short text visible on this page" },
+      "reviewFlags": []
+    }
+  ]
+}
+
+Use confidence scores from 0 to 100. Include a record even if only a reference, address, or price is legible. If the page has no property listings, return an empty records array.
+
+PDF page ${page.pageNumber} text:
+${page.text}`,
+            }],
+          }],
+          config: {
+            responseMimeType: "application/json",
+            maxOutputTokens: 8192,
+          },
+        });
+        const parsed = parseJsonResponse(response.text?.trim() ?? "");
+        return normaliseAiRows(parsed, {
+          method: "gemini-pdf-text",
+          evidenceFallback: `Value read from PDF page ${page.pageNumber}.`,
+          confidenceLabel: "Low-confidence PDF fields",
+          allowEmpty: true,
+        });
+      }, 3);
+      return { pageNumber: page.pageNumber, ...extraction };
+    }, {
+      concurrency: 2,
+      retries: 3,
+    });
+    const flattened = flattenPdfPageRows(pageResults.map((page) => ({
+      pageNumber: page.pageNumber,
+      rows: page.rows,
+    })));
+    if (!flattened.rows.length) throw new Error("No property listings were detected in this PDF.");
+    return {
+      ...flattened,
+      sourceType: "pdf",
+      extractionMethod: "gemini-pdf-text",
+      fieldConfidence: pageResults.flatMap((page) => page.fieldConfidence),
+      fieldSources: pageResults.flatMap((page) => page.fieldSources),
+      reviewFlags: pageResults.flatMap((page) => page.reviewFlags),
+      sourceIdentities: pageResults.flatMap((page) => page.sourceIdentities),
+    };
   }
   if (extension === ".docx") {
     const result = await mammoth.extractRawText({ buffer: bytes });
@@ -637,13 +772,13 @@ async function processSession(
 
           for (let rowIndex = 0; rowIndex < rows.length; rowIndex += 1) {
             const rawData = rows[rowIndex];
-            const sourceLocation = sourceType === "spreadsheet"
+            const sourceLocation = extraction.sourceLocations?.[rowIndex] ?? (sourceType === "spreadsheet"
               ? `row ${rowIndex + 2}`
               : sourceType === "image"
                 ? `image region ${rowIndex + 1}`
-                : `section ${rowIndex + 1}`;
+                : `section ${rowIndex + 1}`);
             const sourceIdentity = extraction.sourceIdentities?.[rowIndex];
-            if (sourceType === "image" && sourceIdentity && protectedIdentities.has(sourceIdentity)) {
+            if ((sourceType === "image" || sourceType === "pdf") && sourceIdentity && protectedIdentities.has(sourceIdentity)) {
               createdCount += 1;
               continue;
             }
@@ -660,8 +795,12 @@ async function processSession(
               field,
               extraction.fieldSources?.[rowIndex]?.[field] ?? {
                 confidence: score,
-                evidence: "Value read from the uploaded image.",
-                method: "gemini-vision" as const,
+                evidence: sourceType === "pdf"
+                  ? "Value extracted from the uploaded PDF."
+                  : "Value read from the uploaded image.",
+                method: extraction.extractionMethod === "gemini-pdf-text"
+                  ? "gemini-pdf-text" as const
+                  : "gemini-vision" as const,
               },
             ]));
             const reviewFlags = [
@@ -703,8 +842,10 @@ async function processSession(
             }
             const mandateStatus = mandateState(data.mandateExpiry);
             const existing = sourceType === "image" && sourceIdentity
-              ? existingByIdentity.get(sourceIdentity)
-              : existingByLocation.get(sourceLocation);
+              ? existingByIdentity.get(sourceIdentity) ?? existingByLocation.get(sourceLocation)
+              : sourceType === "pdf" && sourceIdentity
+                ? existingByLocation.get(sourceLocation) ?? existingByIdentity.get(sourceIdentity)
+                : existingByLocation.get(sourceLocation);
             const recordValues = {
               rawData,
               extractedData: data,
@@ -717,7 +858,7 @@ async function processSession(
               agentMatchStatus: data.agent ? "suggested" : "unmatched",
               sourceMetadata: {
                 sourceType,
-                extractionMethod: sourceType === "image" ? "gemini-vision" : sourceType,
+                extractionMethod: extraction.extractionMethod ?? (sourceType === "image" ? "gemini-vision" : sourceType),
                 sourceFileName: file.fileName,
                 sourceLocation,
                 sourceIdentity,

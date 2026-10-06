@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { after, mock, test } from "node:test";
 import { and, eq, inArray } from "drizzle-orm";
+import { flattenPdfPageRows } from "./pdf-import";
 
 const testDatabaseUrl = process.env.TEST_DATABASE_URL;
 const releaseValidation = process.env.RELEASE_VALIDATION === "1";
@@ -13,6 +14,23 @@ let databasePool: { end: () => Promise<void> } | null = null;
 
 after(async () => {
   await databasePool?.end();
+});
+
+test("keeps every PDF listing and stable page locations for safe reprocessing", () => {
+  const first = { reference: "A-101" };
+  const second = { reference: "A-102" };
+  const third = { reference: "B-201" };
+  const flattened = flattenPdfPageRows([
+    { pageNumber: 1, rows: [first, second] },
+    { pageNumber: 2, rows: [third] },
+  ]);
+
+  assert.deepEqual(flattened.rows, [first, second, third]);
+  assert.deepEqual(flattened.sourceLocations, [
+    "section 1",
+    "section 1 listing 2",
+    "section 2",
+  ]);
 });
 
 test(
