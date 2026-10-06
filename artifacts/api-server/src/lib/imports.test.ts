@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { after, mock, test } from "node:test";
 import { and, eq, inArray } from "drizzle-orm";
+import { parseAiJsonResponse } from "./ai-import";
 import { flattenPdfPageRows } from "./pdf-import";
 
 const testDatabaseUrl = process.env.TEST_DATABASE_URL;
@@ -14,6 +15,34 @@ let databasePool: { end: () => Promise<void> } | null = null;
 
 after(async () => {
   await databasePool?.end();
+});
+
+test("parses AI JSON with code fences or surrounding prose", () => {
+  assert.deepEqual(
+    parseAiJsonResponse('```json\n{"records":[{"reference":"A-101"}]}\n```', "PDF page 1 extraction"),
+    { records: [{ reference: "A-101" }] },
+  );
+  assert.deepEqual(
+    parseAiJsonResponse(
+      'Result:\n{"records":[{"reference":"A-102"}]}\nDone.',
+      "PDF page 2 extraction",
+    ),
+    { records: [{ reference: "A-102" }] },
+  );
+  assert.deepEqual(
+    parseAiJsonResponse('[{"reference":"A-103"}]', "PDF page 3 extraction"),
+    { records: [{ reference: "A-103" }] },
+  );
+});
+
+test("reports incomplete AI JSON without exposing response contents", () => {
+  assert.throws(
+    () => parseAiJsonResponse(
+      '{"records":[{"address":"private example',
+      "PDF page 4 extraction",
+    ),
+    /PDF page 4 extraction returned incomplete or invalid JSON/,
+  );
 });
 
 test("keeps every PDF listing and stable page locations for safe reprocessing", () => {

@@ -24,6 +24,7 @@ import { jsonify, logAudit } from "../lib/helpers";
 import { logger } from "../lib/logger";
 import { matchPropertyToAlerts } from "../lib/property-alerts";
 import { flattenPdfPageRows } from "../lib/pdf-import";
+import { parseAiJsonResponse } from "../lib/ai-import";
 
 const router: IRouter = Router();
 const IMPORT_EXTENSIONS = new Set([".xlsx", ".xls", ".csv", ".pdf", ".docx", ".txt", ".jpg", ".jpeg", ".png"]);
@@ -144,20 +145,6 @@ function labelledTextToRow(text: string): LooseRecord[] {
     return Object.keys(row).length ? row : { description: block };
   });
   return records.length ? records : [{ description: text }];
-}
-
-function parseJsonResponse(raw: string): LooseRecord {
-  const withoutFence = raw.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "");
-  try {
-    return JSON.parse(withoutFence) as LooseRecord;
-  } catch {
-    const start = withoutFence.indexOf("{");
-    const end = withoutFence.lastIndexOf("}");
-    if (start >= 0 && end > start) {
-      try { return JSON.parse(withoutFence.slice(start, end + 1)) as LooseRecord; } catch { /* handled below */ }
-    }
-    throw new Error("Vision extraction returned invalid JSON.");
-  }
 }
 
 function confidenceValue(value: unknown, fallback = 0): number {
@@ -346,7 +333,7 @@ Rules:
       maxOutputTokens: 8192,
     },
   }), 3);
-  const parsed = parseJsonResponse(response.text?.trim() ?? "");
+  const parsed = parseAiJsonResponse(response.text ?? "", "Image extraction");
   const normalised = normaliseAiRows(parsed);
   return {
     ...normalised,
@@ -421,44 +408,18 @@ async function extractRows(fileName: string, bytes: Buffer): Promise<ExtractionR
           contents: [{
             role: "user",
             parts: [{
-              text: `Extract every distinct real-estate property listing from this single PDF page. A page may contain multiple listings in cards, columns, or table rows; do not treat the whole page as one property and do not stop after a sample. Return one record per distinct listing. Ignore page headers, footers, agency-wide contact details, and disclaimers unless they are clearly attached to a specific listing. Never invent missing values.
+            text: `Extract every distinct property listing from this single PDF page, including listings in cards, columns, or tables. Return one record per listing; never stop after a sample. Ignore page-wide headers, footers, and disclaimers. Never invent values.
 
-Return raw JSON only:
-{
-  "records": [
-    {
-      "fields": {
-        "title": "string or null",
-        "reference": "string or null",
-        "address": "string or null",
-        "suburb": "string or null",
-        "city": "string or null",
-        "price": "number or null",
-        "currency": "string or null",
-        "propertyType": "string or null",
-        "bedrooms": "number or null",
-        "bathrooms": "number or null",
-        "description": "string or null",
-        "agent": "string or null",
-        "agency": "string or null",
-        "mandateType": "string or null",
-        "mandateStart": "string or null",
-        "mandateExpiry": "string or null",
-        "availability": "string or null",
-        "contactName": "string or null",
-        "contactPhone": "string or null",
-        "contactEmail": "string or null",
-        "photos": [],
-        "listingUrl": "string or null"
-      },
-      "fieldConfidence": { "fieldName": 0 },
-      "fieldEvidence": { "fieldName": "short text visible on this page" },
-      "reviewFlags": []
-    }
-  ]
-}
+Return compact JSON only, with this shape:
+{"records":[{"fields":{"reference":"...","address":"...","price":123,"bedrooms":3},"fieldConfidence":{"reference":95,"address":90,"price":85,"bedrooms":90}}]}
 
-Use confidence scores from 0 to 100. Include a record even if only a reference, address, or price is legible. If the page has no property listings, return an empty records array.
+Rules:
+- Include every distinct listing, even if only one field is legible.
+- Include only fields with readable values; omit absent fields and do not output nulls.
+- Supported fields: title, reference, address, suburb, city, price, currency, propertyType, bedrooms, bathrooms, description, agent, agency, mandateType, mandateStart, mandateExpiry, availability, contactName, contactPhone, contactEmail, listingUrl.
+- Keep descriptions to at most 20 words. Do not return photos, field evidence, review flags, or bounding boxes.
+- Give each included field a confidence score from 0 to 100.
+- If the page has no property listings, return {"records":[]}.
 
 PDF page ${page.pageNumber} text:
 ${page.text}`,
@@ -469,7 +430,7 @@ ${page.text}`,
             maxOutputTokens: 8192,
           },
         });
-        const parsed = parseJsonResponse(response.text?.trim() ?? "");
+        const parsed = parseAiJsonResponse(response.text ?? "", `PDF page ${page.pageNumber} extraction`);
         return normaliseAiRows(parsed, {
           method: "gemini-pdf-text",
           evidenceFallback: `Value read from PDF page ${page.pageNumber}.`,
