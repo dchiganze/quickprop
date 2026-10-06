@@ -33,7 +33,54 @@ import { cn } from '@/lib/utils';
 type RouteProps = { params?: { id?: string } };
 type DraftData = Record<string, unknown>;
 type VisionFieldSource = { confidence?: number; evidence?: string; method?: string };
-const mappingFields = ['title', 'reference', 'address', 'suburb', 'city', 'price', 'currency', 'propertyType', 'bedrooms', 'bathrooms', 'description', 'agent', 'mandateType', 'mandateStart', 'mandateExpiry'] as const;
+type ColumnMappingRow = { sourceColumn: string; targetField: string };
+const IGNORE_MAPPING_FIELD = '__ignore__';
+const mappingFields = [
+  { value: 'title', label: 'Title' },
+  { value: 'reference', label: 'Reference' },
+  { value: 'address', label: 'Address' },
+  { value: 'suburb', label: 'Suburb' },
+  { value: 'city', label: 'City' },
+  { value: 'price', label: 'Price' },
+  { value: 'currency', label: 'Currency' },
+  { value: 'propertyType', label: 'Property type' },
+  { value: 'bedrooms', label: 'Bedrooms' },
+  { value: 'bathrooms', label: 'Bathrooms' },
+  { value: 'description', label: 'Description' },
+  { value: 'agent', label: 'Agent' },
+  { value: 'agency', label: 'Agency' },
+  { value: 'mandateType', label: 'Mandate type' },
+  { value: 'mandateStart', label: 'Mandate start' },
+  { value: 'mandateExpiry', label: 'Mandate expiry' },
+  { value: 'availability', label: 'Availability' },
+  { value: 'contactName', label: 'Contact name' },
+  { value: 'contactPhone', label: 'Contact phone' },
+  { value: 'contactEmail', label: 'Contact email' },
+  { value: 'photos', label: 'Photos' },
+  { value: 'listingUrl', label: 'Listing URL' },
+] as const;
+const defaultMappingRows: ColumnMappingRow[] = [
+  { sourceColumn: 'No.', targetField: IGNORE_MAPPING_FIELD },
+  { sourceColumn: 'Property', targetField: 'title' },
+  { sourceColumn: 'Details', targetField: 'description' },
+  { sourceColumn: 'Price', targetField: 'price' },
+  { sourceColumn: 'Agent', targetField: 'agent' },
+];
+
+function mappingRowsFromSaved(mapping: Record<string, string> | null | undefined): ColumnMappingRow[] {
+  const rows = Object.entries(mapping ?? {})
+    .filter(([targetField, sourceColumn]) =>
+      mappingFields.some((field) => field.value === targetField) && sourceColumn.trim().length > 0
+    )
+    .map(([targetField, sourceColumn]) => ({ sourceColumn, targetField }));
+  return rows.length ? rows : defaultMappingRows.map((row) => ({ ...row }));
+}
+
+function mappingObjectFromRows(rows: ColumnMappingRow[]): Record<string, string> {
+  return Object.fromEntries(rows
+    .filter((row) => row.targetField !== IGNORE_MAPPING_FIELD && row.sourceColumn.trim())
+    .map((row) => [row.targetField, row.sourceColumn.trim()]));
+}
 
 const toRecord = (value: unknown): DraftData => (
   value && typeof value === 'object' && !Array.isArray(value) ? value as DraftData : {}
@@ -82,6 +129,148 @@ function ImportHeader({ eyebrow, title, description, children }: { eyebrow: stri
         </div>
         {children}
       </div>
+    </div>
+  );
+}
+
+function ColumnMappingReview({
+  reference,
+  fileNames,
+  rows,
+  confirmed,
+  pending,
+  error,
+  onRowsChange,
+  onConfirmedChange,
+  onCancel,
+  onStart,
+}: {
+  reference: string;
+  fileNames: string[];
+  rows: ColumnMappingRow[];
+  confirmed: boolean;
+  pending: boolean;
+  error: string;
+  onRowsChange: (rows: ColumnMappingRow[]) => void;
+  onConfirmedChange: (confirmed: boolean) => void;
+  onCancel: () => void;
+  onStart: () => void;
+}) {
+  const updateRow = (index: number, update: Partial<ColumnMappingRow>) => {
+    onRowsChange(rows.map((row, rowIndex) => rowIndex === index ? { ...row, ...update } : row));
+    onConfirmedChange(false);
+  };
+  const mappedTargets = rows
+    .filter((row) => row.sourceColumn.trim() && row.targetField !== IGNORE_MAPPING_FIELD)
+    .map((row) => row.targetField);
+  const duplicateTargets = [...new Set(mappedTargets.filter((field, index) => mappedTargets.indexOf(field) !== index))];
+  const hasMappings = mappedTargets.length > 0;
+
+  return (
+    <div className="min-h-full bg-background">
+      <ImportHeader
+        eyebrow="Operations / Data intake"
+        title="Map source columns"
+        description="Match each heading in the uploaded file to a QuickProp field. Nothing will be processed until you confirm."
+      >
+        <Button variant="outline" onClick={onCancel} className="gap-2"><ArrowLeft className="h-4 w-4" /> Back to import</Button>
+      </ImportHeader>
+      <main className="mx-auto max-w-5xl space-y-5 p-5 md:p-8">
+        <Card className="border-border/80 shadow-sm">
+          <CardHeader className="border-b bg-card px-5 py-4">
+            <CardTitle className="text-base">Review the column matches</CardTitle>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Suggested from the headings you shared. In particular, <strong>Property → Title</strong>. Check every source name against the uploaded file before continuing.
+            </p>
+            <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-muted-foreground">
+              <span className="font-mono font-semibold text-foreground">{reference}</span>
+              {fileNames.map((fileName) => <Badge key={fileName} variant="secondary">{fileName}</Badge>)}
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4 p-5">
+            <div className="hidden grid-cols-[minmax(0,1fr)_32px_minmax(0,1fr)_36px] gap-3 px-1 text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground sm:grid">
+              <span>Source heading</span><span /><span>QuickProp field</span><span />
+            </div>
+            <div className="space-y-3">
+              {rows.map((row, index) => (
+                <div key={index} className="grid grid-cols-1 items-center gap-2 rounded-md border bg-card p-3 sm:grid-cols-[minmax(0,1fr)_32px_minmax(0,1fr)_36px] sm:gap-3">
+                  <div className="space-y-1">
+                    <Label htmlFor={`source-column-${index}`} className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground sm:hidden">Source heading</Label>
+                    <Input
+                      id={`source-column-${index}`}
+                      value={row.sourceColumn}
+                      onChange={(event) => updateRow(index, { sourceColumn: event.target.value })}
+                      placeholder="e.g. Property"
+                      maxLength={120}
+                      aria-label={`Source heading for mapping ${index + 1}`}
+                    />
+                  </div>
+                  <span className="hidden text-center text-lg text-muted-foreground sm:block" aria-hidden="true">→</span>
+                  <div className="space-y-1">
+                    <Label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground sm:hidden">QuickProp field</Label>
+                    <Select value={row.targetField || IGNORE_MAPPING_FIELD} onValueChange={(targetField) => updateRow(index, { targetField })}>
+                      <SelectTrigger aria-label={`QuickProp target for mapping ${index + 1}`}><SelectValue placeholder="Choose a field" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={IGNORE_MAPPING_FIELD}>Do not import</SelectItem>
+                        {mappingFields.map((field) => (
+                          <SelectItem
+                            key={field.value}
+                            value={field.value}
+                            disabled={rows.some((other, otherIndex) => otherIndex !== index && other.targetField === field.value)}
+                          >
+                            {field.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    aria-label={`Remove mapping ${index + 1}`}
+                    onClick={() => {
+                      onRowsChange(rows.filter((_, rowIndex) => rowIndex !== index));
+                      onConfirmedChange(false);
+                    }}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                onRowsChange([...rows, { sourceColumn: '', targetField: IGNORE_MAPPING_FIELD }]);
+                onConfirmedChange(false);
+              }}
+            >
+              Add another column
+            </Button>
+            {duplicateTargets.length > 0 && <Alert variant="destructive"><AlertCircle className="h-4 w-4" /><AlertTitle>Choose each QuickProp field once</AlertTitle><AlertDescription>These targets are mapped more than once: {duplicateTargets.map((target) => mappingFields.find((field) => field.value === target)?.label ?? target).join(', ')}.</AlertDescription></Alert>}
+            {!hasMappings && <p className="text-xs text-amber-800">Map at least one source heading before processing.</p>}
+            {error && <Alert variant="destructive"><AlertCircle className="h-4 w-4" /><AlertTitle>Could not start processing</AlertTitle><AlertDescription>{error}</AlertDescription></Alert>}
+            <div className="rounded-md border border-primary/15 bg-primary/[0.035] p-4">
+              <div className="flex items-start gap-3">
+                <Checkbox id="confirm-column-mapping" checked={confirmed} onCheckedChange={(value) => onConfirmedChange(value === true)} className="mt-0.5" />
+                <Label htmlFor="confirm-column-mapping" className="cursor-pointer text-sm leading-relaxed">
+                  I reviewed these column matches and confirm QuickProp should process the uploaded source using them.
+                </Label>
+              </div>
+              <div className="mt-4 flex flex-col-reverse justify-end gap-2 sm:flex-row">
+                <Button type="button" variant="outline" onClick={onCancel}>Cancel</Button>
+                <Button type="button" onClick={onStart} disabled={!confirmed || !hasMappings || duplicateTargets.length > 0 || pending} className="gap-2">
+                  {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
+                  Confirm mappings and process
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </main>
     </div>
   );
 }
@@ -328,7 +517,10 @@ function ImportDetail({ id }: { id: number }) {
   const [actionBusy, setActionBusy] = useState(false);
   const [publishError, setPublishError] = useState('');
   const [mappingOpen, setMappingOpen] = useState(false);
-  const [columnMapping, setColumnMapping] = useState<Record<string, string>>({});
+  const [mappingRows, setMappingRows] = useState<ColumnMappingRow[]>(() => defaultMappingRows.map((row) => ({ ...row })));
+  const [mappingConfirmed, setMappingConfirmed] = useState(false);
+  const [mappingError, setMappingError] = useState('');
+  const mappingInitializedFor = useRef<number | null>(null);
   const { data: detail, isLoading, error, refetch } = useGetImportSession(id, { query: { queryKey: getGetImportSessionQueryKey(id), refetchInterval: (query) => isProcessing(query.state.data) ? 1800 : false } });
   const processSession = useProcessImportSession();
   const updateRecord = useUpdateImportRecord();
@@ -344,8 +536,10 @@ function ImportDetail({ id }: { id: number }) {
   }, [detail?.records]);
 
   useEffect(() => {
-    if (detail?.columnMapping) setColumnMapping(detail.columnMapping);
-  }, [detail?.columnMapping]);
+    if (!detail || mappingInitializedFor.current === detail.id) return;
+    mappingInitializedFor.current = detail.id;
+    setMappingRows(mappingRowsFromSaved(detail.columnMapping));
+  }, [detail?.id, detail?.columnMapping]);
 
   const records = useMemo(() => {
     const result = (detail?.records || []).filter((record) => {
@@ -383,9 +577,33 @@ function ImportDetail({ id }: { id: number }) {
     } catch { toast({ title: 'Bulk action failed', description: 'No records were changed. Check the session and retry.', variant: 'destructive' }); }
     finally { setActionBusy(false); }
   };
-  const startProcessing = async () => {
-    try { await processSession.mutateAsync({ id, data: { columnMapping } }); setMappingOpen(false); queryClient.invalidateQueries({ queryKey: getListImportSessionsQueryKey() }); await refetch(); toast({ title: 'Processing started', description: 'Text, spreadsheet and image vision extraction are running in the background.' }); }
-    catch { toast({ title: 'Processing failed to start', description: 'The source files were not processed. Nothing was published.', variant: 'destructive' }); }
+  const openMappingReview = () => {
+    if (detail && mappingInitializedFor.current !== detail.id) {
+      mappingInitializedFor.current = detail.id;
+      setMappingRows(mappingRowsFromSaved(detail.columnMapping));
+    }
+    setMappingError('');
+    setMappingConfirmed(false);
+    setMappingOpen(true);
+  };
+  const confirmMappingAndProcess = async () => {
+    if (!mappingConfirmed) return;
+    const columnMapping = mappingObjectFromRows(mappingRows);
+    if (!Object.keys(columnMapping).length) {
+      setMappingError('Map at least one source heading before processing.');
+      return;
+    }
+    try {
+      await processSession.mutateAsync({ id, data: { columnMapping } });
+      setMappingOpen(false);
+      setMappingError('');
+      queryClient.invalidateQueries({ queryKey: getListImportSessionsQueryKey() });
+      await refetch();
+      toast({ title: 'Processing started', description: 'Your confirmed mappings are being used. Extracted records remain drafts for review.' });
+    } catch {
+      setMappingError('The source files were not processed. Nothing was published. Check your connection and try again.');
+      toast({ title: 'Processing failed to start', description: 'The source files were not processed. Nothing was published.', variant: 'destructive' });
+    }
   };
   const publish = async () => {
     const approved = (detail?.records || []).filter((record) => record.reviewStatus === 'approved').map((record) => record.id);
@@ -409,6 +627,20 @@ function ImportDetail({ id }: { id: number }) {
 
   if (isLoading) return <div className="space-y-5 p-8"><Skeleton className="h-28 w-full" /><Skeleton className="h-16 w-full" /><Skeleton className="h-72 w-full" /></div>;
   if (error || !detail) return <div className="p-8"><Alert variant="destructive"><AlertCircle className="h-4 w-4" /><AlertTitle>Import session unavailable</AlertTitle><AlertDescription className="flex items-center justify-between">This session could not be loaded. <Button variant="outline" onClick={() => refetch()}>Retry</Button></AlertDescription></Alert></div>;
+  if (mappingOpen) return (
+    <ColumnMappingReview
+      reference={detail.reference}
+      fileNames={detail.files.map((file) => file.fileName)}
+      rows={mappingRows}
+      confirmed={mappingConfirmed}
+      pending={processSession.isPending}
+      error={mappingError}
+      onRowsChange={(rows) => { setMappingRows(rows); setMappingConfirmed(false); setMappingError(''); }}
+      onConfirmedChange={setMappingConfirmed}
+      onCancel={() => { setMappingOpen(false); setMappingError(''); }}
+      onStart={confirmMappingAndProcess}
+    />
+  );
 
   const approvedCount = detail.records.filter((record) => record.reviewStatus === 'approved').length;
   const failedSourceCount = detail.files.filter((file) => file.processingStatus === 'failed').length;
@@ -419,9 +651,9 @@ function ImportDetail({ id }: { id: number }) {
         <div className="mx-auto flex max-w-[1740px] items-center gap-4">
           <Button variant="ghost" size="icon" onClick={() => setLocation('/imports')} aria-label="Back to imports"><ArrowLeft className="h-4 w-4" /></Button>
           <div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><span className="font-mono text-sm font-bold">{detail.reference}</span><StatusPill value={detail.status} />{processing && <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary"><Loader2 className="h-3.5 w-3.5 animate-spin" /> {titleCase(detail.currentStage || 'processing')}</span>}</div><p className="mt-1 text-xs text-muted-foreground">{detail.totalFiles} sources · last updated {formatDate(detail.updatedAt)} · AI suggestions are draft only</p></div>
-          <Button variant="outline" size="sm" onClick={() => setMappingOpen(true)} className="hidden gap-2 sm:flex"><SlidersHorizontal className="h-3.5 w-3.5" /> Column mapping</Button>
+          <Button variant="outline" size="sm" onClick={openMappingReview} disabled={processing || processSession.isPending} className="hidden gap-2 sm:flex"><SlidersHorizontal className="h-3.5 w-3.5" /> Column mapping</Button>
           <Button variant="outline" size="sm" onClick={downloadErrors} className="hidden gap-2 sm:flex"><Download className="h-3.5 w-3.5" /> Error report</Button>
-          {processing ? <Button size="sm" variant="outline" onClick={() => refetch()} className="gap-2"><RefreshCw className="h-3.5 w-3.5" /> Poll now</Button> : <Button size="sm" onClick={startProcessing} disabled={processSession.isPending || detail.status === 'published'} className="gap-2">{processSession.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : failedSourceCount ? <RefreshCw className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}{failedSourceCount ? `Retry ${failedSourceCount} failed source${failedSourceCount === 1 ? '' : 's'}` : detail.totalRecords ? 'Re-run processing' : 'Process sources'}</Button>}
+          {processing ? <Button size="sm" variant="outline" onClick={() => refetch()} className="gap-2"><RefreshCw className="h-3.5 w-3.5" /> Poll now</Button> : <Button size="sm" onClick={openMappingReview} disabled={processSession.isPending || detail.status === 'published'} className="gap-2">{processSession.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : failedSourceCount ? <RefreshCw className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}{failedSourceCount ? `Retry ${failedSourceCount} failed source${failedSourceCount === 1 ? '' : 's'}` : detail.totalRecords ? 'Re-run processing' : 'Process sources'}</Button>}
         </div>
           <div className="mt-4 flex items-center gap-3 rounded border border-primary/15 bg-primary/[0.035] px-3 py-2.5">
            <div className="min-w-0 flex-1">
@@ -463,26 +695,6 @@ function ImportDetail({ id }: { id: number }) {
           <Button variant="outline" onClick={downloadErrors} className="w-full gap-2 sm:hidden"><Download className="h-3.5 w-3.5" /> Download error report</Button>
         </aside>
       </div>
-      <Dialog open={mappingOpen} onOpenChange={setMappingOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Column mapping</DialogTitle>
-            <p className="text-sm text-muted-foreground">Enter the exact source heading for any field that QuickProp did not recognise. Reprocessing updates extraction while preserving human corrections.</p>
-          </DialogHeader>
-          <div className="grid max-h-[55vh] grid-cols-1 gap-x-5 gap-y-3 overflow-y-auto py-2 sm:grid-cols-2">
-            {mappingFields.map((field) => (
-              <div key={field} className="space-y-1.5">
-                <Label htmlFor={`mapping-${field}`} className="text-xs">{titleCase(field)}</Label>
-                <Input id={`mapping-${field}`} value={columnMapping[field] || ''} onChange={(event) => setColumnMapping((current) => ({ ...current, [field]: event.target.value }))} placeholder="Source column heading" />
-              </div>
-            ))}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setMappingOpen(false)}>Cancel</Button>
-            <Button onClick={startProcessing} disabled={processSession.isPending}>{processSession.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Save mapping and process</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

@@ -9,6 +9,12 @@ Bulk imports must preserve the original source in private object storage, keep e
 
 **How to apply:** Keep source ownership checks, correction history, provenance, and human publish/link decisions in any future import changes.
 
+Import processing must wait for the Office user to review and explicitly confirm source-column mappings. Preserve the confirmed mapping on retries.
+
+**Why:** The user requires the source "Property" column to map to QuickProp "Title" and processing to wait for confirmation.
+
+**How to apply:** Route initial runs and retries through the mapping review; do not call the process endpoint until the user confirms.
+
 The pdf-parse package entrypoint can execute its bundled fixture when loaded from the server's ESM bundle; use a Node-safe implementation import or another parser that does not initialize browser canvas globals during API startup.
 
 **Why:** A parser startup side effect prevented the API from listening even when no PDF was being processed.
