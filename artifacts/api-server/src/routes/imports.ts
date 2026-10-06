@@ -19,7 +19,12 @@ import {
 } from "@workspace/db";
 import { currentUser } from "./auth";
 import { getPrivateObjectDownloadUrl } from "./storage";
-import { findDuplicateCandidates, normalizeText } from "../lib/multi-agent";
+import {
+  findDuplicateCandidatesInProperties,
+  loadDuplicateProperties,
+  normalizeText,
+  type DuplicateProperty,
+} from "../lib/multi-agent";
 import { jsonify, logAudit } from "../lib/helpers";
 import { logger } from "../lib/logger";
 import { matchPropertyToAlerts } from "../lib/property-alerts";
@@ -700,6 +705,16 @@ async function processSession(
       }
       try {
         const { rows, sourceType } = extraction;
+        let duplicateProperties: DuplicateProperty[] | null = null;
+        try {
+          duplicateProperties = await loadDuplicateProperties(agencyId);
+        } catch (error) {
+          logger.error({
+            err: error,
+            sessionId,
+            sourceFileId: file.id,
+          }, "Could not load agency properties for import duplicate checks");
+        }
         await db.transaction(async (tx) => {
           const existingRows = await tx.select().from(importRecordsTable).where(eq(importRecordsTable.sourceFileId, file.id));
           const replaceableImageRows = sourceType === "image"
@@ -773,32 +788,36 @@ async function processSession(
             let duplicateMatch: LooseRecord | null = null;
             let changeSummary: string[] = [];
             if (data.address || data.suburb || data.price) {
-              const candidates = await findDuplicateCandidates({
-                address: asText(data.address),
-                suburb: asText(data.suburb),
-                city: asText(data.city),
-                propertyType: asText(data.propertyType),
-                bedrooms: numberValue(data.bedrooms),
-                bathrooms: numberValue(data.bathrooms),
-                price: numberValue(data.price),
-                description: asText(data.description),
-              });
-              const scoped = candidates.filter((candidate) => candidate.property.branchId === agencyId);
-              const match = scoped[0];
-              if (match && match.confidenceScore >= 70) {
+              if (!duplicateProperties) {
                 duplicateStatus = "possible";
-                matchedPropertyId = match.property.id;
-                duplicateMatch = {
-                  id: match.property.id,
-                  reference: match.property.reference,
-                  title: match.property.title,
-                  address: match.property.address,
-                  confidenceScore: match.confidenceScore,
-                  matchingFields: match.matchingFields,
-                };
-                changeSummary = [
-                  "price", "currency", "description", "bedrooms", "bathrooms", "mandateExpiry", "availability",
-                ].filter((field) => data[field] != null && asText(data[field]) !== asText((match.property as LooseRecord)[field]));
+                reviewFlags.push("Duplicate check unavailable; manually review before approval.");
+              } else {
+                const candidates = findDuplicateCandidatesInProperties({
+                  address: asText(data.address),
+                  suburb: asText(data.suburb),
+                  city: asText(data.city),
+                  propertyType: asText(data.propertyType),
+                  bedrooms: numberValue(data.bedrooms),
+                  bathrooms: numberValue(data.bathrooms),
+                  price: numberValue(data.price),
+                  description: asText(data.description),
+                }, duplicateProperties);
+                const match = candidates[0];
+                if (match && match.confidenceScore >= 70) {
+                  duplicateStatus = "possible";
+                  matchedPropertyId = match.property.id;
+                  duplicateMatch = {
+                    id: match.property.id,
+                    reference: match.property.reference,
+                    title: match.property.title,
+                    address: match.property.address,
+                    confidenceScore: match.confidenceScore,
+                    matchingFields: match.matchingFields,
+                  };
+                  changeSummary = [
+                    "price", "currency", "description", "bedrooms", "bathrooms", "mandateExpiry", "availability",
+                  ].filter((field) => data[field] != null && asText(data[field]) !== asText((match.property as LooseRecord)[field]));
+                }
               }
             }
             const mandateStatus = mandateState(data.mandateExpiry);
@@ -929,7 +948,6 @@ async function claimRecoverySession(sessionId: number, agencyId: number) {
     eq(importSessionsTable.status, "processing"),
     or(
       isNull(importSessionsTable.processingWorkerId),
-      ne(importSessionsTable.processingWorkerId, IMPORT_WORKER_ID),
       isNull(importSessionsTable.processingLeaseUntil),
       lt(importSessionsTable.processingLeaseUntil, now),
     ),

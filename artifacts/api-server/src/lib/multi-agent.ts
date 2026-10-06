@@ -26,8 +26,33 @@ export type DuplicateInput = {
   photos?: string[] | null;
 };
 
+export type DuplicateProperty = Pick<
+  typeof propertiesTable.$inferSelect,
+  | "id"
+  | "reference"
+  | "title"
+  | "address"
+  | "suburb"
+  | "city"
+  | "propertyType"
+  | "bedrooms"
+  | "bathrooms"
+  | "landSize"
+  | "buildingSize"
+  | "price"
+  | "currency"
+  | "description"
+  | "latitude"
+  | "longitude"
+  | "photos"
+  | "status"
+  | "duplicateStatus"
+  | "branchId"
+  | "updatedAt"
+>;
+
 export type DuplicateMatch = {
-  property: typeof propertiesTable.$inferSelect;
+  property: DuplicateProperty;
   confidenceScore: number;
   matchingFields: string[];
   imageMatches: string[];
@@ -141,7 +166,7 @@ export function scoreDuplicate(input: DuplicateInput, candidate: DuplicateInput)
   };
 }
 
-function rowInput(row: typeof propertiesTable.$inferSelect): DuplicateInput {
+function rowInput(row: DuplicateProperty): DuplicateInput {
   return {
     address: row.address,
     suburb: row.suburb,
@@ -159,8 +184,44 @@ function rowInput(row: typeof propertiesTable.$inferSelect): DuplicateInput {
   };
 }
 
-export async function findDuplicateCandidates(input: DuplicateInput, excludePropertyId?: number): Promise<DuplicateMatch[]> {
-  const rows = await db.select().from(propertiesTable);
+const duplicatePropertySelection = {
+  id: propertiesTable.id,
+  reference: propertiesTable.reference,
+  title: propertiesTable.title,
+  address: propertiesTable.address,
+  suburb: propertiesTable.suburb,
+  city: propertiesTable.city,
+  propertyType: propertiesTable.propertyType,
+  bedrooms: propertiesTable.bedrooms,
+  bathrooms: propertiesTable.bathrooms,
+  landSize: propertiesTable.landSize,
+  buildingSize: propertiesTable.buildingSize,
+  price: propertiesTable.price,
+  currency: propertiesTable.currency,
+  description: propertiesTable.description,
+  latitude: propertiesTable.latitude,
+  longitude: propertiesTable.longitude,
+  photos: propertiesTable.photos,
+  status: propertiesTable.status,
+  duplicateStatus: propertiesTable.duplicateStatus,
+  branchId: propertiesTable.branchId,
+  updatedAt: propertiesTable.updatedAt,
+};
+
+export async function loadDuplicateProperties(branchId?: number): Promise<DuplicateProperty[]> {
+  if (branchId === undefined) {
+    return db.select(duplicatePropertySelection).from(propertiesTable);
+  }
+  return db.select(duplicatePropertySelection)
+    .from(propertiesTable)
+    .where(eq(propertiesTable.branchId, branchId));
+}
+
+export function findDuplicateCandidatesInProperties(
+  input: DuplicateInput,
+  rows: DuplicateProperty[],
+  excludePropertyId?: number,
+): DuplicateMatch[] {
   const activeRows = rows.filter((row) =>
     row.id !== excludePropertyId &&
     !["archived", "withdrawn", "sold", "rented"].includes(row.status) &&
@@ -171,14 +232,26 @@ export async function findDuplicateCandidates(input: DuplicateInput, excludeProp
     ...scoreDuplicate(input, rowInput(property)),
     agencyName: null as string | null,
   })).filter((match) => match.confidenceScore >= 50);
+  return scored.sort((a, b) => b.confidenceScore - a.confidenceScore).slice(0, 5);
+}
 
-  const branchIds = [...new Set(scored.map((match) => match.property.branchId).filter((id): id is number => id != null))];
+export async function findDuplicateCandidates(
+  input: DuplicateInput,
+  excludePropertyId?: number,
+): Promise<DuplicateMatch[]> {
+  const matches = findDuplicateCandidatesInProperties(
+    input,
+    await loadDuplicateProperties(),
+    excludePropertyId,
+  );
+
+  const branchIds = [...new Set(matches.map((match) => match.property.branchId).filter((id): id is number => id != null))];
   if (branchIds.length > 0) {
     const branches = await db.select().from(branchesTable).where(inArray(branchesTable.id, branchIds));
     const branchNames = new Map(branches.map((branch) => [branch.id, branch.name]));
-    for (const match of scored) match.agencyName = match.property.branchId ? branchNames.get(match.property.branchId) ?? null : null;
+    for (const match of matches) match.agencyName = match.property.branchId ? branchNames.get(match.property.branchId) ?? null : null;
   }
-  return scored.sort((a, b) => b.confidenceScore - a.confidenceScore).slice(0, 5);
+  return matches;
 }
 
 export async function canonicalPropertyId(propertyId: number): Promise<number> {

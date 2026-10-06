@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { after, mock, test } from "node:test";
 import { and, eq, inArray } from "drizzle-orm";
 import { parseAiJsonResponse } from "./ai-import";
+import { findDuplicateCandidatesInProperties, type DuplicateProperty } from "./multi-agent";
 import { flattenPdfPageRows } from "./pdf-import";
 
 const testDatabaseUrl = process.env.TEST_DATABASE_URL;
@@ -60,6 +61,43 @@ test("keeps every PDF listing and stable page locations for safe reprocessing", 
     "section 1 listing 2",
     "section 2",
   ]);
+});
+
+test("matches imported candidates against a preloaded property set", () => {
+  const property: DuplicateProperty = {
+    id: 15,
+    reference: "QP-0015",
+    title: "Three-bedroom home",
+    address: "15 Main Road",
+    suburb: "Avondale",
+    city: "Harare",
+    propertyType: "house",
+    bedrooms: 3,
+    bathrooms: 2,
+    landSize: null,
+    buildingSize: null,
+    price: 180000,
+    currency: "USD",
+    description: null,
+    latitude: null,
+    longitude: null,
+    photos: [],
+    status: "active",
+    duplicateStatus: "clear",
+    branchId: 4,
+    updatedAt: new Date("2026-10-01T00:00:00.000Z"),
+  };
+  const matches = findDuplicateCandidatesInProperties({
+    address: "15 Main Road",
+    suburb: "Avondale",
+    city: "Harare",
+    propertyType: "house",
+    bedrooms: 3,
+    bathrooms: 2,
+    price: 180000,
+  }, [property]);
+
+  assert.equal(matches[0]?.property.id, property.id);
 });
 
 test(
