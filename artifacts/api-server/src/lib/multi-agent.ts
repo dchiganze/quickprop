@@ -217,6 +217,31 @@ export async function loadDuplicateProperties(branchId?: number): Promise<Duplic
     .where(eq(propertiesTable.branchId, branchId));
 }
 
+function exactImportTitleKey(value: string | null | undefined): string {
+  return (value ?? "")
+    .normalize("NFKC")
+    .trim()
+    .replace(/\s+/g, " ")
+    .toLowerCase();
+}
+
+export function findImportTitlePriceDuplicate(
+  title: string | null | undefined,
+  price: number | null | undefined,
+  rows: DuplicateProperty[],
+): DuplicateProperty | null {
+  const titleKey = exactImportTitleKey(title);
+  if (!titleKey || price == null || !Number.isFinite(price)) return null;
+
+  return rows.find((row) =>
+    !["archived", "withdrawn", "sold", "rented"].includes(row.status) &&
+    row.duplicateStatus !== "keep_separate" &&
+    row.price != null &&
+    Number(row.price) === price &&
+    exactImportTitleKey(row.title) === titleKey
+  ) ?? null;
+}
+
 export function findDuplicateCandidatesInProperties(
   input: DuplicateInput,
   rows: DuplicateProperty[],

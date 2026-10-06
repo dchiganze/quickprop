@@ -20,11 +20,12 @@ import {
 import { currentUser } from "./auth";
 import { getPrivateObjectDownloadUrl } from "./storage";
 import {
-  findDuplicateCandidatesInProperties,
+  findImportTitlePriceDuplicate,
   loadDuplicateProperties,
   normalizeText,
   type DuplicateProperty,
 } from "../lib/multi-agent";
+import { findImportTitleValue } from "../lib/import-title";
 import { jsonify, logAudit } from "../lib/helpers";
 import { logger } from "../lib/logger";
 import { matchPropertyToAlerts } from "../lib/property-alerts";
@@ -135,6 +136,7 @@ function columnMappingInstructions(mapping: Record<string, string>): string {
 }
 
 function findSourceValue(row: LooseRecord, field: ImportField, mapping: Record<string, string>): unknown {
+  if (field === "title") return findImportTitleValue(row, mapping[field]);
   const explicitlyMapped = mapping[field];
   if (explicitlyMapped && explicitlyMapped in row) return row[explicitlyMapped];
   if (field in row) return row[field];
@@ -184,6 +186,7 @@ function normaliseAiRows(
     evidenceFallback?: string;
     confidenceLabel?: string;
     allowEmpty?: boolean;
+    mapping?: Record<string, string>;
   } = {},
 ): {
   rows: LooseRecord[];
@@ -223,7 +226,7 @@ function normaliseAiRows(
     const sources: Record<string, AiFieldSource> = {};
 
     for (const field of IMPORT_FIELDS) {
-      const value = rawFields[field];
+      const value = findSourceValue(rawFields, field, options.mapping ?? {});
       if (value == null || asText(value) === "") continue;
       row[field] = value;
       const score = confidenceValue(rawConfidence[field], 55);
@@ -349,6 +352,7 @@ Return raw JSON only in this shape:
 Rules:
 - Follow these confirmed source-heading mappings when the headings appear in the image:
 ${columnMappingInstructions(mapping) || "- No manual column mappings were provided."}
+- Always fill "title" from readable property/listing-name text. If the source has a "Property" column, copy that cell into title exactly; do not substitute address or suburb.
 - Only include values visibly present or strongly legible in the image. Never invent missing values.
 - Use null for absent values and confidence 0-100 for each included field.
 - Preserve phone numbers, references, currency and dates exactly when legible.
@@ -364,7 +368,7 @@ ${columnMappingInstructions(mapping) || "- No manual column mappings were provid
     },
   }), 3);
   const parsed = parseAiJsonResponse(response.text ?? "", "Image extraction");
-  const normalised = normaliseAiRows(parsed);
+  const normalised = normaliseAiRows(parsed, { mapping });
   return {
     ...normalised,
     sourceType: "image",
@@ -445,10 +449,11 @@ async function extractRows(
             text: `Extract every distinct property listing from this single PDF page, including listings in cards, columns, or tables. Return one record per listing; never stop after a sample. Ignore page-wide headers, footers, and disclaimers. Never invent values.
 
 Return compact JSON only, with this shape:
-{"records":[{"fields":{"reference":"...","address":"...","price":123,"bedrooms":3},"fieldConfidence":{"reference":95,"address":90,"price":85,"bedrooms":90}}]}
+{"records":[{"fields":{"title":"...","reference":"...","address":"...","price":123,"bedrooms":3},"fieldConfidence":{"title":95,"reference":95,"address":90,"price":85,"bedrooms":90}}]}
 
 Rules:
 ${columnMappingInstructions(mapping)}
+- Every listing with readable property-name text must have a title. When a table has a "Property" column, copy its cell into title exactly, even if it looks like a place name; do not put it only in address or suburb.
 - Include every distinct listing, even if only one field is legible.
 - Include only fields with readable values; omit absent fields and do not output nulls.
 - Supported fields: title, reference, address, suburb, city, price, currency, propertyType, bedrooms, bathrooms, description, agent, agency, mandateType, mandateStart, mandateExpiry, availability, contactName, contactPhone, contactEmail, listingUrl.
@@ -471,6 +476,7 @@ ${page.text}`,
           evidenceFallback: `Value read from PDF page ${page.pageNumber}.`,
           confidenceLabel: "Low-confidence PDF fields",
           allowEmpty: true,
+          mapping,
         });
       }, 3);
       return { pageNumber: page.pageNumber, ...extraction };
@@ -511,6 +517,7 @@ function mandateState(value: unknown): string {
 
 function validateData(data: LooseRecord, sourceType: string, confidence: Record<string, number> = {}): string[] {
   const issues: string[] = [];
+  if (!asText(data.title)) issues.push("Property title is missing");
   if (!data.address) issues.push("Address is missing");
   if (!data.suburb) issues.push("Suburb is missing");
   if (!data.city) issues.push("City is missing");
@@ -817,36 +824,31 @@ async function processSession(
             let matchedPropertyId: number | null = null;
             let duplicateMatch: LooseRecord | null = null;
             let changeSummary: string[] = [];
-            if (data.address || data.suburb || data.price) {
+            if (data.title && data.price != null) {
               if (!duplicateProperties) {
-                duplicateStatus = "possible";
-                reviewFlags.push("Duplicate check unavailable; manually review before approval.");
+                const message = "Exact title-and-price duplicate check unavailable; review manually before approval.";
+                reviewFlags.push(message);
+                validationIssues.push(message);
               } else {
-                const candidates = findDuplicateCandidatesInProperties({
-                  address: asText(data.address),
-                  suburb: asText(data.suburb),
-                  city: asText(data.city),
-                  propertyType: asText(data.propertyType),
-                  bedrooms: numberValue(data.bedrooms),
-                  bathrooms: numberValue(data.bathrooms),
-                  price: numberValue(data.price),
-                  description: asText(data.description),
-                }, duplicateProperties);
-                const match = candidates[0];
-                if (match && match.confidenceScore >= 70) {
+                const match = findImportTitlePriceDuplicate(
+                  asText(data.title),
+                  numberValue(data.price),
+                  duplicateProperties,
+                );
+                if (match) {
                   duplicateStatus = "possible";
-                  matchedPropertyId = match.property.id;
+                  matchedPropertyId = match.id;
                   duplicateMatch = {
-                    id: match.property.id,
-                    reference: match.property.reference,
-                    title: match.property.title,
-                    address: match.property.address,
-                    confidenceScore: match.confidenceScore,
-                    matchingFields: match.matchingFields,
+                    id: match.id,
+                    reference: match.reference,
+                    title: match.title,
+                    address: match.address,
+                    confidenceScore: 100,
+                    matchingFields: ["title", "price"],
                   };
                   changeSummary = [
                     "price", "currency", "description", "bedrooms", "bathrooms", "mandateExpiry", "availability",
-                  ].filter((field) => data[field] != null && asText(data[field]) !== asText((match.property as LooseRecord)[field]));
+                  ].filter((field) => data[field] != null && asText(data[field]) !== asText((match as LooseRecord)[field]));
                 }
               }
             }

@@ -2,7 +2,8 @@ import assert from "node:assert/strict";
 import { after, mock, test } from "node:test";
 import { and, eq, inArray } from "drizzle-orm";
 import { parseAiJsonResponse } from "./ai-import";
-import { findDuplicateCandidatesInProperties, type DuplicateProperty } from "./multi-agent";
+import { findImportTitlePriceDuplicate, findDuplicateCandidatesInProperties, type DuplicateProperty } from "./multi-agent";
+import { findImportTitleValue } from "./import-title";
 import { flattenPdfPageRows } from "./pdf-import";
 
 const testDatabaseUrl = process.env.TEST_DATABASE_URL;
@@ -98,6 +99,49 @@ test("matches imported candidates against a preloaded property set", () => {
   }, [property]);
 
   assert.equal(matches[0]?.property.id, property.id);
+});
+
+test("loads titles from an explicitly mapped or aliased Property column", () => {
+  assert.equal(
+    findImportTitleValue({ title: "", Property: "Ruwa Fairview" }, "Property"),
+    "Ruwa Fairview",
+  );
+  assert.equal(
+    findImportTitleValue({ property: "Norton Mashumavale" }),
+    "Norton Mashumavale",
+  );
+});
+
+test("import duplicates require an exact title and identical price", () => {
+  const property: DuplicateProperty = {
+    id: 15,
+    reference: "QP-0015",
+    title: "Three-bedroom home",
+    address: "15 Main Road",
+    suburb: "Avondale",
+    city: "Harare",
+    propertyType: "house",
+    bedrooms: 3,
+    bathrooms: 2,
+    landSize: null,
+    buildingSize: null,
+    price: 180000,
+    currency: "USD",
+    description: null,
+    latitude: null,
+    longitude: null,
+    photos: [],
+    status: "active",
+    duplicateStatus: "clear",
+    branchId: 4,
+    updatedAt: new Date("2026-10-01T00:00:00.000Z"),
+  };
+
+  assert.equal(findImportTitlePriceDuplicate(" Three-bedroom  HOME ", 180000, [property]), property);
+  assert.equal(findImportTitlePriceDuplicate("Three-bedroom house", 180000, [property]), null);
+  assert.equal(findImportTitlePriceDuplicate("Three-bedroom home", 180001, [property]), null);
+  assert.equal(findImportTitlePriceDuplicate("", 180000, [property]), null);
+  assert.equal(findImportTitlePriceDuplicate("Three-bedroom home", null, [property]), null);
 });
 
 test(

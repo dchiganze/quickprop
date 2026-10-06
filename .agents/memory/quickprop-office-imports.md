@@ -15,6 +15,12 @@ Import processing must wait for the Office user to review and explicitly confirm
 
 **How to apply:** Route initial runs and retries through the mapping review; do not call the process endpoint until the user confirms.
 
+Every imported listing should preserve its title from a mapped or recognized Property/listing-title column; a titleless row must not be publishable. Import duplicate flags require both an exact title and identical numeric price.
+
+**Why:** The user requires titles to load and duplicate flags to appear only for exact title-and-price matches.
+
+**How to apply:** Normalize title aliases before validation, and use exact title-plus-price matching only in bulk imports; do not change fuzzy matching used by other QuickProp flows.
+
 The pdf-parse package entrypoint can execute its bundled fixture when loaded from the server's ESM bundle; use a Node-safe implementation import or another parser that does not initialize browser canvas globals during API startup.
 
 **Why:** A parser startup side effect prevented the API from listening even when no PDF was being processed.
