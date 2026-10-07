@@ -29,6 +29,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { shouldShowImportDuplicateMatch } from '@/lib/import-duplicate-visibility';
 import { syncImportDraftState, type ImportDraftState } from '@/lib/import-draft-sync';
 
 type RouteProps = { params?: { id?: string } };
@@ -436,10 +437,10 @@ function DataField({ label, value, onChange, numeric = false }: { label: string;
 
 function MatchPanel({ record }: { record: ImportRecord }) {
   const match = toRecord(record.match);
-  if (!Object.keys(match).length && record.duplicateStatus === 'none') return null;
+  if (!shouldShowImportDuplicateMatch(record.duplicateStatus)) return null;
   return (
     <div className="mt-3 rounded-md border border-amber-200 bg-amber-50/70 p-3">
-      <div className="flex items-center gap-2 text-xs font-bold text-amber-900"><GitMerge className="h-3.5 w-3.5" /> Possible duplicate match <span className="ml-auto font-mono">{match.reference ? String(match.reference) : record.matchedPropertyId ? `Property #${record.matchedPropertyId}` : 'Needs review'}</span></div>
+      <div className="flex items-center gap-2 text-xs font-bold text-amber-900"><GitMerge className="h-3.5 w-3.5" /> {record.duplicateStatus === 'link_existing' ? 'Linked to existing property' : 'Possible duplicate match'} <span className="ml-auto font-mono">{match.reference ? String(match.reference) : record.matchedPropertyId ? `Property #${record.matchedPropertyId}` : 'Needs review'}</span></div>
       <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-[11px] text-amber-900/75"><span>Candidate: <b>{String(match.title || 'Existing property')}</b></span><span>Match status: <b>{titleCase(record.duplicateStatus)}</b></span><span>Address: <b>{String(match.address || match.suburb || 'Not available')}</b></span><span>Source row: <b>{record.sourceLocation || 'Not supplied'}</b></span></div>
     </div>
   );
