@@ -4,7 +4,7 @@
 - [QuickProp Admin Portal](quickprop-admin.md) — deep navy/blue theme; new admin-portal routes; codegen duplicate-schema pitfall; BuyerUpdate lacks status; seeded admin users.
 - [QuickProp Collaboration](quickprop-collaboration.md) — branch boundaries stand in for agencies until an agency data model exists.
 - [QuickProp Merge Recovery](quickprop-merge-recovery.md) — merge recovery checks must use sequential queries within a single PostgreSQL transaction client.
-- [QuickProp Office Bulk Imports](quickprop-office-imports.md) — confirmed mappings, Property→Title, exact duplicates, safe retries, and fresh editor state.
+- [QuickProp Office Bulk Imports](quickprop-office-imports.md) — confirmed mappings, exact title/price matches, status-gated warnings, safe retries, and fresh editor state.
 - [Durable Import Recovery](durable-import-recovery.md) — database file checkpoints and restart-safe worker ownership keep large portfolio imports resumable.
 - [OpenAPI Contract Shape](openapi-contract-shape.md) — keep each operation's request and response blocks directly nested under its method so Orval can resolve the spec.
 - [GitHub Release Workflow Publishing](github-release-workflow.md) — workflow-file pushes require GitHub workflow scope and may be blocked by the connector proxy.

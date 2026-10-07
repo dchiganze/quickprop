@@ -33,6 +33,12 @@ When a retry reuses record IDs, refresh the editor draft from the latest server 
 
 **How to apply:** Track the last server snapshot per record and replace local state only when it still matches that snapshot; preserve unsaved edits.
 
+Duplicate warning cards must follow the import record's active duplicate status, not the presence of stored candidate metadata.
+
+**Why:** Clearing a duplicate decision can leave candidate details attached, which otherwise makes a clear record look like a possible duplicate.
+
+**How to apply:** Show "Possible duplicate" only for the exact title-and-price `possible` status; label human-confirmed links separately.
+
 The pdf-parse package entrypoint can execute its bundled fixture when loaded from the server's ESM bundle; use a Node-safe implementation import or another parser that does not initialize browser canvas globals during API startup.
 
 **Why:** A parser startup side effect prevented the API from listening even when no PDF was being processed.
