@@ -31,6 +31,7 @@ import Audit from '@/pages/audit';
 import Settings from '@/pages/settings';
 import Housekeeping from '@/pages/housekeeping';
 import Imports from '@/pages/imports';
+import Account from '@/pages/account';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -110,6 +111,7 @@ function AppRouter() {
       <ProtectedRoute path="/users" component={Users} />
       <ProtectedRoute path="/audit" component={Audit} />
       <ProtectedRoute path="/settings" component={Settings} />
+      <ProtectedRoute path="/account" component={Account} />
       <Route component={NotFound} />
     </Switch>
   );
