@@ -53,6 +53,7 @@ export * from './collaborationRequestStatusUpdate';
 export * from './collaborationRequestStatusUpdateStatus';
 export * from './coverageEntry';
 export * from './createImportSessionInput';
+export * from './currentUserProfileUpdate';
 export * from './dashboardCharts';
 export * from './dashboardSummary';
 export * from './deactivateListingHousekeepingPushToken200';

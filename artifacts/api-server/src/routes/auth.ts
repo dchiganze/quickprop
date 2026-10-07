@@ -28,6 +28,8 @@ import {
   GetCurrentUserResponse,
   LoginBody,
   LoginResponse,
+  UpdateCurrentUserProfileBody,
+  UpdateCurrentUserProfileResponse,
 } from "@workspace/api-zod";
 import { logAudit, jsonify } from "../lib/helpers";
 import { hashPassword, isScryptHash, verifyPassword } from "../lib/passwords";
@@ -148,6 +150,35 @@ router.get("/auth/me", async (req, res): Promise<void> => {
     return;
   }
   res.json(GetCurrentUserResponse.parse(jsonify(toUser(user))));
+});
+
+router.patch("/auth/profile", requireAuth, async (req, res): Promise<void> => {
+  const parsed = UpdateCurrentUserProfileBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+
+  const user = res.locals.user as typeof usersTable.$inferSelect;
+  const name = parsed.data.name.trim();
+  if (!name) {
+    res.status(400).json({ error: "Name cannot be blank" });
+    return;
+  }
+
+  const phone = parsed.data.phone?.trim() || null;
+  const [updatedUser] = await db
+    .update(usersTable)
+    .set({ name, phone })
+    .where(eq(usersTable.id, user.id))
+    .returning();
+  if (!updatedUser) {
+    res.status(401).json({ error: "Not logged in" });
+    return;
+  }
+
+  await logAudit("edited", "user", user.id, "Updated personal profile details", user.id, name);
+  res.json(UpdateCurrentUserProfileResponse.parse(jsonify(toUser(updatedUser))));
 });
 
 router.delete("/auth/account", requireAuth, async (req, res): Promise<void> => {

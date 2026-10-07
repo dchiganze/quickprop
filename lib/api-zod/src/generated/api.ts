@@ -51,6 +51,32 @@ export const GetCurrentUserResponse = zod.object({
 
 
 /**
+ * @summary Update the signed-in user's personal profile details
+ */
+export const updateCurrentUserProfileBodyNameMax = 120;
+
+export const updateCurrentUserProfileBodyPhoneMax = 40;
+
+
+
+export const UpdateCurrentUserProfileBody = zod.object({
+  "name": zod.string().min(1).max(updateCurrentUserProfileBodyNameMax),
+  "phone": zod.string().max(updateCurrentUserProfileBodyPhoneMax).nullable()
+})
+
+export const UpdateCurrentUserProfileResponse = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "email": zod.string(),
+  "phone": zod.string().nullish(),
+  "role": zod.string().describe('principal | admin | senior_agent | agent | receptionist | marketing | viewer'),
+  "branchId": zod.number().nullish(),
+  "status": zod.string().describe('active | suspended | inactive'),
+  "avatarUrl": zod.string().nullish()
+})
+
+
+/**
  * @summary Permanently delete the signed-in user's account and dependent data
  */
 export const DeleteCurrentUserAccountBody = zod.object({

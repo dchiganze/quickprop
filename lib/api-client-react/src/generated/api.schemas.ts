@@ -373,6 +373,19 @@ export interface AccountDeletionInput {
   password: string;
 }
 
+export interface CurrentUserProfileUpdate {
+  /**
+     * @minLength 1
+     * @maxLength 120
+     */
+  name: string;
+  /**
+     * @maxLength 40
+     * @nullable
+     */
+  phone: string | null;
+}
+
 export interface AccountDeletionResult {
   ok: boolean;
 }

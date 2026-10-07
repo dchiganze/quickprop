@@ -83,6 +83,28 @@ paths:
                 $ref: "#/components/schemas/User"
         "401":
           description: Not logged in
+  /auth/profile:
+    patch:
+      operationId: updateCurrentUserProfile
+      tags: [auth]
+      summary: Update the signed-in user's personal profile details
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CurrentUserProfileUpdate"
+      responses:
+        "200":
+          description: Updated current user profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "400":
+          description: Invalid profile details
+        "401":
+          description: Not logged in
   /auth/account:
     delete:
       operationId: deleteCurrentUserAccount
@@ -2247,6 +2269,17 @@ components:
         password:
           type: string
           description: The signed-in user's current password.
+    CurrentUserProfileUpdate:
+      type: object
+      required: [name, phone]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        phone:
+          type: ["string", "null"]
+          maxLength: 40
     AccountDeletionResult:
       type: object
       required: [ok]

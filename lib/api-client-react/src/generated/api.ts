@@ -59,6 +59,7 @@ import type {
   CollaborationRequestInput,
   CollaborationRequestStatusUpdate,
   CreateImportSessionInput,
+  CurrentUserProfileUpdate,
   DashboardCharts,
   DashboardSummary,
   DeactivateListingHousekeepingPushToken200,
@@ -472,6 +473,77 @@ export function useGetCurrentUser<TData = Awaited<ReturnType<typeof getCurrentUs
 
 
 
+
+export const getUpdateCurrentUserProfileUrl = () => {
+
+
+
+
+  return `/api/auth/profile`
+}
+
+/**
+ * @summary Update the signed-in user's personal profile details
+ */
+export const updateCurrentUserProfile = async (currentUserProfileUpdate: CurrentUserProfileUpdate, options?: RequestInit): Promise<User> => {
+
+  return customFetch<User>(getUpdateCurrentUserProfileUrl(),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(currentUserProfileUpdate)
+  }
+);}
+
+
+
+
+
+export const getUpdateCurrentUserProfileMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateCurrentUserProfile>>, TError,{data: BodyType<CurrentUserProfileUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateCurrentUserProfile>>, TError,{data: BodyType<CurrentUserProfileUpdate>}, TContext> => {
+
+const mutationKey = ['updateCurrentUserProfile'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateCurrentUserProfile>>, {data: BodyType<CurrentUserProfileUpdate>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  updateCurrentUserProfile(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateCurrentUserProfileMutationResult = NonNullable<Awaited<ReturnType<typeof updateCurrentUserProfile>>>
+    export type UpdateCurrentUserProfileMutationBody = BodyType<CurrentUserProfileUpdate>
+    export type UpdateCurrentUserProfileMutationError = ErrorType<void>
+
+    /**
+ * @summary Update the signed-in user's personal profile details
+ */
+export const useUpdateCurrentUserProfile = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateCurrentUserProfile>>, TError,{data: BodyType<CurrentUserProfileUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateCurrentUserProfile>>,
+        TError,
+        {data: BodyType<CurrentUserProfileUpdate>},
+        TContext
+      > => {
+      return useMutation(getUpdateCurrentUserProfileMutationOptions(options));
+    }
 
 export const getDeleteCurrentUserAccountUrl = () => {
 
