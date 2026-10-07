@@ -27,6 +27,12 @@ PDF retries must reconcile candidates one-to-one and remove only unmatched, uned
 
 **How to apply:** Use stable unique source locations, match each prior row at most once, and perform stale-draft cleanup transactionally only after the user confirms reprocessing.
 
+When a retry reuses record IDs, refresh the editor draft from the latest server data if the user has not changed that draft locally.
+
+**Why:** The database can contain extracted titles while the mounted review page still shows blank values cached from the earlier version of the same record.
+
+**How to apply:** Track the last server snapshot per record and replace local state only when it still matches that snapshot; preserve unsaved edits.
+
 The pdf-parse package entrypoint can execute its bundled fixture when loaded from the server's ESM bundle; use a Node-safe implementation import or another parser that does not initialize browser canvas globals during API startup.
 
 **Why:** A parser startup side effect prevented the API from listening even when no PDF was being processed.

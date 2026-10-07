@@ -29,6 +29,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { syncImportDraftState, type ImportDraftState } from '@/lib/import-draft-sync';
 
 type RouteProps = { params?: { id?: string } };
 type DraftData = Record<string, unknown>;
@@ -524,7 +525,8 @@ function ImportDetail({ id }: { id: number }) {
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState<'confidence' | 'source'>('confidence');
   const [selected, setSelected] = useState<Set<number>>(new Set());
-  const [drafts, setDrafts] = useState<Record<number, DraftData>>({});
+  const [draftState, setDraftState] = useState<ImportDraftState>({ drafts: {}, serverData: {} });
+  const drafts = draftState.drafts;
   const [savingId, setSavingId] = useState<number | null>(null);
   const [agentId, setAgentId] = useState('');
   const [actionBusy, setActionBusy] = useState(false);
@@ -541,11 +543,9 @@ function ImportDetail({ id }: { id: number }) {
   const publishSession = usePublishImportSession();
 
   useEffect(() => {
-    if (detail?.records) setDrafts((current) => {
-      const next = { ...current };
-      detail.records.forEach((record) => { if (!next[record.id]) next[record.id] = { ...toRecord(record.data) }; });
-      return next;
-    });
+    if (detail?.records) {
+      setDraftState((current) => syncImportDraftState(current, detail.records));
+    }
   }, [detail?.records]);
 
   useEffect(() => {
@@ -701,7 +701,7 @@ function ImportDetail({ id }: { id: number }) {
             </CardHeader>
             <div className="flex flex-wrap items-center gap-2 border-b bg-muted/30 px-4 py-2.5"><Checkbox checked={records.length > 0 && selected.size === records.length} onCheckedChange={selectAll} aria-label="Select all visible records" /><span className="text-xs font-semibold">{selected.size} selected</span><span className="mx-1 h-4 border-l border-border" /><Button size="sm" variant="outline" className="h-7 gap-1.5 text-[11px]" disabled={!selected.size || actionBusy} onClick={() => runBulk('approve')}><CheckCircle2 className="h-3 w-3 text-emerald-600" /> Approve</Button><Button size="sm" variant="outline" className="h-7 gap-1.5 text-[11px]" disabled={!selected.size || actionBusy} onClick={() => runBulk('reject')}><XCircle className="h-3 w-3 text-red-600" /> Reject</Button><Button size="sm" variant="outline" className="h-7 gap-1.5 text-[11px]" disabled={!selected.size || actionBusy} onClick={() => runBulk('link_duplicate')}><GitMerge className="h-3 w-3 text-amber-600" /> Link match</Button><Button size="sm" variant="outline" className="h-7 gap-1.5 text-[11px]" disabled={!selected.size || actionBusy} onClick={() => runBulk('clear_duplicate')}><Check className="h-3 w-3 text-primary" /> Keep separate</Button><div className="ml-auto flex items-center gap-1.5"><Input value={agentId} onChange={(event) => setAgentId(event.target.value)} placeholder="Agent ID" inputMode="numeric" className="h-7 w-20 text-[11px]" /><Button size="sm" variant="outline" className="h-7 gap-1.5 text-[11px]" disabled={!selected.size || actionBusy} onClick={() => runBulk('assign')}><UserRound className="h-3 w-3" /> Assign</Button></div></div>
             <div className="hidden grid-cols-[24px_minmax(160px,1.25fr)_minmax(150px,1fr)_100px_80px_96px_128px] gap-3 bg-slate-50/70 px-4 py-2 text-[10px] font-bold uppercase tracking-[0.11em] text-muted-foreground md:grid"><span /><span>Property identity</span><span>Location</span><span>Price</span><span>Beds</span><span>AI signal</span><span>Decision</span></div>
-            {records.length ? records.map((record) => <RecordRow key={record.id} record={record} selected={selected.has(record.id)} onToggle={() => toggle(record.id)} draft={drafts[record.id] || toRecord(record.data)} setDraft={(data) => setDrafts((current) => ({ ...current, [record.id]: data }))} onSave={() => saveRecord(record)} saving={savingId === record.id} />) : <div className="px-6 py-20 text-center"><SlidersHorizontal className="mx-auto mb-3 h-8 w-8 text-muted-foreground/40" /><p className="text-sm font-semibold">No rows match this view</p><p className="mt-1 text-xs text-muted-foreground">Try clearing the search or changing the review filter.</p></div>}
+            {records.length ? records.map((record) => <RecordRow key={record.id} record={record} selected={selected.has(record.id)} onToggle={() => toggle(record.id)} draft={drafts[record.id] || toRecord(record.data)} setDraft={(data) => setDraftState((current) => ({ ...current, drafts: { ...current.drafts, [record.id]: data } }))} onSave={() => saveRecord(record)} saving={savingId === record.id} />) : <div className="px-6 py-20 text-center"><SlidersHorizontal className="mx-auto mb-3 h-8 w-8 text-muted-foreground/40" /><p className="text-sm font-semibold">No rows match this view</p><p className="mt-1 text-xs text-muted-foreground">Try clearing the search or changing the review filter.</p></div>}
           </Card>
           <div className="flex flex-col gap-3 rounded-lg border border-primary/20 bg-primary/[0.035] p-4 md:flex-row md:items-center"><ShieldCheck className="h-6 w-6 shrink-0 text-primary" /><div className="flex-1"><p className="text-sm font-bold">Publishing is a deliberate hand-off</p><p className="mt-0.5 text-xs text-muted-foreground">{approvedCount} approved row{approvedCount === 1 ? '' : 's'} will be published. Rejected, unresolved and unreviewed records stay in this session.</p></div><Button onClick={publish} disabled={!approvedCount || publishSession.isPending || processing} className="gap-2">{publishSession.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />} Publish approved only</Button></div>
         </main>
