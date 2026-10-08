@@ -58,31 +58,9 @@ export async function checkAdminPasswordResetEmailReadiness(): Promise<
   const address = from.match(/<([^<>]+)>/)?.[1] ?? from;
   const emailMatch = /^[^\s@<>]+@([^\s@<>]+)$/.exec(address.trim());
   if (!emailMatch) return { ready: false, reason: "sender_address_invalid" };
-  const senderDomain = emailMatch[1].toLowerCase();
-
-  try {
-    const response = await fetch("https://api.resend.com/domains", {
-      method: "GET",
-      headers: { Authorization: `Bearer ${resendKey}` },
-      signal: AbortSignal.timeout(15_000),
-    });
-    if (!response.ok) {
-      return {
-        ready: false,
-        reason: response.status === 400 || response.status === 401 || response.status === 403
-          ? "resend_credentials_invalid"
-          : "resend_unavailable",
-      };
-    }
-    const payload = await response.json().catch(() => ({})) as { data?: Array<{ name?: string; status?: string }> };
-    const matchingDomain = payload.data?.find((domain) => domain.name?.toLowerCase() === senderDomain);
-    if (matchingDomain?.status !== "verified") {
-      return { ready: false, reason: "sender_domain_not_verified" };
-    }
-    return { ready: true };
-  } catch {
-    return { ready: false, reason: "resend_unavailable" };
-  }
+  // Do not call Resend's domains endpoint here: it requires full-access API keys,
+  // while a domain-scoped sending-only key is sufficient for the email request.
+  return { ready: true };
 }
 
 export async function sendAdminPasswordResetEmail(

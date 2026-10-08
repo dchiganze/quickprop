@@ -27,28 +27,22 @@ test("admin password reset email readiness requires a Resend API key", async () 
   }
 });
 
-test("admin password reset email readiness checks the verified sender domain with Resend", async () => {
+test("admin password reset email readiness allows sending-only Resend keys", async () => {
   const previousKey = process.env.RESEND_API_KEY;
   const previousFrom = process.env.QUICKPROP_EMAIL_FROM;
-  process.env.RESEND_API_KEY = "test-resend-key";
+  process.env.RESEND_API_KEY = "test-sending-only-key";
   process.env.QUICKPROP_EMAIL_FROM = "QuickProp <reset@example.test>";
   const fetchMock = mock.method(
     globalThis,
     "fetch",
-    async (
-      input: Parameters<typeof globalThis.fetch>[0],
-      init?: Parameters<typeof globalThis.fetch>[1],
-    ): Promise<Response> => {
-      assert.equal(String(input), "https://api.resend.com/domains");
-      assert.equal(new Headers(init?.headers).get("authorization"), "Bearer test-resend-key");
-      return Response.json({
-        data: [{ name: "example.test", status: "verified" }],
-      });
+    async (): Promise<Response> => {
+      throw new Error("Readiness must not require the full-access domains endpoint");
     },
   );
 
   try {
     assert.deepEqual(await checkAdminPasswordResetEmailReadiness(), { ready: true });
+    assert.equal(fetchMock.mock.callCount(), 0);
   } finally {
     fetchMock.mock.restore();
     restoreEnv("RESEND_API_KEY", previousKey);
