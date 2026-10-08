@@ -1,4 +1,5 @@
 import { and, eq, inArray, lte, lt, or } from "drizzle-orm";
+import { ReplitConnectors } from "@replit/connectors-sdk";
 import {
   db,
   listingHousekeepingDeliveriesTable,
@@ -45,6 +46,37 @@ type ProviderResponse = {
 function env(name: string): string | undefined {
   const value = process.env[name]?.trim();
   return value || undefined;
+}
+
+export function isAdminPasswordResetEmailConfigured(): boolean {
+  return Boolean(env("QUICKPROP_EMAIL_FROM"));
+}
+
+export async function sendAdminPasswordResetEmail(
+  email: string,
+  resetUrl: string,
+  idempotencyKey: string,
+): Promise<DeliveryResult> {
+  const from = env("QUICKPROP_EMAIL_FROM");
+  if (!from) return { status: "skipped", reason: "email_from_not_configured" };
+
+  const response = await new ReplitConnectors().proxy("resend", "/emails", {
+    method: "POST",
+    headers: { "Idempotency-Key": idempotencyKey },
+    body: {
+      from,
+      to: [email],
+      subject: "Reset your QuickProp admin password",
+      text: `Use this one-time link to reset your QuickProp admin password. It expires in 15 minutes:\n\n${resetUrl}\n\nIf you did not request this, you can ignore this email.`,
+      html: `<p>Use this one-time link to reset your QuickProp admin password. It expires in 15 minutes.</p><p><a href="${resetUrl}">Reset your password</a></p><p>If you did not request this, you can ignore this email.</p>`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Resend password reset email failed with status ${response.status}.`);
+  }
+  const result = await response.json().catch(() => ({})) as ProviderResponse;
+  return { status: "sent", providerMessageId: result.id ?? result.messageId };
 }
 
 function normalizeWhatsAppNumber(phone: string): string {

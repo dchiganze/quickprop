@@ -35,6 +35,43 @@ export const LoginResponse = zod.object({
 }))
 
 
+/**
+ * @summary Send a one-time admin password reset link when the account is eligible
+ */
+export const requestAdminPasswordResetBodyEmailRegExp = new RegExp('^[^@\\s]+@[^\\s@]+\\.[^\\s@]+$');
+
+
+export const RequestAdminPasswordResetBody = zod.object({
+  "email": zod.string().regex(requestAdminPasswordResetBodyEmailRegExp)
+})
+
+export const RequestAdminPasswordResetResponse = zod.object({
+  "ok": zod.boolean()
+})
+
+
+/**
+ * @summary Set a new admin password using a valid one-time reset token
+ */
+export const completeAdminPasswordResetBodyTokenMin = 32;
+export const completeAdminPasswordResetBodyTokenMax = 128;
+
+export const completeAdminPasswordResetBodyNewPasswordMin = 10;
+
+
+export const completeAdminPasswordResetBodyNewPasswordRegExp = new RegExp('^(?=.*[A-Za-z])(?=.*[0-9])(?=.*[^A-Za-z0-9\\s]).{10,}$');
+
+
+export const CompleteAdminPasswordResetBody = zod.object({
+  "token": zod.string().min(completeAdminPasswordResetBodyTokenMin).max(completeAdminPasswordResetBodyTokenMax),
+  "newPassword": zod.string().min(completeAdminPasswordResetBodyNewPasswordMin).regex(completeAdminPasswordResetBodyNewPasswordRegExp).describe('At least 10 characters with a letter, number, and special character.')
+})
+
+export const CompleteAdminPasswordResetResponse = zod.object({
+  "ok": zod.boolean()
+})
+
+
 export const LogoutResponse = zod.unknown()
 
 

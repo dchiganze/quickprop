@@ -52,3 +52,6 @@ externalPort = 3003
 [userenv.shared]
 EXPO_PUBLIC_META_APP_ID = "1344788291096339"
 VITE_META_APP_ID = "1344788291096339"
+
+[userenv.production]
+QUICKPROP_ADMIN_BASE_URL = "https://www.quickprop.melios.co.zw/admin"

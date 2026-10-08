@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq, inArray, or } from "drizzle-orm";
+import { and, eq, gt, gte, inArray, isNull, or } from "drizzle-orm";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import {
   activityTable,
@@ -15,6 +15,7 @@ import {
   listingHousekeepingEventsTable,
   listingHousekeepingPreferencesTable,
   notificationsTable,
+  passwordResetTokensTable,
   priceHistoryTable,
   propertiesTable,
   savedPropertiesTable,
@@ -23,15 +24,31 @@ import {
   viewingsTable,
 } from "@workspace/db";
 import {
+  CompleteAdminPasswordResetBody,
+  CompleteAdminPasswordResetResponse,
   DeleteCurrentUserAccountBody,
   DeleteCurrentUserAccountResponse,
   GetCurrentUserResponse,
   LoginBody,
   LoginResponse,
+  RequestAdminPasswordResetBody,
+  RequestAdminPasswordResetResponse,
   UpdateCurrentUserProfileBody,
   UpdateCurrentUserProfileResponse,
 } from "@workspace/api-zod";
 import { logAudit, jsonify } from "../lib/helpers";
+import {
+  ADMIN_PASSWORD_RESET_COOLDOWN_MS,
+  ADMIN_PASSWORD_RESET_TTL_MS,
+  createAdminPasswordResetToken,
+  getAdminPasswordResetBaseUrl,
+  hashAdminPasswordResetToken,
+  meetsAdminPasswordPolicy,
+} from "../lib/password-reset";
+import {
+  isAdminPasswordResetEmailConfigured,
+  sendAdminPasswordResetEmail,
+} from "../lib/housekeeping-delivery";
 import { hashPassword, isScryptHash, verifyPassword } from "../lib/passwords";
 
 const router: IRouter = Router();
@@ -103,6 +120,164 @@ function toUser(u: typeof usersTable.$inferSelect) {
   const { password: _pw, createdAt: _c, ...rest } = u;
   return rest;
 }
+
+router.post("/auth/password-reset/request", async (req, res): Promise<void> => {
+  const parsed = RequestAdminPasswordResetBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+
+  const baseUrl = getAdminPasswordResetBaseUrl({
+    runtimeEnvironment: process.env.NODE_ENV,
+    developmentDomain: process.env.REPLIT_DEV_DOMAIN,
+    productionBaseUrl: process.env.QUICKPROP_ADMIN_BASE_URL,
+  });
+  if (!isAdminPasswordResetEmailConfigured() || !baseUrl) {
+    res.status(503).json({ error: "Password reset email is not configured. Contact a QuickProp administrator." });
+    return;
+  }
+
+  const email = parsed.data.email.toLowerCase().trim();
+  const [user] = await db
+    .select()
+    .from(usersTable)
+    .where(and(
+      eq(usersTable.email, email),
+      eq(usersTable.status, "active"),
+      inArray(usersTable.role, ["principal", "admin"]),
+    ))
+    .limit(1);
+
+  const genericResponse = RequestAdminPasswordResetResponse.parse({ ok: true });
+  if (!user) {
+    res.json(genericResponse);
+    return;
+  }
+
+  const cooldownStart = new Date(Date.now() - ADMIN_PASSWORD_RESET_COOLDOWN_MS);
+  const [recentRequest] = await db
+    .select({ id: passwordResetTokensTable.id })
+    .from(passwordResetTokensTable)
+    .where(and(
+      eq(passwordResetTokensTable.userId, user.id),
+      gte(passwordResetTokensTable.createdAt, cooldownStart),
+    ))
+    .limit(1);
+  if (recentRequest) {
+    res.json(genericResponse);
+    return;
+  }
+
+  await db.delete(passwordResetTokensTable).where(eq(passwordResetTokensTable.userId, user.id));
+  const token = createAdminPasswordResetToken();
+  const [resetRecord] = await db
+    .insert(passwordResetTokensTable)
+    .values({
+      userId: user.id,
+      tokenHash: hashAdminPasswordResetToken(token),
+      expiresAt: new Date(Date.now() + ADMIN_PASSWORD_RESET_TTL_MS),
+    })
+    .returning({ id: passwordResetTokensTable.id });
+
+  try {
+    const delivery = await sendAdminPasswordResetEmail(
+      user.email,
+      `${baseUrl}/login?resetToken=${encodeURIComponent(token)}`,
+      `admin-password-reset-${resetRecord.id}`,
+    );
+    if (delivery.status !== "sent") {
+      await db
+        .update(passwordResetTokensTable)
+        .set({ usedAt: new Date() })
+        .where(eq(passwordResetTokensTable.id, resetRecord.id));
+      req.log.error({ userId: user.id }, "Admin password reset email was skipped");
+    }
+  } catch (err) {
+    await db
+      .update(passwordResetTokensTable)
+      .set({ usedAt: new Date() })
+      .where(eq(passwordResetTokensTable.id, resetRecord.id));
+    req.log.error({ err, userId: user.id }, "Admin password reset email delivery failed");
+  }
+
+  res.json(genericResponse);
+});
+
+router.post("/auth/password-reset/complete", async (req, res): Promise<void> => {
+  const parsed = CompleteAdminPasswordResetBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+  if (!meetsAdminPasswordPolicy(parsed.data.newPassword)) {
+    res.status(400).json({
+      error: "Password must be at least 10 characters and include a letter, a number, and a special character.",
+    });
+    return;
+  }
+
+  const now = new Date();
+  const tokenHash = hashAdminPasswordResetToken(parsed.data.token);
+  const resetUser = await db.transaction(async (tx) => {
+    const [resetRecord] = await tx
+      .select()
+      .from(passwordResetTokensTable)
+      .where(and(
+        eq(passwordResetTokensTable.tokenHash, tokenHash),
+        isNull(passwordResetTokensTable.usedAt),
+        gt(passwordResetTokensTable.expiresAt, now),
+      ))
+      .limit(1)
+      .for("update");
+    if (!resetRecord) return null;
+
+    const [user] = await tx
+      .select()
+      .from(usersTable)
+      .where(eq(usersTable.id, resetRecord.userId))
+      .limit(1);
+    if (!user || user.status !== "active" || !["principal", "admin"].includes(user.role)) {
+      await tx
+        .update(passwordResetTokensTable)
+        .set({ usedAt: now })
+        .where(eq(passwordResetTokensTable.id, resetRecord.id));
+      return null;
+    }
+
+    await tx
+      .update(usersTable)
+      .set({ password: await hashPassword(parsed.data.newPassword) })
+      .where(eq(usersTable.id, user.id));
+    await tx
+      .update(passwordResetTokensTable)
+      .set({ usedAt: now })
+      .where(and(
+        eq(passwordResetTokensTable.userId, user.id),
+        isNull(passwordResetTokensTable.usedAt),
+      ));
+    return { id: user.id, name: user.name };
+  });
+
+  if (!resetUser) {
+    res.status(410).json({ error: "This password reset link has expired or has already been used." });
+    return;
+  }
+
+  try {
+    await logAudit(
+      "password_reset",
+      "user",
+      resetUser.id,
+      "Administrator password reset using an emailed link",
+      resetUser.id,
+      resetUser.name,
+    );
+  } catch (err) {
+    req.log.error({ err, userId: resetUser.id }, "Password reset audit logging failed");
+  }
+  res.json(CompleteAdminPasswordResetResponse.parse({ ok: true }));
+});
 
 router.post("/auth/login", async (req, res): Promise<void> => {
   const parsed = LoginBody.safeParse(req.body);

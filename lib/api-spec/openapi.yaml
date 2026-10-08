@@ -63,6 +63,50 @@ paths:
                 $ref: "#/components/schemas/LoginResult"
         "401":
           description: Invalid credentials
+  /auth/password-reset/request:
+    post:
+      operationId: requestAdminPasswordReset
+      tags: [auth]
+      summary: Send a one-time admin password reset link when the account is eligible
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PasswordResetRequestInput"
+      responses:
+        "200":
+          description: Generic result that does not reveal whether an account exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PasswordResetResult"
+        "400":
+          description: Invalid email address
+        "503":
+          description: Password reset email delivery is not configured
+  /auth/password-reset/complete:
+    post:
+      operationId: completeAdminPasswordReset
+      tags: [auth]
+      summary: Set a new admin password using a valid one-time reset token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PasswordResetCompleteInput"
+      responses:
+        "200":
+          description: Password changed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PasswordResetResult"
+        "400":
+          description: Invalid token or password details
+        "410":
+          description: Reset link expired or already used
   /auth/logout:
     post:
       operationId: logout
@@ -2259,6 +2303,26 @@ components:
             accessToken:
               type: string
               description: Signed bearer token for native clients, valid for up to 30 days.
+    PasswordResetRequestInput:
+      type: object
+      required: [email]
+      properties:
+        email: { type: string, pattern: '^[^@\s]+@[^\s@]+\.[^\s@]+$' }
+    PasswordResetCompleteInput:
+      type: object
+      required: [token, newPassword]
+      properties:
+        token: { type: string, minLength: 32, maxLength: 128 }
+        newPassword:
+          type: string
+          minLength: 10
+          pattern: '^(?=.*[A-Za-z])(?=.*[0-9])(?=.*[^A-Za-z0-9\s]).{10,}$'
+          description: At least 10 characters with a letter, number, and special character.
+    PasswordResetResult:
+      type: object
+      required: [ok]
+      properties:
+        ok: { type: boolean }
     AccountDeletionInput:
       type: object
       required: [confirmation, password]

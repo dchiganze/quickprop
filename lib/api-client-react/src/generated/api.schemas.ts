@@ -366,6 +366,29 @@ export type LoginResult = User & {
   accessToken: string;
 };
 
+export interface PasswordResetRequestInput {
+  /** @pattern ^[^@\s]+@[^\s@]+\.[^\s@]+$ */
+  email: string;
+}
+
+export interface PasswordResetCompleteInput {
+  /**
+     * @minLength 32
+     * @maxLength 128
+     */
+  token: string;
+  /**
+     * At least 10 characters with a letter, number, and special character.
+     * @minLength 10
+     * @pattern ^(?=.*[A-Za-z])(?=.*[0-9])(?=.*[^A-Za-z0-9\s]).{10,}$
+     */
+  newPassword: string;
+}
+
+export interface PasswordResetResult {
+  ok: boolean;
+}
+
 export interface AccountDeletionInput {
   /** Must exactly equal DELETE. */
   confirmation: string;

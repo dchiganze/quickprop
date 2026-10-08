@@ -8,7 +8,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { useLogin } from '@workspace/api-client-react';
+import {
+  useCompleteAdminPasswordReset,
+  useLogin,
+  useRequestAdminPasswordReset,
+} from '@workspace/api-client-react';
 
 const schema = z.object({
   email: z.string().email('Enter a valid email'),
@@ -18,7 +22,16 @@ const schema = z.object({
 export default function Login() {
   const [, setLocation] = useLocation();
   const login = useLogin();
+  const requestPasswordReset = useRequestAdminPasswordReset();
+  const completePasswordReset = useCompleteAdminPasswordReset();
   const [err, setErr] = useState('');
+  const [notice, setNotice] = useState('');
+  const initialResetToken = new URLSearchParams(window.location.search).get('resetToken') || '';
+  const [view, setView] = useState<'login' | 'request' | 'complete'>(initialResetToken ? 'complete' : 'login');
+  const [resetEmail, setResetEmail] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const resetToken = new URLSearchParams(window.location.search).get('resetToken') || '';
 
   const form = useForm<z.infer<typeof schema>>({
     resolver: zodResolver(schema),
@@ -27,10 +40,72 @@ export default function Login() {
 
   const onSubmit = (v: z.infer<typeof schema>) => {
     setErr('');
+    setNotice('');
     login.mutate({ data: v }, {
       onSuccess: () => setLocation('/'),
       onError: (e: any) => setErr(e?.message || 'Invalid credentials'),
     });
+  };
+
+  const startPasswordReset = () => {
+    setErr('');
+    setNotice('');
+    setResetEmail(form.getValues('email'));
+    setView('request');
+  };
+
+  const returnToSignIn = () => {
+    setErr('');
+    setNotice('');
+    setView('login');
+    setLocation('/login');
+  };
+
+  const submitResetRequest = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setErr('');
+    setNotice('');
+    requestPasswordReset.mutate(
+      { data: { email: resetEmail.trim() } },
+      {
+        onSuccess: () => setNotice(
+          "If an active administrator account uses that email, we'll send a one-time reset link. If it doesn't arrive, contact another QuickProp administrator.",
+        ),
+        onError: (e: any) => setErr(e?.message || 'Could not request a reset link. Please try again.'),
+      },
+    );
+  };
+
+  const submitNewPassword = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setErr('');
+    setNotice('');
+    if (!resetToken) {
+      setErr('This reset link is incomplete. Request a new one to continue.');
+      return;
+    }
+    if (newPassword.length < 10 || !/[A-Za-z]/.test(newPassword) || !/[0-9]/.test(newPassword) || !/[^A-Za-z0-9\s]/.test(newPassword)) {
+      setErr('Use at least 10 characters, including a letter, a number, and a special character.');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setErr('The passwords do not match.');
+      return;
+    }
+    completePasswordReset.mutate(
+      { data: { token: resetToken, newPassword } },
+      {
+        onSuccess: () => {
+          setView('login');
+          setNewPassword('');
+          setConfirmPassword('');
+          setErr('');
+          setNotice('Your password has been reset. Sign in with the new password.');
+          setLocation('/login');
+        },
+        onError: (e: any) => setErr(e?.message || 'This reset link is invalid or expired. Request a new one.'),
+      },
+    );
   };
 
   return (
@@ -72,8 +147,16 @@ export default function Login() {
       <div className="flex-1 flex flex-col justify-center items-center p-8 bg-background">
         <div className="w-full max-w-sm space-y-7">
           <div className="space-y-1">
-            <h2 className="text-2xl font-bold text-foreground">Admin sign in</h2>
-            <p className="text-sm text-muted-foreground">Restricted to authorised administrators only.</p>
+            <h2 className="text-2xl font-bold text-foreground">
+              {view === 'login' ? 'Admin sign in' : view === 'request' ? 'Reset your password' : 'Choose a new password'}
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              {view === 'login'
+                ? 'Restricted to authorised administrators only.'
+                : view === 'request'
+                  ? 'Enter your administrator email and we’ll send a secure, one-time link if the account is eligible.'
+                  : 'Choose a password for your QuickProp administrator account.'}
+            </p>
           </div>
 
           {err && (
@@ -82,31 +165,106 @@ export default function Login() {
             </Alert>
           )}
 
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
-              <FormField control={form.control} name="email" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Email</FormLabel>
-                  <FormControl>
-                    <Input placeholder="admin@quickprop.co.zw" {...field} className="h-11 bg-card" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
-              <FormField control={form.control} name="password" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Password</FormLabel>
-                  <FormControl>
-                    <Input type="password" placeholder="••••••••" {...field} className="h-11 bg-card" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
-              <Button type="submit" className="w-full h-11 font-semibold" disabled={login.isPending}>
-                {login.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <><span>Sign in</span><ArrowRight className="w-4 h-4 ml-2" /></>}
+          {notice && (
+            <Alert className="border-emerald-200 bg-emerald-50 text-emerald-900">
+              <AlertDescription>{notice}</AlertDescription>
+            </Alert>
+          )}
+
+          {view === 'login' ? (
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+                <FormField control={form.control} name="email" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input type="email" autoComplete="username" placeholder="name@company.com" {...field} className="h-11 bg-card" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+                <FormField control={form.control} name="password" render={({ field }) => (
+                  <FormItem>
+                    <div className="flex items-center justify-between">
+                      <FormLabel>Password</FormLabel>
+                      <button
+                        type="button"
+                        onClick={startPasswordReset}
+                        className="text-xs font-medium text-primary hover:underline"
+                      >
+                        Forgot password?
+                      </button>
+                    </div>
+                    <FormControl>
+                      <Input type="password" autoComplete="current-password" placeholder="••••••••" {...field} className="h-11 bg-card" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+                <Button type="submit" className="w-full h-11 font-semibold" disabled={login.isPending}>
+                  {login.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <><span>Sign in</span><ArrowRight className="w-4 h-4 ml-2" /></>}
+                </Button>
+              </form>
+            </Form>
+          ) : view === 'request' ? (
+            <form onSubmit={submitResetRequest} className="space-y-5">
+              <div className="space-y-2">
+                <label htmlFor="reset-email" className="text-sm font-medium leading-none">Email</label>
+                <Input
+                  id="reset-email"
+                  type="email"
+                  autoComplete="email"
+                  required
+                  value={resetEmail}
+                  onChange={(event) => setResetEmail(event.target.value)}
+                  placeholder="name@company.com"
+                  className="h-11 bg-card"
+                />
+              </div>
+              <Button type="submit" className="w-full h-11 font-semibold" disabled={requestPasswordReset.isPending}>
+                {requestPasswordReset.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Send reset link'}
+              </Button>
+              <Button type="button" variant="ghost" className="w-full" onClick={returnToSignIn}>
+                Back to sign in
               </Button>
             </form>
-          </Form>
+          ) : (
+            <form onSubmit={submitNewPassword} className="space-y-5">
+              <div className="space-y-2">
+                <label htmlFor="new-password" className="text-sm font-medium leading-none">New password</label>
+                <Input
+                  id="new-password"
+                  type="password"
+                  autoComplete="new-password"
+                  required
+                  value={newPassword}
+                  onChange={(event) => setNewPassword(event.target.value)}
+                  className="h-11 bg-card"
+                />
+              </div>
+              <div className="space-y-2">
+                <label htmlFor="confirm-password" className="text-sm font-medium leading-none">Confirm new password</label>
+                <Input
+                  id="confirm-password"
+                  type="password"
+                  autoComplete="new-password"
+                  required
+                  value={confirmPassword}
+                  onChange={(event) => setConfirmPassword(event.target.value)}
+                  className="h-11 bg-card"
+                />
+              </div>
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                At least 10 characters, with at least one letter, one number, and one special character.
+              </p>
+              <Button type="submit" className="w-full h-11 font-semibold" disabled={completePasswordReset.isPending}>
+                {completePasswordReset.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Reset password'}
+              </Button>
+              <Button type="button" variant="ghost" className="w-full" onClick={returnToSignIn}>
+                Back to sign in
+              </Button>
+            </form>
+          )}
         </div>
       </div>
     </div>
