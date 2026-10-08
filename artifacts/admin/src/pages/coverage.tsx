@@ -39,7 +39,7 @@ export default function Coverage() {
         </Card>
         <Card>
           <CardContent className="p-5">
-            <p className="text-xs text-muted-foreground uppercase tracking-wide mb-2">Suburbs Listed</p>
+            <p className="text-xs text-muted-foreground uppercase tracking-wide mb-2">Suburbs Shown</p>
             {isLoading ? <Skeleton className="h-8 w-20" /> : <p className="text-3xl font-bold text-foreground">{data?.suburbs.length ?? 0}</p>}
           </CardContent>
         </Card>

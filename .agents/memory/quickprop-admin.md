@@ -39,12 +39,9 @@ Hook signature: useGetLeadTimeline(id, { query?: UseQueryOptions<...> })
 The `enabled` option goes inside query: { query: { enabled: expanded } as any }
 (exact UseQueryOptions type requires queryKey which is auto-generated internally)
 
-## Seeded admin users
-- nyasha@quickprop.co.zw — role: admin
-- rutendo@quickprop.co.zw — role: principal
-Both can access admin portal. Password: demo1234
+## Admin metrics integrity
+- Admin KPIs and coverage comparisons must not present guessed figures as live metrics. Without reliable response timestamps or verified market-size data, show “Not tracked” or actual listing counts only.
 
-## Pages built
-login, dashboard (12 KPIs + 5 charts), properties (with moderation), agencies, agents,
-buyers, leads (with expandable timeline), coverage (progress bars), freshness (30/60/90d tabs),
-audit log, settings (placeholder sections)
+**Why:** Hard-coded response-time and city/suburb market-size values misrepresent what QuickProp has actually measured.
+
+**How to apply:** Calculate KPIs from persisted events or authoritative records. Only add coverage percentages when each denominator has a verifiable source and date.
