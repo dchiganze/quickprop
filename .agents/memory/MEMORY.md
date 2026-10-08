@@ -11,3 +11,4 @@
 - [QuickProp Sharing](quickprop-sharing.md) — browser file-sharing limits require a download-plus-caption fallback for WhatsApp.
 - [QuickProp Brochure Filtering](quickprop-brochure-filtering.md) — transaction type and property classification are separate mobile brochure dimensions.
 - [QuickProp Video Export](quickprop-video-export.md) — start capture at player mount; mux the verified soundtrack directly because Chromium's headless media clock may not advance.
+- [QuickProp Password-Reset Email](quickprop-password-reset-email.md) — use a Resend sending-only key directly; verify the sender domain separately without full-access-only domain APIs.
