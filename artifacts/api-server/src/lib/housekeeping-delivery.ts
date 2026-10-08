@@ -48,8 +48,36 @@ function env(name: string): string | undefined {
   return value || undefined;
 }
 
-export function isAdminPasswordResetEmailConfigured(): boolean {
-  return Boolean(env("QUICKPROP_EMAIL_FROM"));
+export async function checkAdminPasswordResetEmailReadiness(): Promise<
+  { ready: true } | { ready: false; reason: string }
+> {
+  const from = env("QUICKPROP_EMAIL_FROM");
+  if (!from) return { ready: false, reason: "sender_not_configured" };
+
+  const address = from.match(/<([^<>]+)>/)?.[1] ?? from;
+  const emailMatch = /^[^\s@<>]+@([^\s@<>]+)$/.exec(address.trim());
+  if (!emailMatch) return { ready: false, reason: "sender_address_invalid" };
+  const senderDomain = emailMatch[1].toLowerCase();
+
+  try {
+    const response = await new ReplitConnectors().proxy("resend", "/domains", { method: "GET" });
+    if (!response.ok) {
+      return {
+        ready: false,
+        reason: response.status === 400 || response.status === 401 || response.status === 403
+          ? "resend_credentials_invalid"
+          : "resend_unavailable",
+      };
+    }
+    const payload = await response.json().catch(() => ({})) as { data?: Array<{ name?: string; status?: string }> };
+    const matchingDomain = payload.data?.find((domain) => domain.name?.toLowerCase() === senderDomain);
+    if (matchingDomain?.status !== "verified") {
+      return { ready: false, reason: "sender_domain_not_verified" };
+    }
+    return { ready: true };
+  } catch {
+    return { ready: false, reason: "resend_unavailable" };
+  }
 }
 
 export async function sendAdminPasswordResetEmail(

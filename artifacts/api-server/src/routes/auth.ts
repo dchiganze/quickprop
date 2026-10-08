@@ -46,7 +46,7 @@ import {
   meetsAdminPasswordPolicy,
 } from "../lib/password-reset";
 import {
-  isAdminPasswordResetEmailConfigured,
+  checkAdminPasswordResetEmailReadiness,
   sendAdminPasswordResetEmail,
 } from "../lib/housekeeping-delivery";
 import { hashPassword, isScryptHash, verifyPassword } from "../lib/passwords";
@@ -133,8 +133,9 @@ router.post("/auth/password-reset/request", async (req, res): Promise<void> => {
     developmentDomain: process.env.REPLIT_DEV_DOMAIN,
     productionBaseUrl: process.env.QUICKPROP_ADMIN_BASE_URL,
   });
-  if (!isAdminPasswordResetEmailConfigured() || !baseUrl) {
-    res.status(503).json({ error: "Password reset email is not configured. Contact a QuickProp administrator." });
+  const emailReadiness = await checkAdminPasswordResetEmailReadiness();
+  if (!emailReadiness.ready || !baseUrl) {
+    res.status(503).json({ error: "Password reset email is currently unavailable. Contact a QuickProp administrator." });
     return;
   }
 
