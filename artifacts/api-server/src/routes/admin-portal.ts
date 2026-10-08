@@ -66,7 +66,7 @@ router.get("/admin/platform-stats", adminOnly, async (_req, res): Promise<void> 
       weeklyActiveAgents,
       newLeadsToday,
       openLeads,
-      avgResponseTimeHours: 4.2, // placeholder — real metric needs response timestamps
+      avgResponseTimeHours: null,
       marketplaceCoveragePercent: Math.min(
         100,
         Math.round((activeProps.filter((p) => p.status === "public").length / Math.max(1, activeProps.length)) * 100)
@@ -136,14 +136,6 @@ router.get("/admin/platform-charts", adminOnly, async (_req, res): Promise<void>
 // ──────────────────────────────────────────────────────────────────────────────
 // Coverage (city + suburb)
 // ──────────────────────────────────────────────────────────────────────────────
-const ESTIMATED_MARKET: Record<string, number> = {
-  Harare: 1200,
-  Bulawayo: 400,
-  Gweru: 150,
-  Mutare: 120,
-  Masvingo: 80,
-};
-
 router.get("/admin/coverage", adminOnly, async (_req, res): Promise<void> => {
   const props = await db
     .select()
@@ -160,10 +152,9 @@ router.get("/admin/coverage", adminOnly, async (_req, res): Promise<void> => {
     suburbCity.set(p.suburb, p.city);
   }
 
-  const cities = [...cityCounts.entries()].map(([city, actual]) => {
-    const estimated = ESTIMATED_MARKET[city] ?? 200;
-    return { city, estimated, actual, percent: Math.round((actual / estimated) * 100) };
-  });
+  const cities = [...cityCounts.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .map(([city, actual]) => ({ city, actual }));
 
   const suburbs = [...suburbCounts.entries()]
     .sort((a, b) => b[1] - a[1])
@@ -171,9 +162,7 @@ router.get("/admin/coverage", adminOnly, async (_req, res): Promise<void> => {
     .map(([suburb, actual]) => ({
       suburb,
       city: suburbCity.get(suburb) ?? "",
-      estimated: 50,
       actual,
-      percent: Math.min(100, Math.round((actual / 50) * 100)),
     }));
 
   res.json(jsonify({ cities, suburbs }));
@@ -311,7 +300,6 @@ router.get("/admin/agencies", adminOnly, async (_req, res): Promise<void> => {
       activeListings: branchProps.filter((p) => p.status === "public").length,
       totalListings: branchProps.length,
       totalLeads: branchLeads.length,
-      status: "active",
     };
   });
 

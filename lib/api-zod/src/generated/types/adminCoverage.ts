@@ -5,9 +5,10 @@
  * QuickProp Office API
  * OpenAPI spec version: 0.1.0
  */
-import type { CoverageEntry } from './coverageEntry';
+import type { CityListingCount } from './cityListingCount';
+import type { SuburbListingCount } from './suburbListingCount';
 
 export interface AdminCoverage {
-  cities: CoverageEntry[];
-  suburbs: CoverageEntry[];
+  cities: CityListingCount[];
+  suburbs: SuburbListingCount[];
 }

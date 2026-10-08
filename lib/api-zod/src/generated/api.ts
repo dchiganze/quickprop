@@ -3672,7 +3672,7 @@ export const GetAdminPlatformStatsResponse = zod.object({
   "weeklyActiveAgents": zod.number(),
   "newLeadsToday": zod.number(),
   "openLeads": zod.number(),
-  "avgResponseTimeHours": zod.number(),
+  "avgResponseTimeHours": zod.number().nullable(),
   "marketplaceCoveragePercent": zod.number()
 })
 
@@ -3710,17 +3710,12 @@ export const GetAdminPlatformChartsResponse = zod.object({
 export const GetAdminCoverageResponse = zod.object({
   "cities": zod.array(zod.object({
   "city": zod.string(),
-  "suburb": zod.string().optional(),
-  "estimated": zod.number(),
-  "actual": zod.number(),
-  "percent": zod.number()
+  "actual": zod.number()
 })),
   "suburbs": zod.array(zod.object({
   "city": zod.string(),
-  "suburb": zod.string().optional(),
-  "estimated": zod.number(),
-  "actual": zod.number(),
-  "percent": zod.number()
+  "suburb": zod.string(),
+  "actual": zod.number()
 }))
 })
 
@@ -4795,7 +4790,6 @@ export const GetAdminAgenciesResponseItem = zod.object({
   "name": zod.string(),
   "address": zod.string().nullish(),
   "phone": zod.string().nullish(),
-  "status": zod.string().optional(),
   "agentCount": zod.number(),
   "activeListings": zod.number(),
   "totalListings": zod.number(),

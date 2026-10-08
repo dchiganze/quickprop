@@ -6,10 +6,8 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface CoverageEntry {
+export interface SuburbListingCount {
   city: string;
-  suburb?: string;
-  estimated: number;
+  suburb: string;
   actual: number;
-  percent: number;
 }

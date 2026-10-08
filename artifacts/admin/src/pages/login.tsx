@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useLocation } from 'wouter';
-import { ShieldCheck, ArrowRight, Loader2, Info } from 'lucide-react';
+import { ShieldCheck, ArrowRight, Loader2 } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -75,13 +75,6 @@ export default function Login() {
             <h2 className="text-2xl font-bold text-foreground">Admin sign in</h2>
             <p className="text-sm text-muted-foreground">Restricted to authorised administrators only.</p>
           </div>
-
-          <Alert className="bg-primary/5 border-primary/20">
-            <Info className="h-4 w-4 text-primary" />
-            <AlertDescription className="text-primary text-sm ml-2">
-              Demo: any email + <code className="bg-primary/10 px-1 py-0.5 rounded">demo1234</code>
-            </AlertDescription>
-          </Alert>
 
           {err && (
             <Alert variant="destructive">

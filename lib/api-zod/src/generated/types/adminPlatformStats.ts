@@ -18,6 +18,7 @@ export interface AdminPlatformStats {
   weeklyActiveAgents: number;
   newLeadsToday: number;
   openLeads: number;
-  avgResponseTimeHours: number;
+  /** @nullable */
+  avgResponseTimeHours: number | null;
   marketplaceCoveragePercent: number;
 }

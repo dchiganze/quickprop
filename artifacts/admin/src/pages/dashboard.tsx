@@ -73,7 +73,7 @@ export default function Dashboard() {
         <KpiCard title="Weekly Active" value={stats?.weeklyActiveAgents ?? 0} icon={Activity} sub="Agents" color="emerald" loading={statsLoading} />
         <KpiCard title="New Leads" value={stats?.newLeadsToday ?? 0} icon={Target} sub="Today" color="amber" loading={statsLoading} />
         <KpiCard title="Open Leads" value={stats?.openLeads ?? 0} icon={Clock} sub="Awaiting action" color="red" loading={statsLoading} />
-        <KpiCard title="Avg Response" value={`${stats?.avgResponseTimeHours ?? 0}h`} icon={Clock} sub="Lead response time" loading={statsLoading} />
+        <KpiCard title="Avg Response" value={stats?.avgResponseTimeHours == null ? 'Not tracked' : `${stats.avgResponseTimeHours}h`} icon={Clock} sub="Lead response time" loading={statsLoading} />
         <KpiCard title="Coverage" value={`${stats?.marketplaceCoveragePercent ?? 0}%`} icon={Globe} sub="Marketplace" color="emerald" loading={statsLoading} />
         <KpiCard title="Total Listings" value={stats?.totalProperties ?? 0} icon={Building2} sub="All time" color="purple" loading={statsLoading} />
       </div>

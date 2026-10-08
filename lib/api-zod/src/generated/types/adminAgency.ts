@@ -13,7 +13,6 @@ export interface AdminAgency {
   address?: string | null;
   /** @nullable */
   phone?: string | null;
-  status?: string;
   agentCount: number;
   activeListings: number;
   totalListings: number;

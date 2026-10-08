@@ -1872,7 +1872,8 @@ export interface AdminPlatformStats {
   weeklyActiveAgents: number;
   newLeadsToday: number;
   openLeads: number;
-  avgResponseTimeHours: number;
+  /** @nullable */
+  avgResponseTimeHours: number | null;
   marketplaceCoveragePercent: number;
 }
 
@@ -1884,17 +1885,20 @@ export interface AdminPlatformCharts {
   propertiesByType: ChartPoint[];
 }
 
-export interface CoverageEntry {
+export interface CityListingCount {
   city: string;
-  suburb?: string;
-  estimated: number;
   actual: number;
-  percent: number;
+}
+
+export interface SuburbListingCount {
+  city: string;
+  suburb: string;
+  actual: number;
 }
 
 export interface AdminCoverage {
-  cities: CoverageEntry[];
-  suburbs: CoverageEntry[];
+  cities: CityListingCount[];
+  suburbs: SuburbListingCount[];
 }
 
 export interface FreshnessEntry {
@@ -2134,7 +2138,6 @@ export interface AdminAgency {
   address?: string | null;
   /** @nullable */
   phone?: string | null;
-  status?: string;
   agentCount: number;
   activeListings: number;
   totalListings: number;

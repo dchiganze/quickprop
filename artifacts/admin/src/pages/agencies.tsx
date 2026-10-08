@@ -46,21 +46,20 @@ export default function Agencies() {
                   <th className="text-left px-4 py-3 font-medium text-muted-foreground w-36">Active Listings</th>
                   <th className="text-left px-4 py-3 font-medium text-muted-foreground w-36">Total Listings</th>
                   <th className="text-left px-4 py-3 font-medium text-muted-foreground w-32">Total Leads</th>
-                  <th className="text-left px-4 py-3 font-medium text-muted-foreground w-32">Status</th>
                 </tr>
               </thead>
               <tbody>
                 {isLoading ? (
                   Array.from({ length: 6 }).map((_, i) => (
                     <tr key={i} className="border-b border-border/50">
-                      {Array.from({ length: 6 }).map((_, j) => (
+                      {Array.from({ length: 5 }).map((_, j) => (
                         <td key={j} className="px-4 py-3"><Skeleton className="h-4 w-full" /></td>
                       ))}
                     </tr>
                   ))
                 ) : filtered.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-4 py-16 text-center text-sm text-muted-foreground">No agencies found</td>
+                    <td colSpan={5} className="px-4 py-16 text-center text-sm text-muted-foreground">No agencies found</td>
                   </tr>
                 ) : (
                   filtered.map((a) => (
@@ -99,11 +98,6 @@ export default function Agencies() {
                           <BarChart3 className="w-3.5 h-3.5 text-muted-foreground" />
                           {a.totalLeads}
                         </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <Badge variant="outline" className="text-xs capitalize bg-emerald-500/10 text-emerald-700 border-emerald-500/20">
-                          {a.status ?? 'active'}
-                        </Badge>
                       </td>
                     </tr>
                   ))

@@ -3526,7 +3526,7 @@ components:
         weeklyActiveAgents: { type: integer }
         newLeadsToday: { type: integer }
         openLeads: { type: integer }
-        avgResponseTimeHours: { type: number }
+        avgResponseTimeHours: { type: ["number", "null"] }
         marketplaceCoveragePercent: { type: integer }
     AdminPlatformCharts:
       type: object
@@ -3547,25 +3547,29 @@ components:
         propertiesByType:
           type: array
           items: { $ref: "#/components/schemas/ChartPoint" }
-    CoverageEntry:
+    CityListingCount:
       type: object
-      required: [city, estimated, actual, percent]
+      required: [city, actual]
+      properties:
+        city: { type: string }
+        actual: { type: integer }
+    SuburbListingCount:
+      type: object
+      required: [city, suburb, actual]
       properties:
         city: { type: string }
         suburb: { type: string }
-        estimated: { type: integer }
         actual: { type: integer }
-        percent: { type: integer }
     AdminCoverage:
       type: object
       required: [cities, suburbs]
       properties:
         cities:
           type: array
-          items: { $ref: "#/components/schemas/CoverageEntry" }
+          items: { $ref: "#/components/schemas/CityListingCount" }
         suburbs:
           type: array
-          items: { $ref: "#/components/schemas/CoverageEntry" }
+          items: { $ref: "#/components/schemas/SuburbListingCount" }
     FreshnessEntry:
       type: object
       required: [id, reference, title, suburb, city, status, daysStale, updatedAt]
@@ -3802,7 +3806,6 @@ components:
         name: { type: string }
         address: { type: ["string", "null"] }
         phone: { type: ["string", "null"] }
-        status: { type: string }
         agentCount: { type: integer }
         activeListings: { type: integer }
         totalListings: { type: integer }
