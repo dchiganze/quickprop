@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { mock, test } from "node:test";
+import { ReplitConnectors } from "@replit/connectors-sdk";
 import {
   checkAdminPasswordResetEmailReadiness,
   sendAdminPasswordResetEmail,
@@ -10,16 +11,16 @@ function restoreEnv(name: string, value: string | undefined): void {
   else process.env[name] = value;
 }
 
-test("admin password reset email readiness requires a Resend API key", async () => {
+test("admin password reset email readiness requires a configured sender", async () => {
   const previousKey = process.env.RESEND_API_KEY;
   const previousFrom = process.env.QUICKPROP_EMAIL_FROM;
-  delete process.env.RESEND_API_KEY;
-  process.env.QUICKPROP_EMAIL_FROM = "QuickProp <reset@example.test>";
+  process.env.RESEND_API_KEY = "unused-key";
+  delete process.env.QUICKPROP_EMAIL_FROM;
 
   try {
     assert.deepEqual(await checkAdminPasswordResetEmailReadiness(), {
       ready: false,
-      reason: "resend_credentials_missing",
+      reason: "sender_not_configured",
     });
   } finally {
     restoreEnv("RESEND_API_KEY", previousKey);
@@ -27,46 +28,40 @@ test("admin password reset email readiness requires a Resend API key", async () 
   }
 });
 
-test("admin password reset email readiness allows sending-only Resend keys", async () => {
+test("admin password reset email readiness does not require an API key", async () => {
   const previousKey = process.env.RESEND_API_KEY;
   const previousFrom = process.env.QUICKPROP_EMAIL_FROM;
-  process.env.RESEND_API_KEY = "test-sending-only-key";
+  delete process.env.RESEND_API_KEY;
   process.env.QUICKPROP_EMAIL_FROM = "QuickProp <reset@example.test>";
-  const fetchMock = mock.method(
-    globalThis,
-    "fetch",
-    async (): Promise<Response> => {
-      throw new Error("Readiness must not require the full-access domains endpoint");
-    },
-  );
 
   try {
     assert.deepEqual(await checkAdminPasswordResetEmailReadiness(), { ready: true });
-    assert.equal(fetchMock.mock.callCount(), 0);
   } finally {
-    fetchMock.mock.restore();
     restoreEnv("RESEND_API_KEY", previousKey);
     restoreEnv("QUICKPROP_EMAIL_FROM", previousFrom);
   }
 });
 
 test("admin password reset email sends directly through Resend with an idempotency key", async () => {
-  const previousKey = process.env.RESEND_API_KEY;
   const previousFrom = process.env.QUICKPROP_EMAIL_FROM;
-  process.env.RESEND_API_KEY = "test-resend-key";
   process.env.QUICKPROP_EMAIL_FROM = "QuickProp <reset@example.test>";
-  const fetchMock = mock.method(
-    globalThis,
-    "fetch",
+  const proxyMock = mock.method(
+    ReplitConnectors.prototype,
+    "proxy",
     async (
-      input: Parameters<typeof globalThis.fetch>[0],
-      init?: Parameters<typeof globalThis.fetch>[1],
+      connectorName: string,
+      path: string,
+      options?: {
+        method?: string;
+        body?: unknown;
+        headers?: Record<string, string>;
+      },
     ): Promise<Response> => {
-      assert.equal(String(input), "https://api.resend.com/emails");
-      const headers = new Headers(init?.headers);
-      assert.equal(headers.get("authorization"), "Bearer test-resend-key");
-      assert.equal(headers.get("idempotency-key"), "reset-request-42");
-      const body = JSON.parse(String(init?.body)) as {
+      assert.equal(connectorName, "resend");
+      assert.equal(path, "/emails");
+      assert.equal(options?.method, "POST");
+      assert.equal(options?.headers?.["Idempotency-Key"], "reset-request-42");
+      const body = options?.body as {
         from: string;
         to: string[];
         subject: string;
@@ -91,8 +86,7 @@ test("admin password reset email sends directly through Resend with an idempoten
       { status: "sent", providerMessageId: "resend-message-42" },
     );
   } finally {
-    fetchMock.mock.restore();
-    restoreEnv("RESEND_API_KEY", previousKey);
+    proxyMock.mock.restore();
     restoreEnv("QUICKPROP_EMAIL_FROM", previousFrom);
   }
 });

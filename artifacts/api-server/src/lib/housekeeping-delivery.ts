@@ -1,4 +1,5 @@
 import { and, eq, inArray, lte, lt, or } from "drizzle-orm";
+import { ReplitConnectors } from "@replit/connectors-sdk";
 import {
   db,
   listingHousekeepingDeliveriesTable,
@@ -52,14 +53,10 @@ export async function checkAdminPasswordResetEmailReadiness(): Promise<
 > {
   const from = env("QUICKPROP_EMAIL_FROM");
   if (!from) return { ready: false, reason: "sender_not_configured" };
-  const resendKey = env("RESEND_API_KEY");
-  if (!resendKey) return { ready: false, reason: "resend_credentials_missing" };
 
   const address = from.match(/<([^<>]+)>/)?.[1] ?? from;
   const emailMatch = /^[^\s@<>]+@([^\s@<>]+)$/.exec(address.trim());
   if (!emailMatch) return { ready: false, reason: "sender_address_invalid" };
-  // Do not call Resend's domains endpoint here: it requires full-access API keys,
-  // while a domain-scoped sending-only key is sufficient for the email request.
   return { ready: true };
 }
 
@@ -70,21 +67,23 @@ export async function sendAdminPasswordResetEmail(
 ): Promise<DeliveryResult> {
   const from = env("QUICKPROP_EMAIL_FROM");
   if (!from) return { status: "skipped", reason: "email_from_not_configured" };
-  const resendKey = env("RESEND_API_KEY");
-  if (!resendKey) return { status: "skipped", reason: "email_provider_not_configured" };
-
-  const result = await postJson(
-    "https://api.resend.com/emails",
-    {
+  const connectors = new ReplitConnectors();
+  const response = await connectors.proxy("resend", "/emails", {
+    method: "POST",
+    headers: { "Idempotency-Key": idempotencyKey },
+    body: {
       from,
       to: [email],
       subject: "Reset your QuickProp admin password",
       text: `Use this one-time link to reset your QuickProp admin password. It expires in 15 minutes:\n\n${resetUrl}\n\nIf you did not request this, you can ignore this email.`,
       html: `<p>Use this one-time link to reset your QuickProp admin password. It expires in 15 minutes.</p><p><a href="${resetUrl}">Reset your password</a></p><p>If you did not request this, you can ignore this email.</p>`,
     },
-    idempotencyKey,
-    { Authorization: `Bearer ${resendKey}` },
-  );
+  });
+  if (!response.ok) {
+    const bodyText = (await response.text()).slice(0, 500);
+    throw new Error(`Resend returned ${response.status}: ${bodyText || response.statusText}`);
+  }
+  const result = await response.json().catch(() => ({})) as ProviderResponse;
   return { status: "sent", providerMessageId: result.id ?? result.messageId };
 }
 
