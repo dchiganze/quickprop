@@ -1,5 +1,4 @@
 import { and, eq, inArray, lte, lt, or } from "drizzle-orm";
-import { ReplitConnectors } from "@replit/connectors-sdk";
 import {
   db,
   listingHousekeepingDeliveriesTable,
@@ -53,6 +52,8 @@ export async function checkAdminPasswordResetEmailReadiness(): Promise<
 > {
   const from = env("QUICKPROP_EMAIL_FROM");
   if (!from) return { ready: false, reason: "sender_not_configured" };
+  const resendKey = env("RESEND_API_KEY");
+  if (!resendKey) return { ready: false, reason: "resend_credentials_missing" };
 
   const address = from.match(/<([^<>]+)>/)?.[1] ?? from;
   const emailMatch = /^[^\s@<>]+@([^\s@<>]+)$/.exec(address.trim());
@@ -60,7 +61,11 @@ export async function checkAdminPasswordResetEmailReadiness(): Promise<
   const senderDomain = emailMatch[1].toLowerCase();
 
   try {
-    const response = await new ReplitConnectors().proxy("resend", "/domains", { method: "GET" });
+    const response = await fetch("https://api.resend.com/domains", {
+      method: "GET",
+      headers: { Authorization: `Bearer ${resendKey}` },
+      signal: AbortSignal.timeout(15_000),
+    });
     if (!response.ok) {
       return {
         ready: false,
@@ -87,23 +92,21 @@ export async function sendAdminPasswordResetEmail(
 ): Promise<DeliveryResult> {
   const from = env("QUICKPROP_EMAIL_FROM");
   if (!from) return { status: "skipped", reason: "email_from_not_configured" };
+  const resendKey = env("RESEND_API_KEY");
+  if (!resendKey) return { status: "skipped", reason: "email_provider_not_configured" };
 
-  const response = await new ReplitConnectors().proxy("resend", "/emails", {
-    method: "POST",
-    headers: { "Idempotency-Key": idempotencyKey },
-    body: {
+  const result = await postJson(
+    "https://api.resend.com/emails",
+    {
       from,
       to: [email],
       subject: "Reset your QuickProp admin password",
       text: `Use this one-time link to reset your QuickProp admin password. It expires in 15 minutes:\n\n${resetUrl}\n\nIf you did not request this, you can ignore this email.`,
       html: `<p>Use this one-time link to reset your QuickProp admin password. It expires in 15 minutes.</p><p><a href="${resetUrl}">Reset your password</a></p><p>If you did not request this, you can ignore this email.</p>`,
     },
-  });
-
-  if (!response.ok) {
-    throw new Error(`Resend password reset email failed with status ${response.status}.`);
-  }
-  const result = await response.json().catch(() => ({})) as ProviderResponse;
+    idempotencyKey,
+    { Authorization: `Bearer ${resendKey}` },
+  );
   return { status: "sent", providerMessageId: result.id ?? result.messageId };
 }
 
