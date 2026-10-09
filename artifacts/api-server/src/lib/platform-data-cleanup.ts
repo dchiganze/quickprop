@@ -117,6 +117,26 @@ export async function clearPlatformDashboardData(
            OR branch_id = ANY(${intArray(branchIds)})
       `)).rows,
     );
+    const duplicateReviewIds = idsFromRows(
+      (await tx.execute(sql`
+        SELECT id
+        FROM property_duplicate_reviews
+        WHERE source_property_id = ANY(${intArray(propertyIds)})
+           OR candidate_property_id = ANY(${intArray(propertyIds)})
+           OR canonical_property_id = ANY(${intArray(propertyIds)})
+           OR reviewed_by = ANY(${intArray(userIds)})
+      `)).rows,
+    );
+    const housekeepingEventIds = idsFromRows(
+      (await tx.execute(sql`
+        SELECT id
+        FROM listing_housekeeping_events
+        WHERE property_id = ANY(${intArray(propertyIds)})
+           OR agent_id = ANY(${intArray(userIds)})
+           OR agency_id = ANY(${intArray(branchIds)})
+           OR relationship_id = ANY(${intArray(relationshipIds)})
+      `)).rows,
+    );
     const importSessionIds = idsFromRows(
       (await tx.execute(sql`
         SELECT id
@@ -170,13 +190,15 @@ export async function clearPlatformDashboardData(
     await deleteWhereAny("import_files", [{ column: "id", ids: importFileIds }]);
     await deleteWhereAny("import_sessions", [{ column: "id", ids: importSessionIds }]);
 
-    await deleteWhereAny("agent_review_invitations", [
-      { column: "agent_id", ids: userIds },
-      { column: "property_id", ids: propertyIds },
-    ]);
     await deleteWhereAny("agent_reviews", [
       { column: "agent_id", ids: userIds },
       { column: "property_id", ids: propertyIds },
+      { column: "relationship_id", ids: relationshipIds },
+    ]);
+    await deleteWhereAny("agent_review_invitations", [
+      { column: "agent_id", ids: userIds },
+      { column: "property_id", ids: propertyIds },
+      { column: "relationship_id", ids: relationshipIds },
     ]);
     await deleteWhereAny("collaboration_match_requests", [
       { column: "property_id", ids: propertyIds },
@@ -188,6 +210,12 @@ export async function clearPlatformDashboardData(
       { column: "source_property_id", ids: propertyIds },
       { column: "user_id", ids: userIds },
     ]);
+    await deleteWhereAny("property_merge_history", [
+      { column: "review_id", ids: duplicateReviewIds },
+      { column: "source_property_id", ids: propertyIds },
+      { column: "canonical_property_id", ids: propertyIds },
+      { column: "merged_by", ids: userIds },
+    ]);
     await deleteWhereAny("property_duplicate_reviews", [
       { column: "source_property_id", ids: propertyIds },
       { column: "candidate_property_id", ids: propertyIds },
@@ -197,12 +225,20 @@ export async function clearPlatformDashboardData(
     await deleteWhereAny("property_marketing_assets", [
       { column: "property_id", ids: propertyIds },
       { column: "uploaded_by", ids: userIds },
+      { column: "relationship_id", ids: relationshipIds },
     ]);
-    await deleteWhereAny("property_merge_history", [
-      { column: "source_property_id", ids: propertyIds },
-      { column: "canonical_property_id", ids: propertyIds },
-      { column: "merged_by", ids: userIds },
+
+    await deleteWhereAny("listing_housekeeping_deliveries", [
+      { column: "event_id", ids: housekeepingEventIds },
+      { column: "user_id", ids: userIds },
     ]);
+    await deleteWhereAny("listing_housekeeping_events", [
+      { column: "property_id", ids: propertyIds },
+      { column: "agent_id", ids: userIds },
+      { column: "agency_id", ids: branchIds },
+      { column: "relationship_id", ids: relationshipIds },
+    ]);
+
     await deleteWhereAny("property_agent_relationships", [
       { column: "property_id", ids: propertyIds },
       { column: "agent_id", ids: userIds },
@@ -210,14 +246,6 @@ export async function clearPlatformDashboardData(
     ]);
     await deleteWhereAny("price_history", [{ column: "property_id", ids: propertyIds }]);
 
-    await deleteWhereAny("listing_housekeeping_events", [
-      { column: "property_id", ids: propertyIds },
-      { column: "agent_id", ids: userIds },
-      { column: "agency_id", ids: branchIds },
-    ]);
-    await deleteWhereAny("listing_housekeeping_deliveries", [
-      { column: "user_id", ids: userIds },
-    ]);
     await deleteWhereAny("listing_housekeeping_preferences", [
       { column: "user_id", ids: userIds },
     ]);
