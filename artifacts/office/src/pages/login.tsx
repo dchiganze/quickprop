@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useLocation } from 'wouter';
-import { ArrowRight, Loader2, Info } from 'lucide-react';
+import { ArrowRight, Loader2 } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -8,7 +8,7 @@ import * as z from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { useLogin } from '@workspace/api-client-react';
+import { useLogin, useRequestAdminPasswordReset } from '@workspace/api-client-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const loginSchema = z.object({
@@ -19,7 +19,9 @@ const loginSchema = z.object({
 export default function Login() {
   const [, setLocation] = useLocation();
   const login = useLogin();
+  const requestPasswordReset = useRequestAdminPasswordReset();
   const [errorMsg, setErrorMsg] = useState('');
+  const [resetNotice, setResetNotice] = useState('');
 
   const form = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
@@ -31,6 +33,7 @@ export default function Login() {
 
   const onSubmit = (values: z.infer<typeof loginSchema>) => {
     setErrorMsg('');
+    setResetNotice('');
     login.mutate({ data: values }, {
       onSuccess: () => {
         setLocation('/');
@@ -39,6 +42,25 @@ export default function Login() {
         setErrorMsg(err?.message || 'Failed to sign in. Please check your credentials.');
       }
     });
+  };
+
+  const sendResetLink = () => {
+    setErrorMsg('');
+    setResetNotice('');
+    const email = form.getValues('email').trim();
+    if (!email) {
+      form.setError('email', { type: 'manual', message: 'Enter your administrator email first.' });
+      return;
+    }
+    requestPasswordReset.mutate(
+      { data: { email } },
+      {
+        onSuccess: () => setResetNotice(
+          "If this email belongs to an active administrator account, QuickProp will send a one-time password setup link.",
+        ),
+        onError: (error: any) => setErrorMsg(error?.message || 'Could not request a setup link. Please try again.'),
+      },
+    );
   };
 
   return (
@@ -79,16 +101,15 @@ export default function Login() {
             <p className="text-muted-foreground">Sign in to your QuickProp account</p>
           </div>
 
-          <Alert className="bg-primary/5 border-primary/20 text-primary-foreground/90">
-            <Info className="h-4 w-4 text-primary" />
-            <AlertDescription className="text-primary text-sm font-medium ml-2">
-              Demo Access: Any email + <code className="bg-primary/10 px-1 py-0.5 rounded text-primary">demo1234</code>
-            </AlertDescription>
-          </Alert>
-
           {errorMsg && (
             <Alert variant="destructive">
               <AlertDescription>{errorMsg}</AlertDescription>
+            </Alert>
+          )}
+
+          {resetNotice && (
+            <Alert className="border-emerald-200 bg-emerald-50 text-emerald-900" data-testid="alert-reset-link-requested">
+              <AlertDescription>{resetNotice}</AlertDescription>
             </Alert>
           )}
 
@@ -115,8 +136,15 @@ export default function Login() {
                   <FormItem>
                     <div className="flex items-center justify-between">
                       <FormLabel>Password</FormLabel>
-                      <Button variant="link" className="px-0 h-auto text-xs text-muted-foreground hover:text-primary" tabIndex={-1}>
-                        Forgot password?
+                        <Button
+                          type="button"
+                          variant="link"
+                          className="px-0 h-auto text-xs text-muted-foreground hover:text-primary"
+                          onClick={sendResetLink}
+                          disabled={requestPasswordReset.isPending}
+                          data-testid="button-request-password-reset"
+                        >
+                          {requestPasswordReset.isPending ? 'Sending…' : 'Forgot password?'}
                       </Button>
                     </div>
                     <FormControl>

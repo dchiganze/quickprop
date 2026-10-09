@@ -1,6 +1,5 @@
 import { Router, type IRouter } from "express";
 import { and, eq, gt, gte, inArray, isNull, or } from "drizzle-orm";
-import { createHmac, timingSafeEqual } from "node:crypto";
 import {
   activityTable,
   auditLogTable,
@@ -50,19 +49,15 @@ import {
   sendAdminPasswordResetEmail,
 } from "../lib/housekeeping-delivery";
 import { hashPassword, isScryptHash, verifyPassword } from "../lib/passwords";
+import {
+  createSessionToken,
+  readSessionToken,
+  SESSION_TOKEN_TTL_SECONDS,
+} from "../lib/sessions";
 
 const router: IRouter = Router();
 
 const COOKIE = "qp_uid";
-const TOKEN_PREFIX = "qp1";
-// Native clients cannot rely on browser cookies, so bearer sessions are durable
-// enough for normal mobile use while still expiring and requiring re-authentication.
-const TOKEN_TTL_SECONDS = 30 * 24 * 60 * 60;
-
-type SessionPayload = {
-  sub: number;
-  exp: number;
-};
 
 function sessionSecret(): string {
   const secret = process.env.SESSION_SECRET;
@@ -72,48 +67,11 @@ function sessionSecret(): string {
   return secret;
 }
 
-function signSession(value: string): string {
-  return createHmac("sha256", sessionSecret()).update(value).digest("base64url");
-}
-
-function createSessionToken(userId: number): string {
-  const payload = Buffer.from(JSON.stringify({
-    sub: userId,
-    exp: Math.floor(Date.now() / 1000) + TOKEN_TTL_SECONDS,
-  })).toString("base64url");
-  const signed = `${TOKEN_PREFIX}.${payload}`;
-  return `${signed}.${signSession(signed)}`;
-}
-
 function userIdFromBearerToken(authorization: string | string[] | undefined): number | null {
   if (typeof authorization !== "string") return null;
   const [scheme, token, ...extra] = authorization.trim().split(/\s+/);
   if (scheme !== "Bearer" || !token || extra.length > 0) return null;
-
-  const [prefix, encodedPayload, signature, ...parts] = token.split(".");
-  if (prefix !== TOKEN_PREFIX || !encodedPayload || !signature || parts.length > 0) return null;
-
-  let expected: Buffer;
-  let supplied: Buffer;
-  try {
-    expected = Buffer.from(signSession(`${prefix}.${encodedPayload}`), "base64url");
-    supplied = Buffer.from(signature, "base64url");
-  } catch {
-    return null;
-  }
-  if (
-    expected.length !== supplied.length
-    || supplied.toString("base64url") !== signature
-    || !timingSafeEqual(expected, supplied)
-  ) return null;
-
-  try {
-    const payload = JSON.parse(Buffer.from(encodedPayload, "base64url").toString("utf8")) as SessionPayload;
-    if (!Number.isSafeInteger(payload.sub) || payload.sub <= 0 || !Number.isSafeInteger(payload.exp)) return null;
-    return payload.exp > Math.floor(Date.now() / 1000) ? payload.sub : null;
-  } catch {
-    return null;
-  }
+  return readSessionToken(token, sessionSecret());
 }
 
 function toUser(u: typeof usersTable.$inferSelect) {
@@ -299,16 +257,18 @@ router.post("/auth/login", async (req, res): Promise<void> => {
   }
   let accessToken: string;
   try {
-    accessToken = createSessionToken(user.id);
+    accessToken = createSessionToken(user.id, sessionSecret());
   } catch (error) {
     console.error("Unable to issue bearer session", error);
     res.status(503).json({ error: "Mobile sessions are not configured" });
     return;
   }
-  res.cookie(COOKIE, String(user.id), {
+  res.cookie(COOKIE, accessToken, {
     httpOnly: true,
     sameSite: "lax",
-    maxAge: 30 * 24 * 3600 * 1000,
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: SESSION_TOKEN_TTL_SECONDS * 1000,
   });
   await logAudit("login", "user", user.id, `${user.name} logged in`, user.id, user.name);
   res.json(LoginResponse.parse({ ...jsonify(toUser(user)), accessToken }));
@@ -321,7 +281,7 @@ router.post("/auth/logout", async (_req, res): Promise<void> => {
 
 router.get("/auth/me", async (req, res): Promise<void> => {
   const user = await currentUser(req);
-  if (!user) {
+  if (!user || user.status !== "active") {
     res.status(401).json({ error: "Not logged in" });
     return;
   }
@@ -444,8 +404,12 @@ export async function currentUser(req: {
   headers?: { authorization?: string | string[] | undefined };
 }) {
   const bearerUserId = userIdFromBearerToken(req.headers?.authorization);
-  const id = bearerUserId ?? parseInt(req.cookies?.[COOKIE] ?? "", 10);
-  if (!id || Number.isNaN(id)) return null;
+  const cookieToken = req.cookies?.[COOKIE];
+  const cookieUserId = cookieToken?.startsWith("qp1.")
+    ? readSessionToken(cookieToken, sessionSecret())
+    : null;
+  const id = bearerUserId ?? cookieUserId;
+  if (!id) return null;
   const [user] = await db.select().from(usersTable).where(eq(usersTable.id, id));
   return user ?? null;
 }

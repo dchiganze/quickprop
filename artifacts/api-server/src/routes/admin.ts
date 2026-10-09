@@ -1,5 +1,6 @@
 import { Router, type IRouter } from "express";
-import { eq, and, desc, type SQL } from "drizzle-orm";
+import { randomBytes } from "node:crypto";
+import { eq, and, desc, inArray, type SQL } from "drizzle-orm";
 import { db, usersTable, branchesTable, notificationsTable, auditLogTable } from "@workspace/db";
 import {
   ListUsersResponse,
@@ -22,6 +23,11 @@ import { currentUser, requireRole } from "./auth";
 const router: IRouter = Router();
 
 const adminOnly = requireRole("principal", "admin");
+const ADMIN_ROLES = ["principal", "admin"] as const;
+
+function isAdminRole(role: string): boolean {
+  return ADMIN_ROLES.includes(role as typeof ADMIN_ROLES[number]);
+}
 
 function stripUser(u: typeof usersTable.$inferSelect) {
   const { password: _pw, createdAt: _c, ...rest } = u;
@@ -43,7 +49,11 @@ router.post("/users", adminOnly, async (req, res): Promise<void> => {
   const { password, ...rest } = parsed.data;
   const [row] = await db
     .insert(usersTable)
-    .values({ ...rest, email: rest.email.toLowerCase().trim(), password: await hashPassword(password ?? "demo1234") })
+    .values({
+      ...rest,
+      email: rest.email.toLowerCase().trim(),
+      password: await hashPassword(password ?? `${randomBytes(32).toString("base64url")}A1!`),
+    })
     .returning();
   await logAudit("created", "user", row.id, `Created user ${row.name}`, actor?.id, actor?.name);
   res.status(201).json(CreateUserResponse.parse(jsonify(stripUser(row))));
@@ -57,13 +67,55 @@ router.patch("/users/:id", adminOnly, async (req, res): Promise<void> => {
     return;
   }
   const actor = await currentUser(req);
-  const [row] = await db.update(usersTable).set(parsed.data).where(eq(usersTable.id, id)).returning();
-  if (!row) {
+
+  const outcome = await db.transaction(async (tx) => {
+    const activeAdmins = await tx
+      .select({ id: usersTable.id })
+      .from(usersTable)
+      .where(and(
+        eq(usersTable.status, "active"),
+        inArray(usersTable.role, [...ADMIN_ROLES]),
+      ))
+      .orderBy(usersTable.id)
+      .for("update");
+    const [existing] = await tx
+      .select()
+      .from(usersTable)
+      .where(eq(usersTable.id, id))
+      .limit(1)
+      .for("update");
+    if (!existing) return { kind: "missing" as const };
+
+    const nextRole = parsed.data.role ?? existing.role;
+    const nextStatus = parsed.data.status ?? existing.status;
+    const wasActiveAdmin = existing.status === "active" && isAdminRole(existing.role);
+    const remainsActiveAdmin = nextStatus === "active" && isAdminRole(nextRole);
+
+    if (actor?.id === id && wasActiveAdmin && !remainsActiveAdmin) {
+      return { kind: "self-access" as const };
+    }
+    if (wasActiveAdmin && !remainsActiveAdmin && activeAdmins.every((admin) => admin.id === id)) {
+      return { kind: "last-admin" as const };
+    }
+
+    const [row] = await tx.update(usersTable).set(parsed.data).where(eq(usersTable.id, id)).returning();
+    return row ? { kind: "updated" as const, row } : { kind: "missing" as const };
+  });
+
+  if (outcome.kind === "missing") {
     res.status(404).json({ error: "User not found" });
     return;
   }
-  await logAudit("edited", "user", id, `Updated user ${row.name}`, actor?.id, actor?.name);
-  res.json(UpdateUserResponse.parse(jsonify(stripUser(row))));
+  if (outcome.kind === "self-access") {
+    res.status(409).json({ error: "You cannot remove your own active administrator access." });
+    return;
+  }
+  if (outcome.kind === "last-admin") {
+    res.status(409).json({ error: "QuickProp must keep at least one active administrator." });
+    return;
+  }
+  await logAudit("edited", "user", id, `Updated user ${outcome.row.name}`, actor?.id, actor?.name);
+  res.json(UpdateUserResponse.parse(jsonify(stripUser(outcome.row))));
 });
 
 router.get("/branches", async (_req, res): Promise<void> => {
