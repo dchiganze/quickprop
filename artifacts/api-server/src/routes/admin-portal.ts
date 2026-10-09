@@ -74,7 +74,10 @@ router.post("/admin/platform-data-cleanup", adminOnly, async (req, res): Promise
       });
       return;
     }
-    throw error;
+    req.log.error({ err: error }, "Platform data cleanup failed");
+    res.status(500).json({
+      error: "Cleanup failed. Refresh the preview before trying again.",
+    });
   }
 });
 

@@ -40,6 +40,11 @@ function idsFromRows(rows: readonly unknown[]): number[] {
     .filter((id) => Number.isSafeInteger(id));
 }
 
+function intArray(values: readonly number[]) {
+  if (values.length === 0) return sql`ARRAY[]::int[]`;
+  return sql`ARRAY[${sql.join(values.map((value) => sql`${value}`), sql`, `)}]::int[]`;
+}
+
 export class PlatformCleanupSnapshotChangedError extends Error {
   constructor(readonly currentCounts: PlatformCleanupCounts) {
     super("Platform data changed after the cleanup preview. Review the updated counts before continuing.");
@@ -107,34 +112,34 @@ export async function clearPlatformDashboardData(
       (await tx.execute(sql`
         SELECT id
         FROM property_agent_relationships
-        WHERE property_id = ANY(${propertyIds}::int[])
-           OR agent_id = ANY(${userIds}::int[])
-           OR branch_id = ANY(${branchIds}::int[])
+        WHERE property_id = ANY(${intArray(propertyIds)})
+           OR agent_id = ANY(${intArray(userIds)})
+           OR branch_id = ANY(${intArray(branchIds)})
       `)).rows,
     );
     const importSessionIds = idsFromRows(
       (await tx.execute(sql`
         SELECT id
         FROM import_sessions
-        WHERE agency_id = ANY(${branchIds}::int[])
-           OR created_by = ANY(${userIds}::int[])
+        WHERE agency_id = ANY(${intArray(branchIds)})
+           OR created_by = ANY(${intArray(userIds)})
       `)).rows,
     );
     const importFileIds = idsFromRows(
       (await tx.execute(sql`
-        SELECT id FROM import_files WHERE session_id = ANY(${importSessionIds}::int[])
+        SELECT id FROM import_files WHERE session_id = ANY(${intArray(importSessionIds)})
       `)).rows,
     );
     const importRecordIds = idsFromRows(
       (await tx.execute(sql`
         SELECT id
         FROM import_records
-        WHERE agent_id = ANY(${userIds}::int[])
-           OR final_property_id = ANY(${propertyIds}::int[])
-           OR matched_property_id = ANY(${propertyIds}::int[])
-           OR final_relationship_id = ANY(${relationshipIds}::int[])
-           OR session_id = ANY(${importSessionIds}::int[])
-           OR source_file_id = ANY(${importFileIds}::int[])
+        WHERE agent_id = ANY(${intArray(userIds)})
+           OR final_property_id = ANY(${intArray(propertyIds)})
+           OR matched_property_id = ANY(${intArray(propertyIds)})
+           OR final_relationship_id = ANY(${intArray(relationshipIds)})
+           OR session_id = ANY(${intArray(importSessionIds)})
+           OR source_file_id = ANY(${intArray(importFileIds)})
       `)).rows,
     );
 
@@ -147,7 +152,7 @@ export async function clearPlatformDashboardData(
       const where = sql.join(
         activeConditions.map(
           ({ column, ids }) =>
-            sql`${sql.identifier(column)} = ANY(${ids}::int[])`,
+            sql`${sql.identifier(column)} = ANY(${intArray(ids)})`,
         ),
         sql` OR `,
       );
@@ -248,12 +253,12 @@ export async function clearPlatformDashboardData(
 
     await tx.execute(sql`
       DELETE FROM audit_log
-      WHERE user_id = ANY(${userIds}::int[])
-         OR (entity_type IN ('property', 'properties') AND entity_id = ANY(${propertyIds}::int[]))
-         OR (entity_type IN ('agent', 'agents', 'user', 'users') AND entity_id = ANY(${agentIds}::int[]))
-         OR (entity_type IN ('buyer', 'buyers') AND entity_id = ANY(${buyerIds}::int[]))
-         OR (entity_type IN ('branch', 'branches', 'agency', 'agencies') AND entity_id = ANY(${branchIds}::int[]))
-         OR (entity_type IN ('lead', 'leads') AND entity_id = ANY(${leadIds}::int[]))
+      WHERE user_id = ANY(${intArray(userIds)})
+         OR (entity_type IN ('property', 'properties') AND entity_id = ANY(${intArray(propertyIds)}))
+         OR (entity_type IN ('agent', 'agents', 'user', 'users') AND entity_id = ANY(${intArray(agentIds)}))
+         OR (entity_type IN ('buyer', 'buyers') AND entity_id = ANY(${intArray(buyerIds)}))
+         OR (entity_type IN ('branch', 'branches', 'agency', 'agencies') AND entity_id = ANY(${intArray(branchIds)}))
+         OR (entity_type IN ('lead', 'leads') AND entity_id = ANY(${intArray(leadIds)}))
     `);
     await tx.execute(sql`DELETE FROM activity`);
 
@@ -263,15 +268,15 @@ export async function clearPlatformDashboardData(
 
     await tx.execute(sql`
       UPDATE properties SET canonical_property_id = NULL
-      WHERE id = ANY(${propertyIds}::int[])
+      WHERE id = ANY(${intArray(propertyIds)})
     `);
     await tx.execute(sql`DELETE FROM properties`);
     await deleteWhereAny("sellers", [{ column: "id", ids: sellerIds }]);
 
     await tx.execute(sql`
       UPDATE users SET branch_id = NULL
-      WHERE branch_id = ANY(${branchIds}::int[])
-        AND id <> ALL(${userIds}::int[])
+      WHERE branch_id = ANY(${intArray(branchIds)})
+        AND id <> ALL(${intArray(userIds)})
     `);
     await deleteWhereAny("users", [{ column: "id", ids: userIds }]);
     await tx.execute(sql`DELETE FROM branches`);

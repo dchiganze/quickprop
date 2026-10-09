@@ -13,10 +13,13 @@ const CONFIRMATION_PHRASE = 'DELETE ALL DASHBOARD DATA';
 function errorMessage(error: unknown): string {
   if (error && typeof error === 'object') {
     const responseError = error as { data?: { error?: string }; message?: string };
-    if (responseError.data?.error) return responseError.data.error;
-    if (responseError.message) return responseError.message;
+    const message = responseError.data?.error ?? responseError.message;
+    if (message && /<!doctype|<html[\s>]|<pre>/i.test(message)) {
+      return 'The server returned an error. Review the refreshed counts before trying again.';
+    }
+    if (message) return message;
   }
-  return 'The cleanup could not be completed. No partial changes were committed.';
+  return 'The cleanup could not be completed. Review the refreshed counts before trying again.';
 }
 
 export default function DataCleanup() {
@@ -63,12 +66,9 @@ export default function DataCleanup() {
       setConfirmation('');
       await queryClient.invalidateQueries();
     } catch (caughtError) {
-      const message = errorMessage(caughtError);
-      setError(message);
-      if (message.includes('changed after the cleanup preview')) {
-        setConfirmation('');
-        await previewQuery.refetch();
-      }
+      setError(errorMessage(caughtError));
+      setConfirmation('');
+      await previewQuery.refetch();
     }
   }
 
