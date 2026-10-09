@@ -91,9 +91,6 @@ router.patch("/users/:id", adminOnly, async (req, res): Promise<void> => {
     const wasActiveAdmin = existing.status === "active" && isAdminRole(existing.role);
     const remainsActiveAdmin = nextStatus === "active" && isAdminRole(nextRole);
 
-    if (actor?.id === id && wasActiveAdmin && !remainsActiveAdmin) {
-      return { kind: "self-access" as const };
-    }
     if (wasActiveAdmin && !remainsActiveAdmin && activeAdmins.every((admin) => admin.id === id)) {
       return { kind: "last-admin" as const };
     }
@@ -104,10 +101,6 @@ router.patch("/users/:id", adminOnly, async (req, res): Promise<void> => {
 
   if (outcome.kind === "missing") {
     res.status(404).json({ error: "User not found" });
-    return;
-  }
-  if (outcome.kind === "self-access") {
-    res.status(409).json({ error: "You cannot remove your own active administrator access." });
     return;
   }
   if (outcome.kind === "last-admin") {

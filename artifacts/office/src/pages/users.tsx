@@ -212,7 +212,7 @@ export default function Users() {
                       const isAdmin = administratorRoles.includes(user.role);
                       const isCurrentUser = user.id === currentUser?.id;
                       const isLastActiveAdmin = isAdmin && activeAdminCount <= 1;
-                      const canDeactivate = canManageUsers && user.status === 'active' && !isCurrentUser && !isLastActiveAdmin;
+  const canDeactivate = canManageUsers && user.status === 'active' && !isLastActiveAdmin;
 
                       return (
                         <div
@@ -262,7 +262,7 @@ export default function Users() {
                                   variant="outline"
                                   size="sm"
                                   disabled={!canDeactivate || updateUser.isPending}
-                                  title={isCurrentUser ? 'You cannot deactivate your own account.' : isLastActiveAdmin ? 'Keep at least one active administrator.' : undefined}
+                                  title={isCurrentUser ? 'You will be signed out; another active administrator must remain.' : isLastActiveAdmin ? 'Keep at least one active administrator.' : undefined}
                                   onClick={() => setDeactivationTarget({ id: user.id, name: user.name, email: user.email })}
                                   data-testid={`button-deactivate-user-${user.id}`}
                                 >
@@ -394,7 +394,9 @@ export default function Users() {
             <AlertDialogTitle>Deactivate this account?</AlertDialogTitle>
             <AlertDialogDescription>
               {deactivationTarget
-                ? `${deactivationTarget.name} (${deactivationTarget.email}) will no longer be able to sign in. Their assigned listings, tasks, and history will be kept.`
+                ? deactivationTarget.id === currentUser?.id
+                  ? `You will be signed out when your account is deactivated. Another active administrator must remain able to sign in. Your assigned records and history will be kept.`
+                  : `${deactivationTarget.name} (${deactivationTarget.email}) will no longer be able to sign in. Their assigned listings, tasks, and history will be kept.`
                 : 'This account will no longer be able to sign in. Its assigned records will be kept.'}
             </AlertDialogDescription>
           </AlertDialogHeader>
