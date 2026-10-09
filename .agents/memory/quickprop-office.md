@@ -6,6 +6,7 @@ description: Web CRM (artifacts/office + artifacts/api-server) — key integrati
 # QuickProp Office
 
 - Browser sessions use HMAC-signed tokens in the httpOnly `qp_uid` cookie; raw numeric cookies are rejected. **Why:** the old user-ID cookie could be forged, and the user approved requiring web users to sign in again after release. **How to apply:** keep browser identity signed and account for reauthentication when changing session validation.
+- A Principal/Admin may deactivate their own account only while another active administrator remains; never remove the last active admin. **Why:** the user chose to make Douglas the sole admin immediately after his setup link is requested. **How to apply:** create the replacement admin first, then allow the current admin to sign out by deactivating themselves after all other admins are removed.
 - API server live checks: restart the managed API workflow after route changes because its dev command bundles before starting and does not hot-reload the running bundle. **Why:** otherwise endpoint probes can exercise stale authorization and response shapes. **How to apply:** restart before testing backend changes.
 - Zod response schemas expect ISO string dates, but Drizzle returns `Date` objects — every `.parse(...)` of DB rows must go through `jsonify()` (JSON round-trip) in helpers. **How to apply:** any new route returning DB rows.
 - Wouter gotcha: a custom `ProtectedRoute` that renders `<Component />` directly never receives URL params; wrap in `<Route path>{(params) => <Component params={params}/>}</Route>`.
