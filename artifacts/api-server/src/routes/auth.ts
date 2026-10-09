@@ -23,6 +23,8 @@ import {
   viewingsTable,
 } from "@workspace/db";
 import {
+  CompleteAgentSetupBody,
+  CompleteAgentSetupResponse,
   CompleteAdminPasswordResetBody,
   CompleteAdminPasswordResetResponse,
   DeleteCurrentUserAccountBody,
@@ -41,6 +43,7 @@ import {
   ADMIN_PASSWORD_RESET_TTL_MS,
   ADMIN_RECOVERY_COMPLETED_AUDIT_ACTION,
   ADMIN_RECOVERY_COOLDOWN_MS,
+  hashAgentSetupToken,
   createAdminPasswordResetToken,
   getAdminPasswordResetBaseUrl,
   hashAdminPasswordResetToken,
@@ -188,18 +191,23 @@ router.post("/auth/password-reset/request", async (req, res): Promise<void> => {
       .from(passwordResetTokensTable)
       .where(and(
         eq(passwordResetTokensTable.userId, lockedUser.id),
+        eq(passwordResetTokensTable.purpose, "password_reset"),
         gte(passwordResetTokensTable.createdAt, cooldownStart),
       ))
       .limit(1);
     if (recentRequest) return null;
 
-    await tx.delete(passwordResetTokensTable).where(eq(passwordResetTokensTable.userId, lockedUser.id));
+    await tx.delete(passwordResetTokensTable).where(and(
+      eq(passwordResetTokensTable.userId, lockedUser.id),
+      eq(passwordResetTokensTable.purpose, "password_reset"),
+    ));
     const token = createAdminPasswordResetToken();
     const [resetRecord] = await tx
       .insert(passwordResetTokensTable)
       .values({
         userId: lockedUser.id,
         tokenHash: hashAdminPasswordResetToken(token),
+        purpose: "password_reset",
         expiresAt: new Date(Date.now() + ADMIN_PASSWORD_RESET_TTL_MS),
       })
       .returning({ id: passwordResetTokensTable.id });
@@ -257,6 +265,7 @@ router.post("/auth/password-reset/complete", async (req, res): Promise<void> => 
       .from(passwordResetTokensTable)
       .where(and(
         eq(passwordResetTokensTable.tokenHash, tokenHash),
+        eq(passwordResetTokensTable.purpose, "password_reset"),
         isNull(passwordResetTokensTable.usedAt),
         gt(passwordResetTokensTable.expiresAt, now),
       ))
@@ -405,6 +414,7 @@ router.post("/auth/password-reset/complete", async (req, res): Promise<void> => 
         .set({ usedAt: now })
         .where(and(
           eq(passwordResetTokensTable.userId, user.id),
+          eq(passwordResetTokensTable.purpose, "password_reset"),
           isNull(passwordResetTokensTable.usedAt),
         ));
       return {
@@ -431,6 +441,7 @@ router.post("/auth/password-reset/complete", async (req, res): Promise<void> => 
       .set({ usedAt: now })
       .where(and(
         eq(passwordResetTokensTable.userId, user.id),
+        eq(passwordResetTokensTable.purpose, "password_reset"),
         isNull(passwordResetTokensTable.usedAt),
       ));
     return {
@@ -462,6 +473,87 @@ router.post("/auth/password-reset/complete", async (req, res): Promise<void> => 
     req.log.error({ err, userId: resetResult.user.id }, "Password reset audit logging failed");
   }
   res.json(CompleteAdminPasswordResetResponse.parse({ ok: true }));
+});
+
+router.post("/auth/agent-setup/complete", async (req, res): Promise<void> => {
+  const parsed = CompleteAgentSetupBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+  if (!meetsAdminPasswordPolicy(parsed.data.newPassword)) {
+    res.status(400).json({
+      error: "Password must be at least 10 characters and include a letter, a number, and a special character.",
+    });
+    return;
+  }
+
+  const now = new Date();
+  const tokenHash = hashAgentSetupToken(parsed.data.token);
+  const setupResult = await db.transaction(async (tx) => {
+    const [setupToken] = await tx
+      .select()
+      .from(passwordResetTokensTable)
+      .where(and(
+        eq(passwordResetTokensTable.tokenHash, tokenHash),
+        eq(passwordResetTokensTable.purpose, "agent_setup"),
+        isNull(passwordResetTokensTable.usedAt),
+        gt(passwordResetTokensTable.expiresAt, now),
+      ))
+      .limit(1)
+      .for("update");
+    if (!setupToken) return { kind: "invalid" as const };
+
+    const [user] = await tx
+      .select()
+      .from(usersTable)
+      .where(eq(usersTable.id, setupToken.userId))
+      .limit(1)
+      .for("update");
+    if (!user || user.status !== "invited" || !["agent", "senior_agent"].includes(user.role)) {
+      await tx
+        .update(passwordResetTokensTable)
+        .set({ usedAt: now })
+        .where(eq(passwordResetTokensTable.id, setupToken.id));
+      return { kind: "invalid" as const };
+    }
+
+    await tx
+      .update(usersTable)
+      .set({
+        password: await hashPassword(parsed.data.newPassword),
+        status: "active",
+      })
+      .where(eq(usersTable.id, user.id));
+    await tx
+      .update(passwordResetTokensTable)
+      .set({ usedAt: now })
+      .where(and(
+        eq(passwordResetTokensTable.userId, user.id),
+        eq(passwordResetTokensTable.purpose, "agent_setup"),
+        isNull(passwordResetTokensTable.usedAt),
+      ));
+    return { kind: "completed" as const, userId: user.id, userName: user.name };
+  });
+
+  if (setupResult.kind === "invalid") {
+    res.status(410).json({ error: "This account setup link has expired or has already been used. Ask your administrator for a new invitation." });
+    return;
+  }
+
+  try {
+    await logAudit(
+      "password_reset",
+      "user",
+      setupResult.userId,
+      "Agent completed first-time account setup",
+      setupResult.userId,
+      setupResult.userName,
+    );
+  } catch (err) {
+    req.log.error({ err, userId: setupResult.userId }, "Agent account setup audit logging failed");
+  }
+  res.json(CompleteAgentSetupResponse.parse({ ok: true }));
 });
 
 router.post("/auth/login", async (req, res): Promise<void> => {

@@ -1,6 +1,7 @@
 import { createHash, randomBytes } from "node:crypto";
 
 export const ADMIN_PASSWORD_RESET_TTL_MS = 15 * 60_000;
+export const AGENT_SETUP_TTL_MS = 24 * 60 * 60_000;
 export const ADMIN_PASSWORD_RESET_COOLDOWN_MS = 60_000;
 export const ADMIN_RECOVERY_COOLDOWN_MS = 15 * 60_000;
 export const ADMIN_RECOVERY_COMPLETED_AUDIT_ACTION = "admin_recovery_completed";
@@ -20,6 +21,14 @@ export function createAdminPasswordResetToken(): string {
 }
 
 export function hashAdminPasswordResetToken(token: string): string {
+  return createHash("sha256").update(token, "utf8").digest("hex");
+}
+
+export function createAgentSetupToken(): string {
+  return randomBytes(32).toString("base64url");
+}
+
+export function hashAgentSetupToken(token: string): string {
   return createHash("sha256").update(token, "utf8").digest("hex");
 }
 

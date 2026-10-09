@@ -385,6 +385,20 @@ export interface PasswordResetCompleteInput {
   newPassword: string;
 }
 
+export interface AgentSetupCompleteInput {
+  /**
+     * @minLength 32
+     * @maxLength 128
+     */
+  token: string;
+  /**
+     * At least 10 characters with a letter, number, and special character.
+     * @minLength 10
+     * @pattern ^(?=.*[A-Za-z])(?=.*[0-9])(?=.*[^A-Za-z0-9\s]).{10,}$
+     */
+  newPassword: string;
+}
+
 export interface PasswordResetResult {
   ok: boolean;
 }
@@ -2321,6 +2335,49 @@ export interface AdminAgencyBranchCreateInput {
   address?: string | null;
   /** @nullable */
   phone?: string | null;
+}
+
+export interface AdminAgencyAgentCreateInput {
+  /** @minimum 1 */
+  branchId: number;
+  /**
+     * @minLength 2
+     * @maxLength 160
+     */
+  name: string;
+  /**
+     * @maxLength 254
+     * @pattern ^[^@\s]+@[^\s@]+\.[^\s@]+$
+     */
+  email: string;
+  /**
+     * @maxLength 40
+     * @nullable
+     */
+  phone?: string | null;
+}
+
+export type AdminAgencyAgentCreateResultStatus = typeof AdminAgencyAgentCreateResultStatus[keyof typeof AdminAgencyAgentCreateResultStatus];
+
+
+export const AdminAgencyAgentCreateResultStatus = {
+  invited: 'invited',
+} as const;
+
+export interface AdminAgencyAgentCreateResult {
+  id: number;
+  name: string;
+  email: string;
+  branchId: number;
+  branchName: string;
+  status: AdminAgencyAgentCreateResultStatus;
+  setupEmailSent: boolean;
+}
+
+export interface AdminAgentSetupResendResult {
+  id: number;
+  email: string;
+  setupEmailSent: boolean;
 }
 
 export type AdminAgencyBranchUpdateInputStatus = typeof AdminAgencyBranchUpdateInputStatus[keyof typeof AdminAgencyBranchUpdateInputStatus];

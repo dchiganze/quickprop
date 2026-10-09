@@ -25,6 +25,8 @@ import type {
   ActivityEntry,
   AdminAgenciesResponse,
   AdminAgency,
+  AdminAgencyAgentCreateInput,
+  AdminAgencyAgentCreateResult,
   AdminAgencyBranch,
   AdminAgencyBranchCreateInput,
   AdminAgencyBranchUpdateInput,
@@ -32,6 +34,7 @@ import type {
   AdminAgencyMember,
   AdminAgencyUpdateInput,
   AdminAgent,
+  AdminAgentSetupResendResult,
   AdminBranchMembersInput,
   AdminCoverage,
   AdminDataCleanupConfirm,
@@ -50,6 +53,7 @@ import type {
   AgencySettingsInput,
   AgentReviewInput,
   AgentReviewResult,
+  AgentSetupCompleteInput,
   AnalyticsSummary,
   AttentionItem,
   AuditEntry,
@@ -492,6 +496,77 @@ export const useCompleteAdminPasswordReset = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getCompleteAdminPasswordResetMutationOptions(options));
+    }
+
+export const getCompleteAgentSetupUrl = () => {
+
+
+
+
+  return `/api/auth/agent-setup/complete`
+}
+
+/**
+ * @summary Activate an invited agent account with a one-time setup token
+ */
+export const completeAgentSetup = async (agentSetupCompleteInput: AgentSetupCompleteInput, options?: RequestInit): Promise<PasswordResetResult> => {
+
+  return customFetch<PasswordResetResult>(getCompleteAgentSetupUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(agentSetupCompleteInput)
+  }
+);}
+
+
+
+
+
+export const getCompleteAgentSetupMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof completeAgentSetup>>, TError,{data: BodyType<AgentSetupCompleteInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof completeAgentSetup>>, TError,{data: BodyType<AgentSetupCompleteInput>}, TContext> => {
+
+const mutationKey = ['completeAgentSetup'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof completeAgentSetup>>, {data: BodyType<AgentSetupCompleteInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  completeAgentSetup(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CompleteAgentSetupMutationResult = NonNullable<Awaited<ReturnType<typeof completeAgentSetup>>>
+    export type CompleteAgentSetupMutationBody = BodyType<AgentSetupCompleteInput>
+    export type CompleteAgentSetupMutationError = ErrorType<void>
+
+    /**
+ * @summary Activate an invited agent account with a one-time setup token
+ */
+export const useCompleteAgentSetup = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof completeAgentSetup>>, TError,{data: BodyType<AgentSetupCompleteInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof completeAgentSetup>>,
+        TError,
+        {data: BodyType<AgentSetupCompleteInput>},
+        TContext
+      > => {
+      return useMutation(getCompleteAgentSetupMutationOptions(options));
     }
 
 export const getLogoutUrl = () => {
@@ -9639,6 +9714,77 @@ export function useGetAdminAgents<TData = Awaited<ReturnType<typeof getAdminAgen
 
 
 
+export const getResendAdminAgentSetupLinkUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/agents/${id}/setup-link`
+}
+
+/**
+ * @summary Send a fresh one-time setup link to an invited agent
+ */
+export const resendAdminAgentSetupLink = async (id: number, options?: RequestInit): Promise<AdminAgentSetupResendResult> => {
+
+  return customFetch<AdminAgentSetupResendResult>(getResendAdminAgentSetupLinkUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getResendAdminAgentSetupLinkMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resendAdminAgentSetupLink>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof resendAdminAgentSetupLink>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['resendAdminAgentSetupLink'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof resendAdminAgentSetupLink>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  resendAdminAgentSetupLink(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ResendAdminAgentSetupLinkMutationResult = NonNullable<Awaited<ReturnType<typeof resendAdminAgentSetupLink>>>
+
+    export type ResendAdminAgentSetupLinkMutationError = ErrorType<void>
+
+    /**
+ * @summary Send a fresh one-time setup link to an invited agent
+ */
+export const useResendAdminAgentSetupLink = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resendAdminAgentSetupLink>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof resendAdminAgentSetupLink>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getResendAdminAgentSetupLinkMutationOptions(options));
+    }
+
 export const getGetAdminAgenciesUrl = () => {
 
 
@@ -10000,6 +10146,78 @@ export const useCreateAdminAgencyBranch = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getCreateAdminAgencyBranchMutationOptions(options));
+    }
+
+export const getCreateAdminAgencyAgentUrl = (agencyId: number,) => {
+
+
+
+
+  return `/api/admin/agencies/${agencyId}/agents`
+}
+
+/**
+ * @summary Create an agent account and email a one-time setup link
+ */
+export const createAdminAgencyAgent = async (agencyId: number,
+    adminAgencyAgentCreateInput: AdminAgencyAgentCreateInput, options?: RequestInit): Promise<AdminAgencyAgentCreateResult> => {
+
+  return customFetch<AdminAgencyAgentCreateResult>(getCreateAdminAgencyAgentUrl(agencyId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(adminAgencyAgentCreateInput)
+  }
+);}
+
+
+
+
+
+export const getCreateAdminAgencyAgentMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAdminAgencyAgent>>, TError,{agencyId: number;data: BodyType<AdminAgencyAgentCreateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createAdminAgencyAgent>>, TError,{agencyId: number;data: BodyType<AdminAgencyAgentCreateInput>}, TContext> => {
+
+const mutationKey = ['createAdminAgencyAgent'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createAdminAgencyAgent>>, {agencyId: number;data: BodyType<AdminAgencyAgentCreateInput>}> = (props) => {
+          const {agencyId,data} = props ?? {};
+
+          return  createAdminAgencyAgent(agencyId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateAdminAgencyAgentMutationResult = NonNullable<Awaited<ReturnType<typeof createAdminAgencyAgent>>>
+    export type CreateAdminAgencyAgentMutationBody = BodyType<AdminAgencyAgentCreateInput>
+    export type CreateAdminAgencyAgentMutationError = ErrorType<void>
+
+    /**
+ * @summary Create an agent account and email a one-time setup link
+ */
+export const useCreateAdminAgencyAgent = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAdminAgencyAgent>>, TError,{agencyId: number;data: BodyType<AdminAgencyAgentCreateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createAdminAgencyAgent>>,
+        TError,
+        {agencyId: number;data: BodyType<AdminAgencyAgentCreateInput>},
+        TContext
+      > => {
+      return useMutation(getCreateAdminAgencyAgentMutationOptions(options));
     }
 
 export const getUpdateAdminAgencyBranchUrl = (id: number,) => {

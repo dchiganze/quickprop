@@ -72,6 +72,28 @@ export const CompleteAdminPasswordResetResponse = zod.object({
 })
 
 
+/**
+ * @summary Activate an invited agent account with a one-time setup token
+ */
+export const completeAgentSetupBodyTokenMin = 32;
+export const completeAgentSetupBodyTokenMax = 128;
+
+export const completeAgentSetupBodyNewPasswordMin = 10;
+
+
+export const completeAgentSetupBodyNewPasswordRegExp = new RegExp('^(?=.*[A-Za-z])(?=.*[0-9])(?=.*[^A-Za-z0-9\\s]).{10,}$');
+
+
+export const CompleteAgentSetupBody = zod.object({
+  "token": zod.string().min(completeAgentSetupBodyTokenMin).max(completeAgentSetupBodyTokenMax),
+  "newPassword": zod.string().min(completeAgentSetupBodyNewPasswordMin).regex(completeAgentSetupBodyNewPasswordRegExp).describe('At least 10 characters with a letter, number, and special character.')
+})
+
+export const CompleteAgentSetupResponse = zod.object({
+  "ok": zod.boolean()
+})
+
+
 export const LogoutResponse = zod.unknown()
 
 
@@ -4916,6 +4938,20 @@ export const GetAdminAgentsResponse = zod.array(GetAdminAgentsResponseItem)
 
 
 /**
+ * @summary Send a fresh one-time setup link to an invited agent
+ */
+export const ResendAdminAgentSetupLinkParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const ResendAdminAgentSetupLinkResponse = zod.object({
+  "id": zod.number(),
+  "email": zod.string(),
+  "setupEmailSent": zod.boolean()
+})
+
+
+/**
  * @summary All agencies, branches and assigned team members
  */
 export const GetAdminAgenciesResponse = zod.object({
@@ -5181,6 +5217,43 @@ export const CreateAdminAgencyBranchResponse = zod.object({
   "activeListings": zod.number(),
   "totalListings": zod.number(),
   "totalLeads": zod.number()
+})
+
+
+/**
+ * @summary Create an agent account and email a one-time setup link
+ */
+export const CreateAdminAgencyAgentParams = zod.object({
+  "agencyId": zod.coerce.number()
+})
+
+
+export const createAdminAgencyAgentBodyNameMin = 2;
+export const createAdminAgencyAgentBodyNameMax = 160;
+
+export const createAdminAgencyAgentBodyEmailMax = 254;
+
+
+export const createAdminAgencyAgentBodyEmailRegExp = new RegExp('^[^@\\s]+@[^\\s@]+\\.[^\\s@]+$');
+export const createAdminAgencyAgentBodyPhoneMax = 40;
+
+
+
+export const CreateAdminAgencyAgentBody = zod.object({
+  "branchId": zod.number().min(1),
+  "name": zod.string().min(createAdminAgencyAgentBodyNameMin).max(createAdminAgencyAgentBodyNameMax),
+  "email": zod.string().max(createAdminAgencyAgentBodyEmailMax).regex(createAdminAgencyAgentBodyEmailRegExp),
+  "phone": zod.string().max(createAdminAgencyAgentBodyPhoneMax).nullish()
+})
+
+export const CreateAdminAgencyAgentResponse = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "email": zod.string(),
+  "branchId": zod.number(),
+  "branchName": zod.string(),
+  "status": zod.enum(['invited']),
+  "setupEmailSent": zod.boolean()
 })
 
 

@@ -1,8 +1,10 @@
+import { randomBytes } from "node:crypto";
 import { Router, type IRouter } from "express";
-import { eq, desc, and, gte, lt, lte, count, sql, inArray } from "drizzle-orm";
+import { eq, desc, and, gte, lt, lte, count, sql, inArray, isNull } from "drizzle-orm";
 import {
   db,
   businessAgenciesTable,
+  passwordResetTokensTable,
   usersTable,
   branchesTable,
   propertiesTable,
@@ -28,8 +30,22 @@ import {
   ArchiveAdminAgencyBranchResponse,
   SetAdminBranchMembersBody,
   SetAdminBranchMembersResponse,
+  CreateAdminAgencyAgentBody,
+  CreateAdminAgencyAgentResponse,
+  ResendAdminAgentSetupLinkResponse,
 } from "@workspace/api-zod";
 import { jsonify, logAudit, parseId } from "../lib/helpers";
+import { hashPassword } from "../lib/passwords";
+import {
+  AGENT_SETUP_TTL_MS,
+  createAgentSetupToken,
+  getAdminPasswordResetBaseUrl,
+  hashAgentSetupToken,
+} from "../lib/password-reset";
+import {
+  checkAdminPasswordResetEmailReadiness,
+  sendAgentSetupEmail,
+} from "../lib/housekeeping-delivery";
 import { requireRole, currentUser } from "./auth";
 import {
   clearPlatformDashboardData,
@@ -538,6 +554,224 @@ router.post("/admin/agencies/:agencyId/branches", adminOnly, async (req, res): P
   await logAudit("created", "branch", branch.id, `Added ${branch.name} to ${agency.name}`, actor?.id, actor?.name);
   const result = await findAdminBranch(branch.id);
   res.status(201).json(CreateAdminAgencyBranchResponse.parse(jsonify(result)));
+});
+
+router.post("/admin/agencies/:agencyId/agents", adminOnly, async (req, res): Promise<void> => {
+  const agencyId = Number(req.params.agencyId);
+  if (!Number.isSafeInteger(agencyId) || agencyId < 1) {
+    res.status(400).json({ error: "Invalid agency ID" });
+    return;
+  }
+  const parsed = CreateAdminAgencyAgentBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+
+  const baseUrl = getAdminPasswordResetBaseUrl({
+    runtimeEnvironment: process.env.NODE_ENV,
+    developmentDomain: process.env.REPLIT_DEV_DOMAIN,
+    productionBaseUrl: process.env.QUICKPROP_ADMIN_BASE_URL,
+  });
+  const emailReadiness = await checkAdminPasswordResetEmailReadiness();
+  if (!emailReadiness.ready || !baseUrl) {
+    res.status(503).json({ error: "Agent setup email is not configured. Contact a QuickProp administrator." });
+    return;
+  }
+
+  const body = parsed.data;
+  const email = body.email.trim().toLowerCase();
+  const [agency] = await db.select().from(businessAgenciesTable)
+    .where(eq(businessAgenciesTable.id, agencyId)).limit(1);
+  if (!agency) {
+    res.status(404).json({ error: "Agency not found" });
+    return;
+  }
+  if (agency.status !== "active") {
+    res.status(409).json({ error: "Restore this agency before adding agents." });
+    return;
+  }
+
+  const [branch] = await db.select().from(branchesTable)
+    .where(and(eq(branchesTable.id, body.branchId), eq(branchesTable.agencyId, agencyId))).limit(1);
+  if (!branch) {
+    res.status(404).json({ error: "The selected branch does not belong to this agency." });
+    return;
+  }
+  if (branch.status !== "active") {
+    res.status(409).json({ error: "Restore the branch before adding agents." });
+    return;
+  }
+
+  const [existingUser] = await db.select({ id: usersTable.id }).from(usersTable)
+    .where(sql`lower(${usersTable.email}) = ${email}`).limit(1);
+  if (existingUser) {
+    res.status(409).json({ error: "An account with this email already exists. Assign the existing agent from the team list instead." });
+    return;
+  }
+
+  const setupToken = createAgentSetupToken();
+  const { user, tokenRecord } = await db.transaction(async (tx) => {
+    const [createdUser] = await tx.insert(usersTable).values({
+      name: body.name.trim(),
+      email,
+      phone: body.phone?.trim() || null,
+      role: "agent",
+      branchId: branch.id,
+      status: "invited",
+      password: await hashPassword(randomBytes(32).toString("base64url")),
+    }).returning({
+      id: usersTable.id,
+      name: usersTable.name,
+      email: usersTable.email,
+      branchId: usersTable.branchId,
+      status: usersTable.status,
+    });
+    const [createdToken] = await tx.insert(passwordResetTokensTable).values({
+      userId: createdUser.id,
+      tokenHash: hashAgentSetupToken(setupToken),
+      purpose: "agent_setup",
+      expiresAt: new Date(Date.now() + AGENT_SETUP_TTL_MS),
+    }).returning({ id: passwordResetTokensTable.id });
+    return { user: createdUser, tokenRecord: createdToken };
+  });
+
+  try {
+    const delivery = await sendAgentSetupEmail(
+      user.email,
+      user.name,
+      `${baseUrl}/login?setupToken=${encodeURIComponent(setupToken)}`,
+      `quickprop-agent-setup-${tokenRecord.id}`,
+    );
+    if (delivery.status !== "sent") throw new Error(delivery.reason ?? "Email delivery was skipped");
+  } catch (err) {
+    try {
+      await db.delete(usersTable).where(and(
+        eq(usersTable.id, user.id),
+        eq(usersTable.status, "invited"),
+      ));
+    } catch (cleanupError) {
+      req.log.error({ err: cleanupError, userId: user.id }, "Could not remove agent after setup email failure");
+    }
+    req.log.error({ err, userId: user.id }, "Agent setup email delivery failed");
+    res.status(502).json({ error: "The agent account was not created because QuickProp could not send the setup email. Check email settings and retry." });
+    return;
+  }
+
+  const actor = await currentUser(req);
+  try {
+    await logAudit(
+      "created",
+      "user",
+      user.id,
+      `Invited ${user.name} to ${branch.name}`,
+      actor?.id,
+      actor?.name,
+    );
+  } catch (err) {
+    req.log.error({ err, userId: user.id }, "Agent invitation audit logging failed");
+  }
+  res.status(201).json(CreateAdminAgencyAgentResponse.parse({
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    branchId: branch.id,
+    branchName: branch.name,
+    status: "invited",
+    setupEmailSent: true,
+  }));
+});
+
+router.post("/admin/agents/:id/setup-link", adminOnly, async (req, res): Promise<void> => {
+  const agentId = Number(req.params.id);
+  if (!Number.isSafeInteger(agentId) || agentId < 1) {
+    res.status(400).json({ error: "Invalid agent ID" });
+    return;
+  }
+
+  const [agent] = await db.select().from(usersTable).where(eq(usersTable.id, agentId)).limit(1);
+  if (!agent || !["agent", "senior_agent"].includes(agent.role)) {
+    res.status(404).json({ error: "Agent account not found" });
+    return;
+  }
+  if (agent.status !== "invited") {
+    res.status(409).json({ error: "This account is not awaiting first-time setup." });
+    return;
+  }
+  const baseUrl = getAdminPasswordResetBaseUrl({
+    runtimeEnvironment: process.env.NODE_ENV,
+    developmentDomain: process.env.REPLIT_DEV_DOMAIN,
+    productionBaseUrl: process.env.QUICKPROP_ADMIN_BASE_URL,
+  });
+  const emailReadiness = await checkAdminPasswordResetEmailReadiness();
+  if (!emailReadiness.ready || !baseUrl) {
+    res.status(503).json({ error: "Agent setup email is not configured. Contact a QuickProp administrator." });
+    return;
+  }
+
+  if (agent.branchId === null) {
+    res.status(409).json({ error: "Assign the agent to an active branch before sending a setup link." });
+    return;
+  }
+  const [branch] = await db.select().from(branchesTable).where(eq(branchesTable.id, agent.branchId)).limit(1);
+  if (!branch || branch.status !== "active") {
+    res.status(409).json({ error: "Restore or reassign the agent’s branch before sending a setup link." });
+    return;
+  }
+  const [agency] = branch.agencyId
+    ? await db.select().from(businessAgenciesTable).where(eq(businessAgenciesTable.id, branch.agencyId)).limit(1)
+    : [];
+  if (agency && agency.status !== "active") {
+    res.status(409).json({ error: "Restore the agency before sending a setup link." });
+    return;
+  }
+
+  const setupToken = createAgentSetupToken();
+  const tokenRecord = await db.transaction(async (tx) => {
+    await tx.update(passwordResetTokensTable)
+      .set({ usedAt: new Date() })
+      .where(and(
+        eq(passwordResetTokensTable.userId, agent.id),
+        eq(passwordResetTokensTable.purpose, "agent_setup"),
+        isNull(passwordResetTokensTable.usedAt),
+      ));
+    const [createdToken] = await tx.insert(passwordResetTokensTable).values({
+      userId: agent.id,
+      tokenHash: hashAgentSetupToken(setupToken),
+      purpose: "agent_setup",
+      expiresAt: new Date(Date.now() + AGENT_SETUP_TTL_MS),
+    }).returning({ id: passwordResetTokensTable.id });
+    return createdToken;
+  });
+
+  try {
+    const delivery = await sendAgentSetupEmail(
+      agent.email,
+      agent.name,
+      `${baseUrl}/login?setupToken=${encodeURIComponent(setupToken)}`,
+      `quickprop-agent-setup-${tokenRecord.id}`,
+    );
+    if (delivery.status !== "sent") throw new Error(delivery.reason ?? "Email delivery was skipped");
+  } catch (err) {
+    await db.update(passwordResetTokensTable)
+      .set({ usedAt: new Date() })
+      .where(eq(passwordResetTokensTable.id, tokenRecord.id));
+    req.log.error({ err, userId: agent.id }, "Agent setup link resend failed");
+    res.status(502).json({ error: "QuickProp could not send the setup email. Check email settings and try again." });
+    return;
+  }
+
+  const actor = await currentUser(req);
+  try {
+    await logAudit("edited", "user", agent.id, "Resent agent account setup link", actor?.id, actor?.name);
+  } catch (err) {
+    req.log.error({ err, userId: agent.id }, "Agent setup resend audit logging failed");
+  }
+  res.json(ResendAdminAgentSetupLinkResponse.parse({
+    id: agent.id,
+    email: agent.email,
+    setupEmailSent: true,
+  }));
 });
 
 router.patch("/admin/branches/:id", adminOnly, async (req, res): Promise<void> => {

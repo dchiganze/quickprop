@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
+  useCompleteAgentSetup,
   useCompleteAdminPasswordReset,
   useLogin,
   useRequestAdminPasswordReset,
@@ -24,14 +25,18 @@ export default function Login() {
   const login = useLogin();
   const requestPasswordReset = useRequestAdminPasswordReset();
   const completePasswordReset = useCompleteAdminPasswordReset();
+  const completeAgentSetup = useCompleteAgentSetup();
   const [err, setErr] = useState('');
   const [notice, setNotice] = useState('');
   const initialResetToken = new URLSearchParams(window.location.search).get('resetToken') || '';
-  const [view, setView] = useState<'login' | 'request' | 'complete'>(initialResetToken ? 'complete' : 'login');
+  const initialSetupToken = new URLSearchParams(window.location.search).get('setupToken') || '';
+  const [view, setView] = useState<'login' | 'request' | 'complete'>(initialResetToken || initialSetupToken ? 'complete' : 'login');
   const [resetEmail, setResetEmail] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const resetToken = new URLSearchParams(window.location.search).get('resetToken') || '';
+  const setupToken = new URLSearchParams(window.location.search).get('setupToken') || '';
+  const isAgentSetup = Boolean(setupToken);
 
   const form = useForm<z.infer<typeof schema>>({
     resolver: zodResolver(schema),
@@ -92,20 +97,27 @@ export default function Login() {
       setErr('The passwords do not match.');
       return;
     }
-    completePasswordReset.mutate(
-      { data: { token: resetToken, newPassword } },
-      {
-        onSuccess: () => {
-          setView('login');
-          setNewPassword('');
-          setConfirmPassword('');
-          setErr('');
-          setNotice('Your password has been reset. Sign in with the new password.');
-          setLocation('/login');
-        },
-        onError: (e: any) => setErr(e?.message || 'This reset link is invalid or expired. Request a new one.'),
-      },
-    );
+    const token = setupToken || resetToken;
+    if (!token) {
+      setErr('This link is incomplete. Ask for a new setup or reset link to continue.');
+      return;
+    }
+    const onSuccess = () => {
+      setView('login');
+      setNewPassword('');
+      setConfirmPassword('');
+      setErr('');
+      setNotice(isAgentSetup
+        ? 'Your QuickProp Agent account is ready. Sign in through the QuickProp Agent app.'
+        : 'Your password has been reset. Sign in with the new password.');
+      setLocation('/login');
+    };
+    const onError = (e: any) => setErr(e?.message || 'This link is invalid or expired. Request a new one.');
+    if (isAgentSetup) {
+      completeAgentSetup.mutate({ data: { token, newPassword } }, { onSuccess, onError });
+    } else {
+      completePasswordReset.mutate({ data: { token, newPassword } }, { onSuccess, onError });
+    }
   };
 
   return (
@@ -155,7 +167,9 @@ export default function Login() {
                 ? 'Restricted to authorised administrators only.'
                 : view === 'request'
                   ? 'Enter your administrator email and we’ll send a secure, one-time link if the account is eligible.'
-                  : 'Choose a password for your QuickProp administrator account.'}
+                  : isAgentSetup
+                    ? 'Choose a password for your QuickProp Agent account.'
+                    : 'Choose a password for your QuickProp administrator account.'}
             </p>
           </div>
 
@@ -257,8 +271,10 @@ export default function Login() {
               <p className="text-xs leading-relaxed text-muted-foreground">
                 At least 10 characters, with at least one letter, one number, and one special character.
               </p>
-              <Button type="submit" className="w-full h-11 font-semibold" disabled={completePasswordReset.isPending}>
-                {completePasswordReset.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Reset password'}
+              <Button type="submit" className="w-full h-11 font-semibold" disabled={completePasswordReset.isPending || completeAgentSetup.isPending}>
+                {completePasswordReset.isPending || completeAgentSetup.isPending
+                  ? <Loader2 className="w-4 h-4 animate-spin" />
+                  : isAgentSetup ? 'Set password' : 'Reset password'}
               </Button>
               <Button type="button" variant="ghost" className="w-full" onClick={returnToSignIn}>
                 Back to sign in

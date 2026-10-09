@@ -86,6 +86,33 @@ export async function sendAdminPasswordResetEmail(
   return { status: "sent", providerMessageId: result.id ?? result.messageId };
 }
 
+export async function sendAgentSetupEmail(
+  email: string,
+  name: string,
+  setupUrl: string,
+  idempotencyKey: string,
+): Promise<DeliveryResult> {
+  const from = env("QUICKPROP_EMAIL_FROM");
+  if (!from) return { status: "skipped", reason: "email_from_not_configured" };
+  const resendKey = env("RESEND_API_KEY");
+  if (!resendKey) return { status: "skipped", reason: "email_provider_not_configured" };
+
+  const safeName = name.replace(/[<>&"]/g, "");
+  const result = await postJson(
+    "https://api.resend.com/emails",
+    {
+      from,
+      to: [email],
+      subject: "Set up your QuickProp Agent account",
+      text: `Hello ${safeName},\n\nYour QuickProp Agent account is ready. Use this one-time link within 24 hours to set your password:\n\n${setupUrl}\n\nIf you were not expecting this invitation, contact your agency administrator.`,
+      html: `<p>Hello ${safeName},</p><p>Your QuickProp Agent account is ready. Use this one-time link within 24 hours to set your password:</p><p><a href="${setupUrl}">Set up your account</a></p><p>If you were not expecting this invitation, contact your agency administrator.</p>`,
+    },
+    idempotencyKey,
+    { Authorization: `Bearer ${resendKey}` },
+  );
+  return { status: "sent", providerMessageId: result.id ?? result.messageId };
+}
+
 function normalizeWhatsAppNumber(phone: string): string {
   return phone.startsWith("whatsapp:") ? phone : `whatsapp:${phone}`;
 }

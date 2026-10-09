@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Loader2, Search, Users } from 'lucide-react';
+import { Loader2, Mail, Search, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -20,6 +20,8 @@ type TeamMembersDialogProps = {
   saving: boolean;
   onOpenChange: (open: boolean) => void;
   onSave: (userIds: number[]) => void;
+  onResendSetup: (agentId: number) => void;
+  resendingAgentId: number | null;
 };
 
 export function TeamMembersDialog({
@@ -29,6 +31,8 @@ export function TeamMembersDialog({
   saving,
   onOpenChange,
   onSave,
+  onResendSetup,
+  resendingAgentId,
 }: TeamMembersDialogProps) {
   const [selected, setSelected] = useState<number[]>([]);
   const [search, setSearch] = useState('');
@@ -73,23 +77,41 @@ export function TeamMembersDialog({
             const checked = selected.includes(agent.id);
             const moving = agent.branchId != null && agent.branchId !== branch?.id;
             return (
-              <label key={agent.id} className="flex cursor-pointer items-center gap-3 border-b p-3 last:border-b-0 hover:bg-muted/30">
-                <input
-                  type="checkbox"
-                  checked={checked}
-                  onChange={() => toggle(agent.id)}
-                  className="h-4 w-4 rounded border-input accent-primary"
-                />
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
-                  {agent.name.split(' ').map((part) => part[0]).join('').slice(0, 2).toUpperCase()}
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-medium">{agent.name}</span>
-                  <span className="block truncate text-xs text-muted-foreground">{agent.email}</span>
-                </span>
-                {moving && <Badge variant="outline" className="max-w-40 truncate text-xs">Move from {agent.branchName}</Badge>}
-                {!moving && checked && <Badge variant="secondary" className="text-xs">Assigned here</Badge>}
-              </label>
+              <div key={agent.id} className="flex items-center gap-2 border-b p-3 last:border-b-0 hover:bg-muted/30">
+                <label htmlFor={`branch-agent-${agent.id}`} className="flex min-w-0 flex-1 cursor-pointer items-center gap-3">
+                  <input
+                    id={`branch-agent-${agent.id}`}
+                    type="checkbox"
+                    checked={checked}
+                    onChange={() => toggle(agent.id)}
+                    className="h-4 w-4 rounded border-input accent-primary"
+                  />
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
+                    {agent.name.split(' ').map((part) => part[0]).join('').slice(0, 2).toUpperCase()}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-medium">{agent.name}</span>
+                    <span className="block truncate text-xs text-muted-foreground">{agent.email}</span>
+                  </span>
+                  {agent.status === 'invited' && <Badge variant="outline" className="shrink-0 text-xs">Setup pending</Badge>}
+                  {moving && <Badge variant="outline" className="max-w-40 truncate text-xs">Move from {agent.branchName}</Badge>}
+                  {!moving && checked && <Badge variant="secondary" className="shrink-0 text-xs">Assigned here</Badge>}
+                </label>
+                {agent.status === 'invited' && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="shrink-0"
+                    disabled={resendingAgentId !== null}
+                    onClick={() => onResendSetup(agent.id)}
+                  >
+                    {resendingAgentId === agent.id
+                      ? <Loader2 className="h-4 w-4 animate-spin" />
+                      : <><Mail className="mr-1.5 h-3.5 w-3.5" /> Resend</>}
+                  </Button>
+                )}
+              </div>
             );
           })}
         </div>

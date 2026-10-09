@@ -2,6 +2,8 @@ import { useMemo, useState } from 'react';
 import {
   useArchiveAdminAgency,
   useArchiveAdminAgencyBranch,
+  useCreateAdminAgencyAgent,
+  useResendAdminAgentSetupLink,
   useCreateAdminAgency,
   useCreateAdminAgencyBranch,
   useGetAdminAgencies,
@@ -22,6 +24,7 @@ import {
   Phone,
   Plus,
   Search,
+  UserPlus,
   Users,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
@@ -34,6 +37,7 @@ import { useToast } from '@/hooks/use-toast';
 import { AgencyFormDialog, type AgencyDraft } from '@/components/agencies/agency-form-dialog';
 import { BranchFormDialog, type BranchDraft } from '@/components/agencies/branch-form-dialog';
 import { TeamMembersDialog } from '@/components/agencies/team-members-dialog';
+import { AgentInviteDialog, type AgentInviteDraft } from '@/components/agencies/agent-invite-dialog';
 
 function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : 'Please try again.';
@@ -45,7 +49,10 @@ export default function Agencies() {
   const [showArchived, setShowArchived] = useState(false);
   const [agencyDialog, setAgencyDialog] = useState<{ agency: AdminAgency | null } | null>(null);
   const [branchDialog, setBranchDialog] = useState<{ agencyId: number; branch: AdminAgencyBranch | null } | null>(null);
+  const [agentDialog, setAgentDialog] = useState<{ agency: AdminAgency; defaultBranchId: number | null } | null>(null);
+  const [pendingAgentAgencyId, setPendingAgentAgencyId] = useState<number | null>(null);
   const [teamBranch, setTeamBranch] = useState<AdminAgencyBranch | null>(null);
+  const [resendingAgentId, setResendingAgentId] = useState<number | null>(null);
 
   const {
     data: agencyData,
@@ -58,6 +65,8 @@ export default function Agencies() {
   } = useGetAdminAgents();
 
   const createAgency = useCreateAdminAgency();
+  const createAgent = useCreateAdminAgencyAgent();
+  const resendAgentSetup = useResendAdminAgentSetupLink();
   const updateAgency = useUpdateAdminAgency();
   const archiveAgency = useArchiveAdminAgency();
   const createBranch = useCreateAdminAgencyBranch();
@@ -107,22 +116,77 @@ export default function Agencies() {
 
   const handleBranchSave = (draft: BranchDraft) => {
     if (!branchDialog) return;
-    const onSuccess = () => {
-      setBranchDialog(null);
-      refetchAll();
-      toast({ title: branchDialog.branch ? 'Branch updated' : 'Branch added' });
-    };
     const onError = (error: unknown) => toast({
       title: 'Could not save branch',
       description: getErrorMessage(error),
       variant: 'destructive',
     });
+    const onSuccess = () => {
+      setBranchDialog(null);
+      refetchAll();
+      toast({ title: branchDialog.branch ? 'Branch updated' : 'Branch added' });
+    };
 
     if (branchDialog.branch) {
       updateBranch.mutate({ id: branchDialog.branch.id, data: draft }, { onSuccess, onError });
     } else {
-      createBranch.mutate({ agencyId: branchDialog.agencyId, data: draft }, { onSuccess, onError });
+      createBranch.mutate(
+        { agencyId: branchDialog.agencyId, data: draft },
+        {
+          onSuccess: (createdBranch) => {
+            setBranchDialog(null);
+            refetchAll();
+            toast({ title: 'Branch added' });
+            if (pendingAgentAgencyId === branchDialog.agencyId) {
+              const agency = agencies.find((item) => item.id === branchDialog.agencyId);
+              setPendingAgentAgencyId(null);
+              if (agency) setAgentDialog({
+                agency: {
+                  ...agency,
+                  branches: [...agency.branches, createdBranch],
+                  branchCount: agency.branchCount + 1,
+                },
+                defaultBranchId: createdBranch.id,
+              });
+            }
+          },
+          onError: (error) => {
+            if (pendingAgentAgencyId === branchDialog.agencyId) setPendingAgentAgencyId(null);
+            onError(error);
+          },
+        },
+      );
     }
+  };
+
+  const handleAgentSave = (draft: AgentInviteDraft) => {
+    if (!agentDialog) return;
+    createAgent.mutate(
+      { agencyId: agentDialog.agency.id, data: draft },
+      {
+        onSuccess: (result) => {
+          setAgentDialog(null);
+          refetchAll();
+          toast({
+            title: 'Agent invited',
+            description: `A one-time setup link was sent to ${result.email}.`,
+          });
+        },
+        onError: (error) => toast({
+          title: 'Could not add agent',
+          description: getErrorMessage(error),
+          variant: 'destructive',
+        }),
+      },
+    );
+  };
+
+  const handleAddBranchForAgent = () => {
+    if (!agentDialog) return;
+    const agencyId = agentDialog.agency.id;
+    setPendingAgentAgencyId(agencyId);
+    setAgentDialog(null);
+    setBranchDialog({ agencyId, branch: null });
   };
 
   const handleAgencyArchive = (agency: AdminAgency) => {
@@ -184,6 +248,25 @@ export default function Agencies() {
       },
       onError: (error) => toast({ title: 'Could not update team', description: getErrorMessage(error), variant: 'destructive' }),
     });
+  };
+
+  const handleResendAgentSetup = (agentId: number) => {
+    setResendingAgentId(agentId);
+    resendAgentSetup.mutate(
+      { id: agentId },
+      {
+        onSuccess: (result) => toast({
+          title: 'Setup link sent',
+          description: `A fresh one-time setup link was sent to ${result.email}.`,
+        }),
+        onError: (error) => toast({
+          title: 'Could not resend setup link',
+          description: getErrorMessage(error),
+          variant: 'destructive',
+        }),
+        onSettled: () => setResendingAgentId(null),
+      },
+    );
   };
 
   const handleUnassignedBranch = (branchId: number, agencyId: string) => {
@@ -272,6 +355,7 @@ export default function Agencies() {
                   onEdit={() => setAgencyDialog({ agency })}
                   onArchive={() => handleAgencyArchive(agency)}
                   onAddBranch={() => setBranchDialog({ agencyId: agency.id, branch: null })}
+                  onAddAgent={() => setAgentDialog({ agency, defaultBranchId: null })}
                   onEditBranch={(branch) => setBranchDialog({ agencyId: agency.id, branch })}
                   onArchiveBranch={handleBranchArchive}
                   onManageTeam={setTeamBranch}
@@ -337,7 +421,12 @@ export default function Agencies() {
         open={branchDialog !== null}
         branch={branchDialog?.branch ?? null}
         saving={branchSaving}
-        onOpenChange={(open) => { if (!open) setBranchDialog(null); }}
+        onOpenChange={(open) => {
+          if (!open) {
+            setBranchDialog(null);
+            setPendingAgentAgencyId(null);
+          }
+        }}
         onSave={(draft) => {
           if (!branchDialog) return;
           if (branchDialog.branch && branchDialog.branch.agencyId == null && branchDialog.agencyId === 0) {
@@ -357,6 +446,17 @@ export default function Agencies() {
         saving={setMembers.isPending}
         onOpenChange={(open) => { if (!open) setTeamBranch(null); }}
         onSave={handleMembersSave}
+        onResendSetup={handleResendAgentSetup}
+        resendingAgentId={resendingAgentId}
+      />
+      <AgentInviteDialog
+        open={agentDialog !== null}
+        agency={agentDialog?.agency ?? null}
+        defaultBranchId={agentDialog?.defaultBranchId ?? null}
+        saving={createAgent.isPending}
+        onOpenChange={(open) => { if (!open) setAgentDialog(null); }}
+        onSave={handleAgentSave}
+        onAddBranch={handleAddBranchForAgent}
       />
     </div>
   );
@@ -384,6 +484,7 @@ function AgencyCard({
   onEdit,
   onArchive,
   onAddBranch,
+  onAddAgent,
   onEditBranch,
   onArchiveBranch,
   onManageTeam,
@@ -397,6 +498,7 @@ function AgencyCard({
   onEdit: () => void;
   onArchive: () => void;
   onAddBranch: () => void;
+  onAddAgent: () => void;
   onEditBranch: (branch: AdminAgencyBranch) => void;
   onArchiveBranch: (branch: AdminAgencyBranch) => void;
   onManageTeam: (branch: AdminAgencyBranch) => void;
@@ -426,7 +528,10 @@ function AgencyCard({
         <div className="flex flex-wrap gap-2">
           <Button size="sm" variant="outline" onClick={onEdit}><Pencil className="mr-2 h-3.5 w-3.5" /> Edit</Button>
           {agency.status === 'active' && (
-            <Button size="sm" variant="outline" onClick={onAddBranch}><Plus className="mr-2 h-3.5 w-3.5" /> Add branch</Button>
+            <>
+              <Button size="sm" variant="outline" onClick={onAddBranch}><Plus className="mr-2 h-3.5 w-3.5" /> Add branch</Button>
+              <Button size="sm" onClick={onAddAgent}><UserPlus className="mr-2 h-3.5 w-3.5" /> Add agent</Button>
+            </>
           )}
           <Button size="sm" variant="ghost" onClick={onArchive}>
             {agency.status === 'active' ? <><Archive className="mr-2 h-3.5 w-3.5" /> Archive</> : <><ArchiveRestore className="mr-2 h-3.5 w-3.5" /> Restore</>}

@@ -107,6 +107,27 @@ paths:
           description: Invalid token or password details
         "410":
           description: Reset link expired or already used
+  /auth/agent-setup/complete:
+    post:
+      operationId: completeAgentSetup
+      tags: [auth]
+      summary: Activate an invited agent account with a one-time setup token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AgentSetupCompleteInput"
+      responses:
+        "200":
+          description: Agent password set and account activated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PasswordResetResult" }
+        "400":
+          description: Invalid token or password details
+        "410":
+          description: Setup link expired or already used
   /auth/logout:
     post:
       operationId: logout
@@ -1948,6 +1969,27 @@ paths:
               schema:
                 type: array
                 items: { $ref: "#/components/schemas/AdminAgent" }
+  /admin/agents/{id}/setup-link:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: integer } }
+    post:
+      operationId: resendAdminAgentSetupLink
+      tags: [admin-portal]
+      summary: Send a fresh one-time setup link to an invited agent
+      responses:
+        "200":
+          description: Setup link sent
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminAgentSetupResendResult" }
+        "404":
+          description: Agent account not found
+        "409":
+          description: Agent account is not awaiting setup
+        "502":
+          description: Setup email could not be delivered
+        "503":
+          description: Setup email is not configured
   /admin/agencies:
     get:
       operationId: getAdminAgencies
@@ -2020,6 +2062,34 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/AdminAgencyBranch" }
+  /admin/agencies/{agencyId}/agents:
+    parameters:
+      - { name: agencyId, in: path, required: true, schema: { type: integer } }
+    post:
+      operationId: createAdminAgencyAgent
+      tags: [admin-portal]
+      summary: Create an agent account and email a one-time setup link
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AdminAgencyAgentCreateInput" }
+      responses:
+        "201":
+          description: Agent account created and setup email sent
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminAgencyAgentCreateResult" }
+        "400":
+          description: Invalid account details
+        "404":
+          description: Agency or branch not found
+        "409":
+          description: An account with this email already exists or the branch is unavailable
+        "502":
+          description: Setup email could not be delivered and the invitation was rolled back
+        "503":
+          description: Setup email is not configured
   /admin/branches/{id}:
     parameters:
       - { name: id, in: path, required: true, schema: { type: integer } }
@@ -2449,6 +2519,16 @@ components:
       properties:
         email: { type: string, pattern: '^[^@\s]+@[^\s@]+\.[^\s@]+$' }
     PasswordResetCompleteInput:
+      type: object
+      required: [token, newPassword]
+      properties:
+        token: { type: string, minLength: 32, maxLength: 128 }
+        newPassword:
+          type: string
+          minLength: 10
+          pattern: '^(?=.*[A-Za-z])(?=.*[0-9])(?=.*[^A-Za-z0-9\s]).{10,}$'
+          description: At least 10 characters with a letter, number, and special character.
+    AgentSetupCompleteInput:
       type: object
       required: [token, newPassword]
       properties:
@@ -4117,6 +4197,32 @@ components:
         name: { type: string, minLength: 2, maxLength: 160 }
         address: { type: ["string", "null"] }
         phone: { type: ["string", "null"] }
+    AdminAgencyAgentCreateInput:
+      type: object
+      required: [branchId, name, email]
+      properties:
+        branchId: { type: integer, minimum: 1 }
+        name: { type: string, minLength: 2, maxLength: 160 }
+        email: { type: string, pattern: '^[^@\s]+@[^\s@]+\.[^\s@]+$', maxLength: 254 }
+        phone: { type: ["string", "null"], maxLength: 40 }
+    AdminAgencyAgentCreateResult:
+      type: object
+      required: [id, name, email, branchId, branchName, status, setupEmailSent]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        email: { type: string }
+        branchId: { type: integer }
+        branchName: { type: string }
+        status: { type: string, enum: [invited] }
+        setupEmailSent: { type: boolean }
+    AdminAgentSetupResendResult:
+      type: object
+      required: [id, email, setupEmailSent]
+      properties:
+        id: { type: integer }
+        email: { type: string }
+        setupEmailSent: { type: boolean }
     AdminAgencyBranchUpdateInput:
       type: object
       properties:

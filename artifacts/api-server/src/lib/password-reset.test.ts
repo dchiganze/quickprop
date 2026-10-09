@@ -2,8 +2,10 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
   createAdminPasswordResetToken,
+  createAgentSetupToken,
   getAdminPasswordResetBaseUrl,
   hashAdminPasswordResetToken,
+  hashAgentSetupToken,
   matchesAdminRecoveryEmail,
   meetsAdminPasswordPolicy,
   normalizeAdminRecoveryEmail,
@@ -17,6 +19,16 @@ test("admin reset tokens are high-entropy URL-safe values and are stored as hash
   assert.match(hash, /^[a-f0-9]{64}$/);
   assert.notEqual(hash, token);
   assert.equal(hashAdminPasswordResetToken(token), hash);
+});
+
+test("agent setup tokens are high-entropy URL-safe values and are stored as hashes", () => {
+  const token = createAgentSetupToken();
+  const hash = hashAgentSetupToken(token);
+
+  assert.match(token, /^[A-Za-z0-9_-]{43}$/);
+  assert.match(hash, /^[a-f0-9]{64}$/);
+  assert.notEqual(hash, token);
+  assert.equal(hashAgentSetupToken(token), hash);
 });
 
 test("admin passwords require ten characters, a letter, a number, and a symbol", () => {
