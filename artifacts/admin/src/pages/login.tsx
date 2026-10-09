@@ -69,7 +69,7 @@ export default function Login() {
       { data: { email: resetEmail.trim() } },
       {
         onSuccess: () => setNotice(
-          "If an active administrator account uses that email, we'll send a one-time reset link. If it doesn't arrive, contact another QuickProp administrator.",
+          "If this email is eligible, we'll send a one-time password setup link. Check your spam folder if it doesn't arrive.",
         ),
         onError: (e: any) => setErr(e?.message || 'Could not request a reset link. Please try again.'),
       },

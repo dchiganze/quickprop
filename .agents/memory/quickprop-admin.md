@@ -45,3 +45,10 @@ The `enabled` option goes inside query: { query: { enabled: expanded } as any }
 **Why:** Hard-coded response-time and city/suburb market-size values misrepresent what QuickProp has actually measured.
 
 **How to apply:** Calculate KPIs from persisted events or authoritative records. Only add coverage percentages when each denominator has a verifiable source and date.
+
+## Sole-admin email recovery
+- Keep existing admins active until the exact configured recovery mailbox completes its expiring setup link; then atomically activate the verified Admin and deactivate only the approved prior accounts. Reject transfer if unexpected active admins exist, and persist a one-time completion marker.
+
+**Why:** A public reset request must not lock everyone out, and a completed recovery route must not remain a reusable privilege-escalation path.
+
+**How to apply:** Reuse the password-reset email and token flow; never expose an unauthenticated role-change endpoint. Keep ordinary resets restricted to active administrators.

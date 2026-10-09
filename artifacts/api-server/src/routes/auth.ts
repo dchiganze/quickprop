@@ -39,11 +39,18 @@ import { logAudit, jsonify } from "../lib/helpers";
 import {
   ADMIN_PASSWORD_RESET_COOLDOWN_MS,
   ADMIN_PASSWORD_RESET_TTL_MS,
+  ADMIN_RECOVERY_COMPLETED_AUDIT_ACTION,
+  ADMIN_RECOVERY_COOLDOWN_MS,
   createAdminPasswordResetToken,
   getAdminPasswordResetBaseUrl,
   hashAdminPasswordResetToken,
+  matchesAdminRecoveryEmail,
   meetsAdminPasswordPolicy,
 } from "../lib/password-reset";
+import {
+  ADMIN_RECOVERY_DEACTIVATE_EMAILS,
+  getOrCreateAdminRecoveryUser,
+} from "../lib/admin-recovery";
 import {
   checkAdminPasswordResetEmailReadiness,
   sendAdminPasswordResetEmail,
@@ -98,66 +105,132 @@ router.post("/auth/password-reset/request", async (req, res): Promise<void> => {
   }
 
   const email = parsed.data.email.toLowerCase().trim();
-  const [user] = await db
-    .select()
-    .from(usersTable)
-    .where(and(
-      eq(usersTable.email, email),
-      eq(usersTable.status, "active"),
-      inArray(usersTable.role, ["principal", "admin"]),
-    ))
-    .limit(1);
-
   const genericResponse = RequestAdminPasswordResetResponse.parse({ ok: true });
+  let user: typeof usersTable.$inferSelect | undefined;
+  let isRecoveryRequest = false;
+
+  if (matchesAdminRecoveryEmail(email, process.env.QUICKPROP_ADMIN_RECOVERY_EMAIL)) {
+    const [existingUser] = await db
+      .select()
+      .from(usersTable)
+      .where(eq(usersTable.email, email))
+      .limit(1);
+    let recoveryAlreadyCompleted = false;
+    if (existingUser) {
+      const [completedRecovery] = await db
+        .select({ id: auditLogTable.id })
+        .from(auditLogTable)
+        .where(and(
+          eq(auditLogTable.action, ADMIN_RECOVERY_COMPLETED_AUDIT_ACTION),
+          eq(auditLogTable.entityType, "user"),
+          eq(auditLogTable.entityId, existingUser.id),
+        ))
+        .limit(1);
+      recoveryAlreadyCompleted = Boolean(completedRecovery);
+    }
+    if (!recoveryAlreadyCompleted) {
+      user = existingUser ?? await getOrCreateAdminRecoveryUser(email) ?? undefined;
+      isRecoveryRequest = Boolean(user);
+    }
+  }
+
+  if (!user) {
+    const [activeAdmin] = await db
+      .select()
+      .from(usersTable)
+      .where(and(
+        eq(usersTable.email, email),
+        eq(usersTable.status, "active"),
+        inArray(usersTable.role, ["principal", "admin"]),
+      ))
+      .limit(1);
+    user = activeAdmin;
+  }
+
   if (!user) {
     res.json(genericResponse);
     return;
   }
 
-  const cooldownStart = new Date(Date.now() - ADMIN_PASSWORD_RESET_COOLDOWN_MS);
-  const [recentRequest] = await db
-    .select({ id: passwordResetTokensTable.id })
-    .from(passwordResetTokensTable)
-    .where(and(
-      eq(passwordResetTokensTable.userId, user.id),
-      gte(passwordResetTokensTable.createdAt, cooldownStart),
-    ))
-    .limit(1);
-  if (recentRequest) {
+  const issuedReset = await db.transaction(async (tx) => {
+    const [lockedUser] = await tx
+      .select()
+      .from(usersTable)
+      .where(eq(usersTable.id, user!.id))
+      .limit(1)
+      .for("update");
+    if (!lockedUser) return null;
+
+    const recoveryEligible = isRecoveryRequest
+      && matchesAdminRecoveryEmail(lockedUser.email, process.env.QUICKPROP_ADMIN_RECOVERY_EMAIL);
+    if (recoveryEligible) {
+      const [completedRecovery] = await tx
+        .select({ id: auditLogTable.id })
+        .from(auditLogTable)
+        .where(and(
+          eq(auditLogTable.action, ADMIN_RECOVERY_COMPLETED_AUDIT_ACTION),
+          eq(auditLogTable.entityType, "user"),
+          eq(auditLogTable.entityId, lockedUser.id),
+        ))
+        .limit(1);
+      if (completedRecovery) return null;
+    } else if (
+      lockedUser.status !== "active"
+      || !["principal", "admin"].includes(lockedUser.role)
+    ) {
+      return null;
+    }
+
+    const cooldownMs = recoveryEligible ? ADMIN_RECOVERY_COOLDOWN_MS : ADMIN_PASSWORD_RESET_COOLDOWN_MS;
+    const cooldownStart = new Date(Date.now() - cooldownMs);
+    const [recentRequest] = await tx
+      .select({ id: passwordResetTokensTable.id })
+      .from(passwordResetTokensTable)
+      .where(and(
+        eq(passwordResetTokensTable.userId, lockedUser.id),
+        gte(passwordResetTokensTable.createdAt, cooldownStart),
+      ))
+      .limit(1);
+    if (recentRequest) return null;
+
+    await tx.delete(passwordResetTokensTable).where(eq(passwordResetTokensTable.userId, lockedUser.id));
+    const token = createAdminPasswordResetToken();
+    const [resetRecord] = await tx
+      .insert(passwordResetTokensTable)
+      .values({
+        userId: lockedUser.id,
+        tokenHash: hashAdminPasswordResetToken(token),
+        expiresAt: new Date(Date.now() + ADMIN_PASSWORD_RESET_TTL_MS),
+      })
+      .returning({ id: passwordResetTokensTable.id });
+    if (!resetRecord) return null;
+    return { id: resetRecord.id, token, email: lockedUser.email, userId: lockedUser.id };
+  });
+
+  if (!issuedReset) {
     res.json(genericResponse);
     return;
   }
 
-  await db.delete(passwordResetTokensTable).where(eq(passwordResetTokensTable.userId, user.id));
-  const token = createAdminPasswordResetToken();
-  const [resetRecord] = await db
-    .insert(passwordResetTokensTable)
-    .values({
-      userId: user.id,
-      tokenHash: hashAdminPasswordResetToken(token),
-      expiresAt: new Date(Date.now() + ADMIN_PASSWORD_RESET_TTL_MS),
-    })
-    .returning({ id: passwordResetTokensTable.id });
-
   try {
     const delivery = await sendAdminPasswordResetEmail(
-      user.email,
-      `${baseUrl}/login?resetToken=${encodeURIComponent(token)}`,
-      `admin-password-reset-${resetRecord.id}`,
+      issuedReset.email,
+      `${baseUrl}/login?resetToken=${encodeURIComponent(issuedReset.token)}`,
+      `admin-password-reset-${issuedReset.id}`,
     );
     if (delivery.status !== "sent") {
       await db
         .update(passwordResetTokensTable)
         .set({ usedAt: new Date() })
-        .where(eq(passwordResetTokensTable.id, resetRecord.id));
-      req.log.error({ userId: user.id }, "Admin password reset email was skipped");
+        .where(eq(passwordResetTokensTable.id, issuedReset.id));
+      req.log.error({ userId: issuedReset.userId }, "Admin password reset email was skipped");
     }
   } catch (err) {
     await db
       .update(passwordResetTokensTable)
       .set({ usedAt: new Date() })
-      .where(eq(passwordResetTokensTable.id, resetRecord.id));
-    req.log.error({ err, userId: user.id }, "Admin password reset email delivery failed");
+      .where(eq(passwordResetTokensTable.id, issuedReset.id));
+    req.log.error({ err, userId: issuedReset.userId }, "Admin password reset email delivery failed");
   }
 
   res.json(genericResponse);
@@ -178,7 +251,7 @@ router.post("/auth/password-reset/complete", async (req, res): Promise<void> => 
 
   const now = new Date();
   const tokenHash = hashAdminPasswordResetToken(parsed.data.token);
-  const resetUser = await db.transaction(async (tx) => {
+  const resetResult = await db.transaction(async (tx) => {
     const [resetRecord] = await tx
       .select()
       .from(passwordResetTokensTable)
@@ -189,19 +262,164 @@ router.post("/auth/password-reset/complete", async (req, res): Promise<void> => 
       ))
       .limit(1)
       .for("update");
-    if (!resetRecord) return null;
+    if (!resetRecord) return { kind: "invalid" as const };
 
-    const [user] = await tx
+    const [initialUser] = await tx
       .select()
       .from(usersTable)
       .where(eq(usersTable.id, resetRecord.userId))
       .limit(1);
-    if (!user || user.status !== "active" || !["principal", "admin"].includes(user.role)) {
+    if (!initialUser) {
       await tx
         .update(passwordResetTokensTable)
         .set({ usedAt: now })
         .where(eq(passwordResetTokensTable.id, resetRecord.id));
-      return null;
+      return { kind: "invalid" as const };
+    }
+
+    const configuredRecoveryTarget = matchesAdminRecoveryEmail(
+      initialUser.email,
+      process.env.QUICKPROP_ADMIN_RECOVERY_EMAIL,
+    );
+    const [completedRecovery] = configuredRecoveryTarget
+      ? await tx
+        .select({ id: auditLogTable.id })
+        .from(auditLogTable)
+        .where(and(
+          eq(auditLogTable.action, ADMIN_RECOVERY_COMPLETED_AUDIT_ACTION),
+          eq(auditLogTable.entityType, "user"),
+          eq(auditLogTable.entityId, initialUser.id),
+        ))
+        .limit(1)
+      : [];
+    const isRecoveryCompletion = configuredRecoveryTarget && !completedRecovery;
+    const isNormalReset = initialUser.status === "active"
+      && ["principal", "admin"].includes(initialUser.role);
+    if (!isRecoveryCompletion && !isNormalReset) {
+      await tx
+        .update(passwordResetTokensTable)
+        .set({ usedAt: now })
+        .where(eq(passwordResetTokensTable.id, resetRecord.id));
+      return { kind: "invalid" as const };
+    }
+
+    const activeAdmins = isRecoveryCompletion
+      ? await tx
+        .select({ id: usersTable.id, name: usersTable.name, email: usersTable.email })
+        .from(usersTable)
+        .where(and(
+          eq(usersTable.status, "active"),
+          inArray(usersTable.role, ["principal", "admin"]),
+        ))
+        .orderBy(usersTable.id)
+        .for("update")
+      : [];
+
+    const [user] = await tx
+      .select()
+      .from(usersTable)
+      .where(eq(usersTable.id, initialUser.id))
+      .limit(1)
+      .for("update");
+    if (!user) {
+      await tx
+        .update(passwordResetTokensTable)
+        .set({ usedAt: now })
+        .where(eq(passwordResetTokensTable.id, resetRecord.id));
+      return { kind: "invalid" as const };
+    }
+
+    if (isRecoveryCompletion) {
+      const [latestRecoveryMarker] = await tx
+        .select({ id: auditLogTable.id })
+        .from(auditLogTable)
+        .where(and(
+          eq(auditLogTable.action, ADMIN_RECOVERY_COMPLETED_AUDIT_ACTION),
+          eq(auditLogTable.entityType, "user"),
+          eq(auditLogTable.entityId, user.id),
+        ))
+        .limit(1);
+      if (!matchesAdminRecoveryEmail(user.email, process.env.QUICKPROP_ADMIN_RECOVERY_EMAIL) || latestRecoveryMarker) {
+        await tx
+          .update(passwordResetTokensTable)
+          .set({ usedAt: now })
+          .where(eq(passwordResetTokensTable.id, resetRecord.id));
+        return { kind: "invalid" as const };
+      }
+
+      const previousAdmins = activeAdmins.filter((admin) => admin.id !== user.id);
+      const unexpectedAdmins = previousAdmins.filter(
+        (admin) => !ADMIN_RECOVERY_DEACTIVATE_EMAILS.includes(
+          admin.email.trim().toLowerCase() as typeof ADMIN_RECOVERY_DEACTIVATE_EMAILS[number],
+        ),
+      );
+      if (unexpectedAdmins.length > 0) {
+        await tx
+          .update(passwordResetTokensTable)
+          .set({ usedAt: now })
+          .where(eq(passwordResetTokensTable.id, resetRecord.id));
+        return { kind: "roster-changed" as const };
+      }
+
+      const adminsToDeactivate = previousAdmins.filter((admin) =>
+        ADMIN_RECOVERY_DEACTIVATE_EMAILS.includes(
+          admin.email.trim().toLowerCase() as typeof ADMIN_RECOVERY_DEACTIVATE_EMAILS[number],
+        ),
+      );
+      const password = await hashPassword(parsed.data.newPassword);
+      await tx
+        .update(usersTable)
+        .set({
+          name: "Douglas Chiganze",
+          role: "admin",
+          status: "active",
+          password,
+        })
+        .where(eq(usersTable.id, user.id));
+      if (adminsToDeactivate.length > 0) {
+        await tx
+          .update(usersTable)
+          .set({ status: "inactive" })
+          .where(inArray(usersTable.id, adminsToDeactivate.map((admin) => admin.id)));
+      }
+      await tx.insert(auditLogTable).values([
+        {
+          action: ADMIN_RECOVERY_COMPLETED_AUDIT_ACTION,
+          entityType: "user",
+          entityId: user.id,
+          detail: "Douglas Chiganze became the sole active Admin after completing the one-time email setup link.",
+          userId: user.id,
+          userName: "Douglas Chiganze",
+        },
+        ...adminsToDeactivate.map((admin) => ({
+          action: "edited",
+          entityType: "user",
+          entityId: admin.id,
+          detail: `Account deactivated after Douglas Chiganze completed the one-time admin recovery link.`,
+          userId: user.id,
+          userName: "Douglas Chiganze",
+        })),
+      ]);
+      await tx
+        .update(passwordResetTokensTable)
+        .set({ usedAt: now })
+        .where(and(
+          eq(passwordResetTokensTable.userId, user.id),
+          isNull(passwordResetTokensTable.usedAt),
+        ));
+      return {
+        kind: "completed" as const,
+        user: { id: user.id, name: "Douglas Chiganze" },
+        recovered: true,
+      };
+    }
+
+    if (user.status !== "active" || !["principal", "admin"].includes(user.role)) {
+      await tx
+        .update(passwordResetTokensTable)
+        .set({ usedAt: now })
+        .where(eq(passwordResetTokensTable.id, resetRecord.id));
+      return { kind: "invalid" as const };
     }
 
     await tx
@@ -215,11 +433,19 @@ router.post("/auth/password-reset/complete", async (req, res): Promise<void> => 
         eq(passwordResetTokensTable.userId, user.id),
         isNull(passwordResetTokensTable.usedAt),
       ));
-    return { id: user.id, name: user.name };
+    return {
+      kind: "completed" as const,
+      user: { id: user.id, name: user.name },
+      recovered: false,
+    };
   });
 
-  if (!resetUser) {
+  if (resetResult.kind === "invalid") {
     res.status(410).json({ error: "This password reset link has expired or has already been used." });
+    return;
+  }
+  if (resetResult.kind === "roster-changed") {
+    res.status(409).json({ error: "The active administrator list changed. No account transfer was made; request a fresh setup link and contact QuickProp support." });
     return;
   }
 
@@ -227,13 +453,13 @@ router.post("/auth/password-reset/complete", async (req, res): Promise<void> => 
     await logAudit(
       "password_reset",
       "user",
-      resetUser.id,
+      resetResult.user.id,
       "Administrator password reset using an emailed link",
-      resetUser.id,
-      resetUser.name,
+      resetResult.user.id,
+      resetResult.user.name,
     );
   } catch (err) {
-    req.log.error({ err, userId: resetUser.id }, "Password reset audit logging failed");
+    req.log.error({ err, userId: resetResult.user.id }, "Password reset audit logging failed");
   }
   res.json(CompleteAdminPasswordResetResponse.parse({ ok: true }));
 });

@@ -2,6 +2,18 @@ import { createHash, randomBytes } from "node:crypto";
 
 export const ADMIN_PASSWORD_RESET_TTL_MS = 15 * 60_000;
 export const ADMIN_PASSWORD_RESET_COOLDOWN_MS = 60_000;
+export const ADMIN_RECOVERY_COOLDOWN_MS = 15 * 60_000;
+export const ADMIN_RECOVERY_COMPLETED_AUDIT_ACTION = "admin_recovery_completed";
+
+export function normalizeAdminRecoveryEmail(value: string | undefined): string | null {
+  const normalized = value?.trim().toLowerCase();
+  return normalized && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized) ? normalized : null;
+}
+
+export function matchesAdminRecoveryEmail(email: string, configuredEmail: string | undefined): boolean {
+  const recoveryEmail = normalizeAdminRecoveryEmail(configuredEmail);
+  return recoveryEmail !== null && email.trim().toLowerCase() === recoveryEmail;
+}
 
 export function createAdminPasswordResetToken(): string {
   return randomBytes(32).toString("base64url");

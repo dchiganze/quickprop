@@ -56,7 +56,7 @@ export default function Login() {
       { data: { email } },
       {
         onSuccess: () => setResetNotice(
-          "If this email belongs to an active administrator account, QuickProp will send a one-time password setup link.",
+          "If this email is eligible, QuickProp will send a one-time password setup link. Check your spam folder if it doesn't arrive.",
         ),
         onError: (error: any) => setErrorMsg(error?.message || 'Could not request a setup link. Please try again.'),
       },

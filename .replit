@@ -56,6 +56,7 @@ QUICKPROP_EMAIL_FROM = "info@melios.co.zw"
 
 [userenv.production]
 QUICKPROP_ADMIN_BASE_URL = "https://www.quickprop.melios.co.zw/admin"
+QUICKPROP_ADMIN_RECOVERY_EMAIL = "douglas@melios.co.zw"
 
 [objectStorage]
 defaultBucketID = "replit-objstore-e8255198-1f0f-4616-9be2-27fc5d458482"
