@@ -3723,6 +3723,8 @@ export const getAdminPlatformDataCleanupPreviewResponseCountsAgentsMin = 0;
 
 export const getAdminPlatformDataCleanupPreviewResponseCountsBuyersMin = 0;
 
+export const getAdminPlatformDataCleanupPreviewResponseCountsAgenciesMin = 0;
+
 export const getAdminPlatformDataCleanupPreviewResponseCountsBranchesMin = 0;
 
 export const getAdminPlatformDataCleanupPreviewResponseCountsLeadsMin = 0;
@@ -3737,6 +3739,7 @@ export const GetAdminPlatformDataCleanupPreviewResponse = zod.object({
   "properties": zod.number().min(getAdminPlatformDataCleanupPreviewResponseCountsPropertiesMin),
   "agents": zod.number().min(getAdminPlatformDataCleanupPreviewResponseCountsAgentsMin),
   "buyers": zod.number().min(getAdminPlatformDataCleanupPreviewResponseCountsBuyersMin),
+  "agencies": zod.number().min(getAdminPlatformDataCleanupPreviewResponseCountsAgenciesMin),
   "branches": zod.number().min(getAdminPlatformDataCleanupPreviewResponseCountsBranchesMin),
   "leads": zod.number().min(getAdminPlatformDataCleanupPreviewResponseCountsLeadsMin),
   "demoBuyerLogins": zod.number().min(getAdminPlatformDataCleanupPreviewResponseCountsDemoBuyerLoginsMin)
@@ -3753,6 +3756,8 @@ export const clearAdminPlatformDataBodyExpectedCountsAgentsMin = 0;
 
 export const clearAdminPlatformDataBodyExpectedCountsBuyersMin = 0;
 
+export const clearAdminPlatformDataBodyExpectedCountsAgenciesMin = 0;
+
 export const clearAdminPlatformDataBodyExpectedCountsBranchesMin = 0;
 
 export const clearAdminPlatformDataBodyExpectedCountsLeadsMin = 0;
@@ -3767,6 +3772,7 @@ export const ClearAdminPlatformDataBody = zod.object({
   "properties": zod.number().min(clearAdminPlatformDataBodyExpectedCountsPropertiesMin),
   "agents": zod.number().min(clearAdminPlatformDataBodyExpectedCountsAgentsMin),
   "buyers": zod.number().min(clearAdminPlatformDataBodyExpectedCountsBuyersMin),
+  "agencies": zod.number().min(clearAdminPlatformDataBodyExpectedCountsAgenciesMin),
   "branches": zod.number().min(clearAdminPlatformDataBodyExpectedCountsBranchesMin),
   "leads": zod.number().min(clearAdminPlatformDataBodyExpectedCountsLeadsMin),
   "demoBuyerLogins": zod.number().min(clearAdminPlatformDataBodyExpectedCountsDemoBuyerLoginsMin)
@@ -3778,6 +3784,8 @@ export const clearAdminPlatformDataResponseDeletedCountsPropertiesMin = 0;
 export const clearAdminPlatformDataResponseDeletedCountsAgentsMin = 0;
 
 export const clearAdminPlatformDataResponseDeletedCountsBuyersMin = 0;
+
+export const clearAdminPlatformDataResponseDeletedCountsAgenciesMin = 0;
 
 export const clearAdminPlatformDataResponseDeletedCountsBranchesMin = 0;
 
@@ -3792,6 +3800,7 @@ export const ClearAdminPlatformDataResponse = zod.object({
   "properties": zod.number().min(clearAdminPlatformDataResponseDeletedCountsPropertiesMin),
   "agents": zod.number().min(clearAdminPlatformDataResponseDeletedCountsAgentsMin),
   "buyers": zod.number().min(clearAdminPlatformDataResponseDeletedCountsBuyersMin),
+  "agencies": zod.number().min(clearAdminPlatformDataResponseDeletedCountsAgenciesMin),
   "branches": zod.number().min(clearAdminPlatformDataResponseDeletedCountsBranchesMin),
   "leads": zod.number().min(clearAdminPlatformDataResponseDeletedCountsLeadsMin),
   "demoBuyerLogins": zod.number().min(clearAdminPlatformDataResponseDeletedCountsDemoBuyerLoginsMin)
@@ -4907,19 +4916,368 @@ export const GetAdminAgentsResponse = zod.array(GetAdminAgentsResponseItem)
 
 
 /**
- * @summary All agencies (branches) with stats
+ * @summary All agencies, branches and assigned team members
  */
-export const GetAdminAgenciesResponseItem = zod.object({
+export const GetAdminAgenciesResponse = zod.object({
+  "agencies": zod.array(zod.object({
   "id": zod.number(),
   "name": zod.string(),
-  "address": zod.string().nullish(),
+  "logoUrl": zod.string().nullable(),
+  "email": zod.string().nullable(),
+  "phone": zod.string().nullable(),
+  "website": zod.string().nullable(),
+  "aboutText": zod.string(),
+  "status": zod.enum(['active', 'archived']),
+  "branches": zod.array(zod.object({
+  "id": zod.number(),
+  "agencyId": zod.number().nullable(),
+  "name": zod.string(),
+  "address": zod.string().nullable(),
+  "phone": zod.string().nullable(),
+  "status": zod.enum(['active', 'archived']),
+  "members": zod.array(zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "email": zod.string(),
+  "phone": zod.string().nullable(),
+  "role": zod.string(),
+  "status": zod.string(),
+  "branchId": zod.number().nullable()
+})),
+  "agentCount": zod.number(),
+  "activeListings": zod.number(),
+  "totalListings": zod.number(),
+  "totalLeads": zod.number()
+})),
+  "branchCount": zod.number(),
+  "teamCount": zod.number(),
+  "activeListings": zod.number(),
+  "totalListings": zod.number(),
+  "totalLeads": zod.number()
+})),
+  "unassignedBranches": zod.array(zod.object({
+  "id": zod.number(),
+  "agencyId": zod.number().nullable(),
+  "name": zod.string(),
+  "address": zod.string().nullable(),
+  "phone": zod.string().nullable(),
+  "status": zod.enum(['active', 'archived']),
+  "members": zod.array(zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "email": zod.string(),
+  "phone": zod.string().nullable(),
+  "role": zod.string(),
+  "status": zod.string(),
+  "branchId": zod.number().nullable()
+})),
+  "agentCount": zod.number(),
+  "activeListings": zod.number(),
+  "totalListings": zod.number(),
+  "totalLeads": zod.number()
+}))
+})
+
+
+/**
+ * @summary Create an agency
+ */
+export const createAdminAgencyBodyNameMin = 2;
+export const createAdminAgencyBodyNameMax = 160;
+
+export const createAdminAgencyBodyAboutTextMax = 2000;
+
+
+
+export const CreateAdminAgencyBody = zod.object({
+  "name": zod.string().min(createAdminAgencyBodyNameMin).max(createAdminAgencyBodyNameMax),
+  "logoUrl": zod.string().nullish(),
+  "email": zod.string().nullish(),
   "phone": zod.string().nullish(),
+  "website": zod.string().nullish(),
+  "aboutText": zod.string().max(createAdminAgencyBodyAboutTextMax).optional()
+})
+
+export const CreateAdminAgencyResponse = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "logoUrl": zod.string().nullable(),
+  "email": zod.string().nullable(),
+  "phone": zod.string().nullable(),
+  "website": zod.string().nullable(),
+  "aboutText": zod.string(),
+  "status": zod.enum(['active', 'archived']),
+  "branches": zod.array(zod.object({
+  "id": zod.number(),
+  "agencyId": zod.number().nullable(),
+  "name": zod.string(),
+  "address": zod.string().nullable(),
+  "phone": zod.string().nullable(),
+  "status": zod.enum(['active', 'archived']),
+  "members": zod.array(zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "email": zod.string(),
+  "phone": zod.string().nullable(),
+  "role": zod.string(),
+  "status": zod.string(),
+  "branchId": zod.number().nullable()
+})),
+  "agentCount": zod.number(),
+  "activeListings": zod.number(),
+  "totalListings": zod.number(),
+  "totalLeads": zod.number()
+})),
+  "branchCount": zod.number(),
+  "teamCount": zod.number(),
+  "activeListings": zod.number(),
+  "totalListings": zod.number(),
+  "totalLeads": zod.number()
+})
+
+
+/**
+ * @summary Update agency details or restore an archived agency
+ */
+export const UpdateAdminAgencyParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const updateAdminAgencyBodyNameMin = 2;
+export const updateAdminAgencyBodyNameMax = 160;
+
+export const updateAdminAgencyBodyAboutTextMax = 2000;
+
+
+
+export const UpdateAdminAgencyBody = zod.object({
+  "name": zod.string().min(updateAdminAgencyBodyNameMin).max(updateAdminAgencyBodyNameMax).optional(),
+  "logoUrl": zod.string().nullish(),
+  "email": zod.string().nullish(),
+  "phone": zod.string().nullish(),
+  "website": zod.string().nullish(),
+  "aboutText": zod.string().max(updateAdminAgencyBodyAboutTextMax).optional(),
+  "status": zod.enum(['active', 'archived']).optional()
+})
+
+export const UpdateAdminAgencyResponse = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "logoUrl": zod.string().nullable(),
+  "email": zod.string().nullable(),
+  "phone": zod.string().nullable(),
+  "website": zod.string().nullable(),
+  "aboutText": zod.string(),
+  "status": zod.enum(['active', 'archived']),
+  "branches": zod.array(zod.object({
+  "id": zod.number(),
+  "agencyId": zod.number().nullable(),
+  "name": zod.string(),
+  "address": zod.string().nullable(),
+  "phone": zod.string().nullable(),
+  "status": zod.enum(['active', 'archived']),
+  "members": zod.array(zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "email": zod.string(),
+  "phone": zod.string().nullable(),
+  "role": zod.string(),
+  "status": zod.string(),
+  "branchId": zod.number().nullable()
+})),
+  "agentCount": zod.number(),
+  "activeListings": zod.number(),
+  "totalListings": zod.number(),
+  "totalLeads": zod.number()
+})),
+  "branchCount": zod.number(),
+  "teamCount": zod.number(),
+  "activeListings": zod.number(),
+  "totalListings": zod.number(),
+  "totalLeads": zod.number()
+})
+
+
+/**
+ * @summary Archive an agency without deleting branches, users or listings
+ */
+export const ArchiveAdminAgencyParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const ArchiveAdminAgencyResponse = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "logoUrl": zod.string().nullable(),
+  "email": zod.string().nullable(),
+  "phone": zod.string().nullable(),
+  "website": zod.string().nullable(),
+  "aboutText": zod.string(),
+  "status": zod.enum(['active', 'archived']),
+  "branches": zod.array(zod.object({
+  "id": zod.number(),
+  "agencyId": zod.number().nullable(),
+  "name": zod.string(),
+  "address": zod.string().nullable(),
+  "phone": zod.string().nullable(),
+  "status": zod.enum(['active', 'archived']),
+  "members": zod.array(zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "email": zod.string(),
+  "phone": zod.string().nullable(),
+  "role": zod.string(),
+  "status": zod.string(),
+  "branchId": zod.number().nullable()
+})),
+  "agentCount": zod.number(),
+  "activeListings": zod.number(),
+  "totalListings": zod.number(),
+  "totalLeads": zod.number()
+})),
+  "branchCount": zod.number(),
+  "teamCount": zod.number(),
+  "activeListings": zod.number(),
+  "totalListings": zod.number(),
+  "totalLeads": zod.number()
+})
+
+
+/**
+ * @summary Add a branch to an agency
+ */
+export const CreateAdminAgencyBranchParams = zod.object({
+  "agencyId": zod.coerce.number()
+})
+
+export const createAdminAgencyBranchBodyNameMin = 2;
+export const createAdminAgencyBranchBodyNameMax = 160;
+
+
+
+export const CreateAdminAgencyBranchBody = zod.object({
+  "name": zod.string().min(createAdminAgencyBranchBodyNameMin).max(createAdminAgencyBranchBodyNameMax),
+  "address": zod.string().nullish(),
+  "phone": zod.string().nullish()
+})
+
+export const CreateAdminAgencyBranchResponse = zod.object({
+  "id": zod.number(),
+  "agencyId": zod.number().nullable(),
+  "name": zod.string(),
+  "address": zod.string().nullable(),
+  "phone": zod.string().nullable(),
+  "status": zod.enum(['active', 'archived']),
+  "members": zod.array(zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "email": zod.string(),
+  "phone": zod.string().nullable(),
+  "role": zod.string(),
+  "status": zod.string(),
+  "branchId": zod.number().nullable()
+})),
   "agentCount": zod.number(),
   "activeListings": zod.number(),
   "totalListings": zod.number(),
   "totalLeads": zod.number()
 })
-export const GetAdminAgenciesResponse = zod.array(GetAdminAgenciesResponseItem)
+
+
+/**
+ * @summary Update a branch, move it to another agency, or restore it
+ */
+export const UpdateAdminAgencyBranchParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const updateAdminAgencyBranchBodyNameMin = 2;
+export const updateAdminAgencyBranchBodyNameMax = 160;
+
+
+
+export const UpdateAdminAgencyBranchBody = zod.object({
+  "agencyId": zod.number().nullish(),
+  "name": zod.string().min(updateAdminAgencyBranchBodyNameMin).max(updateAdminAgencyBranchBodyNameMax).optional(),
+  "address": zod.string().nullish(),
+  "phone": zod.string().nullish(),
+  "status": zod.enum(['active', 'archived']).optional()
+})
+
+export const UpdateAdminAgencyBranchResponse = zod.object({
+  "id": zod.number(),
+  "agencyId": zod.number().nullable(),
+  "name": zod.string(),
+  "address": zod.string().nullable(),
+  "phone": zod.string().nullable(),
+  "status": zod.enum(['active', 'archived']),
+  "members": zod.array(zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "email": zod.string(),
+  "phone": zod.string().nullable(),
+  "role": zod.string(),
+  "status": zod.string(),
+  "branchId": zod.number().nullable()
+})),
+  "agentCount": zod.number(),
+  "activeListings": zod.number(),
+  "totalListings": zod.number(),
+  "totalLeads": zod.number()
+})
+
+
+/**
+ * @summary Archive a branch without deleting its records
+ */
+export const ArchiveAdminAgencyBranchParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const ArchiveAdminAgencyBranchResponse = zod.object({
+  "id": zod.number(),
+  "agencyId": zod.number().nullable(),
+  "name": zod.string(),
+  "address": zod.string().nullable(),
+  "phone": zod.string().nullable(),
+  "status": zod.enum(['active', 'archived']),
+  "members": zod.array(zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "email": zod.string(),
+  "phone": zod.string().nullable(),
+  "role": zod.string(),
+  "status": zod.string(),
+  "branchId": zod.number().nullable()
+})),
+  "agentCount": zod.number(),
+  "activeListings": zod.number(),
+  "totalListings": zod.number(),
+  "totalLeads": zod.number()
+})
+
+
+/**
+ * @summary Assign existing agent accounts to a branch
+ */
+export const SetAdminBranchMembersParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const SetAdminBranchMembersBody = zod.object({
+  "userIds": zod.array(zod.number())
+})
+
+export const SetAdminBranchMembersResponseItem = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "email": zod.string(),
+  "phone": zod.string().nullable(),
+  "role": zod.string(),
+  "status": zod.string(),
+  "branchId": zod.number().nullable()
+})
+export const SetAdminBranchMembersResponse = zod.array(SetAdminBranchMembersResponseItem)
 
 
 /**

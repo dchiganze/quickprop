@@ -1908,6 +1908,8 @@ export interface AdminDataCleanupCounts {
   /** @minimum 0 */
   buyers: number;
   /** @minimum 0 */
+  agencies: number;
+  /** @minimum 0 */
   branches: number;
   /** @minimum 0 */
   leads: number;
@@ -2193,17 +2195,159 @@ export interface AdminAgent {
   openLeads: number;
 }
 
+export type AdminAgencyStatus = typeof AdminAgencyStatus[keyof typeof AdminAgencyStatus];
+
+
+export const AdminAgencyStatus = {
+  active: 'active',
+  archived: 'archived',
+} as const;
+
+export type AdminAgencyBranchStatus = typeof AdminAgencyBranchStatus[keyof typeof AdminAgencyBranchStatus];
+
+
+export const AdminAgencyBranchStatus = {
+  active: 'active',
+  archived: 'archived',
+} as const;
+
+export interface AdminAgencyMember {
+  id: number;
+  name: string;
+  email: string;
+  /** @nullable */
+  phone: string | null;
+  role: string;
+  status: string;
+  /** @nullable */
+  branchId: number | null;
+}
+
+export interface AdminAgencyBranch {
+  id: number;
+  /** @nullable */
+  agencyId: number | null;
+  name: string;
+  /** @nullable */
+  address: string | null;
+  /** @nullable */
+  phone: string | null;
+  status: AdminAgencyBranchStatus;
+  members: AdminAgencyMember[];
+  agentCount: number;
+  activeListings: number;
+  totalListings: number;
+  totalLeads: number;
+}
+
 export interface AdminAgency {
   id: number;
+  name: string;
+  /** @nullable */
+  logoUrl: string | null;
+  /** @nullable */
+  email: string | null;
+  /** @nullable */
+  phone: string | null;
+  /** @nullable */
+  website: string | null;
+  aboutText: string;
+  status: AdminAgencyStatus;
+  branches: AdminAgencyBranch[];
+  branchCount: number;
+  teamCount: number;
+  activeListings: number;
+  totalListings: number;
+  totalLeads: number;
+}
+
+export interface AdminAgenciesResponse {
+  agencies: AdminAgency[];
+  unassignedBranches: AdminAgencyBranch[];
+}
+
+export interface AdminAgencyCreateInput {
+  /**
+     * @minLength 2
+     * @maxLength 160
+     */
+  name: string;
+  /** @nullable */
+  logoUrl?: string | null;
+  /** @nullable */
+  email?: string | null;
+  /** @nullable */
+  phone?: string | null;
+  /** @nullable */
+  website?: string | null;
+  /** @maxLength 2000 */
+  aboutText?: string;
+}
+
+export type AdminAgencyUpdateInputStatus = typeof AdminAgencyUpdateInputStatus[keyof typeof AdminAgencyUpdateInputStatus];
+
+
+export const AdminAgencyUpdateInputStatus = {
+  active: 'active',
+  archived: 'archived',
+} as const;
+
+export interface AdminAgencyUpdateInput {
+  /**
+     * @minLength 2
+     * @maxLength 160
+     */
+  name?: string;
+  /** @nullable */
+  logoUrl?: string | null;
+  /** @nullable */
+  email?: string | null;
+  /** @nullable */
+  phone?: string | null;
+  /** @nullable */
+  website?: string | null;
+  /** @maxLength 2000 */
+  aboutText?: string;
+  status?: AdminAgencyUpdateInputStatus;
+}
+
+export interface AdminAgencyBranchCreateInput {
+  /**
+     * @minLength 2
+     * @maxLength 160
+     */
   name: string;
   /** @nullable */
   address?: string | null;
   /** @nullable */
   phone?: string | null;
-  agentCount: number;
-  activeListings: number;
-  totalListings: number;
-  totalLeads: number;
+}
+
+export type AdminAgencyBranchUpdateInputStatus = typeof AdminAgencyBranchUpdateInputStatus[keyof typeof AdminAgencyBranchUpdateInputStatus];
+
+
+export const AdminAgencyBranchUpdateInputStatus = {
+  active: 'active',
+  archived: 'archived',
+} as const;
+
+export interface AdminAgencyBranchUpdateInput {
+  /** @nullable */
+  agencyId?: number | null;
+  /**
+     * @minLength 2
+     * @maxLength 160
+     */
+  name?: string;
+  /** @nullable */
+  address?: string | null;
+  /** @nullable */
+  phone?: string | null;
+  status?: AdminAgencyBranchUpdateInputStatus;
+}
+
+export interface AdminBranchMembersInput {
+  userIds: number[];
 }
 
 export interface PropertyModerationInput {

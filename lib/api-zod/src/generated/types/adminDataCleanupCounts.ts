@@ -14,6 +14,8 @@ export interface AdminDataCleanupCounts {
   /** @minimum 0 */
   buyers: number;
   /** @minimum 0 */
+  agencies: number;
+  /** @minimum 0 */
   branches: number;
   /** @minimum 0 */
   leads: number;

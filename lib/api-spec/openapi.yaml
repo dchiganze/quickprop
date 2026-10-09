@@ -1952,15 +1952,122 @@ paths:
     get:
       operationId: getAdminAgencies
       tags: [admin-portal]
-      summary: All agencies (branches) with stats
+      summary: All agencies, branches and assigned team members
       responses:
         "200":
-          description: Agency list
+          description: Agency management data
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminAgenciesResponse" }
+    post:
+      operationId: createAdminAgency
+      tags: [admin-portal]
+      summary: Create an agency
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AdminAgencyCreateInput" }
+      responses:
+        "201":
+          description: Created agency
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminAgency" }
+  /admin/agencies/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: integer } }
+    patch:
+      operationId: updateAdminAgency
+      tags: [admin-portal]
+      summary: Update agency details or restore an archived agency
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AdminAgencyUpdateInput" }
+      responses:
+        "200":
+          description: Updated agency
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminAgency" }
+    delete:
+      operationId: archiveAdminAgency
+      tags: [admin-portal]
+      summary: Archive an agency without deleting branches, users or listings
+      responses:
+        "200":
+          description: Archived agency
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminAgency" }
+  /admin/agencies/{agencyId}/branches:
+    parameters:
+      - { name: agencyId, in: path, required: true, schema: { type: integer } }
+    post:
+      operationId: createAdminAgencyBranch
+      tags: [admin-portal]
+      summary: Add a branch to an agency
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AdminAgencyBranchCreateInput" }
+      responses:
+        "201":
+          description: Created branch
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminAgencyBranch" }
+  /admin/branches/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: integer } }
+    patch:
+      operationId: updateAdminAgencyBranch
+      tags: [admin-portal]
+      summary: Update a branch, move it to another agency, or restore it
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AdminAgencyBranchUpdateInput" }
+      responses:
+        "200":
+          description: Updated branch
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminAgencyBranch" }
+    delete:
+      operationId: archiveAdminAgencyBranch
+      tags: [admin-portal]
+      summary: Archive a branch without deleting its records
+      responses:
+        "200":
+          description: Archived branch
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminAgencyBranch" }
+  /admin/branches/{id}/members:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: integer } }
+    put:
+      operationId: setAdminBranchMembers
+      tags: [admin-portal]
+      summary: Assign existing agent accounts to a branch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AdminBranchMembersInput" }
+      responses:
+        "200":
+          description: Current branch members
           content:
             application/json:
               schema:
                 type: array
-                items: { $ref: "#/components/schemas/AdminAgency" }
+                items: { $ref: "#/components/schemas/AdminAgencyMember" }
   /admin/properties/{id}/moderate:
     patch:
       operationId: moderateProperty
@@ -3627,11 +3734,12 @@ components:
         marketplaceCoveragePercent: { type: integer }
     AdminDataCleanupCounts:
       type: object
-      required: [properties, agents, buyers, branches, leads, demoBuyerLogins]
+      required: [properties, agents, buyers, agencies, branches, leads, demoBuyerLogins]
       properties:
         properties: { type: integer, minimum: 0 }
         agents: { type: integer, minimum: 0 }
         buyers: { type: integer, minimum: 0 }
+        agencies: { type: integer, minimum: 0 }
         branches: { type: integer, minimum: 0 }
         leads: { type: integer, minimum: 0 }
         demoBuyerLogins: { type: integer, minimum: 0 }
@@ -3924,18 +4032,107 @@ components:
         totalListings: { type: integer }
         totalLeads: { type: integer }
         openLeads: { type: integer }
+    AdminAgenciesResponse:
+      type: object
+      required: [agencies, unassignedBranches]
+      properties:
+        agencies:
+          type: array
+          items: { $ref: "#/components/schemas/AdminAgency" }
+        unassignedBranches:
+          type: array
+          items: { $ref: "#/components/schemas/AdminAgencyBranch" }
     AdminAgency:
       type: object
-      required: [id, name, agentCount, activeListings, totalListings, totalLeads]
+      required: [id, name, status, logoUrl, email, phone, website, aboutText, branches, branchCount, teamCount, activeListings, totalListings, totalLeads]
       properties:
         id: { type: integer }
         name: { type: string }
+        logoUrl: { type: ["string", "null"] }
+        email: { type: ["string", "null"] }
+        phone: { type: ["string", "null"] }
+        website: { type: ["string", "null"] }
+        aboutText: { type: string }
+        status: { type: string, enum: [active, archived] }
+        branches:
+          type: array
+          items: { $ref: "#/components/schemas/AdminAgencyBranch" }
+        branchCount: { type: integer }
+        teamCount: { type: integer }
+        activeListings: { type: integer }
+        totalListings: { type: integer }
+        totalLeads: { type: integer }
+    AdminAgencyBranch:
+      type: object
+      required: [id, agencyId, name, address, phone, status, members, agentCount, activeListings, totalListings, totalLeads]
+      properties:
+        id: { type: integer }
+        agencyId: { type: ["integer", "null"] }
+        name: { type: string }
         address: { type: ["string", "null"] }
         phone: { type: ["string", "null"] }
+        status: { type: string, enum: [active, archived] }
+        members:
+          type: array
+          items: { $ref: "#/components/schemas/AdminAgencyMember" }
         agentCount: { type: integer }
         activeListings: { type: integer }
         totalListings: { type: integer }
         totalLeads: { type: integer }
+    AdminAgencyMember:
+      type: object
+      required: [id, name, email, phone, role, status, branchId]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        email: { type: string }
+        phone: { type: ["string", "null"] }
+        role: { type: string }
+        status: { type: string }
+        branchId: { type: ["integer", "null"] }
+    AdminAgencyCreateInput:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string, minLength: 2, maxLength: 160 }
+        logoUrl: { type: ["string", "null"] }
+        email: { type: ["string", "null"] }
+        phone: { type: ["string", "null"] }
+        website: { type: ["string", "null"] }
+        aboutText: { type: string, maxLength: 2000 }
+    AdminAgencyUpdateInput:
+      type: object
+      properties:
+        name: { type: string, minLength: 2, maxLength: 160 }
+        logoUrl: { type: ["string", "null"] }
+        email: { type: ["string", "null"] }
+        phone: { type: ["string", "null"] }
+        website: { type: ["string", "null"] }
+        aboutText: { type: string, maxLength: 2000 }
+        status: { type: string, enum: [active, archived] }
+    AdminAgencyBranchCreateInput:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string, minLength: 2, maxLength: 160 }
+        address: { type: ["string", "null"] }
+        phone: { type: ["string", "null"] }
+    AdminAgencyBranchUpdateInput:
+      type: object
+      properties:
+        agencyId: { type: ["integer", "null"] }
+        name: { type: string, minLength: 2, maxLength: 160 }
+        address: { type: ["string", "null"] }
+        phone: { type: ["string", "null"] }
+        status: { type: string, enum: [active, archived] }
+    AdminBranchMembersInput:
+      type: object
+      required: [userIds]
+      properties:
+        userIds:
+          type: array
+          uniqueItems: true
+          items: { type: integer }
     PropertyModerationInput:
       type: object
       required: [action]

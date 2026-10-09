@@ -32,6 +32,7 @@ export default function DataCleanup() {
     properties: number;
     agents: number;
     buyers: number;
+    agencies: number;
     branches: number;
     leads: number;
     demoBuyerLogins: number;
@@ -90,7 +91,7 @@ export default function DataCleanup() {
             <div>
               <CardTitle className="text-base">This cannot be undone</CardTitle>
               <CardDescription className="mt-1">
-                The action removes all properties, agents, buyer records, branches, leads, and related database
+                The action removes all properties, agents, buyer records, agencies, branches, leads, and related database
                 history, including genuine records. Administrator accounts are preserved.
               </CardDescription>
             </div>
@@ -138,7 +139,8 @@ export default function DataCleanup() {
                     ['Properties', counts?.properties],
                     ['Agents', counts?.agents],
                     ['Buyer records', counts?.buyers],
-                    ['Branches / agencies', counts?.branches],
+                    ['Agencies', counts?.agencies],
+                    ['Branches', counts?.branches],
                     ['Leads', counts?.leads],
                     ['Demo buyer logins', counts?.demoBuyerLogins],
                   ] as Array<[string, number | undefined]>).map(([label, value]) => (
@@ -164,7 +166,7 @@ export default function DataCleanup() {
               {deletedCounts && (
                 <div role="status" className="rounded-md border border-emerald-500/40 bg-emerald-500/5 p-4 text-sm">
                   Cleanup completed. Removed {deletedCounts.properties} properties, {deletedCounts.agents} agents,{' '}
-                  {deletedCounts.buyers} buyer records, {deletedCounts.branches} branches, {deletedCounts.leads} leads,
+                  {deletedCounts.buyers} buyer records, {deletedCounts.agencies} agencies, {deletedCounts.branches} branches, {deletedCounts.leads} leads,
                   and {deletedCounts.demoBuyerLogins} demo buyer logins. Administrator accounts and uploaded files
                   were retained.
                 </div>

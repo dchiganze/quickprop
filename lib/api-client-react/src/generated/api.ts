@@ -23,8 +23,16 @@ import type {
   AccountDeletionInput,
   AccountDeletionResult,
   ActivityEntry,
+  AdminAgenciesResponse,
   AdminAgency,
+  AdminAgencyBranch,
+  AdminAgencyBranchCreateInput,
+  AdminAgencyBranchUpdateInput,
+  AdminAgencyCreateInput,
+  AdminAgencyMember,
+  AdminAgencyUpdateInput,
   AdminAgent,
+  AdminBranchMembersInput,
   AdminCoverage,
   AdminDataCleanupConfirm,
   AdminDataCleanupPreview,
@@ -9640,11 +9648,11 @@ export const getGetAdminAgenciesUrl = () => {
 }
 
 /**
- * @summary All agencies (branches) with stats
+ * @summary All agencies, branches and assigned team members
  */
-export const getAdminAgencies = async ( options?: RequestInit): Promise<AdminAgency[]> => {
+export const getAdminAgencies = async ( options?: RequestInit): Promise<AdminAgenciesResponse> => {
 
-  return customFetch<AdminAgency[]>(getGetAdminAgenciesUrl(),
+  return customFetch<AdminAgenciesResponse>(getGetAdminAgenciesUrl(),
   {
     ...options,
     method: 'GET'
@@ -9687,7 +9695,7 @@ export type GetAdminAgenciesQueryError = ErrorType<unknown>
 
 
 /**
- * @summary All agencies (branches) with stats
+ * @summary All agencies, branches and assigned team members
  */
 
 export function useGetAdminAgencies<TData = Awaited<ReturnType<typeof getAdminAgencies>>, TError = ErrorType<unknown>>(
@@ -9707,6 +9715,507 @@ export function useGetAdminAgencies<TData = Awaited<ReturnType<typeof getAdminAg
 
 
 
+
+export const getCreateAdminAgencyUrl = () => {
+
+
+
+
+  return `/api/admin/agencies`
+}
+
+/**
+ * @summary Create an agency
+ */
+export const createAdminAgency = async (adminAgencyCreateInput: AdminAgencyCreateInput, options?: RequestInit): Promise<AdminAgency> => {
+
+  return customFetch<AdminAgency>(getCreateAdminAgencyUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(adminAgencyCreateInput)
+  }
+);}
+
+
+
+
+
+export const getCreateAdminAgencyMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAdminAgency>>, TError,{data: BodyType<AdminAgencyCreateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createAdminAgency>>, TError,{data: BodyType<AdminAgencyCreateInput>}, TContext> => {
+
+const mutationKey = ['createAdminAgency'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createAdminAgency>>, {data: BodyType<AdminAgencyCreateInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createAdminAgency(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateAdminAgencyMutationResult = NonNullable<Awaited<ReturnType<typeof createAdminAgency>>>
+    export type CreateAdminAgencyMutationBody = BodyType<AdminAgencyCreateInput>
+    export type CreateAdminAgencyMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Create an agency
+ */
+export const useCreateAdminAgency = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAdminAgency>>, TError,{data: BodyType<AdminAgencyCreateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createAdminAgency>>,
+        TError,
+        {data: BodyType<AdminAgencyCreateInput>},
+        TContext
+      > => {
+      return useMutation(getCreateAdminAgencyMutationOptions(options));
+    }
+
+export const getUpdateAdminAgencyUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/agencies/${id}`
+}
+
+/**
+ * @summary Update agency details or restore an archived agency
+ */
+export const updateAdminAgency = async (id: number,
+    adminAgencyUpdateInput: AdminAgencyUpdateInput, options?: RequestInit): Promise<AdminAgency> => {
+
+  return customFetch<AdminAgency>(getUpdateAdminAgencyUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(adminAgencyUpdateInput)
+  }
+);}
+
+
+
+
+
+export const getUpdateAdminAgencyMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAdminAgency>>, TError,{id: number;data: BodyType<AdminAgencyUpdateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateAdminAgency>>, TError,{id: number;data: BodyType<AdminAgencyUpdateInput>}, TContext> => {
+
+const mutationKey = ['updateAdminAgency'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateAdminAgency>>, {id: number;data: BodyType<AdminAgencyUpdateInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateAdminAgency(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateAdminAgencyMutationResult = NonNullable<Awaited<ReturnType<typeof updateAdminAgency>>>
+    export type UpdateAdminAgencyMutationBody = BodyType<AdminAgencyUpdateInput>
+    export type UpdateAdminAgencyMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Update agency details or restore an archived agency
+ */
+export const useUpdateAdminAgency = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAdminAgency>>, TError,{id: number;data: BodyType<AdminAgencyUpdateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateAdminAgency>>,
+        TError,
+        {id: number;data: BodyType<AdminAgencyUpdateInput>},
+        TContext
+      > => {
+      return useMutation(getUpdateAdminAgencyMutationOptions(options));
+    }
+
+export const getArchiveAdminAgencyUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/agencies/${id}`
+}
+
+/**
+ * @summary Archive an agency without deleting branches, users or listings
+ */
+export const archiveAdminAgency = async (id: number, options?: RequestInit): Promise<AdminAgency> => {
+
+  return customFetch<AdminAgency>(getArchiveAdminAgencyUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getArchiveAdminAgencyMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof archiveAdminAgency>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof archiveAdminAgency>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['archiveAdminAgency'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof archiveAdminAgency>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  archiveAdminAgency(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ArchiveAdminAgencyMutationResult = NonNullable<Awaited<ReturnType<typeof archiveAdminAgency>>>
+
+    export type ArchiveAdminAgencyMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Archive an agency without deleting branches, users or listings
+ */
+export const useArchiveAdminAgency = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof archiveAdminAgency>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof archiveAdminAgency>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getArchiveAdminAgencyMutationOptions(options));
+    }
+
+export const getCreateAdminAgencyBranchUrl = (agencyId: number,) => {
+
+
+
+
+  return `/api/admin/agencies/${agencyId}/branches`
+}
+
+/**
+ * @summary Add a branch to an agency
+ */
+export const createAdminAgencyBranch = async (agencyId: number,
+    adminAgencyBranchCreateInput: AdminAgencyBranchCreateInput, options?: RequestInit): Promise<AdminAgencyBranch> => {
+
+  return customFetch<AdminAgencyBranch>(getCreateAdminAgencyBranchUrl(agencyId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(adminAgencyBranchCreateInput)
+  }
+);}
+
+
+
+
+
+export const getCreateAdminAgencyBranchMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAdminAgencyBranch>>, TError,{agencyId: number;data: BodyType<AdminAgencyBranchCreateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createAdminAgencyBranch>>, TError,{agencyId: number;data: BodyType<AdminAgencyBranchCreateInput>}, TContext> => {
+
+const mutationKey = ['createAdminAgencyBranch'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createAdminAgencyBranch>>, {agencyId: number;data: BodyType<AdminAgencyBranchCreateInput>}> = (props) => {
+          const {agencyId,data} = props ?? {};
+
+          return  createAdminAgencyBranch(agencyId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateAdminAgencyBranchMutationResult = NonNullable<Awaited<ReturnType<typeof createAdminAgencyBranch>>>
+    export type CreateAdminAgencyBranchMutationBody = BodyType<AdminAgencyBranchCreateInput>
+    export type CreateAdminAgencyBranchMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Add a branch to an agency
+ */
+export const useCreateAdminAgencyBranch = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAdminAgencyBranch>>, TError,{agencyId: number;data: BodyType<AdminAgencyBranchCreateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createAdminAgencyBranch>>,
+        TError,
+        {agencyId: number;data: BodyType<AdminAgencyBranchCreateInput>},
+        TContext
+      > => {
+      return useMutation(getCreateAdminAgencyBranchMutationOptions(options));
+    }
+
+export const getUpdateAdminAgencyBranchUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/branches/${id}`
+}
+
+/**
+ * @summary Update a branch, move it to another agency, or restore it
+ */
+export const updateAdminAgencyBranch = async (id: number,
+    adminAgencyBranchUpdateInput: AdminAgencyBranchUpdateInput, options?: RequestInit): Promise<AdminAgencyBranch> => {
+
+  return customFetch<AdminAgencyBranch>(getUpdateAdminAgencyBranchUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(adminAgencyBranchUpdateInput)
+  }
+);}
+
+
+
+
+
+export const getUpdateAdminAgencyBranchMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAdminAgencyBranch>>, TError,{id: number;data: BodyType<AdminAgencyBranchUpdateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateAdminAgencyBranch>>, TError,{id: number;data: BodyType<AdminAgencyBranchUpdateInput>}, TContext> => {
+
+const mutationKey = ['updateAdminAgencyBranch'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateAdminAgencyBranch>>, {id: number;data: BodyType<AdminAgencyBranchUpdateInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateAdminAgencyBranch(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateAdminAgencyBranchMutationResult = NonNullable<Awaited<ReturnType<typeof updateAdminAgencyBranch>>>
+    export type UpdateAdminAgencyBranchMutationBody = BodyType<AdminAgencyBranchUpdateInput>
+    export type UpdateAdminAgencyBranchMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Update a branch, move it to another agency, or restore it
+ */
+export const useUpdateAdminAgencyBranch = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAdminAgencyBranch>>, TError,{id: number;data: BodyType<AdminAgencyBranchUpdateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateAdminAgencyBranch>>,
+        TError,
+        {id: number;data: BodyType<AdminAgencyBranchUpdateInput>},
+        TContext
+      > => {
+      return useMutation(getUpdateAdminAgencyBranchMutationOptions(options));
+    }
+
+export const getArchiveAdminAgencyBranchUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/branches/${id}`
+}
+
+/**
+ * @summary Archive a branch without deleting its records
+ */
+export const archiveAdminAgencyBranch = async (id: number, options?: RequestInit): Promise<AdminAgencyBranch> => {
+
+  return customFetch<AdminAgencyBranch>(getArchiveAdminAgencyBranchUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getArchiveAdminAgencyBranchMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof archiveAdminAgencyBranch>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof archiveAdminAgencyBranch>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['archiveAdminAgencyBranch'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof archiveAdminAgencyBranch>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  archiveAdminAgencyBranch(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ArchiveAdminAgencyBranchMutationResult = NonNullable<Awaited<ReturnType<typeof archiveAdminAgencyBranch>>>
+
+    export type ArchiveAdminAgencyBranchMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Archive a branch without deleting its records
+ */
+export const useArchiveAdminAgencyBranch = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof archiveAdminAgencyBranch>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof archiveAdminAgencyBranch>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getArchiveAdminAgencyBranchMutationOptions(options));
+    }
+
+export const getSetAdminBranchMembersUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/branches/${id}/members`
+}
+
+/**
+ * @summary Assign existing agent accounts to a branch
+ */
+export const setAdminBranchMembers = async (id: number,
+    adminBranchMembersInput: AdminBranchMembersInput, options?: RequestInit): Promise<AdminAgencyMember[]> => {
+
+  return customFetch<AdminAgencyMember[]>(getSetAdminBranchMembersUrl(id),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(adminBranchMembersInput)
+  }
+);}
+
+
+
+
+
+export const getSetAdminBranchMembersMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setAdminBranchMembers>>, TError,{id: number;data: BodyType<AdminBranchMembersInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof setAdminBranchMembers>>, TError,{id: number;data: BodyType<AdminBranchMembersInput>}, TContext> => {
+
+const mutationKey = ['setAdminBranchMembers'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof setAdminBranchMembers>>, {id: number;data: BodyType<AdminBranchMembersInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  setAdminBranchMembers(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SetAdminBranchMembersMutationResult = NonNullable<Awaited<ReturnType<typeof setAdminBranchMembers>>>
+    export type SetAdminBranchMembersMutationBody = BodyType<AdminBranchMembersInput>
+    export type SetAdminBranchMembersMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Assign existing agent accounts to a branch
+ */
+export const useSetAdminBranchMembers = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setAdminBranchMembers>>, TError,{id: number;data: BodyType<AdminBranchMembersInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof setAdminBranchMembers>>,
+        TError,
+        {id: number;data: BodyType<AdminBranchMembersInput>},
+        TContext
+      > => {
+      return useMutation(getSetAdminBranchMembersMutationOptions(options));
+    }
 
 export const getModeratePropertyUrl = (id: number,) => {
 

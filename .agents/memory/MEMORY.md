@@ -2,7 +2,7 @@
 - [QuickProp Cloud Sync](quickprop-cloud-sync.md) — PostgreSQL is authoritative; mobile persistence is an offline cache with guarded reconciliation.
 - [QuickProp Office CRM](quickprop-office.md) — web CRM lessons: jsonify DB rows before zod parse, wouter param-passing in protected routes, seed esbuild bundling, orval queryKey quirk.
 - [QuickProp Admin Portal](quickprop-admin.md) — deep navy/blue theme; new admin-portal routes; codegen duplicate-schema pitfall; BuyerUpdate lacks status; seeded admin users.
-- [QuickProp Collaboration](quickprop-collaboration.md) — branch boundaries stand in for agencies until an agency data model exists.
+- [QuickProp Collaboration](quickprop-collaboration.md) — agencies group branches for admin; agent listing access remains branch-scoped unless explicitly expanded.
 - [QuickProp Merge Recovery](quickprop-merge-recovery.md) — merge recovery checks must use sequential queries within a single PostgreSQL transaction client.
 - [QuickProp Office Bulk Imports](quickprop-office-imports.md) — confirmed mappings, exact title/price matches, status-gated warnings, safe retries, and fresh editor state.
 - [Durable Import Recovery](durable-import-recovery.md) — database file checkpoints and restart-safe worker ownership keep large portfolio imports resumable.

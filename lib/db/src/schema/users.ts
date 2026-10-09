@@ -5,12 +5,15 @@ import {
   integer,
   timestamp,
 } from "drizzle-orm/pg-core";
+import { businessAgenciesTable } from "./business-agencies";
 
 export const branchesTable = pgTable("branches", {
   id: serial("id").primaryKey(),
+  agencyId: integer("agency_id").references(() => businessAgenciesTable.id),
   name: text("name").notNull(),
   address: text("address"),
   phone: text("phone"),
+  status: text("status").notNull().default("active"),
 });
 
 export const usersTable = pgTable("users", {

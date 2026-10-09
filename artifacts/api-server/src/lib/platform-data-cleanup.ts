@@ -5,6 +5,7 @@ export interface PlatformCleanupCounts {
   properties: number;
   agents: number;
   buyers: number;
+  agencies: number;
   branches: number;
   leads: number;
   demoBuyerLogins: number;
@@ -15,6 +16,7 @@ const countsQuery = sql`
     (SELECT count(*)::int FROM properties) AS properties,
     (SELECT count(*)::int FROM users WHERE role IN ('agent', 'senior_agent')) AS agents,
     (SELECT count(*)::int FROM buyers) AS buyers,
+    (SELECT count(*)::int FROM business_agencies) AS agencies,
     (SELECT count(*)::int FROM branches) AS branches,
     (SELECT count(*)::int FROM leads) AS leads,
     (SELECT count(*)::int FROM users WHERE lower(email) = 'buyer.demo@quickprop.co.zw') AS demo_buyer_logins
@@ -28,6 +30,7 @@ function countsFromRows(rows: readonly unknown[]): PlatformCleanupCounts {
     properties: Number(row.properties),
     agents: Number(row.agents),
     buyers: Number(row.buyers),
+    agencies: Number(row.agencies),
     branches: Number(row.branches),
     leads: Number(row.leads),
     demoBuyerLogins: Number(row.demo_buyer_logins),
@@ -68,7 +71,7 @@ export async function clearPlatformDashboardData(
     // Block concurrent writes to the counted tables while validating and clearing
     // the exact snapshot the administrator reviewed.
     await tx.execute(sql`
-      LOCK TABLE properties, users, buyers, branches, leads
+      LOCK TABLE properties, users, buyers, business_agencies, branches, leads
       IN SHARE ROW EXCLUSIVE MODE
     `);
 
@@ -105,6 +108,7 @@ export async function clearPlatformDashboardData(
     );
     const userIds = [...new Set([...agentIds, ...demoBuyerLoginIds])];
     const buyerIds = idsFromRows((await tx.execute(sql`SELECT id FROM buyers`)).rows);
+    const agencyIds = idsFromRows((await tx.execute(sql`SELECT id FROM business_agencies`)).rows);
     const branchIds = idsFromRows((await tx.execute(sql`SELECT id FROM branches`)).rows);
     const leadIds = idsFromRows((await tx.execute(sql`SELECT id FROM leads`)).rows);
 
@@ -285,7 +289,7 @@ export async function clearPlatformDashboardData(
          OR (entity_type IN ('property', 'properties') AND entity_id = ANY(${intArray(propertyIds)}))
          OR (entity_type IN ('agent', 'agents', 'user', 'users') AND entity_id = ANY(${intArray(agentIds)}))
          OR (entity_type IN ('buyer', 'buyers') AND entity_id = ANY(${intArray(buyerIds)}))
-         OR (entity_type IN ('branch', 'branches', 'agency', 'agencies') AND entity_id = ANY(${intArray(branchIds)}))
+          OR (entity_type IN ('business_agency', 'branch', 'branches', 'agency', 'agencies') AND entity_id = ANY(${intArray([...agencyIds, ...branchIds])}))
          OR (entity_type IN ('lead', 'leads') AND entity_id = ANY(${intArray(leadIds)}))
     `);
     await tx.execute(sql`DELETE FROM activity`);
@@ -308,6 +312,7 @@ export async function clearPlatformDashboardData(
     `);
     await deleteWhereAny("users", [{ column: "id", ids: userIds }]);
     await tx.execute(sql`DELETE FROM branches`);
+    await tx.execute(sql`DELETE FROM business_agencies`);
 
     await tx.execute(sql`
       INSERT INTO audit_log (action, entity_type, entity_id, detail, user_id, user_name)

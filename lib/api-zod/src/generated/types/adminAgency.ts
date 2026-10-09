@@ -5,15 +5,25 @@
  * QuickProp Office API
  * OpenAPI spec version: 0.1.0
  */
+import type { AdminAgencyBranch } from './adminAgencyBranch';
+import type { AdminAgencyStatus } from './adminAgencyStatus';
 
 export interface AdminAgency {
   id: number;
   name: string;
   /** @nullable */
-  address?: string | null;
+  logoUrl: string | null;
   /** @nullable */
-  phone?: string | null;
-  agentCount: number;
+  email: string | null;
+  /** @nullable */
+  phone: string | null;
+  /** @nullable */
+  website: string | null;
+  aboutText: string;
+  status: AdminAgencyStatus;
+  branches: AdminAgencyBranch[];
+  branchCount: number;
+  teamCount: number;
   activeListings: number;
   totalListings: number;
   totalLeads: number;
