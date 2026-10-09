@@ -21,6 +21,7 @@ import Audit from '@/pages/audit';
 import Settings from '@/pages/settings';
 import Duplicates from '@/pages/duplicates';
 import RentalReferences from '@/pages/rental-references';
+import DataCleanup from '@/pages/data-cleanup';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -69,6 +70,7 @@ function AppRouter() {
       <ProtectedRoute path="/rental-references" component={RentalReferences} />
       <ProtectedRoute path="/audit" component={Audit} />
       <ProtectedRoute path="/settings" component={Settings} />
+      <ProtectedRoute path="/data-cleanup" component={DataCleanup} />
       <Route component={NotFound} />
     </Switch>
   );

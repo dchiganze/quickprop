@@ -26,6 +26,9 @@ import type {
   AdminAgency,
   AdminAgent,
   AdminCoverage,
+  AdminDataCleanupConfirm,
+  AdminDataCleanupPreview,
+  AdminDataCleanupResult,
   AdminDuplicateDetail,
   AdminDuplicateReview,
   AdminFreshness,
@@ -7856,6 +7859,154 @@ export function useGetAdminPlatformStats<TData = Awaited<ReturnType<typeof getAd
 
 
 
+
+export const getGetAdminPlatformDataCleanupPreviewUrl = () => {
+
+
+
+
+  return `/api/admin/platform-data-cleanup/preview`
+}
+
+/**
+ * @summary Preview a production dashboard-data cleanup
+ */
+export const getAdminPlatformDataCleanupPreview = async ( options?: RequestInit): Promise<AdminDataCleanupPreview> => {
+
+  return customFetch<AdminDataCleanupPreview>(getGetAdminPlatformDataCleanupPreviewUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminPlatformDataCleanupPreviewQueryKey = () => {
+    return [
+    `/api/admin/platform-data-cleanup/preview`
+    ] as const;
+    }
+
+
+export const getGetAdminPlatformDataCleanupPreviewQueryOptions = <TData = Awaited<ReturnType<typeof getAdminPlatformDataCleanupPreview>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminPlatformDataCleanupPreview>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminPlatformDataCleanupPreviewQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminPlatformDataCleanupPreview>>> = ({ signal }) => getAdminPlatformDataCleanupPreview({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminPlatformDataCleanupPreview>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAdminPlatformDataCleanupPreviewQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminPlatformDataCleanupPreview>>>
+export type GetAdminPlatformDataCleanupPreviewQueryError = ErrorType<void>
+
+
+/**
+ * @summary Preview a production dashboard-data cleanup
+ */
+
+export function useGetAdminPlatformDataCleanupPreview<TData = Awaited<ReturnType<typeof getAdminPlatformDataCleanupPreview>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminPlatformDataCleanupPreview>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAdminPlatformDataCleanupPreviewQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getClearAdminPlatformDataUrl = () => {
+
+
+
+
+  return `/api/admin/platform-data-cleanup`
+}
+
+/**
+ * @summary Permanently remove dashboard records and linked database history
+ */
+export const clearAdminPlatformData = async (adminDataCleanupConfirm: AdminDataCleanupConfirm, options?: RequestInit): Promise<AdminDataCleanupResult> => {
+
+  return customFetch<AdminDataCleanupResult>(getClearAdminPlatformDataUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(adminDataCleanupConfirm)
+  }
+);}
+
+
+
+
+
+export const getClearAdminPlatformDataMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof clearAdminPlatformData>>, TError,{data: BodyType<AdminDataCleanupConfirm>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof clearAdminPlatformData>>, TError,{data: BodyType<AdminDataCleanupConfirm>}, TContext> => {
+
+const mutationKey = ['clearAdminPlatformData'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof clearAdminPlatformData>>, {data: BodyType<AdminDataCleanupConfirm>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  clearAdminPlatformData(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ClearAdminPlatformDataMutationResult = NonNullable<Awaited<ReturnType<typeof clearAdminPlatformData>>>
+    export type ClearAdminPlatformDataMutationBody = BodyType<AdminDataCleanupConfirm>
+    export type ClearAdminPlatformDataMutationError = ErrorType<void>
+
+    /**
+ * @summary Permanently remove dashboard records and linked database history
+ */
+export const useClearAdminPlatformData = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof clearAdminPlatformData>>, TError,{data: BodyType<AdminDataCleanupConfirm>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof clearAdminPlatformData>>,
+        TError,
+        {data: BodyType<AdminDataCleanupConfirm>},
+        TContext
+      > => {
+      return useMutation(getClearAdminPlatformDataMutationOptions(options));
+    }
 
 export const getGetAdminPlatformChartsUrl = () => {
 

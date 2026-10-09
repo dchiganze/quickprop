@@ -50,6 +50,10 @@ async function findOrCreateProperty(
 }
 
 async function seedMultiAgentDemo() {
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("The multi-agent demo seed is disabled in production.");
+  }
+
   const password = await hashPassword("demo1234");
   const agencySeeds = [
     ["QuickProp Borrowdale", "Tariro Muchengeti", "tariro.multi@quickprop.demo", "+263 77 410 0001", 485000],

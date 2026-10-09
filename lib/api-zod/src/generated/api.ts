@@ -3715,6 +3715,93 @@ export const GetAdminPlatformStatsResponse = zod.object({
 
 
 /**
+ * @summary Preview a production dashboard-data cleanup
+ */
+export const getAdminPlatformDataCleanupPreviewResponseCountsPropertiesMin = 0;
+
+export const getAdminPlatformDataCleanupPreviewResponseCountsAgentsMin = 0;
+
+export const getAdminPlatformDataCleanupPreviewResponseCountsBuyersMin = 0;
+
+export const getAdminPlatformDataCleanupPreviewResponseCountsBranchesMin = 0;
+
+export const getAdminPlatformDataCleanupPreviewResponseCountsLeadsMin = 0;
+
+export const getAdminPlatformDataCleanupPreviewResponseCountsDemoBuyerLoginsMin = 0;
+
+
+
+export const GetAdminPlatformDataCleanupPreviewResponse = zod.object({
+  "environment": zod.enum(['development', 'production']),
+  "counts": zod.object({
+  "properties": zod.number().min(getAdminPlatformDataCleanupPreviewResponseCountsPropertiesMin),
+  "agents": zod.number().min(getAdminPlatformDataCleanupPreviewResponseCountsAgentsMin),
+  "buyers": zod.number().min(getAdminPlatformDataCleanupPreviewResponseCountsBuyersMin),
+  "branches": zod.number().min(getAdminPlatformDataCleanupPreviewResponseCountsBranchesMin),
+  "leads": zod.number().min(getAdminPlatformDataCleanupPreviewResponseCountsLeadsMin),
+  "demoBuyerLogins": zod.number().min(getAdminPlatformDataCleanupPreviewResponseCountsDemoBuyerLoginsMin)
+})
+})
+
+
+/**
+ * @summary Permanently remove dashboard records and linked database history
+ */
+export const clearAdminPlatformDataBodyExpectedCountsPropertiesMin = 0;
+
+export const clearAdminPlatformDataBodyExpectedCountsAgentsMin = 0;
+
+export const clearAdminPlatformDataBodyExpectedCountsBuyersMin = 0;
+
+export const clearAdminPlatformDataBodyExpectedCountsBranchesMin = 0;
+
+export const clearAdminPlatformDataBodyExpectedCountsLeadsMin = 0;
+
+export const clearAdminPlatformDataBodyExpectedCountsDemoBuyerLoginsMin = 0;
+
+
+
+export const ClearAdminPlatformDataBody = zod.object({
+  "confirmation": zod.string(),
+  "expectedCounts": zod.object({
+  "properties": zod.number().min(clearAdminPlatformDataBodyExpectedCountsPropertiesMin),
+  "agents": zod.number().min(clearAdminPlatformDataBodyExpectedCountsAgentsMin),
+  "buyers": zod.number().min(clearAdminPlatformDataBodyExpectedCountsBuyersMin),
+  "branches": zod.number().min(clearAdminPlatformDataBodyExpectedCountsBranchesMin),
+  "leads": zod.number().min(clearAdminPlatformDataBodyExpectedCountsLeadsMin),
+  "demoBuyerLogins": zod.number().min(clearAdminPlatformDataBodyExpectedCountsDemoBuyerLoginsMin)
+})
+})
+
+export const clearAdminPlatformDataResponseDeletedCountsPropertiesMin = 0;
+
+export const clearAdminPlatformDataResponseDeletedCountsAgentsMin = 0;
+
+export const clearAdminPlatformDataResponseDeletedCountsBuyersMin = 0;
+
+export const clearAdminPlatformDataResponseDeletedCountsBranchesMin = 0;
+
+export const clearAdminPlatformDataResponseDeletedCountsLeadsMin = 0;
+
+export const clearAdminPlatformDataResponseDeletedCountsDemoBuyerLoginsMin = 0;
+
+
+
+export const ClearAdminPlatformDataResponse = zod.object({
+  "deletedCounts": zod.object({
+  "properties": zod.number().min(clearAdminPlatformDataResponseDeletedCountsPropertiesMin),
+  "agents": zod.number().min(clearAdminPlatformDataResponseDeletedCountsAgentsMin),
+  "buyers": zod.number().min(clearAdminPlatformDataResponseDeletedCountsBuyersMin),
+  "branches": zod.number().min(clearAdminPlatformDataResponseDeletedCountsBranchesMin),
+  "leads": zod.number().min(clearAdminPlatformDataResponseDeletedCountsLeadsMin),
+  "demoBuyerLogins": zod.number().min(clearAdminPlatformDataResponseDeletedCountsDemoBuyerLoginsMin)
+}),
+  "administratorAccountsPreserved": zod.boolean(),
+  "objectStorageFilesRetained": zod.boolean()
+})
+
+
+/**
  * @summary Chart data for admin dashboard
  */
 export const GetAdminPlatformChartsResponse = zod.object({

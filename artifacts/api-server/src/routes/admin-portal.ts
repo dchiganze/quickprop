@@ -10,12 +10,73 @@ import {
   activityTable,
   auditLogTable,
 } from "@workspace/db";
+import {
+  ClearAdminPlatformDataBody,
+  ClearAdminPlatformDataResponse,
+  GetAdminPlatformDataCleanupPreviewResponse,
+} from "@workspace/api-zod";
 import { jsonify, logAudit, parseId } from "../lib/helpers";
 import { requireRole, currentUser } from "./auth";
+import {
+  clearPlatformDashboardData,
+  getPlatformCleanupPreview,
+  PlatformCleanupSnapshotChangedError,
+} from "../lib/platform-data-cleanup";
 
 const router: IRouter = Router();
 
 const adminOnly = requireRole("principal", "admin");
+
+router.get("/admin/platform-data-cleanup/preview", adminOnly, async (_req, res): Promise<void> => {
+  const preview = await getPlatformCleanupPreview();
+  res.json(GetAdminPlatformDataCleanupPreviewResponse.parse(preview));
+});
+
+router.post("/admin/platform-data-cleanup", adminOnly, async (req, res): Promise<void> => {
+  if (process.env.NODE_ENV !== "production") {
+    res.status(403).json({ error: "Platform data cleanup is only enabled on the published production app." });
+    return;
+  }
+
+  const parsed = ClearAdminPlatformDataBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+  if (parsed.data.confirmation !== "DELETE ALL DASHBOARD DATA") {
+    res.status(400).json({ error: "Type DELETE ALL DASHBOARD DATA exactly to continue." });
+    return;
+  }
+
+  const actor = await currentUser(req);
+  if (!actor) {
+    res.status(401).json({ error: "Authentication required." });
+    return;
+  }
+
+  try {
+    const deletedCounts = await clearPlatformDashboardData(parsed.data.expectedCounts, {
+      id: actor.id,
+      name: actor.name,
+    });
+    const result = ClearAdminPlatformDataResponse.parse({
+      deletedCounts,
+      administratorAccountsPreserved: true,
+      objectStorageFilesRetained: true,
+    });
+    req.log.info({ deletedCounts, adminUserId: actor.id }, "Administrator cleared platform dashboard data");
+    res.json(result);
+  } catch (error) {
+    if (error instanceof PlatformCleanupSnapshotChangedError) {
+      res.status(409).json({
+        error: error.message,
+        currentCounts: error.currentCounts,
+      });
+      return;
+    }
+    throw error;
+  }
+});
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Platform Stats

@@ -1900,6 +1900,45 @@ export interface AdminPlatformStats {
   marketplaceCoveragePercent: number;
 }
 
+export interface AdminDataCleanupCounts {
+  /** @minimum 0 */
+  properties: number;
+  /** @minimum 0 */
+  agents: number;
+  /** @minimum 0 */
+  buyers: number;
+  /** @minimum 0 */
+  branches: number;
+  /** @minimum 0 */
+  leads: number;
+  /** @minimum 0 */
+  demoBuyerLogins: number;
+}
+
+export type AdminDataCleanupPreviewEnvironment = typeof AdminDataCleanupPreviewEnvironment[keyof typeof AdminDataCleanupPreviewEnvironment];
+
+
+export const AdminDataCleanupPreviewEnvironment = {
+  development: 'development',
+  production: 'production',
+} as const;
+
+export interface AdminDataCleanupPreview {
+  environment: AdminDataCleanupPreviewEnvironment;
+  counts: AdminDataCleanupCounts;
+}
+
+export interface AdminDataCleanupConfirm {
+  confirmation: string;
+  expectedCounts: AdminDataCleanupCounts;
+}
+
+export interface AdminDataCleanupResult {
+  deletedCounts: AdminDataCleanupCounts;
+  administratorAccountsPreserved: boolean;
+  objectStorageFilesRetained: boolean;
+}
+
 export interface AdminPlatformCharts {
   uploadsPerMonth: ChartPoint[];
   leadsPerMonth: ChartPoint[];

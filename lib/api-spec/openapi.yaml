@@ -1624,6 +1624,39 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/AdminPlatformStats" }
+  /admin/platform-data-cleanup/preview:
+    get:
+      operationId: getAdminPlatformDataCleanupPreview
+      tags: [admin-portal]
+      summary: Preview a production dashboard-data cleanup
+      responses:
+        "200":
+          description: Current cleanup counts and environment
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminDataCleanupPreview" }
+        "401": { description: Authentication required }
+        "403": { description: Administrator access required }
+  /admin/platform-data-cleanup:
+    post:
+      operationId: clearAdminPlatformData
+      tags: [admin-portal]
+      summary: Permanently remove dashboard records and linked database history
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AdminDataCleanupConfirm" }
+      responses:
+        "200":
+          description: Cleanup completed
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminDataCleanupResult" }
+        "400": { description: Confirmation phrase or request is invalid }
+        "401": { description: Authentication required }
+        "403": { description: Production administrator access required }
+        "409": { description: Production counts changed since preview }
   /admin/platform-charts:
     get:
       operationId: getAdminPlatformCharts
@@ -3592,6 +3625,35 @@ components:
         openLeads: { type: integer }
         avgResponseTimeHours: { type: ["number", "null"] }
         marketplaceCoveragePercent: { type: integer }
+    AdminDataCleanupCounts:
+      type: object
+      required: [properties, agents, buyers, branches, leads, demoBuyerLogins]
+      properties:
+        properties: { type: integer, minimum: 0 }
+        agents: { type: integer, minimum: 0 }
+        buyers: { type: integer, minimum: 0 }
+        branches: { type: integer, minimum: 0 }
+        leads: { type: integer, minimum: 0 }
+        demoBuyerLogins: { type: integer, minimum: 0 }
+    AdminDataCleanupPreview:
+      type: object
+      required: [environment, counts]
+      properties:
+        environment: { type: string, enum: [development, production] }
+        counts: { $ref: "#/components/schemas/AdminDataCleanupCounts" }
+    AdminDataCleanupConfirm:
+      type: object
+      required: [confirmation, expectedCounts]
+      properties:
+        confirmation: { type: string }
+        expectedCounts: { $ref: "#/components/schemas/AdminDataCleanupCounts" }
+    AdminDataCleanupResult:
+      type: object
+      required: [deletedCounts, administratorAccountsPreserved, objectStorageFilesRetained]
+      properties:
+        deletedCounts: { $ref: "#/components/schemas/AdminDataCleanupCounts" }
+        administratorAccountsPreserved: { type: boolean }
+        objectStorageFilesRetained: { type: boolean }
     AdminPlatformCharts:
       type: object
       required: [uploadsPerMonth, leadsPerMonth, buyerRegistrations, leadsByStage, propertiesByType]
