@@ -51,4 +51,4 @@ The `enabled` option goes inside query: { query: { enabled: expanded } as any }
 
 **Why:** A public reset request must not lock everyone out, and a completed recovery route must not remain a reusable privilege-escalation path.
 
-**How to apply:** Reuse the password-reset email and token flow; never expose an unauthenticated role-change endpoint. Keep ordinary resets restricted to active administrators.
+**How to apply:** Reuse the password-reset email and token flow; never expose an unauthenticated role-change endpoint. Keep ordinary resets restricted to active administrators. The recovery allowlist is production-only, so initiate this flow from the published Office sign-in page, not the workspace preview.
