@@ -345,6 +345,20 @@ export interface LoginInput {
   password: string;
 }
 
+export interface PhoneLoginStartInput {
+  /** E.164 phone number; Zimbabwe local numbers beginning with 0 are also accepted. */
+  phone: string;
+}
+
+export interface PhoneLoginVerifyInput {
+  phone: string;
+  /**
+     * @minLength 4
+     * @maxLength 10
+     */
+  code: string;
+}
+
 export interface User {
   id: number;
   name: string;

@@ -145,6 +145,8 @@ export * from './officeSearchParams';
 export * from './passwordResetCompleteInput';
 export * from './passwordResetRequestInput';
 export * from './passwordResetResult';
+export * from './phoneLoginStartInput';
+export * from './phoneLoginVerifyInput';
 export * from './pipelineColumn';
 export * from './priceHistoryEntry';
 export * from './processImportInput';

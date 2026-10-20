@@ -128,6 +128,8 @@ import type {
   PasswordResetCompleteInput,
   PasswordResetRequestInput,
   PasswordResetResult,
+  PhoneLoginStartInput,
+  PhoneLoginVerifyInput,
   PipelineColumn,
   PriceHistoryEntry,
   ProcessImportInput,
@@ -354,6 +356,148 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
         TContext
       > => {
       return useMutation(getLoginMutationOptions(options));
+    }
+
+export const getStartPhoneLoginUrl = () => {
+
+
+
+
+  return `/api/auth/phone/start`
+}
+
+/**
+ * @summary Send a Twilio Verify SMS code to an active QuickProp account phone
+ */
+export const startPhoneLogin = async (phoneLoginStartInput: PhoneLoginStartInput, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getStartPhoneLoginUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(phoneLoginStartInput)
+  }
+);}
+
+
+
+
+
+export const getStartPhoneLoginMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof startPhoneLogin>>, TError,{data: BodyType<PhoneLoginStartInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof startPhoneLogin>>, TError,{data: BodyType<PhoneLoginStartInput>}, TContext> => {
+
+const mutationKey = ['startPhoneLogin'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof startPhoneLogin>>, {data: BodyType<PhoneLoginStartInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  startPhoneLogin(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type StartPhoneLoginMutationResult = NonNullable<Awaited<ReturnType<typeof startPhoneLogin>>>
+    export type StartPhoneLoginMutationBody = BodyType<PhoneLoginStartInput>
+    export type StartPhoneLoginMutationError = ErrorType<void>
+
+    /**
+ * @summary Send a Twilio Verify SMS code to an active QuickProp account phone
+ */
+export const useStartPhoneLogin = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof startPhoneLogin>>, TError,{data: BodyType<PhoneLoginStartInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof startPhoneLogin>>,
+        TError,
+        {data: BodyType<PhoneLoginStartInput>},
+        TContext
+      > => {
+      return useMutation(getStartPhoneLoginMutationOptions(options));
+    }
+
+export const getVerifyPhoneLoginUrl = () => {
+
+
+
+
+  return `/api/auth/phone/verify`
+}
+
+/**
+ * @summary Verify a Twilio code and issue a mobile session
+ */
+export const verifyPhoneLogin = async (phoneLoginVerifyInput: PhoneLoginVerifyInput, options?: RequestInit): Promise<LoginResult> => {
+
+  return customFetch<LoginResult>(getVerifyPhoneLoginUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(phoneLoginVerifyInput)
+  }
+);}
+
+
+
+
+
+export const getVerifyPhoneLoginMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof verifyPhoneLogin>>, TError,{data: BodyType<PhoneLoginVerifyInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof verifyPhoneLogin>>, TError,{data: BodyType<PhoneLoginVerifyInput>}, TContext> => {
+
+const mutationKey = ['verifyPhoneLogin'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof verifyPhoneLogin>>, {data: BodyType<PhoneLoginVerifyInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  verifyPhoneLogin(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type VerifyPhoneLoginMutationResult = NonNullable<Awaited<ReturnType<typeof verifyPhoneLogin>>>
+    export type VerifyPhoneLoginMutationBody = BodyType<PhoneLoginVerifyInput>
+    export type VerifyPhoneLoginMutationError = ErrorType<void>
+
+    /**
+ * @summary Verify a Twilio code and issue a mobile session
+ */
+export const useVerifyPhoneLogin = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof verifyPhoneLogin>>, TError,{data: BodyType<PhoneLoginVerifyInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof verifyPhoneLogin>>,
+        TError,
+        {data: BodyType<PhoneLoginVerifyInput>},
+        TContext
+      > => {
+      return useMutation(getVerifyPhoneLoginMutationOptions(options));
     }
 
 export const getRequestAdminPasswordResetUrl = () => {

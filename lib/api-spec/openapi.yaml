@@ -63,6 +63,48 @@ paths:
                 $ref: "#/components/schemas/LoginResult"
         "401":
           description: Invalid credentials
+  /auth/phone/start:
+    post:
+      operationId: startPhoneLogin
+      tags: [auth]
+      summary: Send a Twilio Verify SMS code to an active QuickProp account phone
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PhoneLoginStartInput"
+      responses:
+        "202":
+          description: Generic response that does not reveal whether a number is registered
+        "400":
+          description: Invalid phone number
+        "503":
+          description: Phone verification service unavailable
+  /auth/phone/verify:
+    post:
+      operationId: verifyPhoneLogin
+      tags: [auth]
+      summary: Verify a Twilio code and issue a mobile session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PhoneLoginVerifyInput"
+      responses:
+        "200":
+          description: Verified phone and active QuickProp account
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResult"
+        "400":
+          description: Invalid request
+        "401":
+          description: Code is invalid or account is not eligible
+        "503":
+          description: Phone verification service unavailable
   /auth/password-reset/request:
     post:
       operationId: requestAdminPasswordReset
@@ -2504,6 +2546,17 @@ components:
       properties:
         email: { type: string }
         password: { type: string }
+    PhoneLoginStartInput:
+      type: object
+      required: [phone]
+      properties:
+        phone: { type: string, description: E.164 phone number; Zimbabwe local numbers beginning with 0 are also accepted. }
+    PhoneLoginVerifyInput:
+      type: object
+      required: [phone, code]
+      properties:
+        phone: { type: string }
+        code: { type: string, minLength: 4, maxLength: 10 }
     LoginResult:
       allOf:
         - $ref: "#/components/schemas/User"

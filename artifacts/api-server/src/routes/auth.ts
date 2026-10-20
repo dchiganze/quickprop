@@ -68,6 +68,50 @@ import {
 const router: IRouter = Router();
 
 const COOKIE = "qp_uid";
+const PHONE_LOGIN_ROLES = new Set(["agent", "senior_agent", "principal", "admin"]);
+
+function normalizePhoneNumber(value: string): string | null {
+  const compact = value.trim().replace(/[^\d+]/g, "");
+  let e164 = compact;
+  if (compact.startsWith("0")) e164 = `+263${compact.slice(1)}`;
+  else if (compact.startsWith("263")) e164 = `+${compact}`;
+  if (!/^\+[1-9]\d{7,14}$/.test(e164)) return null;
+  return e164;
+}
+
+function phoneDigits(value: string | null | undefined): string {
+  return (value ?? "").replace(/\D/g, "");
+}
+
+async function requestTwilioVerify(path: "Verifications" | "VerificationCheck", values: Record<string, string>) {
+  const accountSid = process.env.TWILIO_ACCOUNT_SID;
+  const authToken = process.env.TWILIO_AUTH_TOKEN;
+  const serviceSid = process.env.TWILIO_VERIFY_SERVICE_SID;
+  if (!accountSid || !authToken || !serviceSid) throw new Error("Twilio Verify is not configured");
+  const response = await fetch(`https://verify.twilio.com/v2/Services/${serviceSid}/${path}`, {
+    method: "POST",
+    headers: {
+      Authorization: `Basic ${Buffer.from(`${accountSid}:${authToken}`).toString("base64")}`,
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: new URLSearchParams(values),
+  });
+  const result = await response.json().catch(() => null) as { status?: string; message?: string } | null;
+  if (!response.ok) {
+    console.error("Twilio Verify request failed", { status: response.status, message: result?.message });
+    throw new Error("Twilio Verify request failed");
+  }
+  return result;
+}
+
+async function findPhoneLoginUser(phone: string) {
+  const digits = phoneDigits(phone);
+  const users = await db.select().from(usersTable).where(eq(usersTable.status, "active"));
+  const matches = users.filter((user) =>
+    PHONE_LOGIN_ROLES.has(user.role) && phoneDigits(user.phone) === digits,
+  );
+  return matches.length === 1 ? matches[0] : null;
+}
 
 function sessionSecret(): string {
   const secret = process.env.SESSION_SECRET;
@@ -83,6 +127,40 @@ function userIdFromBearerToken(authorization: string | string[] | undefined): nu
   if (scheme !== "Bearer" || !token || extra.length > 0) return null;
   return readSessionToken(token, sessionSecret());
 }
+
+router.post("/auth/phone/start", async (req, res): Promise<void> => {
+  const phone = typeof req.body?.phone === "string" ? normalizePhoneNumber(req.body.phone) : null;
+  if (!phone) { res.status(400).json({ error: "Enter a valid mobile number in international format." }); return; }
+  try {
+    const user = await findPhoneLoginUser(phone);
+    if (user) await requestTwilioVerify("Verifications", { To: phone, Channel: "sms" });
+    res.status(202).json({ message: "If the number belongs to an active QuickProp account, a code has been sent." });
+  } catch (error) {
+    console.error("Unable to start phone sign-in", error);
+    res.status(503).json({ error: "Phone sign-in is temporarily unavailable." });
+  }
+});
+
+router.post("/auth/phone/verify", async (req, res): Promise<void> => {
+  const phone = typeof req.body?.phone === "string" ? normalizePhoneNumber(req.body.phone) : null;
+  const code = typeof req.body?.code === "string" ? req.body.code.trim() : "";
+  if (!phone || !/^\d{4,10}$/.test(code)) {
+    res.status(400).json({ error: "Enter the mobile number and verification code." });
+    return;
+  }
+  try {
+    const result = await requestTwilioVerify("VerificationCheck", { To: phone, Code: code });
+    if (result?.status !== "approved") { res.status(401).json({ error: "That verification code is invalid or expired." }); return; }
+    const user = await findPhoneLoginUser(phone);
+    if (!user) { res.status(401).json({ error: "This number is not linked to an eligible QuickProp account." }); return; }
+    const accessToken = createSessionToken(user.id, sessionSecret());
+    await logAudit("login", "user", user.id, `${user.name} signed in with verified phone`, user.id, user.name);
+    res.json({ ...jsonify(toUser(user)), accessToken });
+  } catch (error) {
+    console.error("Unable to verify phone sign-in", error);
+    res.status(503).json({ error: "Phone sign-in is temporarily unavailable." });
+  }
+});
 
 function toUser(u: typeof usersTable.$inferSelect) {
   const { password: _pw, createdAt: _c, ...rest } = u;

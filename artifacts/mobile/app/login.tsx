@@ -18,6 +18,11 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('demo1234');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [phoneMode, setPhoneMode] = useState(false);
+  const [phone, setPhone] = useState('');
+  const [phoneCode, setPhoneCode] = useState('');
+  const [phoneCodeSent, setPhoneCodeSent] = useState(false);
+  const { startPhoneLogin, verifyPhoneLogin } = useAuth();
 
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
@@ -33,6 +38,25 @@ export default function LoginScreen() {
     } else {
       Alert.alert('Login Failed', result.error || 'Invalid credentials.');
     }
+  };
+
+  const handleSendPhoneCode = async () => {
+    if (!phone.trim()) { Alert.alert('Mobile number required', 'Enter your mobile number, including country code.'); return; }
+    setLoading(true);
+    const result = await startPhoneLogin(phone.trim());
+    setLoading(false);
+    if (result.success) setPhoneCodeSent(true);
+    else Alert.alert('Could not send code', result.error || 'Please try again.');
+  };
+
+  const handleVerifyPhoneCode = async (codeValue = phoneCode) => {
+    const cleanCode = codeValue.replace(/\D/g, '');
+    if (cleanCode.length < 4) return;
+    setLoading(true);
+    const result = await verifyPhoneLogin(phone.trim(), cleanCode);
+    setLoading(false);
+    if (result.success) router.replace('/(tabs)');
+    else if (codeValue === phoneCode) Alert.alert('Sign-in failed', result.error || 'Check the code and try again.');
   };
 
   const handleSocial = async (provider: string) => {
@@ -71,6 +95,55 @@ export default function LoginScreen() {
 
         {/* Form */}
         <View style={styles.form}>
+          {phoneMode ? (
+            <>
+              <View style={[styles.inputWrap, { backgroundColor: colors.input, borderColor: colors.border }]}>
+                <Ionicons name="call-outline" size={18} color={colors.mutedForeground} style={styles.inputIcon} />
+                <TextInput
+                  style={[styles.input, { color: colors.foreground }]}
+                  value={phone}
+                  onChangeText={setPhone}
+                  placeholder="Mobile number, e.g. +263771234567"
+                  placeholderTextColor={colors.mutedForeground}
+                  keyboardType="phone-pad"
+                  autoComplete="tel"
+                  textContentType="telephoneNumber"
+                />
+              </View>
+              {phoneCodeSent && (
+                <View style={[styles.inputWrap, { backgroundColor: colors.input, borderColor: colors.border }]}>
+                  <Ionicons name="key-outline" size={18} color={colors.mutedForeground} style={styles.inputIcon} />
+                  <TextInput
+                    style={[styles.input, { color: colors.foreground }]}
+                    value={phoneCode}
+                    onChangeText={(value) => {
+                      const digits = value.replace(/\D/g, '').slice(0, 10);
+                      setPhoneCode(digits);
+                      if (digits.length >= 4 && digits.length <= 10) void handleVerifyPhoneCode(digits);
+                    }}
+                    placeholder="Verification code"
+                    placeholderTextColor={colors.mutedForeground}
+                    keyboardType="number-pad"
+                    autoComplete="sms-otp"
+                    textContentType="oneTimeCode"
+                    maxLength={10}
+                  />
+                </View>
+              )}
+              <TouchableOpacity
+                style={[styles.primaryBtn, { backgroundColor: loading ? colors.primary + '80' : colors.primary }]}
+                onPress={phoneCodeSent ? () => handleVerifyPhoneCode() : handleSendPhoneCode}
+                disabled={loading}
+                activeOpacity={0.85}
+              >
+                {loading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.primaryBtnText}>{phoneCodeSent ? 'Verify code' : 'Send code'}</Text>}
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.forgotBtn} onPress={() => { setPhoneMode(false); setPhoneCodeSent(false); setPhoneCode(''); }}>
+                <Text style={[styles.forgotText, { color: colors.primary }]}>Use email and password instead</Text>
+              </TouchableOpacity>
+            </>
+          ) : (
+            <>
           <View style={[styles.inputWrap, { backgroundColor: colors.input, borderColor: colors.border }]}>
             <Ionicons name="mail-outline" size={18} color={colors.mutedForeground} style={styles.inputIcon} />
             <TextInput
@@ -119,6 +192,11 @@ export default function LoginScreen() {
           <TouchableOpacity style={styles.forgotBtn}>
             <Text style={[styles.forgotText, { color: colors.primary }]}>Forgot password?</Text>
           </TouchableOpacity>
+              <TouchableOpacity style={styles.forgotBtn} onPress={() => setPhoneMode(true)}>
+                <Text style={[styles.forgotText, { color: colors.primary }]}>Sign in with mobile number</Text>
+              </TouchableOpacity>
+            </>
+          )}
         </View>
 
         {/* Divider */}

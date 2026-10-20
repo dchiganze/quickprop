@@ -36,6 +36,43 @@ export const LoginResponse = zod.object({
 
 
 /**
+ * @summary Send a Twilio Verify SMS code to an active QuickProp account phone
+ */
+export const StartPhoneLoginBody = zod.object({
+  "phone": zod.string().describe('E.164 phone number; Zimbabwe local numbers beginning with 0 are also accepted.')
+})
+
+export const StartPhoneLoginResponse = zod.void()
+
+
+/**
+ * @summary Verify a Twilio code and issue a mobile session
+ */
+export const verifyPhoneLoginBodyCodeMin = 4;
+export const verifyPhoneLoginBodyCodeMax = 10;
+
+
+
+export const VerifyPhoneLoginBody = zod.object({
+  "phone": zod.string(),
+  "code": zod.string().min(verifyPhoneLoginBodyCodeMin).max(verifyPhoneLoginBodyCodeMax)
+})
+
+export const VerifyPhoneLoginResponse = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "email": zod.string(),
+  "phone": zod.string().nullish(),
+  "role": zod.string().describe('principal | admin | senior_agent | agent | receptionist | marketing | viewer'),
+  "branchId": zod.number().nullish(),
+  "status": zod.string().describe('active | suspended | inactive'),
+  "avatarUrl": zod.string().nullish()
+}).and(zod.object({
+  "accessToken": zod.string().describe('Signed bearer token for native clients, valid for up to 30 days.')
+}))
+
+
+/**
  * @summary Send a one-time admin password reset link when the account is eligible
  */
 export const requestAdminPasswordResetBodyEmailRegExp = new RegExp('^[^@\\s]+@[^\\s@]+\\.[^\\s@]+$');

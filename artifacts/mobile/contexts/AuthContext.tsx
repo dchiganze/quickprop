@@ -9,6 +9,8 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  startPhoneLogin: (phone: string) => Promise<{ success: boolean; error?: string }>;
+  verifyPhoneLogin: (phone: string, code: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   deleteAccount: (password: string, confirmation: string) => Promise<void>;
   updateUser: (updates: Partial<User>) => Promise<void>;
@@ -142,6 +144,8 @@ const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
   login: async () => ({ success: false }),
+  startPhoneLogin: async () => ({ success: false }),
+  verifyPhoneLogin: async () => ({ success: false }),
   logout: async () => {},
   deleteAccount: async () => {},
   updateUser: async () => {},
@@ -245,6 +249,50 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { success: true };
   };
 
+  const startPhoneLogin = async (phone: string) => {
+    if (!apiBaseUrl) return { success: false, error: 'Phone sign-in needs a server connection.' };
+    try {
+      const response = await fetch(apiUrl('/auth/phone/start'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone }),
+      });
+      const result = await response.json().catch(() => null) as { error?: string } | null;
+      return response.ok
+        ? { success: true }
+        : { success: false, error: result?.error ?? 'Could not send a verification code.' };
+    } catch {
+      return { success: false, error: 'Unable to reach the QuickProp server.' };
+    }
+  };
+
+  const verifyPhoneLogin = async (phone: string, code: string) => {
+    if (!apiBaseUrl) return { success: false, error: 'Phone sign-in needs a server connection.' };
+    try {
+      const response = await fetch(apiUrl('/auth/phone/verify'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone, code }),
+      });
+      const result = await response.json().catch(() => null) as (LoginResult & { error?: string }) | null;
+      if (!response.ok || !result?.accessToken) {
+        return { success: false, error: result?.error ?? 'That code could not be verified.' };
+      }
+      const loggedInUser = toMobileUser(result);
+      const currentStoredIdentity = storedUserIdentity(await AsyncStorage.getItem(AUTH_KEY));
+      const nextIdentity = `${loggedInUser.id}:${loggedInUser.email.toLowerCase()}`;
+      if (currentStoredIdentity && currentStoredIdentity !== nextIdentity) await clearLocalAccountData();
+      await Promise.all([
+        AsyncStorage.setItem(AUTH_KEY, JSON.stringify(loggedInUser)),
+        storeToken(result.accessToken),
+      ]);
+      setUser(loggedInUser);
+      return { success: true };
+    } catch {
+      return { success: false, error: 'Unable to reach the QuickProp server.' };
+    }
+  };
+
   const logout = async () => {
     await clearAccountSession();
     setUser(null);
@@ -300,7 +348,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, deleteAccount, updateUser }}>
+    <AuthContext.Provider value={{ user, loading, login, startPhoneLogin, verifyPhoneLogin, logout, deleteAccount, updateUser }}>
       {children}
     </AuthContext.Provider>
   );
