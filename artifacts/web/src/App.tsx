@@ -16,6 +16,7 @@ import Support from '@/pages/support';
 import MobileMarketing from '@/pages/mobile-marketing';
 import Privacy from '@/pages/privacy';
 import Terms from '@/pages/terms';
+import SmsConsent from '@/pages/sms-consent';
 import NotFound from '@/pages/not-found';
 import RentalReference from '@/pages/rental-reference';
 
@@ -38,6 +39,7 @@ function Router() {
       <Route path="/app" component={MobileMarketing} />
       <Route path="/privacy" component={Privacy} />
       <Route path="/terms" component={Terms} />
+      <Route path="/2fa" component={SmsConsent} />
       <Route component={NotFound} />
     </Switch>
   );
