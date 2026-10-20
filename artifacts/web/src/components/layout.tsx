@@ -159,8 +159,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
           <div className="border-t mt-12 pt-8 text-center text-sm text-gray-500 flex flex-col md:flex-row justify-between items-center gap-4">
             <p>&copy; {new Date().getFullYear()} QuickProp. All rights reserved.</p>
             <div className="flex gap-4">
-              <span className="hover:text-primary cursor-pointer">Terms</span>
-              <span className="hover:text-primary cursor-pointer">Privacy</span>
+              <Link href="/terms" className="hover:text-primary" data-testid="link-terms">Terms</Link>
+              <Link href="/privacy" className="hover:text-primary" data-testid="link-privacy">Privacy</Link>
             </div>
           </div>
         </div>
