@@ -80,7 +80,9 @@ function normalizePhoneNumber(value: string): string | null {
 }
 
 function phoneDigits(value: string | null | undefined): string {
-  return (value ?? "").replace(/\D/g, "");
+  const digits = (value ?? "").replace(/\D/g, "");
+  if (digits.startsWith("0")) return `263${digits.slice(1)}`;
+  return digits;
 }
 
 async function requestTwilioVerify(path: "Verifications" | "VerificationCheck", values: Record<string, string>) {
@@ -131,9 +133,13 @@ function userIdFromBearerToken(authorization: string | string[] | undefined): nu
 router.post("/auth/phone/start", async (req, res): Promise<void> => {
   const phone = typeof req.body?.phone === "string" ? normalizePhoneNumber(req.body.phone) : null;
   if (!phone) { res.status(400).json({ error: "Enter a valid mobile number in international format." }); return; }
+  if (req.body?.smsConsent !== true) { res.status(400).json({ error: "SMS consent is required to send a verification code." }); return; }
   try {
     const user = await findPhoneLoginUser(phone);
-    if (user) await requestTwilioVerify("Verifications", { To: phone, Channel: "sms" });
+    if (user) {
+      await logAudit("sms_otp_consent", "user", user.id, "User consented to SMS sign-in codes", user.id, user.name);
+      await requestTwilioVerify("Verifications", { To: phone, Channel: "sms" });
+    }
     res.status(202).json({ message: "If the number belongs to an active QuickProp account, a code has been sent." });
   } catch (error) {
     console.error("Unable to start phone sign-in", error);

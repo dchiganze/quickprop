@@ -39,7 +39,8 @@ export const LoginResponse = zod.object({
  * @summary Send a Twilio Verify SMS code to an active QuickProp account phone
  */
 export const StartPhoneLoginBody = zod.object({
-  "phone": zod.string().describe('E.164 phone number; Zimbabwe local numbers beginning with 0 are also accepted.')
+  "phone": zod.string().describe('E.164 phone number; Zimbabwe local numbers beginning with 0 are also accepted.'),
+  "smsConsent": zod.literal(true).describe('Explicit consent to receive an SMS sign-in code.')
 })
 
 export const StartPhoneLoginResponse = zod.void()

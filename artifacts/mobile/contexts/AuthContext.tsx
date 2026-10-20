@@ -9,7 +9,7 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
-  startPhoneLogin: (phone: string) => Promise<{ success: boolean; error?: string }>;
+  startPhoneLogin: (phone: string, smsConsent: boolean) => Promise<{ success: boolean; error?: string }>;
   verifyPhoneLogin: (phone: string, code: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   deleteAccount: (password: string, confirmation: string) => Promise<void>;
@@ -249,13 +249,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { success: true };
   };
 
-  const startPhoneLogin = async (phone: string) => {
+  const startPhoneLogin = async (phone: string, smsConsent: boolean) => {
     if (!apiBaseUrl) return { success: false, error: 'Phone sign-in needs a server connection.' };
     try {
       const response = await fetch(apiUrl('/auth/phone/start'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone }),
+        body: JSON.stringify({ phone, smsConsent }),
       });
       const result = await response.json().catch(() => null) as { error?: string } | null;
       return response.ok

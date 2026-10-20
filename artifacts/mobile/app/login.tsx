@@ -22,6 +22,7 @@ export default function LoginScreen() {
   const [phone, setPhone] = useState('');
   const [phoneCode, setPhoneCode] = useState('');
   const [phoneCodeSent, setPhoneCodeSent] = useState(false);
+  const [smsConsent, setSmsConsent] = useState(false);
   const { startPhoneLogin, verifyPhoneLogin } = useAuth();
 
   const handleLogin = async () => {
@@ -42,8 +43,9 @@ export default function LoginScreen() {
 
   const handleSendPhoneCode = async () => {
     if (!phone.trim()) { Alert.alert('Mobile number required', 'Enter your mobile number, including country code.'); return; }
+    if (!smsConsent) { Alert.alert('SMS consent required', 'Please agree to receive the one-time sign-in code by SMS.'); return; }
     setLoading(true);
-    const result = await startPhoneLogin(phone.trim());
+    const result = await startPhoneLogin(phone.trim(), smsConsent);
     setLoading(false);
     if (result.success) setPhoneCodeSent(true);
     else Alert.alert('Could not send code', result.error || 'Please try again.');
@@ -119,7 +121,7 @@ export default function LoginScreen() {
                     onChangeText={(value) => {
                       const digits = value.replace(/\D/g, '').slice(0, 10);
                       setPhoneCode(digits);
-                      if (digits.length >= 4 && digits.length <= 10) void handleVerifyPhoneCode(digits);
+                      if (digits.length === 6) void handleVerifyPhoneCode(digits);
                     }}
                     placeholder="Verification code"
                     placeholderTextColor={colors.mutedForeground}
@@ -129,6 +131,19 @@ export default function LoginScreen() {
                     maxLength={10}
                   />
                 </View>
+              )}
+              {!phoneCodeSent && (
+                <TouchableOpacity
+                  accessibilityRole="checkbox"
+                  accessibilityState={{ checked: smsConsent }}
+                  onPress={() => setSmsConsent((value) => !value)}
+                  style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingVertical: 8 }}
+                >
+                  <Ionicons name={smsConsent ? 'checkbox' : 'square-outline'} size={20} color={smsConsent ? colors.primary : colors.mutedForeground} />
+                  <Text style={{ flex: 1, color: colors.mutedForeground, fontSize: 12, lineHeight: 18 }}>
+                    I agree to receive one-time SMS sign-in codes from QuickProp. Message and data rates may apply. Message frequency varies. Reply STOP to opt out or HELP for help.
+                  </Text>
+                </TouchableOpacity>
               )}
               <TouchableOpacity
                 style={[styles.primaryBtn, { backgroundColor: loading ? colors.primary + '80' : colors.primary }]}

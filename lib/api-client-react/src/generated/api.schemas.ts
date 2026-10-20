@@ -348,6 +348,8 @@ export interface LoginInput {
 export interface PhoneLoginStartInput {
   /** E.164 phone number; Zimbabwe local numbers beginning with 0 are also accepted. */
   phone: string;
+  /** Explicit consent to receive an SMS sign-in code. */
+  smsConsent: true;
 }
 
 export interface PhoneLoginVerifyInput {

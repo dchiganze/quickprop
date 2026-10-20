@@ -2548,9 +2548,10 @@ components:
         password: { type: string }
     PhoneLoginStartInput:
       type: object
-      required: [phone]
+      required: [phone, smsConsent]
       properties:
         phone: { type: string, description: E.164 phone number; Zimbabwe local numbers beginning with 0 are also accepted. }
+        smsConsent: { type: boolean, enum: [true], description: Explicit consent to receive an SMS sign-in code. }
     PhoneLoginVerifyInput:
       type: object
       required: [phone, code]
