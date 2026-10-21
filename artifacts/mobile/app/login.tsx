@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet, Image,
   Platform, KeyboardAvoidingView, ScrollView, ActivityIndicator, Alert,
@@ -9,6 +9,17 @@ import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useColors } from '@/hooks/useColors';
 import { useAuth } from '@/contexts/AuthContext';
+
+type OtpAutofillModule = typeof import('expo-otp-autofill');
+const androidOtpAutofill: OtpAutofillModule | null = (() => {
+  if (Platform.OS !== 'android') return null;
+  try {
+    return require('expo-otp-autofill') as OtpAutofillModule;
+  } catch {
+    // Expo Go does not include this native module; manual OTP entry remains available.
+    return null;
+  }
+})();
 
 export default function LoginScreen() {
   const colors = useColors();
@@ -23,6 +34,33 @@ export default function LoginScreen() {
   const [phoneCode, setPhoneCode] = useState('');
   const [phoneCodeSent, setPhoneCodeSent] = useState(false);
   const [smsConsent, setSmsConsent] = useState(false);
+  const phoneRef = useRef(phone);
+  const phoneCodeSentRef = useRef(phoneCodeSent);
+  const autoVerifyingRef = useRef(false);
+  const retrievedOtpRef = useRef<string | null>(null);
+  const verifyOtpRef = useRef<(code: string) => Promise<void>>(async () => {});
+  phoneRef.current = phone;
+  phoneCodeSentRef.current = phoneCodeSent;
+
+  useEffect(() => {
+    if (!androidOtpAutofill) return;
+    const subscription = androidOtpAutofill.addListener('onOtpReceived', ({ message }) => {
+      const code = androidOtpAutofill.extractOtp(message, { length: [4, 10] });
+      if (!code) return;
+      retrievedOtpRef.current = code;
+      setPhoneCode(code);
+      if (phoneCodeSentRef.current && !autoVerifyingRef.current) {
+        autoVerifyingRef.current = true;
+        void verifyOtpRef.current(code).finally(() => {
+          autoVerifyingRef.current = false;
+        });
+      }
+    });
+    return () => {
+      subscription.remove();
+      void androidOtpAutofill.stopSmsRetrieverAsync().catch(() => {});
+    };
+  }, []);
 
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
@@ -44,9 +82,31 @@ export default function LoginScreen() {
     if (!phone.trim()) { Alert.alert('Mobile number required', 'Enter your mobile number, including country code.'); return; }
     if (!smsConsent) { Alert.alert('SMS consent required', 'Please agree to receive the one-time sign-in code by SMS.'); return; }
     setLoading(true);
-    const result = await startPhoneLogin(phone.trim(), smsConsent);
+    let androidAppHash: string | undefined;
+    if (androidOtpAutofill) {
+      try {
+        setPhoneCode('');
+        phoneCodeSentRef.current = false;
+      retrievedOtpRef.current = null;
+        await androidOtpAutofill.startSmsRetrieverAsync();
+        androidAppHash = await androidOtpAutofill.getAppHashAsync();
+      } catch (error) {
+        console.warn('Android SMS Retriever could not start; continuing with manual code entry.', error);
+      }
+    }
+    const result = await startPhoneLogin(phone.trim(), smsConsent, androidAppHash);
     setLoading(false);
-    if (result.success) setPhoneCodeSent(true);
+    if (result.success) {
+      phoneCodeSentRef.current = true;
+      setPhoneCodeSent(true);
+      const receivedCode = retrievedOtpRef.current;
+      if (receivedCode && !autoVerifyingRef.current) {
+        autoVerifyingRef.current = true;
+        void verifyOtpRef.current(receivedCode).finally(() => {
+          autoVerifyingRef.current = false;
+        });
+      }
+    }
     else Alert.alert('Could not send code', result.error || 'Please try again.');
   };
 
@@ -66,8 +126,9 @@ export default function LoginScreen() {
         } },
       ]);
     }
-    else if (codeValue === phoneCode) Alert.alert('Sign-in failed', result.error || 'Check the code and try again.');
+    else Alert.alert('Sign-in failed', result.error || 'Check the code and try again.');
   };
+  verifyOtpRef.current = handleVerifyPhoneCode;
 
   const handlePasskeyLogin = async () => {
     setLoading(true);

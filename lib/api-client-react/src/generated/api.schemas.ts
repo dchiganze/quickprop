@@ -364,6 +364,11 @@ export interface PhoneLoginStartInput {
   phone: string;
   /** Explicit consent to receive an SMS sign-in code. */
   smsConsent: true;
+  /**
+     * Optional Android SMS Retriever hash from the installed app build.
+     * @pattern ^[A-Za-z0-9+/]{11}$
+     */
+  androidAppHash?: string;
 }
 
 export interface PhoneLoginVerifyInput {

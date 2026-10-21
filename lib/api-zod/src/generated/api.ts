@@ -38,9 +38,13 @@ export const LoginResponse = zod.object({
 /**
  * @summary Send a Twilio Verify SMS code to an active QuickProp account phone
  */
+export const startPhoneLoginBodyAndroidAppHashRegExp = new RegExp('^[A-Za-z0-9+/]{11}$');
+
+
 export const StartPhoneLoginBody = zod.object({
   "phone": zod.string().describe('E.164 phone number; Zimbabwe local numbers beginning with 0 are also accepted.'),
-  "smsConsent": zod.literal(true).describe('Explicit consent to receive an SMS sign-in code.')
+  "smsConsent": zod.literal(true).describe('Explicit consent to receive an SMS sign-in code.'),
+  "androidAppHash": zod.string().regex(startPhoneLoginBodyAndroidAppHashRegExp).optional().describe('Optional Android SMS Retriever hash from the installed app build.')
 })
 
 export const StartPhoneLoginResponse = zod.void()

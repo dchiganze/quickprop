@@ -2634,6 +2634,10 @@ components:
       properties:
         phone: { type: string, description: E.164 phone number; Zimbabwe local numbers beginning with 0 are also accepted. }
         smsConsent: { type: boolean, enum: [true], description: Explicit consent to receive an SMS sign-in code. }
+        androidAppHash:
+          type: string
+          pattern: '^[A-Za-z0-9+/]{11}$'
+          description: Optional Android SMS Retriever hash from the installed app build.
     PhoneLoginVerifyInput:
       type: object
       required: [phone, code]
