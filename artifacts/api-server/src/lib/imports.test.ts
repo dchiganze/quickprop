@@ -6,6 +6,13 @@ import { findImportTitlePriceDuplicate, findDuplicateCandidatesInProperties, typ
 import { findImportTitleValue } from "./import-title";
 import { findStalePdfDraftIds } from "./import-reconcile";
 import { flattenPdfPageRows } from "./pdf-import";
+import { createSessionToken } from "./sessions";
+
+const testSessionSecret = "quickprop-release-validation-session-secret";
+
+function sessionCookie(userId: number): string {
+  return `qp_uid=${createSessionToken(userId, testSessionSecret)}`;
+}
 
 const testDatabaseUrl = process.env.TEST_DATABASE_URL;
 const releaseValidation = process.env.RELEASE_VALIDATION === "1";
@@ -174,6 +181,7 @@ test(
       "release validation requires an isolated database configured through TEST_DATABASE_URL",
     );
     process.env.DATABASE_URL = testDatabaseUrl;
+    process.env.SESSION_SECRET = testSessionSecret;
     const database = await import("@workspace/db");
     databasePool ??= database.pool;
     const { default: app } = await import("../app");
@@ -217,7 +225,7 @@ test(
       const response = await fetch(`${apiUrl}${path}`, {
         method,
         headers: {
-          cookie: `qp_uid=${userId}`,
+          cookie: sessionCookie(userId),
           ...(body === undefined ? {} : { "content-type": "application/json" }),
         },
         body: body === undefined ? undefined : JSON.stringify(body),
@@ -501,6 +509,7 @@ test(
       "release validation requires an isolated database configured through TEST_DATABASE_URL",
     );
     process.env.DATABASE_URL = testDatabaseUrl;
+    process.env.SESSION_SECRET = testSessionSecret;
     const database = await import("@workspace/db");
     databasePool ??= database.pool;
     const { default: app } = await import("../app");
@@ -638,7 +647,7 @@ test(
       const response = await originalFetch(`${apiUrl}${path}`, {
         method,
         headers: {
-          cookie: `qp_uid=${userId}`,
+          cookie: sessionCookie(userId),
           ...(body === undefined ? {} : { "content-type": "application/json" }),
         },
         body: body === undefined ? undefined : JSON.stringify(body),
