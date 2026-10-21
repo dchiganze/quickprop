@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet, Platform, ActivityIndicator, Image,
-  Alert, Linking, Animated, useWindowDimensions, useColorScheme,
+  Alert, Linking, Animated, useWindowDimensions, useColorScheme, Modal, ScrollView,
 } from 'react-native';
 import { SvgXml } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
@@ -31,6 +31,40 @@ const openUrl = (url: string) => {
 };
 
 type Mode = 'welcome' | 'phone';
+type PhoneCountry = { name: string; dialCode: string; flag: string };
+
+const PHONE_COUNTRIES: PhoneCountry[] = [
+  { name: 'Zimbabwe', dialCode: '+263', flag: '🇿🇼' },
+  { name: 'South Africa', dialCode: '+27', flag: '🇿🇦' },
+  { name: 'Botswana', dialCode: '+267', flag: '🇧🇼' },
+  { name: 'Zambia', dialCode: '+260', flag: '🇿🇲' },
+  { name: 'Mozambique', dialCode: '+258', flag: '🇲🇿' },
+  { name: 'Malawi', dialCode: '+265', flag: '🇲🇼' },
+  { name: 'Namibia', dialCode: '+264', flag: '🇳🇦' },
+  { name: 'Lesotho', dialCode: '+266', flag: '🇱🇸' },
+  { name: 'Eswatini', dialCode: '+268', flag: '🇸🇿' },
+  { name: 'Kenya', dialCode: '+254', flag: '🇰🇪' },
+  { name: 'Tanzania', dialCode: '+255', flag: '🇹🇿' },
+  { name: 'Uganda', dialCode: '+256', flag: '🇺🇬' },
+  { name: 'Rwanda', dialCode: '+250', flag: '🇷🇼' },
+  { name: 'Nigeria', dialCode: '+234', flag: '🇳🇬' },
+  { name: 'Ghana', dialCode: '+233', flag: '🇬🇭' },
+  { name: 'United Kingdom', dialCode: '+44', flag: '🇬🇧' },
+  { name: 'United States', dialCode: '+1', flag: '🇺🇸' },
+  { name: 'Canada', dialCode: '+1', flag: '🇨🇦' },
+  { name: 'Australia', dialCode: '+61', flag: '🇦🇺' },
+  { name: 'India', dialCode: '+91', flag: '🇮🇳' },
+];
+
+const DEFAULT_PHONE_COUNTRY = PHONE_COUNTRIES[0];
+
+function toInternationalPhone(phone: string, country: PhoneCountry) {
+  let digits = phone.replace(/\D/g, '');
+  const callingCode = country.dialCode.replace(/\D/g, '');
+  if (digits.startsWith(callingCode)) digits = digits.slice(callingCode.length);
+  else if (digits.startsWith('0')) digits = digits.slice(1);
+  return `${country.dialCode}${digits}`;
+}
 
 export default function LoginScreen() {
   const colors = useColors();
@@ -41,6 +75,9 @@ export default function LoginScreen() {
   const [mode, setMode] = useState<Mode>('welcome');
   const [loading, setLoading] = useState(false);
   const [phone, setPhone] = useState('');
+  const [phoneCountry, setPhoneCountry] = useState<PhoneCountry>(DEFAULT_PHONE_COUNTRY);
+  const [countryPickerVisible, setCountryPickerVisible] = useState(false);
+  const [countrySearch, setCountrySearch] = useState('');
   const [phoneCode, setPhoneCode] = useState('');
   const [phoneCodeSent, setPhoneCodeSent] = useState(false);
   const [smsConsent, setSmsConsent] = useState(false);
@@ -89,7 +126,8 @@ export default function LoginScreen() {
   }, []);
 
   const handleSendPhoneCode = async () => {
-    if (!phone.trim()) { Alert.alert('Mobile number required', 'Enter your mobile number, including country code.'); return; }
+    const fullPhoneNumber = toInternationalPhone(phone, phoneCountry);
+    if (fullPhoneNumber === phoneCountry.dialCode) { Alert.alert('Mobile number required', 'Enter your mobile number.'); return; }
     if (!smsConsent) { Alert.alert('SMS consent required', 'Please agree to receive the one-time sign-in code by SMS.'); return; }
     setLoading(true);
     let androidAppHash: string | undefined;
@@ -104,7 +142,7 @@ export default function LoginScreen() {
         console.warn('Android SMS Retriever could not start; continuing with manual code entry.', error);
       }
     }
-    const result = await startPhoneLogin(phone.trim(), smsConsent, androidAppHash);
+    const result = await startPhoneLogin(fullPhoneNumber, smsConsent, androidAppHash);
     setLoading(false);
     if (result.success) {
       phoneCodeSentRef.current = true;
@@ -124,7 +162,7 @@ export default function LoginScreen() {
     const cleanCode = codeValue.replace(/\D/g, '');
     if (cleanCode.length < 4) return;
     setLoading(true);
-    const result = await verifyPhoneLogin(phone.trim(), cleanCode);
+    const result = await verifyPhoneLogin(toInternationalPhone(phone, phoneCountry), cleanCode);
     setLoading(false);
     if (result.success) {
       Alert.alert('Signed in', 'Would you like to add a passkey for faster sign-in on this device?', [
@@ -155,6 +193,9 @@ export default function LoginScreen() {
   const onEmerald = '#04281D';
   const compact = height < 700;
   const illoSize = mode === 'welcome' ? (compact ? 190 : 250) : 112;
+  const filteredCountries = PHONE_COUNTRIES.filter((country) =>
+    `${country.name} ${country.dialCode}`.toLowerCase().includes(countrySearch.trim().toLowerCase()),
+  );
 
   const inputBox = [styles.inputWrap, { backgroundColor: colors.input, borderColor: colors.border }];
 
@@ -250,23 +291,52 @@ export default function LoginScreen() {
                 {phoneCodeSent ? 'Enter your code' : 'Your mobile number'}
               </Text>
               <Text style={[styles.sub, { color: colors.mutedForeground }]}>
-                {phoneCodeSent ? `We sent a code to ${phone.trim()}. It fills in automatically when we can read it.` : 'Include the country code. We will text you a one-time code.'}
+                {phoneCodeSent ? `We sent a code to ${toInternationalPhone(phone, phoneCountry)}. It fills in automatically when we can read it.` : 'Choose your country and enter your mobile number. We will text you a one-time code.'}
               </Text>
               <View style={styles.stack}>
                 {!phoneCodeSent && (
-                  <View style={inputBox}>
-                    <Ionicons name="call-outline" size={18} color={colors.mutedForeground} style={styles.inputIcon} />
+                  <View style={[styles.phoneField, { backgroundColor: colors.input, borderColor: colors.border }]}>
+                    <TouchableOpacity
+                      accessibilityRole="button"
+                      accessibilityLabel={`Select country. Current selection: ${phoneCountry.name}, ${phoneCountry.dialCode}`}
+                      testID="phone-country-selector"
+                      onPress={() => {
+                        setCountrySearch('');
+                        setCountryPickerVisible(true);
+                      }}
+                      style={styles.countryTrigger}
+                    >
+                      <Text style={styles.countryFlag}>{phoneCountry.flag}</Text>
+                      <Ionicons name="chevron-down" size={16} color={colors.foreground} />
+                    </TouchableOpacity>
+                    <Text style={[styles.dialCode, { color: colors.foreground }]}>{phoneCountry.dialCode}</Text>
                     <TextInput
-                      style={[styles.input, { color: colors.foreground }]}
+                      style={[styles.phoneNumberInput, { color: colors.foreground }]}
                       value={phone}
-                      onChangeText={setPhone}
-                      placeholder="+263771234567"
+                      onChangeText={(value) => {
+                        let digits = value.replace(/\D/g, '');
+                        const callingCode = phoneCountry.dialCode.replace(/\D/g, '');
+                        if (digits.startsWith(callingCode)) digits = digits.slice(callingCode.length);
+                        setPhone(digits);
+                      }}
+                      placeholder="Mobile number"
                       placeholderTextColor={colors.mutedForeground}
                       keyboardType="phone-pad"
                       autoComplete="tel"
                       textContentType="telephoneNumber"
+                      maxLength={16}
                       accessibilityLabel="Mobile number"
                     />
+                    {phone.length > 0 && (
+                      <TouchableOpacity
+                        accessibilityRole="button"
+                        accessibilityLabel="Clear mobile number"
+                        onPress={() => setPhone('')}
+                        style={styles.clearPhone}
+                      >
+                        <Ionicons name="close-circle" size={21} color={colors.mutedForeground} />
+                      </TouchableOpacity>
+                    )}
                   </View>
                 )}
                 {phoneCodeSent && (
@@ -299,12 +369,12 @@ export default function LoginScreen() {
                   >
                     <Ionicons name={smsConsent ? 'checkbox' : 'square-outline'} size={22} color={smsConsent ? '#0A9C70' : colors.mutedForeground} />
                     <Text style={[styles.consentText, { color: colors.mutedForeground }]}>
-                      I agree to QuickProp SMS sign-in codes. Msg/data rates may apply; reply STOP to opt out or HELP for help.
+                      I agree to one-time QuickProp SMS codes. Rates may apply. Reply STOP to opt out; HELP for help.
                     </Text>
                   </TouchableOpacity>
                 )}
                 <Primary
-                  label={phoneCodeSent ? 'Verify code' : 'Send code'}
+                  label={phoneCodeSent ? 'Verify code' : 'Next'}
                   onPress={phoneCodeSent ? () => handleVerifyPhoneCode() : handleSendPhoneCode}
                 />
                 {phoneCodeSent && (
@@ -324,6 +394,72 @@ export default function LoginScreen() {
           </Text>
         </Animated.View>
       </KeyboardAwareScrollViewCompat>
+      <Modal
+        visible={countryPickerVisible}
+        transparent
+        animationType="slide"
+        statusBarTranslucent
+        onRequestClose={() => setCountryPickerVisible(false)}
+      >
+        <View style={styles.countryModalRoot}>
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel="Close country selector"
+            style={styles.countryBackdrop}
+            activeOpacity={1}
+            onPress={() => setCountryPickerVisible(false)}
+          />
+          <View style={[styles.countrySheet, { backgroundColor: sheetBg, paddingBottom: insets.bottom + 14 }]}>
+            <View style={styles.countrySheetHeader}>
+              <Text style={[styles.countrySheetTitle, { color: colors.foreground }]}>Choose a country</Text>
+              <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityLabel="Close country selector"
+                onPress={() => setCountryPickerVisible(false)}
+                style={styles.countryClose}
+              >
+                <Ionicons name="close" size={22} color={colors.foreground} />
+              </TouchableOpacity>
+            </View>
+            <View style={[styles.countrySearchWrap, { backgroundColor: colors.input, borderColor: colors.border }]}>
+              <Ionicons name="search-outline" size={18} color={colors.mutedForeground} />
+              <TextInput
+                value={countrySearch}
+                onChangeText={setCountrySearch}
+                placeholder="Search country or code"
+                placeholderTextColor={colors.mutedForeground}
+                autoCapitalize="none"
+                style={[styles.countrySearchInput, { color: colors.foreground }]}
+                accessibilityLabel="Search countries"
+              />
+            </View>
+            <ScrollView style={styles.countryList} keyboardShouldPersistTaps="handled">
+              {filteredCountries.map((country) => (
+                <TouchableOpacity
+                  key={`${country.name}-${country.dialCode}`}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${country.name}, ${country.dialCode}`}
+                  onPress={() => {
+                    setPhoneCountry(country);
+                    setCountryPickerVisible(false);
+                  }}
+                  style={styles.countryOption}
+                >
+                  <Text style={styles.countryOptionFlag}>{country.flag}</Text>
+                  <Text style={[styles.countryName, { color: colors.foreground }]}>{country.name}</Text>
+                  <Text style={[styles.countryDialCode, { color: colors.mutedForeground }]}>{country.dialCode}</Text>
+                  {phoneCountry.name === country.name && (
+                    <Ionicons name="checkmark" size={18} color="#0A9C70" />
+                  )}
+                </TouchableOpacity>
+              ))}
+              {filteredCountries.length === 0 && (
+                <Text style={[styles.noCountries, { color: colors.mutedForeground }]}>No matching countries.</Text>
+              )}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -354,9 +490,29 @@ const styles = StyleSheet.create({
   back: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 14, alignSelf: 'flex-start', minHeight: 32 },
   backText: { fontSize: 14, fontWeight: '600' },
   inputWrap: { flexDirection: 'row', alignItems: 'center', borderRadius: 16, borderWidth: 1, paddingHorizontal: 14, height: 58 },
+  phoneField: { flexDirection: 'row', alignItems: 'center', borderRadius: 16, borderWidth: 1, paddingHorizontal: 12, height: 58 },
+  countryTrigger: { flexDirection: 'row', alignItems: 'center', gap: 5, minHeight: 44, paddingRight: 10 },
+  countryFlag: { fontSize: 21 },
+  dialCode: { fontSize: 16, fontWeight: '600', marginRight: 8 },
+  phoneNumberInput: { flex: 1, fontSize: 16, height: '100%', minWidth: 0 },
+  clearPhone: { paddingLeft: 7, paddingVertical: 8 },
   inputIcon: { marginRight: 8 },
   input: { flex: 1, fontSize: 16, height: '100%' },
   codeInput: { letterSpacing: 4, fontWeight: '700' },
+  countryModalRoot: { flex: 1, justifyContent: 'flex-end' },
+  countryBackdrop: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(0,0,0,0.45)' },
+  countrySheet: { maxHeight: '78%', borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 20, paddingTop: 18 },
+  countrySheetHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
+  countrySheetTitle: { fontSize: 19, fontWeight: '800' },
+  countryClose: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
+  countrySearchWrap: { flexDirection: 'row', alignItems: 'center', gap: 8, height: 48, borderRadius: 14, borderWidth: 1, paddingHorizontal: 12, marginBottom: 8 },
+  countrySearchInput: { flex: 1, fontSize: 15, height: '100%' },
+  countryList: { flexGrow: 0 },
+  countryOption: { minHeight: 52, flexDirection: 'row', alignItems: 'center', borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#E6EAF0', gap: 12 },
+  countryOptionFlag: { fontSize: 23, width: 30 },
+  countryName: { flex: 1, fontSize: 15, fontWeight: '500' },
+  countryDialCode: { fontSize: 14, marginRight: 6 },
+  noCountries: { paddingVertical: 24, textAlign: 'center', fontSize: 14 },
   consent: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingVertical: 4 },
   consentText: { flex: 1, fontSize: 12.5, lineHeight: 18 },
   legal: { fontSize: 12, lineHeight: 18, textAlign: 'center', marginTop: 'auto', paddingTop: 22 },
