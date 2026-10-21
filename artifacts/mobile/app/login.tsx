@@ -69,7 +69,6 @@ export default function LoginScreen() {
   const [countrySearch, setCountrySearch] = useState('');
   const [phoneCode, setPhoneCode] = useState('');
   const [phoneCodeSent, setPhoneCodeSent] = useState(false);
-  const [smsConsent, setSmsConsent] = useState(false);
   const phoneRef = useRef(phone);
   const phoneCodeSentRef = useRef(phoneCodeSent);
   const autoVerifyingRef = useRef(false);
@@ -117,7 +116,6 @@ export default function LoginScreen() {
   const handleSendPhoneCode = async () => {
     const fullPhoneNumber = toInternationalPhone(phone, phoneCountry);
     if (fullPhoneNumber === phoneCountry.dialCode) { Alert.alert('Mobile number required', 'Enter your mobile number.'); return; }
-    if (!smsConsent) { Alert.alert('SMS consent required', 'Please agree to receive the one-time sign-in code by SMS.'); return; }
     setLoading(true);
     let androidAppHash: string | undefined;
     if (androidOtpAutofill) {
@@ -131,7 +129,7 @@ export default function LoginScreen() {
         console.warn('Android SMS Retriever could not start; continuing with manual code entry.', error);
       }
     }
-    const result = await startPhoneLogin(fullPhoneNumber, smsConsent, androidAppHash);
+    const result = await startPhoneLogin(fullPhoneNumber, androidAppHash);
     setLoading(false);
     if (result.success) {
       phoneCodeSentRef.current = true;
@@ -349,19 +347,6 @@ export default function LoginScreen() {
                     />
                   </View>
                 )}
-                {!phoneCodeSent && (
-                  <TouchableOpacity
-                    accessibilityRole="checkbox"
-                    accessibilityState={{ checked: smsConsent }}
-                    onPress={() => setSmsConsent((value) => !value)}
-                    style={styles.consent}
-                  >
-                    <Ionicons name={smsConsent ? 'checkbox' : 'square-outline'} size={22} color={smsConsent ? '#0A9C70' : colors.mutedForeground} />
-                    <Text style={[styles.consentText, { color: colors.mutedForeground }]}>
-                      I agree to one-time QuickProp SMS codes. Rates may apply. Reply STOP to opt out; HELP for help.
-                    </Text>
-                  </TouchableOpacity>
-                )}
                 <Primary
                   label={phoneCodeSent ? 'Verify code' : 'Next'}
                   onPress={phoneCodeSent ? () => handleVerifyPhoneCode() : handleSendPhoneCode}
@@ -502,8 +487,6 @@ const styles = StyleSheet.create({
   countryName: { flex: 1, fontSize: 15, fontWeight: '500' },
   countryDialCode: { fontSize: 14, marginRight: 6 },
   noCountries: { paddingVertical: 24, textAlign: 'center', fontSize: 14 },
-  consent: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingVertical: 4 },
-  consentText: { flex: 1, fontSize: 12.5, lineHeight: 18 },
   legal: { fontSize: 12, lineHeight: 18, textAlign: 'center', marginTop: 'auto', paddingTop: 22 },
   legalLink: { fontWeight: '700', textDecorationLine: 'underline' },
 });

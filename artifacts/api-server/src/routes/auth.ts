@@ -135,7 +135,6 @@ router.post("/auth/phone/start", async (req, res): Promise<void> => {
   const phone = typeof req.body?.phone === "string" ? normalizePhoneNumber(req.body.phone) : null;
   const androidAppHash = typeof req.body?.androidAppHash === "string" ? req.body.androidAppHash : "";
   if (!phone) { res.status(400).json({ error: "Enter a valid mobile number in international format." }); return; }
-  if (req.body?.smsConsent !== true) { res.status(400).json({ error: "SMS consent is required to send a verification code." }); return; }
   if (androidAppHash && !/^[A-Za-z0-9+/]{11}$/.test(androidAppHash)) {
     res.status(400).json({ error: "Invalid Android SMS Retriever app hash." });
     return;
@@ -143,7 +142,7 @@ router.post("/auth/phone/start", async (req, res): Promise<void> => {
   try {
     const user = await findPhoneLoginUser(phone);
     if (user) {
-      await logAudit("sms_otp_consent", "user", user.id, "User consented to SMS sign-in codes", user.id, user.name);
+       await logAudit("sms_otp_requested", "user", user.id, "User requested an SMS sign-in code", user.id, user.name);
       await requestTwilioVerify("Verifications", {
         To: phone,
         Channel: "sms",
