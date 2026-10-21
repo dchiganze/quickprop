@@ -17,6 +17,10 @@ on:
           - closed
           - open
           - production
+      promote_version_code:
+        description: "Existing internal version code to promote when track is production"
+        required: false
+        type: string
 
 concurrency:
   group: quickprop-android-play-submit
@@ -54,6 +58,7 @@ jobs:
           echo "Using ${bundles[0]}"
 
       - name: Upload release to Google Play
+        if: ${{ inputs.track != 'production' }}
         uses: r0adkll/upload-google-play@v1
         with:
           serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
@@ -61,3 +66,42 @@ jobs:
           releaseFiles: ${{ steps.aab.outputs.path }}
           tracks: ${{ inputs.track }}
           status: completed
+
+      - name: Set up Ruby for track promotion
+        if: ${{ inputs.track == 'production' }}
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+
+      - name: Promote the existing Internal release to Production
+        if: ${{ inputs.track == 'production' }}
+        shell: bash
+        env:
+          GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+          PROMOTE_VERSION_CODE: ${{ inputs.promote_version_code }}
+        run: |
+          set -euo pipefail
+          if [[ -z "$PROMOTE_VERSION_CODE" ]]; then
+            echo "promote_version_code is required when track is production."
+            exit 1
+          fi
+
+          key_file="$RUNNER_TEMP/google-play-service-account.json"
+          trap 'rm -f "$key_file"' EXIT
+          printf '%s' "$GOOGLE_PLAY_SERVICE_ACCOUNT_JSON" > "$key_file"
+          chmod 600 "$key_file"
+
+          gem install fastlane --no-document
+          fastlane supply \
+            --package_name zw.co.melios.quickprop.agent \
+            --json_key "$key_file" \
+            --track internal \
+            --track_promote_to production \
+            --version_code "$PROMOTE_VERSION_CODE" \
+            --track_promote_release_status completed \
+            --skip_upload_apk true \
+            --skip_upload_aab true \
+            --skip_upload_metadata true \
+            --skip_upload_images true \
+            --skip_upload_screenshots true \
+            --skip_upload_changelogs true
