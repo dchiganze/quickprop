@@ -26,7 +26,13 @@ function VideoPlayerModal({ uri, onClose }: { uri: string; onClose: () => void }
   return (
     <Modal visible animationType="fade" onRequestClose={onClose} supportedOrientations={['portrait', 'landscape']}>
       <View style={{ flex: 1, backgroundColor: '#000' }}>
-        <VideoView player={player} style={{ flex: 1 }} allowsFullscreen allowsPictureInPicture nativeControls />
+        <VideoView
+          player={player}
+          style={{ flex: 1 }}
+          fullscreenOptions={{ enable: true }}
+          allowsPictureInPicture
+          nativeControls
+        />
         <TouchableOpacity
           onPress={onClose}
           style={{ position: 'absolute', top: 56, right: 20, backgroundColor: '#00000099', borderRadius: 22, padding: 10 }}
@@ -646,7 +652,7 @@ const styles = StyleSheet.create({
   photoCountText: { color: '#FFF', fontSize: 11, fontWeight: '700' },
   galleryHint: { fontSize: 14 },
   fallbackImage: { width: '100%', height: '100%' },
-  fallbackVeil: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center', gap: 8 },
+  fallbackVeil: { ...StyleSheet.absoluteFill, alignItems: 'center', justifyContent: 'center', gap: 8 },
   statusBadge: { position: 'absolute', top: 12, left: 12, paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20 },
   statusText: { color: '#FFF', fontSize: 12, fontWeight: '700' },
   body: { paddingHorizontal: 20, paddingTop: 20, gap: 0 },

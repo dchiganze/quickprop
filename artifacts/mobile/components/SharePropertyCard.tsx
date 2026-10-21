@@ -6,7 +6,7 @@ import React, {
   useState,
 } from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
-import ViewShot from 'react-native-view-shot';
+import ViewShot, { type ViewShotRef } from 'react-native-view-shot';
 import { Property } from '@/types';
 import { getPrimaryListingPhoto } from '@/utils/listingPhoto';
 import colors from '@/constants/colors';
@@ -78,7 +78,7 @@ function wait(milliseconds: number): Promise<void> {
 
 export const SharePropertyCard = forwardRef<SharePropertyCardHandle, SharePropertyCardProps>(
   function SharePropertyCard({ property, shareUrl }, ref) {
-    const viewShotRef = useRef<ViewShot>(null);
+    const viewShotRef = useRef<ViewShotRef>(null);
     const photoUri = getPrimaryListingPhoto(property);
     const [imageFailed, setImageFailed] = useState(false);
     const readyRef = useRef(!photoUri);

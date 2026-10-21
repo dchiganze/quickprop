@@ -1,6 +1,6 @@
 import React, { forwardRef, useImperativeHandle, useRef } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import ViewShot from 'react-native-view-shot';
+import ViewShot, { type ViewShotRef } from 'react-native-view-shot';
 import { Property } from '@/types';
 import colors from '@/constants/colors';
 import { catalogueShareLinks } from '@/utils/shareLinks';
@@ -22,7 +22,7 @@ const CARD_HEIGHT = 450;
 
 export const ShareCatalogueCard = forwardRef<ShareCatalogueCardHandle, ShareCatalogueCardProps>(
   function ShareCatalogueCard({ properties, mode, agentName, agentId }, ref) {
-    const viewShotRef = useRef<ViewShot>(null);
+    const viewShotRef = useRef<ViewShotRef>(null);
     const shareUrl = catalogueShareLinks(mode === 'agent' ? agentId : undefined).webUrl;
     const forSale = properties.filter(property => property.type === 'sale').length;
     const forRent = properties.filter(property => property.type === 'rent').length;

@@ -8,7 +8,7 @@ import React, {
   useState,
 } from 'react';
 import { Image, ImageStyle, StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
-import ViewShot from 'react-native-view-shot';
+import ViewShot, { type ViewShotRef } from 'react-native-view-shot';
 import { Property } from '@/types';
 import { getPrimaryListingPhoto } from '@/utils/listingPhoto';
 
@@ -78,7 +78,7 @@ function PhotoTile({
 
 export const SharePropertyCollage = forwardRef<SharePropertyCollageHandle, SharePropertyCollageProps>(
   function SharePropertyCollage({ property }, ref) {
-    const viewShotRef = useRef<ViewShot>(null);
+    const viewShotRef = useRef<ViewShotRef>(null);
     const photoUris = useMemo(() => getCollagePhotos(property), [property]);
     const photoKey = photoUris.join('|');
     const pendingPhotosRef = useRef<Set<string>>(new Set());

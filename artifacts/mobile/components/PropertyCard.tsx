@@ -129,7 +129,7 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   mainImage: { width: '100%', height: '100%' },
-  fallbackOverlay: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center', gap: 4 },
+  fallbackOverlay: { ...StyleSheet.absoluteFill, alignItems: 'center', justifyContent: 'center', gap: 4 },
   fallbackText: { fontSize: 11, fontWeight: '600' },
   statusBadge: {
     position: 'absolute',

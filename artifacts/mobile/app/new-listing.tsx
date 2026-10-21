@@ -163,7 +163,7 @@ function VideoThumbnailPreview({ uri, onRemove }: { uri: string; onRemove: () =>
 const vt = StyleSheet.create({
   wrap: { borderRadius: 16, overflow: 'hidden', height: 200, backgroundColor: '#000' },
   thumb: { width: '100%', height: '100%' },
-  overlay: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center' },
+  overlay: { ...StyleSheet.absoluteFill, alignItems: 'center', justifyContent: 'center' },
   playBadge: { width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(0,0,0,0.55)', alignItems: 'center', justifyContent: 'center' },
   removeBtn: { position: 'absolute', top: 10, right: 10 },
   label: { position: 'absolute', bottom: 10, left: 10, flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20 },
