@@ -1,0 +1,63 @@
+name: Submit Android to Google Play
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_run_id:
+        description: "Successful Build Android AAB workflow run ID"
+        required: true
+        type: string
+      track:
+        description: "Google Play track to receive this release"
+        required: true
+        default: internal
+        type: choice
+        options:
+          - internal
+          - closed
+          - open
+          - production
+
+concurrency:
+  group: quickprop-android-play-submit
+  cancel-in-progress: false
+
+jobs:
+  submit:
+    name: Upload AAB to Google Play
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - name: Download AAB from build run
+        uses: actions/download-artifact@v4
+        with:
+          name: quickprop-agent-android
+          path: android-artifact
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ${{ github.repository }}
+          run-id: ${{ inputs.build_run_id }}
+
+      - name: Verify downloaded bundle
+        id: aab
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t bundles < <(find android-artifact -type f -name '*.aab' -print)
+          if [ "${#bundles[@]}" -ne 1 ]; then
+            echo "Expected exactly one Android App Bundle, found ${#bundles[@]}."
+            printf '%s\n' "${bundles[@]}"
+            exit 1
+          fi
+          echo "path=${bundles[0]}" >> "$GITHUB_OUTPUT"
+          echo "Using ${bundles[0]}"
+
+      - name: Upload release to Google Play
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: zw.co.melios.quickprop.agent
+          releaseFiles: ${{ steps.aab.outputs.path }}
+          tracks: ${{ inputs.track }}
+          status: completed
