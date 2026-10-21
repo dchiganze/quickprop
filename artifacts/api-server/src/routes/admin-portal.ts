@@ -46,7 +46,7 @@ import {
   checkAdminPasswordResetEmailReadiness,
   sendAgentSetupEmail,
 } from "../lib/housekeeping-delivery";
-import { requireRole, currentUser } from "./auth";
+import { requireRole, currentUser, normalizePhoneNumber, phoneDigits } from "./auth";
 import {
   clearPlatformDashboardData,
   getPlatformCleanupPreview,
@@ -581,6 +581,11 @@ router.post("/admin/agencies/:agencyId/agents", adminOnly, async (req, res): Pro
 
   const body = parsed.data;
   const email = body.email.trim().toLowerCase();
+  const phone = normalizePhoneNumber(body.phone);
+  if (!phone) {
+    res.status(400).json({ error: "Enter a valid phone number, including the country code." });
+    return;
+  }
   const [agency] = await db.select().from(businessAgenciesTable)
     .where(eq(businessAgenciesTable.id, agencyId)).limit(1);
   if (!agency) {
@@ -609,13 +614,25 @@ router.post("/admin/agencies/:agencyId/agents", adminOnly, async (req, res): Pro
     res.status(409).json({ error: "An account with this email already exists. Assign the existing agent from the team list instead." });
     return;
   }
+  const phoneLoginUsers = await db.select({
+    phone: usersTable.phone,
+    role: usersTable.role,
+    status: usersTable.status,
+  }).from(usersTable).where(and(
+    inArray(usersTable.status, ["active", "invited"]),
+    inArray(usersTable.role, ["agent", "senior_agent", "principal", "admin"]),
+  ));
+  if (phoneLoginUsers.some((user) => phoneDigits(user.phone) === phoneDigits(phone))) {
+    res.status(409).json({ error: "This phone number is already linked to a QuickProp sign-in account." });
+    return;
+  }
 
   const setupToken = createAgentSetupToken();
   const { user, tokenRecord } = await db.transaction(async (tx) => {
     const [createdUser] = await tx.insert(usersTable).values({
       name: body.name.trim(),
       email,
-      phone: body.phone?.trim() || null,
+      phone,
       role: "agent",
       branchId: branch.id,
       status: "invited",
@@ -694,7 +711,15 @@ router.post("/admin/agents/:id/setup-link", adminOnly, async (req, res): Promise
     res.status(404).json({ error: "Agent account not found" });
     return;
   }
-  if (agent.status !== "invited") {
+  const [pendingSetup] = await db.select({ id: passwordResetTokensTable.id })
+    .from(passwordResetTokensTable)
+    .where(and(
+      eq(passwordResetTokensTable.userId, agent.id),
+      eq(passwordResetTokensTable.purpose, "agent_setup"),
+      isNull(passwordResetTokensTable.usedAt),
+    ))
+    .limit(1);
+  if (agent.status !== "invited" && !(agent.status === "active" && pendingSetup)) {
     res.status(409).json({ error: "This account is not awaiting first-time setup." });
     return;
   }

@@ -70,7 +70,7 @@ const router: IRouter = Router();
 const COOKIE = "qp_uid";
 const PHONE_LOGIN_ROLES = new Set(["agent", "senior_agent", "principal", "admin"]);
 
-function normalizePhoneNumber(value: string): string | null {
+export function normalizePhoneNumber(value: string): string | null {
   const compact = value.trim().replace(/[^\d+]/g, "");
   let e164 = compact;
   if (compact.startsWith("0")) e164 = `+263${compact.slice(1)}`;
@@ -79,7 +79,7 @@ function normalizePhoneNumber(value: string): string | null {
   return e164;
 }
 
-function phoneDigits(value: string | null | undefined): string {
+export function phoneDigits(value: string | null | undefined): string {
   const digits = (value ?? "").replace(/\D/g, "");
   if (digits.startsWith("0")) return `263${digits.slice(1)}`;
   return digits;
@@ -108,7 +108,8 @@ async function requestTwilioVerify(path: "Verifications" | "VerificationCheck", 
 
 async function findPhoneLoginUser(phone: string) {
   const digits = phoneDigits(phone);
-  const users = await db.select().from(usersTable).where(eq(usersTable.status, "active"));
+  const users = await db.select().from(usersTable)
+    .where(inArray(usersTable.status, ["active", "invited"]));
   const matches = users.filter((user) =>
     PHONE_LOGIN_ROLES.has(user.role) && phoneDigits(user.phone) === digits,
   );
@@ -157,8 +158,32 @@ router.post("/auth/phone/verify", async (req, res): Promise<void> => {
   try {
     const result = await requestTwilioVerify("VerificationCheck", { To: phone, Code: code });
     if (result?.status !== "approved") { res.status(401).json({ error: "That verification code is invalid or expired." }); return; }
-    const user = await findPhoneLoginUser(phone);
+    let user = await findPhoneLoginUser(phone);
     if (!user) { res.status(401).json({ error: "This number is not linked to an eligible QuickProp account." }); return; }
+    if (user.status === "invited") {
+      if (!["agent", "senior_agent"].includes(user.role)) {
+        res.status(401).json({ error: "This number is not linked to an eligible QuickProp account." });
+        return;
+      }
+      const [activated] = await db.update(usersTable)
+        .set({ status: "active" })
+        .where(and(eq(usersTable.id, user.id), eq(usersTable.status, "invited")))
+        .returning();
+      if (activated) {
+        user = activated;
+        try {
+          await logAudit("activated", "user", user.id, "Agent activated after verifying phone sign-in", user.id, user.name);
+        } catch (auditError) {
+          req.log.error({ err: auditError, userId: user.id }, "Agent activation audit logging failed");
+        }
+      } else {
+        user = await findPhoneLoginUser(phone);
+        if (!user || user.status !== "active") {
+          res.status(401).json({ error: "This account is no longer eligible for sign-in." });
+          return;
+        }
+      }
+    }
     const accessToken = createSessionToken(user.id, sessionSecret());
     await logAudit("login", "user", user.id, `${user.name} signed in with verified phone`, user.id, user.name);
     res.json({ ...jsonify(toUser(user)), accessToken });
@@ -594,7 +619,7 @@ router.post("/auth/agent-setup/complete", async (req, res): Promise<void> => {
       .where(eq(usersTable.id, setupToken.userId))
       .limit(1)
       .for("update");
-    if (!user || user.status !== "invited" || !["agent", "senior_agent"].includes(user.role)) {
+    if (!user || !["invited", "active"].includes(user.status) || !["agent", "senior_agent"].includes(user.role)) {
       await tx
         .update(passwordResetTokensTable)
         .set({ usedAt: now })

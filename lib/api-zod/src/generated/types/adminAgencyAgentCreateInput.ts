@@ -20,8 +20,8 @@ export interface AdminAgencyAgentCreateInput {
      */
   email: string;
   /**
+     * @minLength 8
      * @maxLength 40
-     * @nullable
      */
-  phone?: string | null;
+  phone: string;
 }

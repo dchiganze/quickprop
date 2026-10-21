@@ -10131,7 +10131,7 @@ export const getResendAdminAgentSetupLinkUrl = (id: number,) => {
 }
 
 /**
- * @summary Send a fresh one-time setup link to an invited agent
+ * @summary Send a fresh one-time setup link to an agent awaiting first-time setup
  */
 export const resendAdminAgentSetupLink = async (id: number, options?: RequestInit): Promise<AdminAgentSetupResendResult> => {
 
@@ -10180,7 +10180,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type ResendAdminAgentSetupLinkMutationError = ErrorType<void>
 
     /**
- * @summary Send a fresh one-time setup link to an invited agent
+ * @summary Send a fresh one-time setup link to an agent awaiting first-time setup
  */
 export const useResendAdminAgentSetupLink = <TError = ErrorType<void>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resendAdminAgentSetupLink>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
@@ -10565,7 +10565,7 @@ export const getCreateAdminAgencyAgentUrl = (agencyId: number,) => {
 }
 
 /**
- * @summary Create an agent account and email a one-time setup link
+ * @summary Create an OTP-eligible agent account and email a one-time setup link
  */
 export const createAdminAgencyAgent = async (agencyId: number,
     adminAgencyAgentCreateInput: AdminAgencyAgentCreateInput, options?: RequestInit): Promise<AdminAgencyAgentCreateResult> => {
@@ -10615,7 +10615,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type CreateAdminAgencyAgentMutationError = ErrorType<void>
 
     /**
- * @summary Create an agent account and email a one-time setup link
+ * @summary Create an OTP-eligible agent account and email a one-time setup link
  */
 export const useCreateAdminAgencyAgent = <TError = ErrorType<void>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAdminAgencyAgent>>, TError,{agencyId: number;data: BodyType<AdminAgencyAgentCreateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}

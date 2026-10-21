@@ -5015,7 +5015,7 @@ export const GetAdminAgentsResponse = zod.array(GetAdminAgentsResponseItem)
 
 
 /**
- * @summary Send a fresh one-time setup link to an invited agent
+ * @summary Send a fresh one-time setup link to an agent awaiting first-time setup
  */
 export const ResendAdminAgentSetupLinkParams = zod.object({
   "id": zod.coerce.number()
@@ -5298,7 +5298,7 @@ export const CreateAdminAgencyBranchResponse = zod.object({
 
 
 /**
- * @summary Create an agent account and email a one-time setup link
+ * @summary Create an OTP-eligible agent account and email a one-time setup link
  */
 export const CreateAdminAgencyAgentParams = zod.object({
   "agencyId": zod.coerce.number()
@@ -5312,6 +5312,7 @@ export const createAdminAgencyAgentBodyEmailMax = 254;
 
 
 export const createAdminAgencyAgentBodyEmailRegExp = new RegExp('^[^@\\s]+@[^\\s@]+\\.[^\\s@]+$');
+export const createAdminAgencyAgentBodyPhoneMin = 8;
 export const createAdminAgencyAgentBodyPhoneMax = 40;
 
 
@@ -5320,7 +5321,7 @@ export const CreateAdminAgencyAgentBody = zod.object({
   "branchId": zod.number().min(1),
   "name": zod.string().min(createAdminAgencyAgentBodyNameMin).max(createAdminAgencyAgentBodyNameMax),
   "email": zod.string().max(createAdminAgencyAgentBodyEmailMax).regex(createAdminAgencyAgentBodyEmailRegExp),
-  "phone": zod.string().max(createAdminAgencyAgentBodyPhoneMax).nullish()
+  "phone": zod.string().min(createAdminAgencyAgentBodyPhoneMin).max(createAdminAgencyAgentBodyPhoneMax)
 })
 
 export const CreateAdminAgencyAgentResponse = zod.object({

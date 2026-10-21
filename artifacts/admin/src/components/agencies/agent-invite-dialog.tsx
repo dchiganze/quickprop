@@ -23,7 +23,7 @@ export type AgentInviteDraft = {
   branchId: number;
   name: string;
   email: string;
-  phone: string | null;
+  phone: string;
 };
 
 type AgentInviteDialogProps = {
@@ -83,7 +83,7 @@ export function AgentInviteDialog({
       branchId: selectedBranchId,
       name: cleanName,
       email: cleanEmail,
-      phone: phone.trim() || null,
+      phone: phone.trim(),
     });
   };
 
@@ -93,7 +93,7 @@ export function AgentInviteDialog({
         <DialogHeader>
           <DialogTitle>Add agent to {agency?.name ?? 'agency'}</DialogTitle>
           <DialogDescription>
-            QuickProp will create the agent account and email a one-time link to set a password. The account becomes active after setup.
+            QuickProp will email a one-time password setup link. The saved phone can receive sign-in codes immediately; the first verified code activates the account.
           </DialogDescription>
         </DialogHeader>
 
@@ -131,12 +131,21 @@ export function AgentInviteDialog({
             </label>
             <label className="block space-y-1.5">
               <span className="text-sm font-medium">Phone</span>
-              <Input type="tel" value={phone} onChange={(event) => setPhone(event.target.value)} maxLength={40} />
+              <Input
+                type="tel"
+                autoComplete="tel"
+                value={phone}
+                onChange={(event) => setPhone(event.target.value)}
+                placeholder="+263 77 123 4567"
+                maxLength={40}
+                required
+              />
+              <span className="block text-xs text-muted-foreground">Use an international number; Zimbabwe local numbers starting with 0 are accepted too.</span>
             </label>
             {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>Cancel</Button>
-              <Button type="submit" disabled={saving || !branchId}>
+              <Button type="submit" disabled={saving || !branchId || !phone.trim()}>
                 {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Send setup link
               </Button>

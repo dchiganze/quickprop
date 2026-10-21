@@ -169,7 +169,7 @@ export default function Agencies() {
           refetchAll();
           toast({
             title: 'Agent invited',
-            description: `A one-time setup link was sent to ${result.email}.`,
+            description: `A setup link was sent to ${result.email}. Their phone can receive OTP sign-in immediately; the first verified code activates the account.`,
           });
         },
         onError: (error) => toast({
