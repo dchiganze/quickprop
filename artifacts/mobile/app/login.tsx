@@ -218,7 +218,7 @@ export default function LoginScreen() {
                 >
                   <Ionicons name={smsConsent ? 'checkbox' : 'square-outline'} size={20} color={smsConsent ? colors.primary : colors.mutedForeground} />
                   <Text style={{ flex: 1, color: colors.mutedForeground, fontSize: 12, lineHeight: 18 }}>
-                    I agree to receive one-time SMS sign-in codes from QuickProp. Message and data rates may apply. Message frequency varies. Reply STOP to opt out or HELP for help.
+                    I agree to QuickProp SMS sign-in codes. Msg/data rates may apply; reply STOP to opt out or HELP for help.
                   </Text>
                 </TouchableOpacity>
               )}
