@@ -11,6 +11,8 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   startPhoneLogin: (phone: string, smsConsent: boolean) => Promise<{ success: boolean; error?: string }>;
   verifyPhoneLogin: (phone: string, code: string) => Promise<{ success: boolean; error?: string }>;
+  signInWithPasskey: () => Promise<{ success: boolean; error?: string }>;
+  registerPasskey: () => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   deleteAccount: (password: string, confirmation: string) => Promise<void>;
   updateUser: (updates: Partial<User>) => Promise<void>;
@@ -146,6 +148,8 @@ const AuthContext = createContext<AuthContextType>({
   login: async () => ({ success: false }),
   startPhoneLogin: async () => ({ success: false }),
   verifyPhoneLogin: async () => ({ success: false }),
+  signInWithPasskey: async () => ({ success: false }),
+  registerPasskey: async () => ({ success: false }),
   logout: async () => {},
   deleteAccount: async () => {},
   updateUser: async () => {},
@@ -293,6 +297,57 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const signInWithPasskey = async () => {
+    if (!apiBaseUrl || Platform.OS === 'web') return { success: false, error: 'Passkeys are available in the iPhone and Android apps.' };
+    try {
+      const Passkeys = await import('react-native-passkeys');
+      const optionsResponse = await fetch(apiUrl('/auth/passkeys/authentication/options'), { method: 'POST' });
+      const challenge = await optionsResponse.json() as { challengeId?: string; options?: Parameters<typeof Passkeys.get>[0]; error?: string };
+      if (!optionsResponse.ok || !challenge.challengeId || !challenge.options) return { success: false, error: challenge.error ?? 'Passkey sign-in is unavailable.' };
+      const credential = await Passkeys.get(challenge.options);
+      if (!credential) return { success: false, error: 'Passkey sign-in was cancelled.' };
+      const response = await fetch(apiUrl('/auth/passkeys/authentication/verify'), {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ challengeId: challenge.challengeId, credential }),
+      });
+      const result = await response.json().catch(() => null) as (LoginResult & { error?: string }) | null;
+      if (!response.ok || !result?.accessToken) return { success: false, error: result?.error ?? 'Passkey sign-in failed.' };
+      const loggedInUser = toMobileUser(result);
+      const currentStoredIdentity = storedUserIdentity(await AsyncStorage.getItem(AUTH_KEY));
+      if (currentStoredIdentity && currentStoredIdentity !== `${loggedInUser.id}:${loggedInUser.email.toLowerCase()}`) await clearLocalAccountData();
+      await Promise.all([AsyncStorage.setItem(AUTH_KEY, JSON.stringify(loggedInUser)), storeToken(result.accessToken)]);
+      setUser(loggedInUser);
+      return { success: true };
+    } catch {
+      return { success: false, error: 'Passkeys need the updated QuickProp app. Update the installed app first; Expo Go does not include passkey support.' };
+    }
+  };
+
+  const registerPasskey = async () => {
+    if (!apiBaseUrl || Platform.OS === 'web') return { success: false, error: 'Passkeys are available in the iPhone and Android apps.' };
+    try {
+      const Passkeys = await import('react-native-passkeys');
+      const token = await getStoredToken();
+      if (!token) return { success: false, error: 'Sign in with SMS first to add a passkey.' };
+      const optionsResponse = await fetch(apiUrl('/auth/passkeys/registration/options'), {
+        method: 'POST', headers: { Authorization: `Bearer ${token}` },
+      });
+      const setup = await optionsResponse.json() as { challengeId?: string; options?: Parameters<typeof Passkeys.create>[0]; error?: string };
+      if (!optionsResponse.ok || !setup.challengeId || !setup.options) return { success: false, error: setup.error ?? 'Could not start passkey setup.' };
+      const credential = await Passkeys.create(setup.options);
+      if (!credential) return { success: false, error: 'Passkey setup was cancelled.' };
+      const response = await fetch(apiUrl('/auth/passkeys/registration/verify'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ challengeId: setup.challengeId, credential }),
+      });
+      const result = await response.json().catch(() => null) as { error?: string } | null;
+      return response.ok ? { success: true } : { success: false, error: result?.error ?? 'Could not save the passkey.' };
+    } catch {
+      return { success: false, error: 'Passkeys need the updated QuickProp app. Update the installed app first; Expo Go does not include passkey support.' };
+    }
+  };
+
   const logout = async () => {
     await clearAccountSession();
     setUser(null);
@@ -348,7 +403,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, startPhoneLogin, verifyPhoneLogin, logout, deleteAccount, updateUser }}>
+    <AuthContext.Provider value={{ user, loading, login, startPhoneLogin, verifyPhoneLogin, signInWithPasskey, registerPasskey, logout, deleteAccount, updateUser }}>
       {children}
     </AuthContext.Provider>
   );

@@ -5,6 +5,20 @@
  * QuickProp Office API
  * OpenAPI spec version: 0.1.0
  */
+export type PasskeyRegistrationVerificationInputCredential = { [key: string]: unknown };
+
+export interface PasskeyRegistrationVerificationInput {
+  challengeId: string;
+  credential: PasskeyRegistrationVerificationInputCredential;
+}
+
+export type PasskeyAuthenticationVerificationInputCredential = { [key: string]: unknown };
+
+export interface PasskeyAuthenticationVerificationInput {
+  challengeId: string;
+  credential: PasskeyAuthenticationVerificationInputCredential;
+}
+
 export type RentalAgencyVerificationStatus = typeof RentalAgencyVerificationStatus[keyof typeof RentalAgencyVerificationStatus];
 
 
@@ -2572,6 +2586,20 @@ export interface ImportAssistantResponse {
   message: string;
   suggestions: string[];
 }
+
+export type GetPasskeyRegistrationOptions200Options = { [key: string]: unknown };
+
+export type GetPasskeyRegistrationOptions200 = {
+  challengeId: string;
+  options: GetPasskeyRegistrationOptions200Options;
+};
+
+export type GetPasskeyAuthenticationOptions200Options = { [key: string]: unknown };
+
+export type GetPasskeyAuthenticationOptions200 = {
+  challengeId: string;
+  options: GetPasskeyAuthenticationOptions200Options;
+};
 
 export type ListPropertiesParams = {
 status?: string;

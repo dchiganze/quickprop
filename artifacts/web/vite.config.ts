@@ -30,6 +30,21 @@ if (!basePath) {
 export default defineConfig({
   base: basePath,
   plugins: [
+    {
+      name: 'quickprop-aasa-content-type',
+      configureServer(server) {
+        server.middlewares.use('/.well-known/apple-app-site-association', (_req, res, next) => {
+          res.setHeader('Content-Type', 'application/json');
+          next();
+        });
+      },
+      configurePreviewServer(server) {
+        server.middlewares.use('/.well-known/apple-app-site-association', (_req, res, next) => {
+          res.setHeader('Content-Type', 'application/json');
+          next();
+        });
+      },
+    },
     react(),
     tailwindcss(),
     runtimeErrorOverlay(),

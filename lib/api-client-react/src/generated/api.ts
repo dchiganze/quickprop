@@ -85,6 +85,8 @@ import type {
   DuplicateReviewAction,
   EnquiryInput,
   EnquiryResult,
+  GetPasskeyAuthenticationOptions200,
+  GetPasskeyRegistrationOptions200,
   HealthStatus,
   HealthUpdateInput,
   HealthUpdateResult,
@@ -125,6 +127,8 @@ import type {
   MultiAgentProperty,
   Notification,
   OfficeSearchParams,
+  PasskeyAuthenticationVerificationInput,
+  PasskeyRegistrationVerificationInput,
   PasswordResetCompleteInput,
   PasswordResetRequestInput,
   PasswordResetResult,
@@ -498,6 +502,266 @@ export const useVerifyPhoneLogin = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getVerifyPhoneLoginMutationOptions(options));
+    }
+
+export const getGetPasskeyRegistrationOptionsUrl = () => {
+
+
+
+
+  return `/api/auth/passkeys/registration/options`
+}
+
+export const getPasskeyRegistrationOptions = async ( options?: RequestInit): Promise<GetPasskeyRegistrationOptions200> => {
+
+  return customFetch<GetPasskeyRegistrationOptions200>(getGetPasskeyRegistrationOptionsUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPasskeyRegistrationOptionsMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof getPasskeyRegistrationOptions>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof getPasskeyRegistrationOptions>>, TError,void, TContext> => {
+
+const mutationKey = ['getPasskeyRegistrationOptions'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof getPasskeyRegistrationOptions>>, void> = () => {
+
+
+          return  getPasskeyRegistrationOptions(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type GetPasskeyRegistrationOptionsMutationResult = NonNullable<Awaited<ReturnType<typeof getPasskeyRegistrationOptions>>>
+
+    export type GetPasskeyRegistrationOptionsMutationError = ErrorType<void>
+
+    export const useGetPasskeyRegistrationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof getPasskeyRegistrationOptions>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof getPasskeyRegistrationOptions>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getGetPasskeyRegistrationOptionsMutationOptions(options));
+    }
+
+export const getVerifyPasskeyRegistrationUrl = () => {
+
+
+
+
+  return `/api/auth/passkeys/registration/verify`
+}
+
+export const verifyPasskeyRegistration = async (passkeyRegistrationVerificationInput: PasskeyRegistrationVerificationInput, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getVerifyPasskeyRegistrationUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(passkeyRegistrationVerificationInput)
+  }
+);}
+
+
+
+
+
+export const getVerifyPasskeyRegistrationMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof verifyPasskeyRegistration>>, TError,{data: BodyType<PasskeyRegistrationVerificationInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof verifyPasskeyRegistration>>, TError,{data: BodyType<PasskeyRegistrationVerificationInput>}, TContext> => {
+
+const mutationKey = ['verifyPasskeyRegistration'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof verifyPasskeyRegistration>>, {data: BodyType<PasskeyRegistrationVerificationInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  verifyPasskeyRegistration(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type VerifyPasskeyRegistrationMutationResult = NonNullable<Awaited<ReturnType<typeof verifyPasskeyRegistration>>>
+    export type VerifyPasskeyRegistrationMutationBody = BodyType<PasskeyRegistrationVerificationInput>
+    export type VerifyPasskeyRegistrationMutationError = ErrorType<void>
+
+    export const useVerifyPasskeyRegistration = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof verifyPasskeyRegistration>>, TError,{data: BodyType<PasskeyRegistrationVerificationInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof verifyPasskeyRegistration>>,
+        TError,
+        {data: BodyType<PasskeyRegistrationVerificationInput>},
+        TContext
+      > => {
+      return useMutation(getVerifyPasskeyRegistrationMutationOptions(options));
+    }
+
+export const getGetPasskeyAuthenticationOptionsUrl = () => {
+
+
+
+
+  return `/api/auth/passkeys/authentication/options`
+}
+
+export const getPasskeyAuthenticationOptions = async ( options?: RequestInit): Promise<GetPasskeyAuthenticationOptions200> => {
+
+  return customFetch<GetPasskeyAuthenticationOptions200>(getGetPasskeyAuthenticationOptionsUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPasskeyAuthenticationOptionsMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof getPasskeyAuthenticationOptions>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof getPasskeyAuthenticationOptions>>, TError,void, TContext> => {
+
+const mutationKey = ['getPasskeyAuthenticationOptions'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof getPasskeyAuthenticationOptions>>, void> = () => {
+
+
+          return  getPasskeyAuthenticationOptions(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type GetPasskeyAuthenticationOptionsMutationResult = NonNullable<Awaited<ReturnType<typeof getPasskeyAuthenticationOptions>>>
+
+    export type GetPasskeyAuthenticationOptionsMutationError = ErrorType<unknown>
+
+    export const useGetPasskeyAuthenticationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof getPasskeyAuthenticationOptions>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof getPasskeyAuthenticationOptions>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getGetPasskeyAuthenticationOptionsMutationOptions(options));
+    }
+
+export const getVerifyPasskeyAuthenticationUrl = () => {
+
+
+
+
+  return `/api/auth/passkeys/authentication/verify`
+}
+
+export const verifyPasskeyAuthentication = async (passkeyAuthenticationVerificationInput: PasskeyAuthenticationVerificationInput, options?: RequestInit): Promise<LoginResult> => {
+
+  return customFetch<LoginResult>(getVerifyPasskeyAuthenticationUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(passkeyAuthenticationVerificationInput)
+  }
+);}
+
+
+
+
+
+export const getVerifyPasskeyAuthenticationMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof verifyPasskeyAuthentication>>, TError,{data: BodyType<PasskeyAuthenticationVerificationInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof verifyPasskeyAuthentication>>, TError,{data: BodyType<PasskeyAuthenticationVerificationInput>}, TContext> => {
+
+const mutationKey = ['verifyPasskeyAuthentication'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof verifyPasskeyAuthentication>>, {data: BodyType<PasskeyAuthenticationVerificationInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  verifyPasskeyAuthentication(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type VerifyPasskeyAuthenticationMutationResult = NonNullable<Awaited<ReturnType<typeof verifyPasskeyAuthentication>>>
+    export type VerifyPasskeyAuthenticationMutationBody = BodyType<PasskeyAuthenticationVerificationInput>
+    export type VerifyPasskeyAuthenticationMutationError = ErrorType<void>
+
+    export const useVerifyPasskeyAuthentication = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof verifyPasskeyAuthentication>>, TError,{data: BodyType<PasskeyAuthenticationVerificationInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof verifyPasskeyAuthentication>>,
+        TError,
+        {data: BodyType<PasskeyAuthenticationVerificationInput>},
+        TContext
+      > => {
+      return useMutation(getVerifyPasskeyAuthenticationMutationOptions(options));
     }
 
 export const getRequestAdminPasswordResetUrl = () => {

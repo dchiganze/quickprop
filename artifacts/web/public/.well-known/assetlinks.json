@@ -1,0 +1,15 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls",
+      "delegate_permission/common.get_login_creds"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "zw.co.melios.quickprop.agent",
+      "sha256_cert_fingerprints": [
+        "8A:AC:81:C1:26:4D:89:7F:08:AC:CC:38:EC:D8:5B:1F:45:05:E9:3A:8A:58:F4:D0:B9:21:46:B2:CA:8F:D2:EC"
+      ]
+    }
+  }
+]

@@ -20,11 +20,13 @@ import propertyAlertsRouter from "./property-alerts";
 import agencySettingsRouter from "./agency-settings";
 import shareRouter from "./share";
 import publicationSyncRouter from "./publication-sync";
+import passkeysRouter from "./passkeys";
 
 const router: IRouter = Router();
 
 router.use(healthRouter);
 router.use(authRouter);
+router.use(passkeysRouter);
 // Storage reads are public for published listing media, while upload URL
 // requests validate the bearer session inside the route.
 router.use(storageRouter);

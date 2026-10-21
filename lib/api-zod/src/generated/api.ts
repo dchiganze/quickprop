@@ -73,6 +73,45 @@ export const VerifyPhoneLoginResponse = zod.object({
 }))
 
 
+export const GetPasskeyRegistrationOptionsResponse = zod.object({
+  "challengeId": zod.string(),
+  "options": zod.record(zod.string(), zod.unknown())
+})
+
+
+export const VerifyPasskeyRegistrationBody = zod.object({
+  "challengeId": zod.string(),
+  "credential": zod.record(zod.string(), zod.unknown())
+})
+
+export const VerifyPasskeyRegistrationResponse = zod.unknown()
+
+
+export const GetPasskeyAuthenticationOptionsResponse = zod.object({
+  "challengeId": zod.string(),
+  "options": zod.record(zod.string(), zod.unknown())
+})
+
+
+export const VerifyPasskeyAuthenticationBody = zod.object({
+  "challengeId": zod.string(),
+  "credential": zod.record(zod.string(), zod.unknown())
+})
+
+export const VerifyPasskeyAuthenticationResponse = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "email": zod.string(),
+  "phone": zod.string().nullish(),
+  "role": zod.string().describe('principal | admin | senior_agent | agent | receptionist | marketing | viewer'),
+  "branchId": zod.number().nullish(),
+  "status": zod.string().describe('active | suspended | inactive'),
+  "avatarUrl": zod.string().nullish()
+}).and(zod.object({
+  "accessToken": zod.string().describe('Signed bearer token for native clients, valid for up to 30 days.')
+}))
+
+
 /**
  * @summary Send a one-time admin password reset link when the account is eligible
  */

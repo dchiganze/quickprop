@@ -105,6 +105,76 @@ paths:
           description: Code is invalid or account is not eligible
         "503":
           description: Phone verification service unavailable
+  /auth/passkeys/registration/options:
+    post:
+      operationId: getPasskeyRegistrationOptions
+      tags: [auth]
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Native passkey creation challenge
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [challengeId, options]
+                properties:
+                  challengeId: { type: string }
+                  options: { type: object, additionalProperties: true }
+        "401":
+          description: Authentication required
+  /auth/passkeys/registration/verify:
+    post:
+      operationId: verifyPasskeyRegistration
+      tags: [auth]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PasskeyRegistrationVerificationInput"
+      responses:
+        "200":
+          description: Passkey was added to the account
+        "400":
+          description: Invalid or expired registration challenge
+  /auth/passkeys/authentication/options:
+    post:
+      operationId: getPasskeyAuthenticationOptions
+      tags: [auth]
+      responses:
+        "200":
+          description: Native passkey authentication challenge
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [challengeId, options]
+                properties:
+                  challengeId: { type: string }
+                  options: { type: object, additionalProperties: true }
+  /auth/passkeys/authentication/verify:
+    post:
+      operationId: verifyPasskeyAuthentication
+      tags: [auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PasskeyAuthenticationVerificationInput"
+      responses:
+        "200":
+          description: Passkey verified and session issued
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResult"
+        "401":
+          description: Passkey could not be verified
   /auth/password-reset/request:
     post:
       operationId: requestAdminPasswordReset
@@ -2346,6 +2416,18 @@ paths:
               schema: { $ref: "#/components/schemas/ImportAssistantResponse" }
 components:
   schemas:
+    PasskeyRegistrationVerificationInput:
+      type: object
+      required: [challengeId, credential]
+      properties:
+        challengeId: { type: string }
+        credential: { type: object, additionalProperties: true }
+    PasskeyAuthenticationVerificationInput:
+      type: object
+      required: [challengeId, credential]
+      properties:
+        challengeId: { type: string }
+        credential: { type: object, additionalProperties: true }
     RentalAgency:
       type: object
       required: [id, name, verificationStatus, status, createdAt, updatedAt]

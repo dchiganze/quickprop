@@ -14,3 +14,4 @@ export * from "./rental-profile";
 export * from "./property-alerts";
 export * from "./agency-settings";
 export * from "./password-reset";
+export * from "./passkeys";

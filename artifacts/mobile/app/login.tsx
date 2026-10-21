@@ -13,17 +13,16 @@ import { useAuth } from '@/contexts/AuthContext';
 export default function LoginScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { login } = useAuth();
+  const { login, startPhoneLogin, verifyPhoneLogin, signInWithPasskey, registerPasskey } = useAuth();
   const [email, setEmail] = useState('demo@quickprop.co.zw');
   const [password, setPassword] = useState('demo1234');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [phoneMode, setPhoneMode] = useState(false);
+  const [phoneMode, setPhoneMode] = useState(true);
   const [phone, setPhone] = useState('');
   const [phoneCode, setPhoneCode] = useState('');
   const [phoneCodeSent, setPhoneCodeSent] = useState(false);
   const [smsConsent, setSmsConsent] = useState(false);
-  const { startPhoneLogin, verifyPhoneLogin } = useAuth();
 
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
@@ -57,8 +56,25 @@ export default function LoginScreen() {
     setLoading(true);
     const result = await verifyPhoneLogin(phone.trim(), cleanCode);
     setLoading(false);
-    if (result.success) router.replace('/(tabs)');
+    if (result.success) {
+      Alert.alert('Signed in', 'Would you like to add a passkey for faster sign-in on this device?', [
+        { text: 'Not now', style: 'cancel', onPress: () => router.replace('/(tabs)') },
+        { text: 'Add passkey', onPress: async () => {
+          const added = await registerPasskey();
+          if (!added.success) Alert.alert('Passkey not added', added.error || 'Try again from your next sign-in.');
+          router.replace('/(tabs)');
+        } },
+      ]);
+    }
     else if (codeValue === phoneCode) Alert.alert('Sign-in failed', result.error || 'Check the code and try again.');
+  };
+
+  const handlePasskeyLogin = async () => {
+    setLoading(true);
+    const result = await signInWithPasskey();
+    setLoading(false);
+    if (result.success) router.replace('/(tabs)');
+    else Alert.alert('Passkey sign-in', result.error || 'No passkey is available for this account yet. Sign in with SMS first to add one.');
   };
 
   const handleSocial = async (provider: string) => {
@@ -153,9 +169,6 @@ export default function LoginScreen() {
               >
                 {loading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.primaryBtnText}>{phoneCodeSent ? 'Verify code' : 'Send code'}</Text>}
               </TouchableOpacity>
-              <TouchableOpacity style={styles.forgotBtn} onPress={() => { setPhoneMode(false); setPhoneCodeSent(false); setPhoneCode(''); }}>
-                <Text style={[styles.forgotText, { color: colors.primary }]}>Use email and password instead</Text>
-              </TouchableOpacity>
             </>
           ) : (
             <>
@@ -214,47 +227,29 @@ export default function LoginScreen() {
           )}
         </View>
 
-        {/* Divider */}
-        <View style={styles.dividerRow}>
-          <View style={[styles.divider, { backgroundColor: colors.border }]} />
-          <Text style={[styles.dividerText, { color: colors.mutedForeground }]}>or continue with</Text>
-          <View style={[styles.divider, { backgroundColor: colors.border }]} />
-        </View>
-
-        {/* Social */}
-        <View style={styles.socialRow}>
-          <TouchableOpacity
-            style={[styles.socialBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
-            onPress={() => handleSocial('google')}
-          >
-            <Ionicons name="logo-google" size={22} color="#EA4335" />
-            <Text style={[styles.socialText, { color: colors.foreground }]}>Google</Text>
-          </TouchableOpacity>
-          {Platform.OS === 'ios' && (
+        {Platform.OS !== 'web' && (
+          <>
+            <View style={styles.dividerRow}>
+              <View style={[styles.divider, { backgroundColor: colors.border }]} />
+              <Text style={[styles.dividerText, { color: colors.mutedForeground }]}>or</Text>
+              <View style={[styles.divider, { backgroundColor: colors.border }]} />
+            </View>
             <TouchableOpacity
-              style={[styles.socialBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
-              onPress={() => handleSocial('apple')}
+              testID="passkey-sign-in"
+              accessibilityRole="button"
+              style={[styles.primaryBtn, { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }]}
+              onPress={handlePasskeyLogin}
+              disabled={loading}
             >
-              <Ionicons name="logo-apple" size={22} color={colors.foreground} />
-              <Text style={[styles.socialText, { color: colors.foreground }]}>Apple</Text>
+              {loading ? <ActivityIndicator color={colors.primary} /> : (
+                <>
+                  <Ionicons name="finger-print-outline" size={20} color={colors.primary} />
+                  <Text style={[styles.primaryBtnText, { color: colors.foreground }]}>Sign in with passkey</Text>
+                </>
+              )}
             </TouchableOpacity>
-          )}
-          <TouchableOpacity
-            style={[styles.socialBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
-            onPress={handleLogin}
-          >
-            <Ionicons name="mail-outline" size={22} color={colors.primary} />
-            <Text style={[styles.socialText, { color: colors.foreground }]}>Email</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Demo hint */}
-        <View style={[styles.demoHint, { backgroundColor: colors.accent + '15', borderColor: colors.accent + '30' }]}>
-          <Ionicons name="information-circle-outline" size={16} color={colors.accent} />
-          <Text style={[styles.demoText, { color: colors.accent }]}>
-            Demo: any email / any password
-          </Text>
-        </View>
+          </>
+        )}
       </ScrollView>
     </KeyboardAvoidingView>
   );
