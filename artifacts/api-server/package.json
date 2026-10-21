@@ -10,7 +10,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "../../scripts/node_modules/.bin/tsx --test src/lib/agent-reviews.test.ts src/lib/housekeeping.test.ts src/lib/housekeeping-job-planner.test.ts src/lib/imports.test.ts src/lib/password-reset.test.ts src/lib/password-reset-email.test.ts src/lib/sessions.test.ts",
     "test:integration": "../../scripts/node_modules/.bin/tsx --test src/lib/housekeeping-job.test.ts src/lib/imports.test.ts",
-    "test:release": "RELEASE_VALIDATION=1 ../../scripts/node_modules/.bin/tsx --test src/lib/imports.test.ts"
+    "test:release": "DATABASE_URL=\"${TEST_DATABASE_URL:?TEST_DATABASE_URL is required}\" RELEASE_VALIDATION=1 ../../scripts/node_modules/.bin/tsx --test src/lib/imports.test.ts"
   },
   "dependencies": {
     "@google/genai": "^1.44.0",
