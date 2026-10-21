@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  View, Text, TextInput, TouchableOpacity, StyleSheet, Platform, ActivityIndicator,
+  View, Text, TextInput, TouchableOpacity, StyleSheet, Platform, ActivityIndicator, Image,
   Alert, Linking, Animated, useWindowDimensions, useColorScheme,
 } from 'react-native';
 import { SvgXml } from 'react-native-svg';
@@ -193,9 +193,13 @@ export default function LoginScreen() {
       >
         <View style={[styles.hero, { paddingTop: insets.top + (compact ? 14 : 24) }]}>
           <View style={styles.brandRow}>
-            <View style={[styles.mark, { backgroundColor: emerald }]}>
-              <Ionicons name="home" size={16} color={onEmerald} />
-            </View>
+            <Image
+              source={require('../assets/images/icon_2.png')}
+              style={styles.brandIcon}
+              resizeMode="contain"
+              accessibilityRole="image"
+              accessibilityLabel="QuickProp app icon"
+            />
             <Text style={styles.brandText}>QuickProp</Text>
           </View>
           <View style={[styles.illoWrap, { width: illoSize, height: illoSize, borderRadius: illoSize / 2 }]}>
@@ -329,7 +333,7 @@ const styles = StyleSheet.create({
   scroll: { flexGrow: 1 },
   hero: { alignItems: 'center', paddingHorizontal: 24, paddingBottom: 22, gap: 14 },
   brandRow: { flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'flex-start' },
-  mark: { width: 28, height: 28, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
+  brandIcon: { width: 36, height: 36, borderRadius: 10 },
   brandText: { color: '#F3F7FF', fontSize: 22, fontWeight: '800', letterSpacing: -0.6 },
   illoWrap: { backgroundColor: 'rgba(15,191,138,0.16)', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   tagline: { color: '#F3F7FF', fontSize: 24, fontWeight: '800', textAlign: 'center', letterSpacing: -0.6, lineHeight: 30, maxWidth: 320 },
