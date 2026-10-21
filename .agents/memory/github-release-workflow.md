@@ -3,8 +3,8 @@ name: GitHub Release Workflow Publishing
 description: Constraints when publishing QuickProp mobile release workflow changes through the connected GitHub integration.
 ---
 
-GitHub Actions workflow files require a connection with the repository `workflow` permission. A connection that only has `repo` access can read and dispatch existing workflows but cannot push commits that create or update files under `.github/workflows/`.
+GitHub Actions workflow files require the repository `workflow` permission. The GitHub connection can read and dispatch existing workflows and push ordinary source changes, but workflow-file pushes are rejected without that permission. Reauthorizing may still leave native git pushes denied.
 
-**Why:** GitHub rejected a release-branch push specifically because the OAuth grant lacked `workflow`. Reauthorizing through the available connection did not expose that permission, and both the contents API and native GitHub client were blocked by the connector's Cloudflare proxy.
+**Why:** GitHub rejected a release-branch push specifically because the OAuth grant lacked `workflow`; a reconnect was approved but the push was rejected again. The contents API and connector proxy were also unavailable for workflow-file updates.
 
-**How to apply:** Before planning a release workflow change, verify that the GitHub connection can update workflow files. If it cannot, keep the change local and report that the workflow must be updated through a GitHub path with workflow permission; do not create replacement certificates or ask the user to paste credentials.
+**How to apply:** Before planning a release workflow change, verify that the GitHub connection can update workflow files. If a push is rejected, do not keep retrying after one reconnect. If safe, move CI environment wiring into the test command or application code instead; otherwise report that the workflow needs a GitHub path with workflow permission. Do not create replacement certificates or ask for credentials.
