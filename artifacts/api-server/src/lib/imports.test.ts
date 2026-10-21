@@ -310,6 +310,7 @@ test(
           rawData: { address: "12 Import Test Street" },
           extractedData: {
             reference,
+            title: `${reference} import fixture`,
             address: "12 Import Test Street",
             suburb: "Avondale",
             city: "Harare",
