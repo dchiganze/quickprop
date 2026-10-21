@@ -194,11 +194,11 @@ export default function LoginScreen() {
         <View style={[styles.hero, { paddingTop: insets.top + (compact ? 14 : 24) }]}>
           <View style={styles.brandRow}>
             <Image
-              source={require('../assets/images/icon_2.png')}
+              source={require('../assets/images/quickprop-house-mark-white.png')}
               style={styles.brandIcon}
               resizeMode="contain"
               accessibilityRole="image"
-              accessibilityLabel="QuickProp app icon"
+              accessibilityLabel="QuickProp house logo"
             />
             <Text style={styles.brandText}>QuickProp</Text>
           </View>
