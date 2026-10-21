@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { SvgXml } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
+import { countries, getEmojiFlag, type TCountryCode } from 'countries-list';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
@@ -31,32 +32,20 @@ const openUrl = (url: string) => {
 };
 
 type Mode = 'welcome' | 'phone';
-type PhoneCountry = { name: string; dialCode: string; flag: string };
+type PhoneCountry = { isoCode: TCountryCode; name: string; dialCode: string; flag: string };
 
-const PHONE_COUNTRIES: PhoneCountry[] = [
-  { name: 'Zimbabwe', dialCode: '+263', flag: '🇿🇼' },
-  { name: 'South Africa', dialCode: '+27', flag: '🇿🇦' },
-  { name: 'Botswana', dialCode: '+267', flag: '🇧🇼' },
-  { name: 'Zambia', dialCode: '+260', flag: '🇿🇲' },
-  { name: 'Mozambique', dialCode: '+258', flag: '🇲🇿' },
-  { name: 'Malawi', dialCode: '+265', flag: '🇲🇼' },
-  { name: 'Namibia', dialCode: '+264', flag: '🇳🇦' },
-  { name: 'Lesotho', dialCode: '+266', flag: '🇱🇸' },
-  { name: 'Eswatini', dialCode: '+268', flag: '🇸🇿' },
-  { name: 'Kenya', dialCode: '+254', flag: '🇰🇪' },
-  { name: 'Tanzania', dialCode: '+255', flag: '🇹🇿' },
-  { name: 'Uganda', dialCode: '+256', flag: '🇺🇬' },
-  { name: 'Rwanda', dialCode: '+250', flag: '🇷🇼' },
-  { name: 'Nigeria', dialCode: '+234', flag: '🇳🇬' },
-  { name: 'Ghana', dialCode: '+233', flag: '🇬🇭' },
-  { name: 'United Kingdom', dialCode: '+44', flag: '🇬🇧' },
-  { name: 'United States', dialCode: '+1', flag: '🇺🇸' },
-  { name: 'Canada', dialCode: '+1', flag: '🇨🇦' },
-  { name: 'Australia', dialCode: '+61', flag: '🇦🇺' },
-  { name: 'India', dialCode: '+91', flag: '🇮🇳' },
-];
+const PHONE_COUNTRIES: PhoneCountry[] = Object.entries(countries)
+  .flatMap(([isoCode, country]) =>
+    country.phone.map((callingCode) => ({
+      isoCode: isoCode as TCountryCode,
+      name: country.name,
+      dialCode: `+${callingCode}`,
+      flag: getEmojiFlag(isoCode as TCountryCode),
+    })),
+  )
+  .sort((a, b) => a.name.localeCompare(b.name) || a.dialCode.localeCompare(b.dialCode));
 
-const DEFAULT_PHONE_COUNTRY = PHONE_COUNTRIES[0];
+const DEFAULT_PHONE_COUNTRY = PHONE_COUNTRIES.find((country) => country.isoCode === 'ZW') ?? PHONE_COUNTRIES[0];
 
 function toInternationalPhone(phone: string, country: PhoneCountry) {
   let digits = phone.replace(/\D/g, '');
@@ -194,7 +183,7 @@ export default function LoginScreen() {
   const compact = height < 700;
   const illoSize = mode === 'welcome' ? (compact ? 190 : 250) : 112;
   const filteredCountries = PHONE_COUNTRIES.filter((country) =>
-    `${country.name} ${country.dialCode}`.toLowerCase().includes(countrySearch.trim().toLowerCase()),
+    `${country.name} ${country.isoCode} ${country.dialCode}`.toLowerCase().includes(countrySearch.trim().toLowerCase()),
   );
 
   const inputBox = [styles.inputWrap, { backgroundColor: colors.input, borderColor: colors.border }];
@@ -448,7 +437,7 @@ export default function LoginScreen() {
                   <Text style={styles.countryOptionFlag}>{country.flag}</Text>
                   <Text style={[styles.countryName, { color: colors.foreground }]}>{country.name}</Text>
                   <Text style={[styles.countryDialCode, { color: colors.mutedForeground }]}>{country.dialCode}</Text>
-                  {phoneCountry.name === country.name && (
+                  {phoneCountry.isoCode === country.isoCode && phoneCountry.dialCode === country.dialCode && (
                     <Ionicons name="checkmark" size={18} color="#0A9C70" />
                   )}
                 </TouchableOpacity>
