@@ -80,3 +80,9 @@ Standalone mobile release bundles need an explicit production API URL; do not re
 **Why:** Native release builds can otherwise compile with no API base URL, leaving cloud-only screens such as Matches unable to load while local cached screens still appear normal.
 
 **How to apply:** Inject the verified production API URL in Android and iOS release workflows, and retain a release-only fallback in the auth context while keeping the local development fallback offline.
+
+Native phone preview must be able to fetch a development signing certificate when none is cached; a successful managed Expo CLI login alone does not prove Expo Go can open the preview.
+
+**Why:** Forcing the preview server offline prevented manifest signing even after login succeeded. Expo Go misleadingly reported that Expo CLI was not signed in.
+
+**How to apply:** Preserve Replit's managed login flow, avoid forcing the native preview server offline, and confirm a phone-style manifest request returns an `expo-signature` through the public preview URL before treating repeated login errors as account failures.
