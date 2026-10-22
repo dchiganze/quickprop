@@ -58,9 +58,31 @@ export const apiOrigin = apiBaseUrl?.replace(/\/api$/, '') ?? null;
 export const AUTH_TOKEN_STORAGE_KEY = AUTH_TOKEN_KEY;
 
 async function getStoredToken(): Promise<string | null> {
-  return Platform.OS === 'web'
-    ? AsyncStorage.getItem(AUTH_TOKEN_KEY)
-    : SecureStore.getItemAsync(AUTH_TOKEN_KEY);
+  if (Platform.OS === 'web') {
+    const token = await AsyncStorage.getItem(AUTH_TOKEN_KEY);
+    if (token) return token;
+    const legacyToken = await AsyncStorage.getItem(LEGACY_AUTH_TOKEN_KEY);
+    if (!legacyToken) return null;
+    await AsyncStorage.setItem(AUTH_TOKEN_KEY, legacyToken);
+    await AsyncStorage.removeItem(LEGACY_AUTH_TOKEN_KEY);
+    return legacyToken;
+  }
+
+  const secureToken = await SecureStore.getItemAsync(AUTH_TOKEN_KEY);
+  if (secureToken) return secureToken;
+
+  // Older native app versions kept this token in AsyncStorage. Migrate it
+  // before treating an otherwise-restored account as signed out.
+  const [previousToken, legacyToken] = await Promise.all([
+    AsyncStorage.getItem(AUTH_TOKEN_KEY),
+    AsyncStorage.getItem(LEGACY_AUTH_TOKEN_KEY),
+  ]);
+  const token = previousToken ?? legacyToken;
+  if (!token) return null;
+
+  await SecureStore.setItemAsync(AUTH_TOKEN_KEY, token);
+  await AsyncStorage.multiRemove([AUTH_TOKEN_KEY, LEGACY_AUTH_TOKEN_KEY]);
+  return token;
 }
 
 async function storeToken(token: string): Promise<void> {
