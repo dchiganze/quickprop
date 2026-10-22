@@ -4,6 +4,7 @@ import {
   text,
   integer,
   timestamp,
+  boolean,
 } from "drizzle-orm/pg-core";
 import { businessAgenciesTable } from "./business-agencies";
 
@@ -13,6 +14,7 @@ export const branchesTable = pgTable("branches", {
   name: text("name").notNull(),
   address: text("address"),
   phone: text("phone"),
+  isMain: boolean("is_main").notNull().default(false),
   status: text("status").notNull().default("active"),
 });
 

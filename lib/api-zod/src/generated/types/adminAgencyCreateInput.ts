@@ -12,6 +12,11 @@ export interface AdminAgencyCreateInput {
      * @maxLength 160
      */
   name: string;
+  /**
+     * @minLength 2
+     * @maxLength 500
+     */
+  defaultBranchAddress: string;
   /** @nullable */
   logoUrl?: string | null;
   /** @nullable */

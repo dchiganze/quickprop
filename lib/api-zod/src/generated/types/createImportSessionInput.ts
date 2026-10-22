@@ -8,6 +8,8 @@
 import type { ImportFileInput } from './importFileInput';
 
 export interface CreateImportSessionInput {
+  /** @minimum 1 */
+  defaultBranchId?: number;
   /** @minItems 1 */
   files: ImportFileInput[];
 }

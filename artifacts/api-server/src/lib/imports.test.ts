@@ -242,7 +242,7 @@ test(
       assert.ok(branchOne && branchTwo);
       fixture.branchIds = [branchOne.id, branchTwo.id];
 
-      const [agentOne, agentTwo] = await db.insert(usersTable).values([
+      const [agentOne, agentTwo, unassignedUser] = await db.insert(usersTable).values([
         {
           name: `Import test agent one ${suffix}`,
           email: `import-one-${suffix}@example.test`,
@@ -255,9 +255,15 @@ test(
           role: "agent",
           branchId: branchTwo.id,
         },
+        {
+          name: `Import test unassigned user ${suffix}`,
+          email: `import-unassigned-${suffix}@example.test`,
+          role: "admin",
+          branchId: null,
+        },
       ]).returning({ id: usersTable.id });
-      assert.ok(agentOne && agentTwo);
-      fixture.userIds = [agentOne.id, agentTwo.id];
+      assert.ok(agentOne && agentTwo && unassignedUser);
+      fixture.userIds = [agentOne.id, agentTwo.id, unassignedUser.id];
 
       const [canonical] = await db.insert(propertiesTable).values({
         reference: `IMPORT-CANONICAL-${suffix}`,
@@ -453,6 +459,24 @@ test(
         }],
       });
       assert.equal(foreignPath.status, 403);
+
+      const unassignedSessionList = await api("/imports/sessions", unassignedUser.id);
+      assert.equal(unassignedSessionList.status, 409);
+      assert.deepEqual(unassignedSessionList.body, {
+        error: "Assign this account to a branch before using portfolio imports.",
+      });
+      const unassignedSessionCreate = await api("/imports/sessions", unassignedUser.id, "POST", {
+        files: [{
+          fileName: "unassigned.csv",
+          fileType: "text/csv",
+          sizeBytes: 1,
+          storagePath: `/objects/uploads/${unassignedUser.id}/unassigned.csv`,
+        }],
+      });
+      assert.equal(unassignedSessionCreate.status, 409);
+      assert.deepEqual(unassignedSessionCreate.body, {
+        error: "Assign this account to a branch before using portfolio imports.",
+      });
 
       const foreignSession = await api(
         `/imports/sessions/${blocked.sessionId}`,

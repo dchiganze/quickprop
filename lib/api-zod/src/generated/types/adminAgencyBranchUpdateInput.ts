@@ -12,12 +12,13 @@ export interface AdminAgencyBranchUpdateInput {
   agencyId?: number | null;
   /**
      * @minLength 2
-     * @maxLength 160
+     * @maxLength 500
      */
   name?: string;
   /** @nullable */
   address?: string | null;
   /** @nullable */
   phone?: string | null;
+  isMain?: boolean;
   status?: AdminAgencyBranchUpdateInputStatus;
 }

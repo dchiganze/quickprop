@@ -5051,6 +5051,7 @@ export const GetAdminAgenciesResponse = zod.object({
   "name": zod.string(),
   "address": zod.string().nullable(),
   "phone": zod.string().nullable(),
+  "isMain": zod.boolean(),
   "status": zod.enum(['active', 'archived']),
   "members": zod.array(zod.object({
   "id": zod.number(),
@@ -5078,6 +5079,7 @@ export const GetAdminAgenciesResponse = zod.object({
   "name": zod.string(),
   "address": zod.string().nullable(),
   "phone": zod.string().nullable(),
+  "isMain": zod.boolean(),
   "status": zod.enum(['active', 'archived']),
   "members": zod.array(zod.object({
   "id": zod.number(),
@@ -5102,12 +5104,16 @@ export const GetAdminAgenciesResponse = zod.object({
 export const createAdminAgencyBodyNameMin = 2;
 export const createAdminAgencyBodyNameMax = 160;
 
+export const createAdminAgencyBodyDefaultBranchAddressMin = 2;
+export const createAdminAgencyBodyDefaultBranchAddressMax = 500;
+
 export const createAdminAgencyBodyAboutTextMax = 2000;
 
 
 
 export const CreateAdminAgencyBody = zod.object({
   "name": zod.string().min(createAdminAgencyBodyNameMin).max(createAdminAgencyBodyNameMax),
+  "defaultBranchAddress": zod.string().min(createAdminAgencyBodyDefaultBranchAddressMin).max(createAdminAgencyBodyDefaultBranchAddressMax),
   "logoUrl": zod.string().nullish(),
   "email": zod.string().nullish(),
   "phone": zod.string().nullish(),
@@ -5130,6 +5136,7 @@ export const CreateAdminAgencyResponse = zod.object({
   "name": zod.string(),
   "address": zod.string().nullable(),
   "phone": zod.string().nullable(),
+  "isMain": zod.boolean(),
   "status": zod.enum(['active', 'archived']),
   "members": zod.array(zod.object({
   "id": zod.number(),
@@ -5192,6 +5199,7 @@ export const UpdateAdminAgencyResponse = zod.object({
   "name": zod.string(),
   "address": zod.string().nullable(),
   "phone": zod.string().nullable(),
+  "isMain": zod.boolean(),
   "status": zod.enum(['active', 'archived']),
   "members": zod.array(zod.object({
   "id": zod.number(),
@@ -5237,6 +5245,7 @@ export const ArchiveAdminAgencyResponse = zod.object({
   "name": zod.string(),
   "address": zod.string().nullable(),
   "phone": zod.string().nullable(),
+  "isMain": zod.boolean(),
   "status": zod.enum(['active', 'archived']),
   "members": zod.array(zod.object({
   "id": zod.number(),
@@ -5268,14 +5277,15 @@ export const CreateAdminAgencyBranchParams = zod.object({
 })
 
 export const createAdminAgencyBranchBodyNameMin = 2;
-export const createAdminAgencyBranchBodyNameMax = 160;
+export const createAdminAgencyBranchBodyNameMax = 500;
 
 
 
 export const CreateAdminAgencyBranchBody = zod.object({
   "name": zod.string().min(createAdminAgencyBranchBodyNameMin).max(createAdminAgencyBranchBodyNameMax),
   "address": zod.string().nullish(),
-  "phone": zod.string().nullish()
+  "phone": zod.string().nullish(),
+  "isMain": zod.boolean().optional()
 })
 
 export const CreateAdminAgencyBranchResponse = zod.object({
@@ -5284,6 +5294,7 @@ export const CreateAdminAgencyBranchResponse = zod.object({
   "name": zod.string(),
   "address": zod.string().nullable(),
   "phone": zod.string().nullable(),
+  "isMain": zod.boolean(),
   "status": zod.enum(['active', 'archived']),
   "members": zod.array(zod.object({
   "id": zod.number(),
@@ -5347,7 +5358,7 @@ export const UpdateAdminAgencyBranchParams = zod.object({
 })
 
 export const updateAdminAgencyBranchBodyNameMin = 2;
-export const updateAdminAgencyBranchBodyNameMax = 160;
+export const updateAdminAgencyBranchBodyNameMax = 500;
 
 
 
@@ -5356,6 +5367,7 @@ export const UpdateAdminAgencyBranchBody = zod.object({
   "name": zod.string().min(updateAdminAgencyBranchBodyNameMin).max(updateAdminAgencyBranchBodyNameMax).optional(),
   "address": zod.string().nullish(),
   "phone": zod.string().nullish(),
+  "isMain": zod.boolean().optional(),
   "status": zod.enum(['active', 'archived']).optional()
 })
 
@@ -5365,6 +5377,7 @@ export const UpdateAdminAgencyBranchResponse = zod.object({
   "name": zod.string(),
   "address": zod.string().nullable(),
   "phone": zod.string().nullable(),
+  "isMain": zod.boolean(),
   "status": zod.enum(['active', 'archived']),
   "members": zod.array(zod.object({
   "id": zod.number(),
@@ -5395,6 +5408,7 @@ export const ArchiveAdminAgencyBranchResponse = zod.object({
   "name": zod.string(),
   "address": zod.string().nullable(),
   "phone": zod.string().nullable(),
+  "isMain": zod.boolean(),
   "status": zod.enum(['active', 'archived']),
   "members": zod.array(zod.object({
   "id": zod.number(),
@@ -5436,6 +5450,41 @@ export const SetAdminBranchMembersResponse = zod.array(SetAdminBranchMembersResp
 
 
 /**
+ * @summary Get the signed-in admin's branch assignment and active branch choices
+ */
+export const GetAdminMyBranchResponse = zod.object({
+  "currentBranchId": zod.number().nullable(),
+  "currentBranchName": zod.string().nullable(),
+  "branches": zod.array(zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "agencyName": zod.string()
+}))
+})
+
+
+/**
+ * @summary Assign the signed-in admin account to an active branch
+ */
+
+
+
+export const SetAdminMyBranchBody = zod.object({
+  "branchId": zod.number().min(1)
+})
+
+export const SetAdminMyBranchResponse = zod.object({
+  "currentBranchId": zod.number().nullable(),
+  "currentBranchName": zod.string().nullable(),
+  "branches": zod.array(zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "agencyName": zod.string()
+}))
+})
+
+
+/**
  * @summary Approve / hide / flag / expire / restore a listing
  */
 export const ModeratePropertyParams = zod.object({
@@ -5449,6 +5498,24 @@ export const ModeratePropertyBody = zod.object({
 
 export const ModeratePropertyResponse = zod.object({
   "ok": zod.boolean().optional()
+})
+
+
+/**
+ * @summary Get active branch choices for bulk imports
+ */
+
+
+
+export const GetImportBranchesResponse = zod.object({
+  "currentBranchId": zod.number(),
+  "mainBranchId": zod.number(),
+  "branches": zod.array(zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "address": zod.string().nullable(),
+  "isMain": zod.boolean()
+})).min(1)
 })
 
 
@@ -5485,7 +5552,9 @@ export const ListImportSessionsResponse = zod.array(ListImportSessionsResponseIt
 
 
 
+
 export const CreateImportSessionBody = zod.object({
+  "defaultBranchId": zod.number().min(1).optional(),
   "files": zod.array(zod.object({
   "fileName": zod.string(),
   "fileType": zod.string(),
@@ -5532,6 +5601,8 @@ export const CreateImportSessionResponse = zod.object({
   "records": zod.array(zod.object({
   "id": zod.number(),
   "sourceFileId": zod.number(),
+  "branchId": zod.number().nullable(),
+  "branchName": zod.string().nullable(),
   "sourceFileName": zod.string().optional(),
   "sourceLocation": zod.string().nullish(),
   "rawData": zod.unknown().optional(),
@@ -5600,6 +5671,8 @@ export const GetImportSessionResponse = zod.object({
   "records": zod.array(zod.object({
   "id": zod.number(),
   "sourceFileId": zod.number(),
+  "branchId": zod.number().nullable(),
+  "branchName": zod.string().nullable(),
   "sourceFileName": zod.string().optional(),
   "sourceLocation": zod.string().nullish(),
   "rawData": zod.unknown().optional(),
@@ -5674,6 +5747,8 @@ export const UpdateImportRecordBody = zod.object({
 export const UpdateImportRecordResponse = zod.object({
   "id": zod.number(),
   "sourceFileId": zod.number(),
+  "branchId": zod.number().nullable(),
+  "branchName": zod.string().nullable(),
   "sourceFileName": zod.string().optional(),
   "sourceLocation": zod.string().nullish(),
   "rawData": zod.unknown().optional(),
@@ -5746,6 +5821,8 @@ export const BulkImportActionResponse = zod.object({
   "records": zod.array(zod.object({
   "id": zod.number(),
   "sourceFileId": zod.number(),
+  "branchId": zod.number().nullable(),
+  "branchName": zod.string().nullable(),
   "sourceFileName": zod.string().optional(),
   "sourceLocation": zod.string().nullish(),
   "rawData": zod.unknown().optional(),

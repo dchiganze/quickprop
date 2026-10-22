@@ -10,6 +10,7 @@ import {
 import {
   askImportAssistant, getGetImportSessionQueryKey, getListImportSessionsQueryKey,
   getImportErrorReport, useBulkImportAction, useCreateImportSession, useGetImportSession,
+  useGetImportBranches,
   useListImportSessions, useProcessImportSession, usePublishImportSession,
   useUpdateImportRecord,
 } from '@workspace/api-client-react';
@@ -51,6 +52,7 @@ const mappingFields = [
   { value: 'description', label: 'Description' },
   { value: 'agent', label: 'Agent' },
   { value: 'agency', label: 'Agency' },
+  { value: 'branch', label: 'Branch' },
   { value: 'mandateType', label: 'Mandate type' },
   { value: 'mandateStart', label: 'Mandate start' },
   { value: 'mandateExpiry', label: 'Mandate expiry' },
@@ -92,6 +94,20 @@ const money = (value: unknown) => numberValue(value) ? `$${numberValue(value).to
 const titleCase = (value: string) => value.replace(/_/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
 const formatDate = (value?: string) => value ? new Date(value).toLocaleString([], { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—';
 const isProcessing = (session?: ImportSession | null) => !!session && ['queued', 'processing', 'extracting', 'matching'].includes(session.status);
+
+function apiErrorStatus(error: unknown): number | null {
+  if (!error || typeof error !== 'object' || !('status' in error)) return null;
+  const status = (error as { status?: unknown }).status;
+  return typeof status === 'number' ? status : null;
+}
+
+function apiErrorMessage(error: unknown): string | null {
+  if (!error || typeof error !== 'object' || !('data' in error)) return null;
+  const data = (error as { data?: unknown }).data;
+  if (!data || typeof data !== 'object' || !('error' in data)) return null;
+  const message = (data as { error?: unknown }).error;
+  return typeof message === 'string' ? message : null;
+}
 
 function StatusPill({ value }: { value: string }) {
   const normalizedValue = value === 'uploading' ? 'ready' : value;
@@ -290,7 +306,7 @@ function ColumnMappingReview({
   );
 }
 
-function NewImportDialog({ onCreated }: { onCreated: (id: number) => void }) {
+function NewImportDialog({ onCreated, disabled = false }: { onCreated: (id: number) => void; disabled?: boolean }) {
   const [open, setOpen] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -299,6 +315,15 @@ function NewImportDialog({ onCreated }: { onCreated: (id: number) => void }) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const createSession = useCreateImportSession();
+  const { data: branchOptions, isLoading: branchesLoading, error: branchesError } = useGetImportBranches();
+  const [defaultBranchId, setDefaultBranchId] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!branchOptions) return;
+    if (!branchOptions.branches.some((branch) => branch.id === defaultBranchId)) {
+      setDefaultBranchId(branchOptions.mainBranchId);
+    }
+  }, [branchOptions, defaultBranchId]);
 
   const addFiles = (incoming: FileList | null) => {
     if (!incoming) return;
@@ -308,6 +333,13 @@ function NewImportDialog({ onCreated }: { onCreated: (id: number) => void }) {
 
   const create = async () => {
     if (!files.length) return;
+    if (!branchOptions?.branches.length) {
+      setUploadError('Could not load active agency branches. Refresh the page and try again.');
+      return;
+    }
+    const selectedBranchId = branchOptions.branches.some((branch) => branch.id === defaultBranchId)
+      ? defaultBranchId!
+      : branchOptions.mainBranchId;
     setUploading(true);
     setUploadError('');
     try {
@@ -325,14 +357,14 @@ function NewImportDialog({ onCreated }: { onCreated: (id: number) => void }) {
         if (!upload.ok) throw new Error(`Could not upload ${file.name}.`);
         uploaded.push({ fileName: file.name, fileType: file.type || 'application/octet-stream', sizeBytes: file.size, storagePath: target.objectPath });
       }
-      const created = await createSession.mutateAsync({ data: { files: uploaded } });
+      const created = await createSession.mutateAsync({ data: { files: uploaded, defaultBranchId: selectedBranchId } });
       queryClient.invalidateQueries({ queryKey: getListImportSessionsQueryKey() });
       toast({ title: 'Import session created', description: `${files.length} source file${files.length === 1 ? '' : 's'} ready for processing.` });
       setFiles([]);
       setOpen(false);
       onCreated(created.id);
     } catch (error) {
-      setUploadError(error instanceof Error ? error.message : 'Upload failed. Nothing was created.');
+      setUploadError(apiErrorMessage(error) ?? (error instanceof Error ? error.message : 'Upload failed. Nothing was created.'));
     } finally {
       setUploading(false);
     }
@@ -340,7 +372,7 @@ function NewImportDialog({ onCreated }: { onCreated: (id: number) => void }) {
 
   return (
     <Dialog open={open} onOpenChange={(next) => { setOpen(next); if (!next) setUploadError(''); }}>
-      <Button onClick={() => setOpen(true)} className="h-10 gap-2 bg-primary px-4 font-bold shadow-sm">
+      <Button onClick={() => setOpen(true)} disabled={disabled} className="h-10 gap-2 bg-primary px-4 font-bold shadow-sm">
         <CloudUpload className="h-4 w-4" /> New import
       </Button>
       <DialogContent className="max-w-xl">
@@ -372,10 +404,28 @@ function NewImportDialog({ onCreated }: { onCreated: (id: number) => void }) {
             ))}
           </div>
         )}
+        {branchOptions?.branches.length === 1 && (
+          <p className="text-xs text-muted-foreground">Listings will be assigned to {branchOptions.branches[0].name} unless a different branch is identified in the file.</p>
+        )}
+        {branchOptions && branchOptions.branches.length > 1 && (
+          <div className="space-y-2">
+            <Label htmlFor="import-default-branch">Default branch for rows without branch information</Label>
+            <Select value={String(defaultBranchId ?? branchOptions.mainBranchId)} onValueChange={(value) => setDefaultBranchId(Number(value))}>
+              <SelectTrigger id="import-default-branch"><SelectValue placeholder="Choose a branch" /></SelectTrigger>
+              <SelectContent>
+                {branchOptions.branches.map((branch) => (
+                  <SelectItem key={branch.id} value={String(branch.id)}>{branch.name}{branch.isMain ? ' · Main branch' : ''}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">Branch values in the spreadsheet are matched per listing. This choice is used only when a row has no branch value.</p>
+          </div>
+        )}
+        {branchesError && <Alert variant="destructive"><AlertCircle className="h-4 w-4" /><AlertTitle>Branches unavailable</AlertTitle><AlertDescription>Refresh the page after confirming this account has an active branch assignment.</AlertDescription></Alert>}
         {uploadError && <Alert variant="destructive"><AlertCircle className="h-4 w-4" /><AlertTitle>Import not created</AlertTitle><AlertDescription>{uploadError}</AlertDescription></Alert>}
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-          <Button onClick={create} disabled={!files.length || uploading} className="gap-2">
+          <Button onClick={create} disabled={!files.length || uploading || branchesLoading || !branchOptions} className="gap-2">
             {uploading ? <><Loader2 className="h-4 w-4 animate-spin" /> Uploading sources...</> : <>Create review draft <ChevronRight className="h-4 w-4" /></>}
           </Button>
         </DialogFooter>
@@ -403,11 +453,12 @@ function SessionRow({ session }: { session: ImportSession }) {
 function ImportsList() {
   const [, setLocation] = useLocation();
   const { data: sessions, isLoading, error, refetch } = useListImportSessions();
+  const branchAssignmentRequired = apiErrorStatus(error) === 409;
   const sorted = useMemo(() => [...(sessions || [])].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()), [sessions]);
   return (
     <div className="min-h-full bg-background">
       <ImportHeader eyebrow="Operations / Data intake" title="Bulk mandate imports" description="Turn agency portfolios into accountable review drafts. Nothing reaches the marketplace until an Office user approves it.">
-        <NewImportDialog onCreated={(id) => setLocation(`/imports/${id}`)} />
+        <NewImportDialog disabled={isLoading || branchAssignmentRequired} onCreated={(id) => setLocation(`/imports/${id}`)} />
       </ImportHeader>
       <div className="mx-auto max-w-[1640px] space-y-6 p-6 md:p-9">
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
@@ -415,7 +466,7 @@ function ImportsList() {
             <Card key={label as string} className="border-border/80 shadow-none"><CardContent className="p-4"><p className="text-[10px] font-bold uppercase tracking-[0.13em] text-muted-foreground">{label}</p><p className={cn('mt-2 text-2xl font-extrabold tracking-tight', tone as string)}>{value}</p><p className="mt-1 text-xs text-muted-foreground">{detail}</p></CardContent></Card>
           ))}
         </div>
-        {error && <Alert variant="destructive"><AlertCircle className="h-4 w-4" /><AlertTitle>Could not load import sessions</AlertTitle><AlertDescription className="flex items-center justify-between gap-4">The operations feed did not respond. <Button variant="outline" size="sm" onClick={() => refetch()}>Retry</Button></AlertDescription></Alert>}
+        {error && <Alert variant="destructive"><AlertCircle className="h-4 w-4" /><AlertTitle>Could not load import sessions</AlertTitle><AlertDescription className="flex items-center justify-between gap-4"><span>{apiErrorMessage(error) ?? 'The operations feed did not respond.'}</span><Button variant="outline" size="sm" onClick={() => refetch()}>Retry</Button></AlertDescription></Alert>}
         <Card className="overflow-hidden border-border/80 shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between border-b bg-card/70 px-5 py-4">
             <div><CardTitle className="text-base">Import queue</CardTitle><p className="mt-1 text-xs text-muted-foreground">Most recently touched sessions first</p></div>
@@ -446,13 +497,19 @@ function MatchPanel({ record }: { record: ImportRecord }) {
   );
 }
 
-function RecordRow({ record, selected, onToggle, draft, setDraft, onSave, saving }: { record: ImportRecord; selected: boolean; onToggle: () => void; draft: DraftData; setDraft: (data: DraftData) => void; onSave: () => void; saving: boolean }) {
+function RecordRow({ record, selected, onToggle, draft, setDraft, onSave, saving, branches }: { record: ImportRecord; selected: boolean; onToggle: () => void; draft: DraftData; setDraft: (data: DraftData) => void; onSave: () => void; saving: boolean; branches: Array<{ id: number; name: string; address: string | null; isMain: boolean }> }) {
   const field = (key: string) => draft[key];
   const update = (key: string, value: string, numeric = false) => setDraft({ ...draft, [key]: numeric && value !== '' ? Number(value) : value });
   const sourceMetadata = toRecord(record.sourceMetadata);
   const visionSources = toRecord(sourceMetadata.fieldSources) as Record<string, VisionFieldSource>;
   const reviewFlags = Array.isArray(sourceMetadata.reviewFlags) ? sourceMetadata.reviewFlags.map(String).filter(Boolean) : [];
   const isVision = sourceMetadata.extractionMethod === 'gemini-vision';
+  const draftBranch = String(field('branch') ?? '').trim().toLowerCase();
+  const selectedBranch = branches.find((branch) =>
+    branch.name.trim().toLowerCase() === draftBranch
+    || (branch.address?.trim().toLowerCase() === draftBranch),
+  );
+  const branchValue = selectedBranch?.id ?? (draftBranch ? undefined : record.branchId ?? undefined);
   return (
     <div className={cn('border-b border-border/80 px-4 py-4 transition-colors', selected && 'bg-primary/[0.035]')}>
       <div className="grid grid-cols-[24px_minmax(160px,1.25fr)_minmax(150px,1fr)_100px_80px_96px_128px] items-end gap-3">
@@ -464,6 +521,25 @@ function RecordRow({ record, selected, onToggle, draft, setDraft, onSave, saving
         <div><span className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Confidence</span><Confidence score={record.confidenceScore} compact /></div>
         <div className="flex items-center justify-end gap-1.5"><StatusPill value={record.reviewStatus} /><Button size="sm" variant="outline" className="h-8 px-2 text-[11px]" onClick={onSave} disabled={saving}>{saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}<span className="sr-only">Save row</span></Button></div>
       </div>
+      {branches.length > 1 ? (
+        <div className="ml-9 mt-3 max-w-sm">
+          <Label className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Branch</Label>
+          <Select
+            value={branchValue == null ? '' : String(branchValue)}
+            onValueChange={(value) => {
+              const branch = branches.find((item) => item.id === Number(value));
+              if (branch) update('branch', branch.name);
+            }}
+          >
+            <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Choose a branch" /></SelectTrigger>
+            <SelectContent>
+              {branches.map((branch) => <SelectItem key={branch.id} value={String(branch.id)}>{branch.name}{branch.isMain ? ' · Main branch' : ''}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+      ) : branches.length === 1 ? (
+        <p className="ml-9 mt-2 text-[11px] text-muted-foreground">Branch: {branches[0].name}</p>
+      ) : null}
       <div className="mt-3 flex items-center gap-3 pl-9 text-[11px] text-muted-foreground"><span className="inline-flex items-center gap-1">{isVision ? <ScanText className="h-3 w-3 text-primary" /> : <FileText className="h-3 w-3" />} {record.sourceFileName || `Source file #${record.sourceFileId}`}</span><span className="text-border">/</span><span>Source location {record.sourceLocation || 'not supplied'}</span>{isVision && <span className="rounded bg-primary/10 px-1.5 py-0.5 font-semibold text-primary">Vision extracted</span>}{record.validationIssues.length > 0 && <span className="inline-flex items-center gap-1 font-semibold text-red-700"><AlertCircle className="h-3 w-3" /> {record.validationIssues.length} validation issue{record.validationIssues.length === 1 ? '' : 's'}</span>}<span className="ml-auto font-mono text-[10px] text-muted-foreground/70">record:{record.id}</span></div>
       {isVision && (
         <div className="ml-9 mt-2 rounded-md border border-primary/15 bg-primary/[0.025] p-2.5">
@@ -538,6 +614,7 @@ function ImportDetail({ id }: { id: number }) {
   const [mappingError, setMappingError] = useState('');
   const mappingInitializedFor = useRef<number | null>(null);
   const { data: detail, isLoading, error, refetch } = useGetImportSession(id, { query: { queryKey: getGetImportSessionQueryKey(id), refetchInterval: (query) => isProcessing(query.state.data) ? 1800 : false } });
+  const { data: branchOptions } = useGetImportBranches();
   const processSession = useProcessImportSession();
   const updateRecord = useUpdateImportRecord();
   const bulkAction = useBulkImportAction();
@@ -702,7 +779,7 @@ function ImportDetail({ id }: { id: number }) {
             </CardHeader>
             <div className="flex flex-wrap items-center gap-2 border-b bg-muted/30 px-4 py-2.5"><Checkbox checked={records.length > 0 && selected.size === records.length} onCheckedChange={selectAll} aria-label="Select all visible records" /><span className="text-xs font-semibold">{selected.size} selected</span><span className="mx-1 h-4 border-l border-border" /><Button size="sm" variant="outline" className="h-7 gap-1.5 text-[11px]" disabled={!selected.size || actionBusy} onClick={() => runBulk('approve')}><CheckCircle2 className="h-3 w-3 text-emerald-600" /> Approve</Button><Button size="sm" variant="outline" className="h-7 gap-1.5 text-[11px]" disabled={!selected.size || actionBusy} onClick={() => runBulk('reject')}><XCircle className="h-3 w-3 text-red-600" /> Reject</Button><Button size="sm" variant="outline" className="h-7 gap-1.5 text-[11px]" disabled={!selected.size || actionBusy} onClick={() => runBulk('link_duplicate')}><GitMerge className="h-3 w-3 text-amber-600" /> Link match</Button><Button size="sm" variant="outline" className="h-7 gap-1.5 text-[11px]" disabled={!selected.size || actionBusy} onClick={() => runBulk('clear_duplicate')}><Check className="h-3 w-3 text-primary" /> Keep separate</Button><div className="ml-auto flex items-center gap-1.5"><Input value={agentId} onChange={(event) => setAgentId(event.target.value)} placeholder="Agent ID" inputMode="numeric" className="h-7 w-20 text-[11px]" /><Button size="sm" variant="outline" className="h-7 gap-1.5 text-[11px]" disabled={!selected.size || actionBusy} onClick={() => runBulk('assign')}><UserRound className="h-3 w-3" /> Assign</Button></div></div>
             <div className="hidden grid-cols-[24px_minmax(160px,1.25fr)_minmax(150px,1fr)_100px_80px_96px_128px] gap-3 bg-slate-50/70 px-4 py-2 text-[10px] font-bold uppercase tracking-[0.11em] text-muted-foreground md:grid"><span /><span>Property identity</span><span>Location</span><span>Price</span><span>Beds</span><span>AI signal</span><span>Decision</span></div>
-            {records.length ? records.map((record) => <RecordRow key={record.id} record={record} selected={selected.has(record.id)} onToggle={() => toggle(record.id)} draft={drafts[record.id] || toRecord(record.data)} setDraft={(data) => setDraftState((current) => ({ ...current, drafts: { ...current.drafts, [record.id]: data } }))} onSave={() => saveRecord(record)} saving={savingId === record.id} />) : <div className="px-6 py-20 text-center"><SlidersHorizontal className="mx-auto mb-3 h-8 w-8 text-muted-foreground/40" /><p className="text-sm font-semibold">No rows match this view</p><p className="mt-1 text-xs text-muted-foreground">Try clearing the search or changing the review filter.</p></div>}
+            {records.length ? records.map((record) => <RecordRow key={record.id} record={record} selected={selected.has(record.id)} onToggle={() => toggle(record.id)} draft={drafts[record.id] || toRecord(record.data)} setDraft={(data) => setDraftState((current) => ({ ...current, drafts: { ...current.drafts, [record.id]: data } }))} onSave={() => saveRecord(record)} saving={savingId === record.id} branches={branchOptions?.branches ?? []} />) : <div className="px-6 py-20 text-center"><SlidersHorizontal className="mx-auto mb-3 h-8 w-8 text-muted-foreground/40" /><p className="text-sm font-semibold">No rows match this view</p><p className="mt-1 text-xs text-muted-foreground">Try clearing the search or changing the review filter.</p></div>}
           </Card>
           <div className="flex flex-col gap-3 rounded-lg border border-primary/20 bg-primary/[0.035] p-4 md:flex-row md:items-center"><ShieldCheck className="h-6 w-6 shrink-0 text-primary" /><div className="flex-1"><p className="text-sm font-bold">Publishing is a deliberate hand-off</p><p className="mt-0.5 text-xs text-muted-foreground">{approvedCount} approved row{approvedCount === 1 ? '' : 's'} will be published. Rejected, unresolved and unreviewed records stay in this session.</p></div><Button onClick={publish} disabled={!approvedCount || publishSession.isPending || processing} className="gap-2">{publishSession.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />} Publish approved only</Button></div>
         </main>

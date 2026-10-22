@@ -2281,6 +2281,7 @@ export interface AdminAgencyBranch {
   address: string | null;
   /** @nullable */
   phone: string | null;
+  isMain: boolean;
   status: AdminAgencyBranchStatus;
   members: AdminAgencyMember[];
   agentCount: number;
@@ -2321,6 +2322,11 @@ export interface AdminAgencyCreateInput {
      * @maxLength 160
      */
   name: string;
+  /**
+     * @minLength 2
+     * @maxLength 500
+     */
+  defaultBranchAddress: string;
   /** @nullable */
   logoUrl?: string | null;
   /** @nullable */
@@ -2363,13 +2369,14 @@ export interface AdminAgencyUpdateInput {
 export interface AdminAgencyBranchCreateInput {
   /**
      * @minLength 2
-     * @maxLength 160
+     * @maxLength 500
      */
   name: string;
   /** @nullable */
   address?: string | null;
   /** @nullable */
   phone?: string | null;
+  isMain?: boolean;
 }
 
 export interface AdminAgencyAgentCreateInput {
@@ -2428,18 +2435,38 @@ export interface AdminAgencyBranchUpdateInput {
   agencyId?: number | null;
   /**
      * @minLength 2
-     * @maxLength 160
+     * @maxLength 500
      */
   name?: string;
   /** @nullable */
   address?: string | null;
   /** @nullable */
   phone?: string | null;
+  isMain?: boolean;
   status?: AdminAgencyBranchUpdateInputStatus;
 }
 
 export interface AdminBranchMembersInput {
   userIds: number[];
+}
+
+export interface AdminMyBranchOption {
+  id: number;
+  name: string;
+  agencyName: string;
+}
+
+export interface AdminMyBranch {
+  /** @nullable */
+  currentBranchId: number | null;
+  /** @nullable */
+  currentBranchName: string | null;
+  branches: AdminMyBranchOption[];
+}
+
+export interface AdminMyBranchInput {
+  /** @minimum 1 */
+  branchId: number;
 }
 
 export interface PropertyModerationInput {
@@ -2456,8 +2483,25 @@ export interface ImportFileInput {
 }
 
 export interface CreateImportSessionInput {
+  /** @minimum 1 */
+  defaultBranchId?: number;
   /** @minItems 1 */
   files: ImportFileInput[];
+}
+
+export interface ImportBranchOption {
+  id: number;
+  name: string;
+  /** @nullable */
+  address: string | null;
+  isMain: boolean;
+}
+
+export interface ImportBranchOptions {
+  currentBranchId: number;
+  mainBranchId: number;
+  /** @minItems 1 */
+  branches: ImportBranchOption[];
 }
 
 export interface ImportFile {
@@ -2488,6 +2532,10 @@ export type ImportRecordMatch = { [key: string]: unknown } | null;
 export interface ImportRecord {
   id: number;
   sourceFileId: number;
+  /** @nullable */
+  branchId: number | null;
+  /** @nullable */
+  branchName: string | null;
   sourceFileName?: string;
   /** @nullable */
   sourceLocation?: string | null;

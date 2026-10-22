@@ -44,3 +44,9 @@ The pdf-parse package entrypoint can execute its bundled fixture when loaded fro
 **Why:** A parser startup side effect prevented the API from listening even when no PDF was being processed.
 
 **How to apply:** Treat document parsers as lazy processing dependencies and verify the API boots before testing extraction.
+
+This QuickProp Office workspace is for DBT Properties. Import access requires an active branch assignment on the signed-in account. New agencies start with one main branch named after its address; administrators can add branches. Multi-branch imports assign rows from matching branch names or addresses, and use the selected main/default branch only when a row has no branch value.
+
+**Why:** Import sessions and published properties are branch-scoped. A fallback is safe only after the account is assigned and the admin chooses a branch for rows that lack source data.
+
+**How to apply:** Keep the import entry point blocked for unassigned accounts. Match source branch values against active branch names/addresses; require manual correction for unknown values, and never replace an unassigned account with an assumed branch.

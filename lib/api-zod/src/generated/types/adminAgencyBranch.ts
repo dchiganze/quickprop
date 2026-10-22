@@ -17,6 +17,7 @@ export interface AdminAgencyBranch {
   address: string | null;
   /** @nullable */
   phone: string | null;
+  isMain: boolean;
   status: AdminAgencyBranchStatus;
   members: AdminAgencyMember[];
   agentCount: number;

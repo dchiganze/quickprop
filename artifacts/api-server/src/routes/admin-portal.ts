@@ -30,6 +30,9 @@ import {
   ArchiveAdminAgencyBranchResponse,
   SetAdminBranchMembersBody,
   SetAdminBranchMembersResponse,
+  GetAdminMyBranchResponse,
+  SetAdminMyBranchBody,
+  SetAdminMyBranchResponse,
   CreateAdminAgencyAgentBody,
   CreateAdminAgencyAgentResponse,
   ResendAdminAgentSetupLinkResponse,
@@ -56,6 +59,40 @@ import {
 const router: IRouter = Router();
 
 const adminOnly = requireRole("principal", "admin");
+
+async function loadAdminMyBranchSnapshot(userId: number) {
+  const [user] = await db.select({ branchId: usersTable.branchId })
+    .from(usersTable)
+    .where(eq(usersTable.id, userId))
+    .limit(1);
+  if (!user) return null;
+
+  const branches = await db.select({
+    id: branchesTable.id,
+    name: branchesTable.name,
+    agencyName: businessAgenciesTable.name,
+  })
+    .from(branchesTable)
+    .innerJoin(businessAgenciesTable, eq(branchesTable.agencyId, businessAgenciesTable.id))
+    .where(and(
+      eq(branchesTable.status, "active"),
+      eq(businessAgenciesTable.status, "active"),
+    ))
+    .orderBy(businessAgenciesTable.name, branchesTable.name);
+
+  const [currentBranch] = user.branchId == null
+    ? []
+    : await db.select({ name: branchesTable.name })
+      .from(branchesTable)
+      .where(eq(branchesTable.id, user.branchId))
+      .limit(1);
+
+  return {
+    currentBranchId: user.branchId,
+    currentBranchName: currentBranch?.name ?? null,
+    branches,
+  };
+}
 
 router.get("/admin/platform-data-cleanup/preview", adminOnly, async (_req, res): Promise<void> => {
   const preview = await getPlatformCleanupPreview();
@@ -372,6 +409,84 @@ router.get("/admin/agents", adminOnly, async (_req, res): Promise<void> => {
   res.json(jsonify(result));
 });
 
+router.get("/admin/me/branch", adminOnly, async (req, res): Promise<void> => {
+  const actor = await currentUser(req);
+  if (!actor) {
+    res.status(401).json({ error: "Sign in to manage your branch assignment." });
+    return;
+  }
+
+  const snapshot = await loadAdminMyBranchSnapshot(actor.id);
+  if (!snapshot) {
+    res.status(404).json({ error: "Admin account not found." });
+    return;
+  }
+  res.json(GetAdminMyBranchResponse.parse(jsonify(snapshot)));
+});
+
+router.put("/admin/me/branch", adminOnly, async (req, res): Promise<void> => {
+  const actor = await currentUser(req);
+  if (!actor) {
+    res.status(401).json({ error: "Sign in to manage your branch assignment." });
+    return;
+  }
+
+  const parsed = SetAdminMyBranchBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+
+  const outcome = await db.transaction(async (tx) => {
+    const [branch] = await tx.select({
+      id: branchesTable.id,
+      name: branchesTable.name,
+      agencyId: branchesTable.agencyId,
+      status: branchesTable.status,
+    })
+      .from(branchesTable)
+      .where(eq(branchesTable.id, parsed.data.branchId))
+      .limit(1);
+    if (!branch) return { kind: "missing" as const };
+    if (branch.status !== "active" || branch.agencyId == null) {
+      return { kind: "unavailable" as const };
+    }
+
+    const [agency] = await tx.select({ status: businessAgenciesTable.status })
+      .from(businessAgenciesTable)
+      .where(eq(businessAgenciesTable.id, branch.agencyId))
+      .limit(1);
+    if (!agency || agency.status !== "active") {
+      return { kind: "unavailable" as const };
+    }
+
+    const [updatedUser] = await tx.update(usersTable)
+      .set({ branchId: branch.id })
+      .where(eq(usersTable.id, actor.id))
+      .returning({ id: usersTable.id });
+    if (!updatedUser) return { kind: "user-missing" as const };
+
+    return { kind: "updated" as const, branch };
+  });
+
+  if (outcome.kind === "missing" || outcome.kind === "user-missing") {
+    res.status(404).json({ error: outcome.kind === "missing" ? "Branch not found." : "Admin account not found." });
+    return;
+  }
+  if (outcome.kind === "unavailable") {
+    res.status(409).json({ error: "Choose an active branch in an active agency." });
+    return;
+  }
+
+  await logAudit("edited", "user", actor.id, `Assigned admin account to ${outcome.branch.name}`, actor.id, actor.name);
+  const snapshot = await loadAdminMyBranchSnapshot(actor.id);
+  if (!snapshot) {
+    res.status(404).json({ error: "Admin account not found." });
+    return;
+  }
+  res.json(SetAdminMyBranchResponse.parse(jsonify(snapshot)));
+});
+
 // ──────────────────────────────────────────────────────────────────────────────
 // Agency, branch and team management
 // ──────────────────────────────────────────────────────────────────────────────
@@ -385,6 +500,15 @@ async function loadAdminAgencySnapshot() {
   ]);
 
   const agents = users.filter((user) => ["agent", "senior_agent"].includes(user.role));
+  const explicitMainAgencyIds = new Set(
+    branches.filter((branch) => branch.isMain && branch.agencyId != null).map((branch) => branch.agencyId!),
+  );
+  const inferredMainBranchIds = new Set<number>();
+  for (const agency of agencies) {
+    if (explicitMainAgencyIds.has(agency.id)) continue;
+    const activeBranches = branches.filter((branch) => branch.agencyId === agency.id && branch.status === "active");
+    if (activeBranches.length === 1) inferredMainBranchIds.add(activeBranches[0].id);
+  }
   const agencyBranches = branches.map((branch) => {
     const members = agents
       .filter((agent) => agent.branchId === branch.id)
@@ -397,6 +521,7 @@ async function loadAdminAgencySnapshot() {
 
     return {
       ...branch,
+      isMain: branch.isMain || inferredMainBranchIds.has(branch.id),
       members,
       agentCount: members.length,
       activeListings: branchProperties.filter((property) => property.status === "public").length,
@@ -457,14 +582,24 @@ router.post("/admin/agencies", adminOnly, async (req, res): Promise<void> => {
 
   const actor = await currentUser(req);
   const body = parsed.data;
-  const [agency] = await db.insert(businessAgenciesTable).values({
-    name: body.name.trim(),
-    logoUrl: cleanOptionalText(body.logoUrl),
-    email: cleanOptionalText(body.email)?.toLowerCase() ?? null,
-    phone: cleanOptionalText(body.phone),
-    website: cleanOptionalText(body.website),
-    aboutText: body.aboutText?.trim() ?? "",
-  }).returning();
+  const defaultBranchAddress = body.defaultBranchAddress.trim();
+  const agency = await db.transaction(async (tx) => {
+    const [createdAgency] = await tx.insert(businessAgenciesTable).values({
+      name: body.name.trim(),
+      logoUrl: cleanOptionalText(body.logoUrl),
+      email: cleanOptionalText(body.email)?.toLowerCase() ?? null,
+      phone: cleanOptionalText(body.phone),
+      website: cleanOptionalText(body.website),
+      aboutText: body.aboutText?.trim() ?? "",
+    }).returning();
+    await tx.insert(branchesTable).values({
+      agencyId: createdAgency.id,
+      name: defaultBranchAddress,
+      address: defaultBranchAddress,
+      isMain: true,
+    });
+    return createdAgency;
+  });
 
   await logAudit("created", "business_agency", agency.id, `Created agency ${agency.name}`, actor?.id, actor?.name);
   const result = await findAdminAgency(agency.id);
@@ -544,12 +679,31 @@ router.post("/admin/agencies/:agencyId/branches", adminOnly, async (req, res): P
   }
 
   const body = parsed.data;
-  const [branch] = await db.insert(branchesTable).values({
-    agencyId,
-    name: body.name.trim(),
-    address: cleanOptionalText(body.address) ?? null,
-    phone: cleanOptionalText(body.phone) ?? null,
-  }).returning();
+  const [branch] = await db.transaction(async (tx) => {
+    const existingBranches = await tx.select({
+      id: branchesTable.id,
+      status: branchesTable.status,
+      isMain: branchesTable.isMain,
+    }).from(branchesTable).where(eq(branchesTable.agencyId, agencyId));
+    const activeBranches = existingBranches.filter((item) => item.status === "active");
+    const shouldBeMain = body.isMain === true || activeBranches.length === 0;
+    if (shouldBeMain) {
+      await tx.update(branchesTable)
+        .set({ isMain: false })
+        .where(eq(branchesTable.agencyId, agencyId));
+    } else if (activeBranches.length === 1 && !activeBranches[0].isMain) {
+      await tx.update(branchesTable)
+        .set({ isMain: true })
+        .where(eq(branchesTable.id, activeBranches[0].id));
+    }
+    return tx.insert(branchesTable).values({
+      agencyId,
+      name: body.name.trim(),
+      address: cleanOptionalText(body.address) ?? null,
+      phone: cleanOptionalText(body.phone) ?? null,
+      isMain: shouldBeMain,
+    }).returning();
+  });
   const actor = await currentUser(req);
   await logAudit("created", "branch", branch.id, `Added ${branch.name} to ${agency.name}`, actor?.id, actor?.name);
   const result = await findAdminBranch(branch.id);
@@ -826,12 +980,27 @@ router.patch("/admin/branches/:id", adminOnly, async (req, res): Promise<void> =
   if (patch.name !== undefined) update.name = patch.name.trim();
   if (patch.address !== undefined) update.address = cleanOptionalText(patch.address);
   if (patch.phone !== undefined) update.phone = cleanOptionalText(patch.phone);
+  if (patch.isMain !== undefined) update.isMain = patch.isMain;
   if (patch.status !== undefined) update.status = patch.status;
 
-  const [branch] = await db.update(branchesTable)
-    .set(update)
-    .where(eq(branchesTable.id, id))
-    .returning();
+  const [branch] = await db.transaction(async (tx) => {
+    const [updatedBranch] = await tx.update(branchesTable)
+      .set(update)
+      .where(eq(branchesTable.id, id))
+      .returning();
+    if (!updatedBranch) return [];
+    if (patch.isMain === true && updatedBranch.agencyId != null) {
+      await tx.update(branchesTable)
+        .set({ isMain: false })
+        .where(eq(branchesTable.agencyId, updatedBranch.agencyId));
+      const [mainBranch] = await tx.update(branchesTable)
+        .set({ isMain: true })
+        .where(eq(branchesTable.id, updatedBranch.id))
+        .returning();
+      return mainBranch ? [mainBranch] : [];
+    }
+    return [updatedBranch];
+  });
   if (!branch) {
     res.status(404).json({ error: "Branch not found" });
     return;

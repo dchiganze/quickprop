@@ -15,6 +15,7 @@ import type { AdminAgency } from '@workspace/api-client-react';
 
 export type AgencyDraft = {
   name: string;
+  defaultBranchAddress: string;
   logoUrl: string | null;
   email: string | null;
   phone: string | null;
@@ -39,6 +40,7 @@ export function AgencyFormDialog({
 }: AgencyFormDialogProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [name, setName] = useState('');
+  const [defaultBranchAddress, setDefaultBranchAddress] = useState('');
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -50,6 +52,7 @@ export function AgencyFormDialog({
   useEffect(() => {
     if (!open) return;
     setName(agency?.name ?? '');
+    setDefaultBranchAddress('');
     setLogoUrl(agency?.logoUrl ?? null);
     setEmail(agency?.email ?? '');
     setPhone(agency?.phone ?? '');
@@ -113,8 +116,14 @@ export function AgencyFormDialog({
       setError('Enter an agency name with at least two characters.');
       return;
     }
+    const cleanAddress = defaultBranchAddress.trim();
+    if (!agency && cleanAddress.length < 2) {
+      setError('Enter the address for this agency’s main branch.');
+      return;
+    }
     onSave({
       name: cleanName,
+      defaultBranchAddress: cleanAddress,
       logoUrl,
       email: email.trim() || null,
       phone: phone.trim() || null,
@@ -129,7 +138,7 @@ export function AgencyFormDialog({
         <DialogHeader>
           <DialogTitle>{agency ? 'Edit agency' : 'Add agency'}</DialogTitle>
           <DialogDescription>
-            Set up the agency profile and logo. You can add its branches and team members after saving.
+            Set up the agency profile. New agencies get one main branch named with its address; admins can add more branches after saving.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={submit} className="space-y-4">
@@ -172,6 +181,13 @@ export function AgencyFormDialog({
                 <span className="text-sm font-medium">Agency name <span className="text-destructive">*</span></span>
                 <Input autoFocus value={name} onChange={(event) => setName(event.target.value)} maxLength={160} required />
               </label>
+              {!agency && (
+                <label className="block space-y-1.5">
+                  <span className="text-sm font-medium">Main branch address <span className="text-destructive">*</span></span>
+                  <Input value={defaultBranchAddress} onChange={(event) => setDefaultBranchAddress(event.target.value)} maxLength={500} required />
+                  <span className="text-xs text-muted-foreground">This address is also used as the branch name.</span>
+                </label>
+              )}
               <label className="block space-y-1.5">
                 <span className="text-sm font-medium">Email</span>
                 <Input type="email" value={email} onChange={(event) => setEmail(event.target.value)} maxLength={254} />

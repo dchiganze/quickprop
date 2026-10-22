@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from "node:crypto";
 import { extname } from "node:path";
-import { Router, type IRouter } from "express";
+import { Router, type IRouter, type Response } from "express";
 import { and, desc, eq, inArray, isNull, lt, ne, or, sql } from "drizzle-orm";
 import * as XLSX from "xlsx";
 import mammoth from "mammoth";
@@ -13,6 +13,8 @@ import {
   importFilesTable,
   importRecordsTable,
   importSessionsTable,
+  branchesTable,
+  businessAgenciesTable,
   propertiesTable,
   propertyAgentRelationshipsTable,
   usersTable,
@@ -37,7 +39,7 @@ const router: IRouter = Router();
 const IMPORT_EXTENSIONS = new Set([".xlsx", ".xls", ".csv", ".pdf", ".docx", ".txt", ".jpg", ".jpeg", ".png"]);
 const IMPORT_FIELDS = [
   "title", "reference", "address", "suburb", "city", "price", "currency", "propertyType",
-  "bedrooms", "bathrooms", "description", "agent", "agency", "mandateType",
+  "bedrooms", "bathrooms", "description", "agent", "agency", "branch", "mandateType",
   "mandateStart", "mandateExpiry", "availability", "contactName", "contactPhone",
   "contactEmail", "photos", "listingUrl",
 ] as const;
@@ -86,7 +88,8 @@ const fieldAliases: Record<ImportField, string[]> = {
   bathrooms: ["bathrooms", "baths", "bath", "bathroom count"],
   description: ["description", "remarks", "notes", "details", "property description"],
   agent: ["agent", "agent name", "listed by", "sales agent"],
-  agency: ["agency", "company", "branch", "agency name"],
+  agency: ["agency", "company", "agency name"],
+  branch: ["branch", "branch name", "office branch", "office", "branch location"],
   mandateType: ["mandate", "mandate type", "listing authority", "authority"],
   mandateStart: ["mandate start", "start date", "listing date"],
   mandateExpiry: ["mandate expiry", "expiry", "expiry date", "end date"],
@@ -98,8 +101,65 @@ const fieldAliases: Record<ImportField, string[]> = {
   listingUrl: ["url", "listing url", "website", "property url"],
 };
 
-function agencyIdFor(user: Awaited<ReturnType<typeof currentUser>>): number {
-  return user?.branchId ?? 1;
+function requireImportBranch(
+  user: Awaited<ReturnType<typeof currentUser>>,
+  res: Response,
+): number | null {
+  const branchId = user?.branchId ?? null;
+  if (branchId === null) {
+    res.status(409).json({
+      error: "Assign this account to a branch before using portfolio imports.",
+    });
+    return null;
+  }
+  return branchId;
+}
+
+async function importBranchOptionsForUser(user: Awaited<ReturnType<typeof currentUser>>) {
+  if (!user?.branchId) return null;
+  const [assignedBranch] = await db.select().from(branchesTable)
+    .where(eq(branchesTable.id, user.branchId)).limit(1);
+  if (!assignedBranch || assignedBranch.status !== "active") return null;
+
+  let branches = [assignedBranch];
+  if (assignedBranch.agencyId != null) {
+    const [agency] = await db.select({ status: businessAgenciesTable.status })
+      .from(businessAgenciesTable)
+      .where(eq(businessAgenciesTable.id, assignedBranch.agencyId))
+      .limit(1);
+    if (!agency || agency.status !== "active") return null;
+    if (["admin", "principal"].includes(user.role)) {
+      branches = await db.select().from(branchesTable).where(and(
+        eq(branchesTable.agencyId, assignedBranch.agencyId),
+        eq(branchesTable.status, "active"),
+      )).orderBy(branchesTable.name);
+    }
+  }
+
+  const options = branches.map((branch) => ({
+    id: branch.id,
+    name: branch.name,
+    address: branch.address,
+    isMain: branch.isMain,
+  }));
+  const main = options.find((branch) => branch.isMain)
+    ?? (options.length === 1 ? options[0] : options.find((branch) => branch.id === assignedBranch.id))
+    ?? options[0];
+  if (!main) return null;
+  return {
+    currentBranchId: assignedBranch.id,
+    mainBranchId: main.id,
+    branches: options,
+  };
+}
+
+function branchForSource(value: unknown, branches: Array<{ id: number; name: string; address: string | null }>) {
+  const normalized = normalizeHeader(asText(value));
+  if (!normalized) return undefined;
+  return branches.find((branch) =>
+    normalizeHeader(branch.name) === normalized
+    || (branch.address != null && normalizeHeader(branch.address) === normalized),
+  );
 }
 
 function asText(value: unknown): string {
@@ -562,6 +622,13 @@ async function detailFor(id: number, agencyId: number) {
   if (!session) return null;
   const files = await db.select().from(importFilesTable).where(eq(importFilesTable.sessionId, id));
   const records = await db.select().from(importRecordsTable).where(eq(importRecordsTable.sessionId, id)).orderBy(importRecordsTable.id);
+  const recordBranchIds = [...new Set(records
+    .map((record) => record.branchId ?? session.defaultBranchId)
+    .filter((value): value is number => value != null))];
+  const recordBranches = recordBranchIds.length
+    ? await db.select({ id: branchesTable.id, name: branchesTable.name }).from(branchesTable).where(inArray(branchesTable.id, recordBranchIds))
+    : [];
+  const branchNamesById = new Map(recordBranches.map((branch) => [branch.id, branch.name]));
   const agents = await db.select({ id: usersTable.id, name: usersTable.name }).from(usersTable).where(eq(usersTable.branchId, agencyId));
   const agentsById = new Map(agents.map((agent) => [agent.id, agent.name]));
   return {
@@ -570,6 +637,10 @@ async function detailFor(id: number, agencyId: number) {
     records: records.map((record) => jsonify({
       id: record.id,
       sourceFileId: record.sourceFileId,
+      branchId: record.branchId ?? session.defaultBranchId ?? null,
+      branchName: (record.branchId ?? session.defaultBranchId)
+        ? branchNamesById.get((record.branchId ?? session.defaultBranchId)!) ?? null
+        : null,
       sourceFileName: files.find((file) => file.id === record.sourceFileId)?.fileName ?? "Source file",
       sourceLocation: record.sourceLocation,
       rawData: record.rawData,
@@ -632,6 +703,11 @@ async function processSession(
 ) {
   const session = await sessionFor(sessionId, agencyId);
   if (!session) return;
+  const [creator] = await db.select().from(usersTable).where(eq(usersTable.id, session.createdBy)).limit(1);
+  const branchContext = creator ? await importBranchOptionsForUser(creator) : null;
+  const importBranches = branchContext?.branches ?? [];
+  const fallbackBranch = importBranches.find((branch) => branch.id === session.defaultBranchId)
+    ?? importBranches.find((branch) => branch.id === branchContext?.mainBranchId);
   const [started] = await db.update(importSessionsTable).set({
     columnMapping: mapping,
     lastError: null,
@@ -810,10 +886,21 @@ async function processSession(
               ? firstUnmatched(existingByIdentity.get(sourceIdentity))
               : undefined;
             const data = normaliseRow(rawData, mapping);
+            const sourceBranch = asText(data.branch);
+            const matchedBranch = sourceBranch ? branchForSource(sourceBranch, importBranches) : undefined;
+            const rowBranch = sourceBranch
+              ? matchedBranch ?? (importBranches.length === 1 ? importBranches[0] : undefined)
+              : fallbackBranch;
+            if (rowBranch) data.branch = rowBranch.name;
             const confidence = confidenceFor(data, sourceType, extraction.fieldConfidence?.[rowIndex]);
             const confidenceValues = Object.values(confidence);
             const confidenceScore = confidenceValues.length ? Math.round(confidenceValues.reduce((sum, value) => sum + value, 0) / confidenceValues.length) : 0;
             const validationIssues = validateData(data, sourceType, confidence);
+            if (sourceBranch && !matchedBranch && importBranches.length > 1) {
+              validationIssues.push(`Branch "${sourceBranch}" does not match an active branch. Choose a branch before approving.`);
+            } else if (!rowBranch) {
+              validationIssues.push("Choose an active branch before approving this listing.");
+            }
             const lowConfidence = confidenceScore < VISION_REVIEW_THRESHOLD;
             if (sourceType === "image" && lowConfidence) {
               validationIssues.push(`Overall vision confidence is ${confidenceScore}%; review before approval.`);
@@ -875,6 +962,7 @@ async function processSession(
             if (existing) matchedExistingIds.add(existing.id);
             const recordValues = {
               rawData,
+              branchId: rowBranch?.id ?? null,
               extractedData: data,
               fieldConfidence: confidence,
               confidenceScore,
@@ -1051,11 +1139,26 @@ export function startImportRecoveryWorker() {
   return setInterval(run, 60_000);
 }
 
+router.get("/imports/branches", async (req, res): Promise<void> => {
+  const user = await currentUser(req);
+  if (!user) { res.status(401).json({ error: "Not authenticated" }); return; }
+  const branchId = requireImportBranch(user, res);
+  if (branchId === null) return;
+  const options = await importBranchOptionsForUser(user);
+  if (!options) {
+    res.status(409).json({ error: "Assign this account to an active agency branch before using portfolio imports." });
+    return;
+  }
+  res.json(jsonify(options));
+});
+
 router.get("/imports/sessions", async (req, res): Promise<void> => {
   const user = await currentUser(req);
   if (!user) { res.status(401).json({ error: "Not authenticated" }); return; }
+  const branchId = requireImportBranch(user, res);
+  if (branchId === null) return;
   const sessions = await db.select().from(importSessionsTable)
-    .where(eq(importSessionsTable.agencyId, agencyIdFor(user)))
+    .where(eq(importSessionsTable.agencyId, branchId))
     .orderBy(desc(importSessionsTable.createdAt));
   res.json(jsonify(sessions));
 });
@@ -1064,6 +1167,13 @@ router.post("/imports/sessions", async (req, res): Promise<void> => {
   const user = await currentUser(req);
   const files = Array.isArray(req.body?.files) ? req.body.files as LooseRecord[] : [];
   if (!user) { res.status(401).json({ error: "Not authenticated" }); return; }
+  const branchId = requireImportBranch(user, res);
+  if (branchId === null) return;
+  const branchOptions = await importBranchOptionsForUser(user);
+  if (!branchOptions) {
+    res.status(409).json({ error: "Assign this account to an active agency branch before using portfolio imports." });
+    return;
+  }
   if (!files.length || files.some((file) => typeof file.fileName !== "string" || typeof file.fileType !== "string" || typeof file.sizeBytes !== "number" || typeof file.storagePath !== "string")) {
     res.status(400).json({ error: "At least one uploaded source file is required." }); return;
   }
@@ -1073,10 +1183,18 @@ router.post("/imports/sessions", async (req, res): Promise<void> => {
   if (files.some((file) => !asText(file.storagePath).startsWith(`/objects/uploads/${user.id}/`))) {
     res.status(403).json({ error: "Source files must belong to the authenticated user." }); return;
   }
-  const agencyId = agencyIdFor(user);
+  const requestedDefaultBranchId = req.body?.defaultBranchId == null
+    ? branchOptions.mainBranchId
+    : Number(req.body.defaultBranchId);
+  if (!Number.isSafeInteger(requestedDefaultBranchId)
+    || !branchOptions.branches.some((branch) => branch.id === requestedDefaultBranchId)) {
+    res.status(400).json({ error: "Choose an active branch in your agency for listings without a branch value." });
+    return;
+  }
   const [session] = await db.insert(importSessionsTable).values({
     reference: `IMP-${new Date().getFullYear()}-${randomUUID().slice(0, 8).toUpperCase()}`,
-    agencyId,
+    agencyId: branchId,
+    defaultBranchId: requestedDefaultBranchId,
     createdBy: user.id,
     totalFiles: files.length,
   }).returning();
@@ -1087,7 +1205,7 @@ router.post("/imports/sessions", async (req, res): Promise<void> => {
     sizeBytes: Number(file.sizeBytes),
     storagePath: asText(file.storagePath),
   })));
-  const detail = await detailFor(session.id, agencyId);
+  const detail = await detailFor(session.id, branchId);
   res.status(201).json(detail);
 });
 
@@ -1095,7 +1213,9 @@ router.get("/imports/sessions/:id", async (req, res): Promise<void> => {
   const user = await currentUser(req);
   const id = Number(req.params.id);
   if (!user) { res.status(401).json({ error: "Not authenticated" }); return; }
-  const detail = await detailFor(id, agencyIdFor(user));
+  const branchId = requireImportBranch(user, res);
+  if (branchId === null) return;
+  const detail = await detailFor(id, branchId);
   if (!detail) { res.status(404).json({ error: "Import session not found." }); return; }
   res.json(detail);
 });
@@ -1104,7 +1224,9 @@ router.post("/imports/sessions/:id/process", async (req, res): Promise<void> => 
   const user = await currentUser(req);
   const id = Number(req.params.id);
   if (!user) { res.status(401).json({ error: "Not authenticated" }); return; }
-  const session = await sessionFor(id, agencyIdFor(user));
+  const branchId = requireImportBranch(user, res);
+  if (branchId === null) return;
+  const session = await sessionFor(id, branchId);
   if (!session) { res.status(404).json({ error: "Import session not found." }); return; }
   if (session.status === "published") { res.status(409).json({ error: "Published sessions cannot be reprocessed." }); return; }
   if (req.body?.columnMapping && (typeof req.body.columnMapping !== "object" || Array.isArray(req.body.columnMapping))) {
@@ -1127,7 +1249,7 @@ router.post("/imports/sessions/:id/process", async (req, res): Promise<void> => 
     updatedAt: now,
   }).where(and(
     eq(importSessionsTable.id, id),
-    eq(importSessionsTable.agencyId, agencyIdFor(user)),
+    eq(importSessionsTable.agencyId, branchId),
     ne(importSessionsTable.status, "processing"),
     ne(importSessionsTable.status, "published"),
   )).returning();
@@ -1135,7 +1257,7 @@ router.post("/imports/sessions/:id/process", async (req, res): Promise<void> => 
     res.status(409).json({ error: "This import session is already processing or has been published." });
     return;
   }
-  void processSession(id, agencyIdFor(user), mapping);
+  void processSession(id, branchId, mapping);
   res.status(202).json(jsonify(claimed));
 });
 
@@ -1144,16 +1266,36 @@ router.patch("/imports/sessions/:id/records/:recordId", async (req, res): Promis
   const sessionId = Number(req.params.id);
   const recordId = Number(req.params.recordId);
   if (!user) { res.status(401).json({ error: "Not authenticated" }); return; }
-  const session = await sessionFor(sessionId, agencyIdFor(user));
+  const branchId = requireImportBranch(user, res);
+  if (branchId === null) return;
+  const session = await sessionFor(sessionId, branchId);
   const [record] = await db.select().from(importRecordsTable).where(and(eq(importRecordsTable.id, recordId), eq(importRecordsTable.sessionId, sessionId)));
   if (!session || !record) { res.status(404).json({ error: "Import record not found." }); return; }
   if (!req.body?.data || typeof req.body.data !== "object") { res.status(400).json({ error: "Record data is required." }); return; }
   const nextData = req.body.data as LooseRecord;
+  const branchContext = await importBranchOptionsForUser(user);
+  const availableBranches = branchContext?.branches ?? [];
+  const requestedBranch = asText(nextData.branch);
+  const matchedBranch = requestedBranch ? branchForSource(requestedBranch, availableBranches) : undefined;
+  const fallbackBranch = availableBranches.find((branch) => branch.id === record.branchId)
+    ?? availableBranches.find((branch) => branch.id === session.defaultBranchId)
+    ?? availableBranches.find((branch) => branch.id === branchContext?.mainBranchId);
+  const resolvedBranch = requestedBranch
+    ? matchedBranch ?? (availableBranches.length === 1 ? availableBranches[0] : undefined)
+    : fallbackBranch;
+  if (resolvedBranch) nextData.branch = resolvedBranch.name;
   const previousData = effectiveData(record);
   const changes = Object.keys(nextData).filter((field) => JSON.stringify(previousData[field]) !== JSON.stringify(nextData[field]));
+  const validationIssues = validateData(nextData, asText((record.sourceMetadata as LooseRecord)?.sourceType ?? "spreadsheet"));
+  if (requestedBranch && !matchedBranch && availableBranches.length > 1) {
+    validationIssues.push(`Branch "${requestedBranch}" does not match an active branch. Choose a branch before approving.`);
+  } else if (!resolvedBranch) {
+    validationIssues.push("Choose an active branch before approving this listing.");
+  }
   await db.update(importRecordsTable).set({
     correctedData: nextData,
-    validationIssues: validateData(nextData, asText((record.sourceMetadata as LooseRecord)?.sourceType ?? "spreadsheet")),
+    branchId: resolvedBranch?.id ?? null,
+    validationIssues,
     confidenceScore: 100,
     reviewStatus: req.body.reviewStatus === "approved" ? "approved" : "needs_review",
     agentId: req.body.agentId === null ? null : Number.isInteger(req.body.agentId) ? req.body.agentId : record.agentId,
@@ -1171,7 +1313,7 @@ router.patch("/imports/sessions/:id/records/:recordId", async (req, res): Promis
     })));
   }
   await updateCounters(sessionId);
-  const detail = await detailFor(sessionId, agencyIdFor(user));
+  const detail = await detailFor(sessionId, branchId);
   const updated = detail?.records.find((item) => item.id === recordId);
   res.json(updated);
 });
@@ -1182,7 +1324,9 @@ router.post("/imports/sessions/:id/bulk-action", async (req, res): Promise<void>
   const recordIds = Array.isArray(req.body?.recordIds) ? req.body.recordIds.filter(Number.isInteger) : [];
   const action = asText(req.body?.action);
   if (!user) { res.status(401).json({ error: "Not authenticated" }); return; }
-  const session = await sessionFor(sessionId, agencyIdFor(user));
+  const branchId = requireImportBranch(user, res);
+  if (branchId === null) return;
+  const session = await sessionFor(sessionId, branchId);
   if (!session || !recordIds.length) { res.status(400).json({ error: "A session and at least one record are required." }); return; }
   const records = await db.select().from(importRecordsTable).where(and(eq(importRecordsTable.sessionId, sessionId), inArray(importRecordsTable.id, recordIds)));
   const update: Partial<typeof importRecordsTable.$inferInsert> = { updatedAt: new Date() };
@@ -1202,7 +1346,7 @@ router.post("/imports/sessions/:id/bulk-action", async (req, res): Promise<void>
   } else { res.status(400).json({ error: "Unsupported bulk action." }); return; }
   await db.update(importRecordsTable).set(update).where(inArray(importRecordsTable.id, records.map((record) => record.id)));
   await updateCounters(sessionId);
-  const detail = await detailFor(sessionId, agencyIdFor(user));
+  const detail = await detailFor(sessionId, branchId);
   res.json(detail);
 });
 
@@ -1211,19 +1355,39 @@ router.post("/imports/sessions/:id/publish", async (req, res): Promise<void> => 
   const sessionId = Number(req.params.id);
   const recordIds = Array.isArray(req.body?.recordIds) ? req.body.recordIds.filter(Number.isInteger) : [];
   if (!user) { res.status(401).json({ error: "Not authenticated" }); return; }
-  const session = await sessionFor(sessionId, agencyIdFor(user));
+  const branchId = requireImportBranch(user, res);
+  if (branchId === null) return;
+  const branchContext = await importBranchOptionsForUser(user);
+  if (!branchContext) {
+    res.status(409).json({ error: "Assign this account to an active agency branch before publishing imports." });
+    return;
+  }
+  const session = await sessionFor(sessionId, branchId);
   if (!session || !recordIds.length) { res.status(400).json({ error: "Select at least one approved record to publish." }); return; }
   const records = await db.select().from(importRecordsTable).where(and(eq(importRecordsTable.sessionId, sessionId), inArray(importRecordsTable.id, recordIds)));
   let created = 0; let linked = 0; let published = 0; const errors: string[] = [];
   const createdPropertyIds: number[] = [];
   for (const record of records) {
     const data = effectiveData(record);
+    const targetBranchId = record.branchId ?? session.defaultBranchId ?? branchContext.mainBranchId;
+    if (!branchContext.branches.some((branch) => branch.id === targetBranchId)) {
+      errors.push(`Record ${record.id}: select an active branch in this agency before publishing.`);
+      continue;
+    }
     const issues = validateData(data, "spreadsheet").filter((issue) => !issue.includes("Image needs"));
-    if (record.reviewStatus !== "approved" || issues.length || record.duplicateStatus === "possible" || (record.duplicateStatus === "link_existing" && !record.matchedPropertyId)) {
+    const storedIssues = Array.isArray(record.validationIssues) ? record.validationIssues : [];
+    if (record.reviewStatus !== "approved" || issues.length || storedIssues.length > 0 || record.duplicateStatus === "possible" || (record.duplicateStatus === "link_existing" && !record.matchedPropertyId)) {
       errors.push(`Record ${record.id}: approve the record and resolve validation or duplicate issues first.`);
       continue;
     }
     try {
+      if (record.agentId) {
+        const [agent] = await db.select({ branchId: usersTable.branchId }).from(usersTable).where(eq(usersTable.id, record.agentId)).limit(1);
+        if (!agent || agent.branchId !== targetBranchId) {
+          errors.push(`Record ${record.id}: its assigned agent does not belong to the selected branch.`);
+          continue;
+        }
+      }
       let propertyId = record.duplicateStatus === "link_existing" ? record.matchedPropertyId : null;
       if (!propertyId) {
         const [property] = await db.insert(propertiesTable).values({
@@ -1243,7 +1407,7 @@ router.post("/imports/sessions/:id/publish", async (req, res): Promise<void> => 
           bathrooms: numberValue(data.bathrooms),
           photos: Array.isArray(data.photos) ? data.photos.map(asText).filter(Boolean) : [],
           agentId: record.agentId,
-          branchId: agencyIdFor(user),
+          branchId: targetBranchId,
           mandateType: asText(data.mandateType) || null,
           mandateStart: asText(data.mandateStart) || null,
           mandateExpiry: asText(data.mandateExpiry) || null,
@@ -1266,7 +1430,7 @@ router.post("/imports/sessions/:id/publish", async (req, res): Promise<void> => 
           const [relationship] = await db.insert(propertyAgentRelationshipsTable).values({
             propertyId,
             agentId: record.agentId,
-            branchId: agencyIdFor(user),
+            branchId: targetBranchId,
             askingPrice: numberValue(data.price) ?? 0,
             currency: asText(data.currency) || "USD",
             mandateType: asText(data.mandateType) || "non_exclusive",
@@ -1301,7 +1465,9 @@ router.get("/imports/sessions/:id/error-report", async (req, res): Promise<void>
   const user = await currentUser(req);
   const sessionId = Number(req.params.id);
   if (!user) { res.status(401).json({ error: "Not authenticated" }); return; }
-  const session = await sessionFor(sessionId, agencyIdFor(user));
+  const branchId = requireImportBranch(user, res);
+  if (branchId === null) return;
+  const session = await sessionFor(sessionId, branchId);
   if (!session) { res.status(404).send("Import session not found."); return; }
   const files = await db.select().from(importFilesTable).where(eq(importFilesTable.sessionId, sessionId));
   const records = await db.select().from(importRecordsTable).where(and(eq(importRecordsTable.sessionId, sessionId), ne(importRecordsTable.reviewStatus, "published")));
@@ -1329,7 +1495,9 @@ router.post("/imports/assistant", async (req, res): Promise<void> => {
   const prompt = asText(req.body?.prompt);
   const sessionId = Number(req.body?.sessionId);
   if (!user) { res.status(401).json({ error: "Not authenticated" }); return; }
-  if (!prompt || !await sessionFor(sessionId, agencyIdFor(user))) { res.status(400).json({ error: "A valid import session and question are required." }); return; }
+  const branchId = requireImportBranch(user, res);
+  if (branchId === null) return;
+  if (!prompt || !await sessionFor(sessionId, branchId)) { res.status(400).json({ error: "A valid import session and question are required." }); return; }
   const lower = prompt.toLowerCase();
   const message = lower.includes("duplicate")
     ? "Review the highlighted match fields before publishing. A possible duplicate should be linked only when the address and agency ownership are correct."

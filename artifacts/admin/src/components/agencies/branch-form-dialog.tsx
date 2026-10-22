@@ -16,6 +16,7 @@ export type BranchDraft = {
   name: string;
   address: string | null;
   phone: string | null;
+  isMain: boolean;
 };
 
 type BranchFormDialogProps = {
@@ -36,6 +37,7 @@ export function BranchFormDialog({
   const [name, setName] = useState('');
   const [address, setAddress] = useState('');
   const [phone, setPhone] = useState('');
+  const [isMain, setIsMain] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -43,6 +45,7 @@ export function BranchFormDialog({
     setName(branch?.name ?? '');
     setAddress(branch?.address ?? '');
     setPhone(branch?.phone ?? '');
+    setIsMain(branch?.isMain ?? false);
     setError('');
   }, [open, branch]);
 
@@ -57,6 +60,7 @@ export function BranchFormDialog({
       name: cleanName,
       address: address.trim() || null,
       phone: phone.trim() || null,
+      isMain: isMain || branch?.isMain === true,
     });
   };
 
@@ -72,7 +76,7 @@ export function BranchFormDialog({
         <form onSubmit={submit} className="space-y-4">
           <label className="block space-y-1.5">
             <span className="text-sm font-medium">Branch name <span className="text-destructive">*</span></span>
-            <Input autoFocus value={name} onChange={(event) => setName(event.target.value)} maxLength={160} required />
+            <Input autoFocus value={name} onChange={(event) => setName(event.target.value)} maxLength={500} required />
           </label>
           <label className="block space-y-1.5">
             <span className="text-sm font-medium">Address</span>
@@ -82,6 +86,14 @@ export function BranchFormDialog({
             <span className="text-sm font-medium">Phone</span>
             <Input value={phone} onChange={(event) => setPhone(event.target.value)} maxLength={40} />
           </label>
+          {branch?.isMain ? (
+            <p className="text-sm text-muted-foreground">This is the main branch. Mark another branch as main to move this designation.</p>
+          ) : (
+            <label className="flex items-center gap-2 text-sm">
+              <input type="checkbox" checked={isMain} onChange={(event) => setIsMain(event.target.checked)} />
+              Set as main branch
+            </label>
+          )}
           {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>Cancel</Button>

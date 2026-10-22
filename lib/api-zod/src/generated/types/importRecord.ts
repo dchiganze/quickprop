@@ -11,6 +11,10 @@ import type { ImportRecordMatch } from './importRecordMatch';
 export interface ImportRecord {
   id: number;
   sourceFileId: number;
+  /** @nullable */
+  branchId: number | null;
+  /** @nullable */
+  branchName: string | null;
   sourceFileName?: string;
   /** @nullable */
   sourceLocation?: string | null;

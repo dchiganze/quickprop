@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   useArchiveAdminAgency,
   useArchiveAdminAgencyBranch,
@@ -8,7 +8,9 @@ import {
   useCreateAdminAgencyBranch,
   useGetAdminAgencies,
   useGetAdminAgents,
+  useGetAdminMyBranch,
   useSetAdminBranchMembers,
+  useSetAdminMyBranch,
   useUpdateAdminAgency,
   useUpdateAdminAgencyBranch,
 } from '@workspace/api-client-react';
@@ -52,6 +54,7 @@ export default function Agencies() {
   const [agentDialog, setAgentDialog] = useState<{ agency: AdminAgency; defaultBranchId: number | null } | null>(null);
   const [pendingAgentAgencyId, setPendingAgentAgencyId] = useState<number | null>(null);
   const [teamBranch, setTeamBranch] = useState<AdminAgencyBranch | null>(null);
+  const [myBranchSelection, setMyBranchSelection] = useState('');
   const [resendingAgentId, setResendingAgentId] = useState<number | null>(null);
 
   const {
@@ -66,6 +69,12 @@ export default function Agencies() {
 
   const createAgency = useCreateAdminAgency();
   const createAgent = useCreateAdminAgencyAgent();
+  const {
+    data: myBranchData,
+    isLoading: myBranchLoading,
+    refetch: refetchMyBranch,
+  } = useGetAdminMyBranch();
+  const setMyBranch = useSetAdminMyBranch();
   const resendAgentSetup = useResendAdminAgentSetupLink();
   const updateAgency = useUpdateAdminAgency();
   const archiveAgency = useArchiveAdminAgency();
@@ -76,6 +85,32 @@ export default function Agencies() {
 
   const agencies = agencyData?.agencies ?? [];
   const unassignedBranches = agencyData?.unassignedBranches ?? [];
+  useEffect(() => {
+    if (myBranchData) {
+      setMyBranchSelection(myBranchData.currentBranchId == null ? '' : String(myBranchData.currentBranchId));
+    }
+  }, [myBranchData?.currentBranchId]);
+
+  const handleMyBranchSave = () => {
+    const branchId = Number(myBranchSelection);
+    if (!Number.isInteger(branchId) || branchId < 1) return;
+    setMyBranch.mutate({ data: { branchId } }, {
+      onSuccess: (data) => {
+        setMyBranchSelection(data.currentBranchId == null ? '' : String(data.currentBranchId));
+        void refetchMyBranch();
+        toast({
+          title: 'Branch assignment saved',
+          description: `This account is now assigned to ${data.currentBranchName ?? 'the selected branch'}.`,
+        });
+      },
+      onError: (error) => toast({
+        title: 'Could not assign this account',
+        description: getErrorMessage(error),
+        variant: 'destructive',
+      }),
+    });
+  };
+
   const query = search.trim().toLowerCase();
   const visibleAgencies = useMemo(() => agencies.filter((agency) => {
     if (!showArchived && agency.status !== 'active') return false;
@@ -306,6 +341,52 @@ export default function Agencies() {
         <SummaryCard icon={<GitBranch className="h-4 w-4" />} label="Branches" value={totalBranchCount} />
         <SummaryCard icon={<Users className="h-4 w-4" />} label="Assigned agents" value={totalTeamCount} />
       </div>
+
+      <Card>
+        <CardContent className="flex flex-col gap-4 p-4 sm:flex-row sm:items-end sm:justify-between">
+          <div className="space-y-1">
+            <h2 className="font-semibold text-foreground">My branch assignment</h2>
+            <p className="max-w-2xl text-sm text-muted-foreground">
+              Assign this Admin account to a branch. Portfolio imports and other branch-scoped actions will use this assignment.
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Current assignment: {myBranchLoading ? 'Loading…' : myBranchData?.currentBranchName ?? 'None'}
+            </p>
+          </div>
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+            <Select
+              value={myBranchSelection}
+              onValueChange={setMyBranchSelection}
+              disabled={myBranchLoading || setMyBranch.isPending || !myBranchData?.branches.length}
+            >
+              <SelectTrigger className="w-full sm:w-64">
+                <SelectValue placeholder="Choose an active branch" />
+              </SelectTrigger>
+              <SelectContent>
+                {myBranchData?.branches.map((branch) => (
+                  <SelectItem key={branch.id} value={String(branch.id)}>
+                    {branch.agencyName} — {branch.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button
+              onClick={handleMyBranchSave}
+              disabled={
+                myBranchLoading ||
+                setMyBranch.isPending ||
+                !myBranchSelection ||
+                Number(myBranchSelection) === myBranchData?.currentBranchId
+              }
+            >
+              {setMyBranch.isPending ? 'Saving…' : 'Save assignment'}
+            </Button>
+          </div>
+          {!myBranchLoading && !myBranchData?.branches.length && (
+            <p className="text-sm text-muted-foreground">No active agency branches are available to assign.</p>
+          )}
+        </CardContent>
+      </Card>
 
       <Card>
         <CardContent className="space-y-4 p-4">
