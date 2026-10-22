@@ -28,12 +28,7 @@ async function startServer(): Promise<void> {
   await ensurePasskeyTable();
   await ensureDemoAccounts();
 
-  app.listen(port, (err) => {
-    if (err) {
-      logger.error({ err }, "Error listening on port");
-      process.exit(1);
-    }
-
+  const server = app.listen(port, () => {
     logger.info({ port }, "Server listening");
     startHousekeepingScheduler();
     startImportRecoveryWorker();
@@ -41,6 +36,33 @@ async function startServer(): Promise<void> {
     startRentalReferenceScheduler();
     startPropertyAlertScheduler();
   });
+
+  server.on("error", (err) => {
+    logger.error({ err, port }, "Error listening on port");
+    process.exitCode = 1;
+  });
+
+  const shutdown = (signal: NodeJS.Signals) => {
+    logger.info({ signal }, "API server shutdown requested");
+    const forceExit = setTimeout(() => {
+      logger.error({ signal }, "API server shutdown timed out");
+      process.exit(1);
+    }, 10_000);
+    forceExit.unref();
+
+    server.close((err) => {
+      clearTimeout(forceExit);
+      if (err) {
+        logger.error({ err, signal }, "API server shutdown failed");
+        process.exit(1);
+      }
+      logger.info({ signal }, "API server stopped");
+      process.exit(0);
+    });
+  };
+
+  process.once("SIGTERM", () => shutdown("SIGTERM"));
+  process.once("SIGINT", () => shutdown("SIGINT"));
 }
 
 startServer().catch((err) => {
