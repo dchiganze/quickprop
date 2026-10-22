@@ -41,7 +41,7 @@ export default function AgentProfile() {
   const params = useParams();
   const id = Number(params.id || 0);
   const profileQuery = useGetPublicAgent(id, {
-    query: { enabled: Boolean(id), queryKey: getGetPublicAgentQueryKey(id) },
+    query: { enabled: Boolean(id), queryKey: getGetPublicAgentQueryKey(id), staleTime: 60_000, refetchOnMount: "always" },
   });
   const data = profileQuery.data;
 
@@ -97,7 +97,13 @@ export default function AgentProfile() {
                   Public profile
                 </div>
                 <h1 className="font-display text-5xl leading-[0.92] text-foreground sm:text-7xl" data-testid="text-profile-name">{agent.name}</h1>
-                <p className="mt-4 text-sm text-muted-foreground">{agent.branchName || "Independent real estate professional"}</p>
+                <p className="mt-4 text-sm text-muted-foreground">{[agent.agencyName, agent.branchName].filter(Boolean).join(" · ") || "Independent real estate professional"}</p>
+                <p className="mt-2 text-sm text-foreground" data-testid="text-profile-median">
+                  <span className="text-muted-foreground">Median sale price: </span>
+                  {agent.medianSalePrices && agent.medianSalePrices.length > 0
+                    ? <span className="font-semibold">{agent.medianSalePrices.map((m) => `${formatPrice(m.medianPrice, m.currency)} (${m.saleCount} ${m.saleCount === 1 ? "sale" : "sales"})`).join(" · ")}</span>
+                    : <span className="text-muted-foreground">No sales recorded yet</span>}
+                </p>
                 <div className="mt-5 flex flex-wrap gap-3">
                   {agent.phone && <Button asChild size="sm" className="gap-2 rounded-lg" data-testid="button-profile-whatsapp"><a href={`https://wa.me/${agent.phone.replace(/\D/g, "")}`} target="_blank" rel="noopener noreferrer"><MessageSquare className="h-4 w-4" />WhatsApp</a></Button>}
                   {agent.phone && <Button asChild size="sm" variant="outline" className="gap-2 rounded-lg" data-testid="button-profile-call"><a href={`tel:${agent.phone}`}><Phone className="h-4 w-4" />Call</a></Button>}
@@ -177,7 +183,7 @@ export default function AgentProfile() {
           ) : (
             <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
               {sellingHistory.map((sale) => (
-                <article key={sale.id} className="rounded-2xl border border-border bg-card p-6" data-testid={`card-selling-history-${sale.id}`}>
+                <article key={`${sale.source ?? "listing"}-${sale.id}`} className="rounded-2xl border border-border bg-card p-6" data-testid={`card-selling-history-${sale.source ?? "listing"}-${sale.id}`}>
                   <div className="flex items-start justify-between gap-4">
                     <div>
                       <p className="text-xs font-bold uppercase tracking-[0.14em] text-primary">{sale.reference}</p>

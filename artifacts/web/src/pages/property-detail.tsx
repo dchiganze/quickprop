@@ -380,6 +380,7 @@ export default function PropertyDetail() {
                       </div>
                       <div>
                         <h3 className="font-bold text-lg text-gray-900">{agent.name}</h3>
+                        {agent.agencyName && <p className="text-sm font-medium text-gray-700" data-testid="text-agent-agency">{agent.agencyName}</p>}
                         <p className="text-sm text-gray-500">{agent.branchName || 'Agent'}</p>
                       </div>
                     </div>

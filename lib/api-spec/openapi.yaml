@@ -32,6 +32,56 @@ tags:
   - name: reviews
   - name: property-alerts
 paths:
+  /agents/{id}/past-sales:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: integer } }
+    get:
+      operationId: getAgentPastSales
+      tags: [users]
+      responses:
+        "200":
+          description: Historical sales and completed QuickProp sales
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AgentSalesHistory" }
+    post:
+      operationId: createAgentPastSale
+      tags: [users]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AgentPastSaleInput" }
+      responses:
+        "201":
+          description: Historical sale added
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PublicSellingHistory" }
+  /agents/{id}/past-sales/{saleId}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: integer } }
+      - { name: saleId, in: path, required: true, schema: { type: integer } }
+    put:
+      operationId: updateAgentPastSale
+      tags: [users]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AgentPastSaleInput" }
+      responses:
+        "200":
+          description: Historical sale updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PublicSellingHistory" }
+    delete:
+      operationId: deleteAgentPastSale
+      tags: [users]
+      responses:
+        "204":
+          description: Historical sale removed
   /healthz:
     get:
       operationId: healthCheck
@@ -3590,6 +3640,10 @@ components:
         role: { type: string }
         branchId: { type: ["integer", "null"] }
         branchName: { type: ["string", "null"] }
+        agencyName: { type: ["string", "null"] }
+        medianSalePrices:
+          type: array
+          items: { $ref: "#/components/schemas/AgentSaleMedian" }
         activeListings: { type: integer }
         reviewSummary: { $ref: "#/components/schemas/AgentReviewSummary" }
     PublicSellingHistory:
@@ -3604,6 +3658,34 @@ components:
         currency: { type: string }
         salePrice: { type: ["number", "null"] }
         soldAt: { type: ["string", "null"] }
+        source: { type: string, enum: [past_sale, listing] }
+    AgentSaleMedian:
+      type: object
+      required: [currency, medianPrice, saleCount]
+      properties:
+        currency: { type: string }
+        medianPrice: { type: number }
+        saleCount: { type: integer }
+    AgentSalesHistory:
+      type: object
+      required: [sales, medians]
+      properties:
+        sales:
+          type: array
+          items: { $ref: "#/components/schemas/PublicSellingHistory" }
+        medians:
+          type: array
+          items: { $ref: "#/components/schemas/AgentSaleMedian" }
+    AgentPastSaleInput:
+      type: object
+      required: [title, suburb, city, currency, salePrice, soldAt]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 200 }
+        suburb: { type: string, minLength: 1, maxLength: 100 }
+        city: { type: string, minLength: 1, maxLength: 100 }
+        currency: { type: string, enum: [USD, ZWG, ZAR, GBP, EUR] }
+        salePrice: { type: number, exclusiveMinimum: 0 }
+        soldAt: { type: string, pattern: '^\d{4}-\d{2}-\d{2}$' }
     PublicAgentProfile:
       type: object
       required: [agent, listings, reviews, sellingHistory]

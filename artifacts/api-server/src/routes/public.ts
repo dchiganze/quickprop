@@ -2,6 +2,7 @@ import { Router, type IRouter, type Request, type Response } from "express";
 import { eq, and, gte, lte, ilike, or, inArray, desc, sql } from "drizzle-orm";
 import { db, usersTable, branchesTable, propertiesTable, savedPropertiesTable } from "@workspace/db";
 import { jsonify } from "../lib/helpers";
+import { getAgentAgency, getAgentSalesHistory } from "../lib/agent-sales";
 import {
   SubmitEnquiryBody,
   RegisterBuyerBody,
@@ -53,6 +54,7 @@ async function agentWithBranch(agentId: number | null) {
     )
   );
   const reviewSummary = await getPublicReviewSummary(agent.id);
+  const [agency, salesHistory] = await Promise.all([getAgentAgency(agent.branchId), getAgentSalesHistory(agent.id)]);
   return {
     id: agent.id,
     name: agent.name,
@@ -62,6 +64,8 @@ async function agentWithBranch(agentId: number | null) {
     role: agent.role,
     branchId: agent.branchId ?? null,
     branchName,
+    agencyName: agency?.agencyName ?? null,
+    medianSalePrices: salesHistory.medians,
     activeListings: listings.length,
     reviewSummary: {
       averageRating: reviewSummary.averageRating,
@@ -240,6 +244,7 @@ router.get("/public/agents", async (_req, res): Promise<void> => {
         )
       );
       const reviewSummary = await getPublicReviewSummary(agent.id);
+      const [agency, salesHistory] = await Promise.all([getAgentAgency(agent.branchId), getAgentSalesHistory(agent.id)]);
       return {
         id: agent.id,
         name: agent.name,
@@ -249,6 +254,8 @@ router.get("/public/agents", async (_req, res): Promise<void> => {
         role: agent.role,
         branchId: agent.branchId ?? null,
         branchName,
+        agencyName: agency?.agencyName ?? null,
+        medianSalePrices: salesHistory.medians,
         activeListings: listings.length,
         reviewSummary: {
           averageRating: reviewSummary.averageRating,
@@ -285,22 +292,7 @@ router.get("/public/agents/:id", async (req, res): Promise<void> => {
     )
   );
 
-  const sellingHistoryRows = await db.select({
-    id: propertiesTable.id,
-    reference: propertiesTable.reference,
-    title: propertiesTable.title,
-    suburb: propertiesTable.suburb,
-    city: propertiesTable.city,
-    currency: propertiesTable.currency,
-    salePrice: propertiesTable.salePrice,
-    soldAt: propertiesTable.soldAt,
-  }).from(propertiesTable).where(
-    and(
-      eq(propertiesTable.agentId, agent.id),
-      or(eq(propertiesTable.availabilityStatus, "sold"), eq(propertiesTable.status, "sold")),
-    )
-  ).orderBy(desc(propertiesTable.soldAt), desc(propertiesTable.updatedAt));
-
+  const [agency, salesHistory] = await Promise.all([getAgentAgency(agent.branchId), getAgentSalesHistory(agent.id)]);
   const reviewSummary = await getPublicReviewSummary(agent.id);
   res.json(jsonify({
     agent: {
@@ -312,6 +304,8 @@ router.get("/public/agents/:id", async (req, res): Promise<void> => {
       role: agent.role,
       branchId: agent.branchId ?? null,
       branchName,
+      agencyName: agency?.agencyName ?? null,
+      medianSalePrices: salesHistory.medians,
       activeListings: listings.length,
       reviewSummary: {
         averageRating: reviewSummary.averageRating,
@@ -320,7 +314,7 @@ router.get("/public/agents/:id", async (req, res): Promise<void> => {
     },
     listings: listings.map(stripPrivate),
     reviews: reviewSummary.reviews,
-    sellingHistory: sellingHistoryRows,
+    sellingHistory: salesHistory.sales,
   }));
 });
 

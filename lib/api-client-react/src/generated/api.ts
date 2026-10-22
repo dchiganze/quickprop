@@ -53,8 +53,10 @@ import type {
   AgencyRelationshipInput,
   AgencySettings,
   AgencySettingsInput,
+  AgentPastSaleInput,
   AgentReviewInput,
   AgentReviewResult,
+  AgentSalesHistory,
   AgentSetupCompleteInput,
   AnalyticsSummary,
   AttentionItem,
@@ -158,6 +160,7 @@ import type {
   PublicPropertyList,
   PublicRentalReference,
   PublicReviewInvitation,
+  PublicSellingHistory,
   PublishImportInput,
   PublishImportResult,
   ReferenceRequest,
@@ -225,6 +228,278 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   }
   return result;
 };
+
+export const getGetAgentPastSalesUrl = (id: number,) => {
+
+
+
+
+  return `/api/agents/${id}/past-sales`
+}
+
+export const getAgentPastSales = async (id: number, options?: RequestInit): Promise<AgentSalesHistory> => {
+
+  return customFetch<AgentSalesHistory>(getGetAgentPastSalesUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAgentPastSalesQueryKey = (id: number,) => {
+    return [
+    `/api/agents/${id}/past-sales`
+    ] as const;
+    }
+
+
+export const getGetAgentPastSalesQueryOptions = <TData = Awaited<ReturnType<typeof getAgentPastSales>>, TError = ErrorType<unknown>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAgentPastSales>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAgentPastSalesQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAgentPastSales>>> = ({ signal }) => getAgentPastSales(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAgentPastSales>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAgentPastSalesQueryResult = NonNullable<Awaited<ReturnType<typeof getAgentPastSales>>>
+export type GetAgentPastSalesQueryError = ErrorType<unknown>
+
+
+
+export function useGetAgentPastSales<TData = Awaited<ReturnType<typeof getAgentPastSales>>, TError = ErrorType<unknown>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAgentPastSales>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAgentPastSalesQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateAgentPastSaleUrl = (id: number,) => {
+
+
+
+
+  return `/api/agents/${id}/past-sales`
+}
+
+export const createAgentPastSale = async (id: number,
+    agentPastSaleInput: AgentPastSaleInput, options?: RequestInit): Promise<PublicSellingHistory> => {
+
+  return customFetch<PublicSellingHistory>(getCreateAgentPastSaleUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(agentPastSaleInput)
+  }
+);}
+
+
+
+
+
+export const getCreateAgentPastSaleMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAgentPastSale>>, TError,{id: number;data: BodyType<AgentPastSaleInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createAgentPastSale>>, TError,{id: number;data: BodyType<AgentPastSaleInput>}, TContext> => {
+
+const mutationKey = ['createAgentPastSale'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createAgentPastSale>>, {id: number;data: BodyType<AgentPastSaleInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  createAgentPastSale(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateAgentPastSaleMutationResult = NonNullable<Awaited<ReturnType<typeof createAgentPastSale>>>
+    export type CreateAgentPastSaleMutationBody = BodyType<AgentPastSaleInput>
+    export type CreateAgentPastSaleMutationError = ErrorType<unknown>
+
+    export const useCreateAgentPastSale = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAgentPastSale>>, TError,{id: number;data: BodyType<AgentPastSaleInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createAgentPastSale>>,
+        TError,
+        {id: number;data: BodyType<AgentPastSaleInput>},
+        TContext
+      > => {
+      return useMutation(getCreateAgentPastSaleMutationOptions(options));
+    }
+
+export const getUpdateAgentPastSaleUrl = (id: number,
+    saleId: number,) => {
+
+
+
+
+  return `/api/agents/${id}/past-sales/${saleId}`
+}
+
+export const updateAgentPastSale = async (id: number,
+    saleId: number,
+    agentPastSaleInput: AgentPastSaleInput, options?: RequestInit): Promise<PublicSellingHistory> => {
+
+  return customFetch<PublicSellingHistory>(getUpdateAgentPastSaleUrl(id,saleId),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(agentPastSaleInput)
+  }
+);}
+
+
+
+
+
+export const getUpdateAgentPastSaleMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAgentPastSale>>, TError,{id: number;saleId: number;data: BodyType<AgentPastSaleInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateAgentPastSale>>, TError,{id: number;saleId: number;data: BodyType<AgentPastSaleInput>}, TContext> => {
+
+const mutationKey = ['updateAgentPastSale'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateAgentPastSale>>, {id: number;saleId: number;data: BodyType<AgentPastSaleInput>}> = (props) => {
+          const {id,saleId,data} = props ?? {};
+
+          return  updateAgentPastSale(id,saleId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateAgentPastSaleMutationResult = NonNullable<Awaited<ReturnType<typeof updateAgentPastSale>>>
+    export type UpdateAgentPastSaleMutationBody = BodyType<AgentPastSaleInput>
+    export type UpdateAgentPastSaleMutationError = ErrorType<unknown>
+
+    export const useUpdateAgentPastSale = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAgentPastSale>>, TError,{id: number;saleId: number;data: BodyType<AgentPastSaleInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateAgentPastSale>>,
+        TError,
+        {id: number;saleId: number;data: BodyType<AgentPastSaleInput>},
+        TContext
+      > => {
+      return useMutation(getUpdateAgentPastSaleMutationOptions(options));
+    }
+
+export const getDeleteAgentPastSaleUrl = (id: number,
+    saleId: number,) => {
+
+
+
+
+  return `/api/agents/${id}/past-sales/${saleId}`
+}
+
+export const deleteAgentPastSale = async (id: number,
+    saleId: number, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getDeleteAgentPastSaleUrl(id,saleId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteAgentPastSaleMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteAgentPastSale>>, TError,{id: number;saleId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteAgentPastSale>>, TError,{id: number;saleId: number}, TContext> => {
+
+const mutationKey = ['deleteAgentPastSale'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteAgentPastSale>>, {id: number;saleId: number}> = (props) => {
+          const {id,saleId} = props ?? {};
+
+          return  deleteAgentPastSale(id,saleId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteAgentPastSaleMutationResult = NonNullable<Awaited<ReturnType<typeof deleteAgentPastSale>>>
+
+    export type DeleteAgentPastSaleMutationError = ErrorType<unknown>
+
+    export const useDeleteAgentPastSale = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteAgentPastSale>>, TError,{id: number;saleId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteAgentPastSale>>,
+        TError,
+        {id: number;saleId: number},
+        TContext
+      > => {
+      return useMutation(getDeleteAgentPastSaleMutationOptions(options));
+    }
 
 export const getHealthCheckUrl = () => {
 

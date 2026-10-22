@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useGetAdminAgents, useUpdateUser } from '@workspace/api-client-react';
-import { Search, UserCheck, Building2, MoreHorizontal, ShieldOff, ShieldCheck } from 'lucide-react';
+import { Search, UserCheck, Building2, MoreHorizontal, History, ShieldOff, ShieldCheck } from 'lucide-react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { AgentPastSalesEditor } from '@/components/agent-past-sales-editor';
 import { useToast } from '@/hooks/use-toast';
 
 const ROLE_COLORS: Record<string, string> = {
@@ -21,6 +23,7 @@ export default function Agents() {
   const [search, setSearch] = useState('');
   const { data: agents, isLoading, refetch } = useGetAdminAgents();
   const updateUser = useUpdateUser();
+  const [salesAgent, setSalesAgent] = useState<{ id: number; name: string } | null>(null);
 
   const filtered = (agents ?? []).filter((a) =>
     !search || a.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -65,7 +68,7 @@ export default function Agents() {
                   <th className="text-left px-4 py-3 font-medium text-muted-foreground w-28">Total</th>
                   <th className="text-left px-4 py-3 font-medium text-muted-foreground w-28">Leads</th>
                   <th className="text-left px-4 py-3 font-medium text-muted-foreground w-28">Status</th>
-                  <th className="text-right px-4 py-3 font-medium text-muted-foreground w-16" />
+                  <th className="text-right px-4 py-3 font-medium text-muted-foreground w-48" />
                 </tr>
               </thead>
               <tbody>
@@ -114,7 +117,10 @@ export default function Agents() {
                             {a.status}
                           </Badge>
                         </td>
-                        <td className="px-4 py-3 text-right">
+                        <td className="px-4 py-3 text-right whitespace-nowrap">
+                          <Button variant="outline" size="sm" className="h-7 mr-1 gap-1.5 text-xs" onClick={() => setSalesAgent({ id: a.id, name: a.name })} data-testid={`button-sales-history-${a.id}`}>
+                            <History className="w-3.5 h-3.5" /> Sales history
+                          </Button>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button variant="ghost" size="icon" className="h-7 w-7"><MoreHorizontal className="w-4 h-4" /></Button>
@@ -141,6 +147,15 @@ export default function Agents() {
           </div>
         </CardContent>
       </Card>
+      <Dialog open={!!salesAgent} onOpenChange={(open) => { if (!open) setSalesAgent(null); }}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Sales history: {salesAgent?.name}</DialogTitle>
+            <DialogDescription>Manage this agent's past sales and view medians.</DialogDescription>
+          </DialogHeader>
+          {salesAgent && <AgentPastSalesEditor key={salesAgent.id} agentId={salesAgent.id} />}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

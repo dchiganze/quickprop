@@ -8,6 +8,113 @@
 import * as zod from 'zod';
 
 
+export const GetAgentPastSalesParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const GetAgentPastSalesResponse = zod.object({
+  "sales": zod.array(zod.object({
+  "id": zod.number(),
+  "reference": zod.string(),
+  "title": zod.string(),
+  "suburb": zod.string(),
+  "city": zod.string(),
+  "currency": zod.string(),
+  "salePrice": zod.number().nullish(),
+  "soldAt": zod.string().nullish(),
+  "source": zod.enum(['past_sale', 'listing']).optional()
+})),
+  "medians": zod.array(zod.object({
+  "currency": zod.string(),
+  "medianPrice": zod.number(),
+  "saleCount": zod.number()
+}))
+})
+
+
+export const CreateAgentPastSaleParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const createAgentPastSaleBodyTitleMax = 200;
+
+export const createAgentPastSaleBodySuburbMax = 100;
+
+export const createAgentPastSaleBodyCityMax = 100;
+
+export const createAgentPastSaleBodySalePriceExclusiveMin = 0;
+
+export const createAgentPastSaleBodySoldAtRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
+
+
+export const CreateAgentPastSaleBody = zod.object({
+  "title": zod.string().min(1).max(createAgentPastSaleBodyTitleMax),
+  "suburb": zod.string().min(1).max(createAgentPastSaleBodySuburbMax),
+  "city": zod.string().min(1).max(createAgentPastSaleBodyCityMax),
+  "currency": zod.enum(['USD', 'ZWG', 'ZAR', 'GBP', 'EUR']),
+  "salePrice": zod.number().gt(createAgentPastSaleBodySalePriceExclusiveMin),
+  "soldAt": zod.string().regex(createAgentPastSaleBodySoldAtRegExp)
+})
+
+export const CreateAgentPastSaleResponse = zod.object({
+  "id": zod.number(),
+  "reference": zod.string(),
+  "title": zod.string(),
+  "suburb": zod.string(),
+  "city": zod.string(),
+  "currency": zod.string(),
+  "salePrice": zod.number().nullish(),
+  "soldAt": zod.string().nullish(),
+  "source": zod.enum(['past_sale', 'listing']).optional()
+})
+
+
+export const UpdateAgentPastSaleParams = zod.object({
+  "id": zod.coerce.number(),
+  "saleId": zod.coerce.number()
+})
+
+export const updateAgentPastSaleBodyTitleMax = 200;
+
+export const updateAgentPastSaleBodySuburbMax = 100;
+
+export const updateAgentPastSaleBodyCityMax = 100;
+
+export const updateAgentPastSaleBodySalePriceExclusiveMin = 0;
+
+export const updateAgentPastSaleBodySoldAtRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
+
+
+export const UpdateAgentPastSaleBody = zod.object({
+  "title": zod.string().min(1).max(updateAgentPastSaleBodyTitleMax),
+  "suburb": zod.string().min(1).max(updateAgentPastSaleBodySuburbMax),
+  "city": zod.string().min(1).max(updateAgentPastSaleBodyCityMax),
+  "currency": zod.enum(['USD', 'ZWG', 'ZAR', 'GBP', 'EUR']),
+  "salePrice": zod.number().gt(updateAgentPastSaleBodySalePriceExclusiveMin),
+  "soldAt": zod.string().regex(updateAgentPastSaleBodySoldAtRegExp)
+})
+
+export const UpdateAgentPastSaleResponse = zod.object({
+  "id": zod.number(),
+  "reference": zod.string(),
+  "title": zod.string(),
+  "suburb": zod.string(),
+  "city": zod.string(),
+  "currency": zod.string(),
+  "salePrice": zod.number().nullish(),
+  "soldAt": zod.string().nullish(),
+  "source": zod.enum(['past_sale', 'listing']).optional()
+})
+
+
+export const DeleteAgentPastSaleParams = zod.object({
+  "id": zod.coerce.number(),
+  "saleId": zod.coerce.number()
+})
+
+export const DeleteAgentPastSaleResponse = zod.void()
+
+
 /**
  * @summary Health check
  */
@@ -2621,6 +2728,12 @@ export const GetPublicPropertyResponse = zod.object({
   "role": zod.string(),
   "branchId": zod.number().nullish(),
   "branchName": zod.string().nullish(),
+  "agencyName": zod.string().nullish(),
+  "medianSalePrices": zod.array(zod.object({
+  "currency": zod.string(),
+  "medianPrice": zod.number(),
+  "saleCount": zod.number()
+})).optional(),
   "activeListings": zod.number(),
   "reviewSummary": zod.object({
   "averageRating": zod.number(),
@@ -2670,6 +2783,12 @@ export const ListPublicAgentsResponseItem = zod.object({
   "role": zod.string(),
   "branchId": zod.number().nullish(),
   "branchName": zod.string().nullish(),
+  "agencyName": zod.string().nullish(),
+  "medianSalePrices": zod.array(zod.object({
+  "currency": zod.string(),
+  "medianPrice": zod.number(),
+  "saleCount": zod.number()
+})).optional(),
   "activeListings": zod.number(),
   "reviewSummary": zod.object({
   "averageRating": zod.number(),
@@ -2696,6 +2815,12 @@ export const GetPublicAgentResponse = zod.object({
   "role": zod.string(),
   "branchId": zod.number().nullish(),
   "branchName": zod.string().nullish(),
+  "agencyName": zod.string().nullish(),
+  "medianSalePrices": zod.array(zod.object({
+  "currency": zod.string(),
+  "medianPrice": zod.number(),
+  "saleCount": zod.number()
+})).optional(),
   "activeListings": zod.number(),
   "reviewSummary": zod.object({
   "averageRating": zod.number(),
@@ -2756,7 +2881,8 @@ export const GetPublicAgentResponse = zod.object({
   "city": zod.string(),
   "currency": zod.string(),
   "salePrice": zod.number().nullish(),
-  "soldAt": zod.string().nullish()
+  "soldAt": zod.string().nullish(),
+  "source": zod.enum(['past_sale', 'listing']).optional()
 }))
 })
 

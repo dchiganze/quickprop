@@ -1299,6 +1299,12 @@ export interface PublicPropertyList {
   limit: number;
 }
 
+export interface AgentSaleMedian {
+  currency: string;
+  medianPrice: number;
+  saleCount: number;
+}
+
 export interface AgentReviewSummary {
   averageRating: number;
   reviewCount: number;
@@ -1318,9 +1324,20 @@ export interface PublicAgent {
   branchId?: number | null;
   /** @nullable */
   branchName?: string | null;
+  /** @nullable */
+  agencyName?: string | null;
+  medianSalePrices?: AgentSaleMedian[];
   activeListings: number;
   reviewSummary: AgentReviewSummary;
 }
+
+export type PublicSellingHistorySource = typeof PublicSellingHistorySource[keyof typeof PublicSellingHistorySource];
+
+
+export const PublicSellingHistorySource = {
+  past_sale: 'past_sale',
+  listing: 'listing',
+} as const;
 
 export interface PublicSellingHistory {
   id: number;
@@ -1333,6 +1350,46 @@ export interface PublicSellingHistory {
   salePrice?: number | null;
   /** @nullable */
   soldAt?: string | null;
+  source?: PublicSellingHistorySource;
+}
+
+export interface AgentSalesHistory {
+  sales: PublicSellingHistory[];
+  medians: AgentSaleMedian[];
+}
+
+export type AgentPastSaleInputCurrency = typeof AgentPastSaleInputCurrency[keyof typeof AgentPastSaleInputCurrency];
+
+
+export const AgentPastSaleInputCurrency = {
+  USD: 'USD',
+  ZWG: 'ZWG',
+  ZAR: 'ZAR',
+  GBP: 'GBP',
+  EUR: 'EUR',
+} as const;
+
+export interface AgentPastSaleInput {
+  /**
+     * @minLength 1
+     * @maxLength 200
+     */
+  title: string;
+  /**
+     * @minLength 1
+     * @maxLength 100
+     */
+  suburb: string;
+  /**
+     * @minLength 1
+     * @maxLength 100
+     */
+  city: string;
+  currency: AgentPastSaleInputCurrency;
+  /** @exclusiveMinimum 0 */
+  salePrice: number;
+  /** @pattern ^\d{4}-\d{2}-\d{2}$ */
+  soldAt: string;
 }
 
 export interface PublicAgentReview {

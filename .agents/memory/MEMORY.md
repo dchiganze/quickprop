@@ -12,3 +12,4 @@
 - [QuickProp Brochure Filtering](quickprop-brochure-filtering.md) — transaction type and property classification are separate mobile brochure dimensions.
 - [QuickProp Video Export](quickprop-video-export.md) — start capture at player mount; mux the verified soundtrack directly because Chromium's headless media clock may not advance.
 - [QuickProp Password-Reset Email](quickprop-password-reset-email.md) — use a Resend sending-only key directly; verify the sender domain separately without full-access-only domain APIs.
+- [QuickProp sales history](quickprop-sales-history.md) — historical sales build public track records without creating inventory; medians use actual prices per currency.

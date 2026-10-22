@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { AgentReviewSummary } from './agentReviewSummary';
+import type { AgentSaleMedian } from './agentSaleMedian';
 
 export interface PublicAgent {
   id: number;
@@ -21,6 +22,9 @@ export interface PublicAgent {
   branchId?: number | null;
   /** @nullable */
   branchName?: string | null;
+  /** @nullable */
+  agencyName?: string | null;
+  medianSalePrices?: AgentSaleMedian[];
   activeListings: number;
   reviewSummary: AgentReviewSummary;
 }

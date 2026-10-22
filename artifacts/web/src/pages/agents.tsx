@@ -1,9 +1,10 @@
-import { useListPublicAgents } from "@workspace/api-client-react";
+import { getListPublicAgentsQueryKey, useListPublicAgents } from "@workspace/api-client-react";
 import { Link } from "wouter";
 import { ArrowRight, BriefcaseBusiness, Mail, MapPin, Phone, ShieldCheck, Star } from "lucide-react";
 import { Layout } from "@/components/layout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { formatPrice } from "@/lib/utils";
 import { ReviewSummary } from "@/components/review-rating";
 
 function AgentsSkeleton() {
@@ -17,7 +18,7 @@ function AgentsSkeleton() {
 }
 
 export default function Agents() {
-  const agentsQuery = useListPublicAgents();
+  const agentsQuery = useListPublicAgents({ query: { queryKey: getListPublicAgentsQueryKey(), staleTime: 60_000, refetchOnMount: "always" } });
   const agents = agentsQuery.data ?? [];
 
   return (
@@ -95,6 +96,7 @@ export default function Agents() {
                       </span>
                     </div>
                     <h3 className="font-display text-3xl leading-none text-foreground" data-testid={`text-agent-name-${agent.id}`}>{agent.name}</h3>
+                    {agent.agencyName && <p className="mt-2 text-sm text-muted-foreground" data-testid={`text-agent-agency-${agent.id}`}>{agent.agencyName}</p>}
                     <div className="mt-4">
                       <ReviewSummary averageRating={agent.reviewSummary.averageRating} reviewCount={agent.reviewSummary.reviewCount} compact />
                     </div>
@@ -107,6 +109,14 @@ export default function Agents() {
                         <p className="text-2xl font-semibold text-primary">{agent.reviewSummary.reviewCount}</p>
                         <p className="mt-1 text-xs text-muted-foreground">Client reviews</p>
                       </div>
+                    </div>
+                    <div className="mt-4 text-sm" data-testid={`text-agent-median-${agent.id}`}>
+                      <p className="text-xs text-muted-foreground">Median sale price</p>
+                      {agent.medianSalePrices && agent.medianSalePrices.length > 0 ? (
+                        <p className="font-semibold text-foreground">{agent.medianSalePrices.map((m) => formatPrice(m.medianPrice, m.currency)).join(" · ")}</p>
+                      ) : (
+                        <p className="text-muted-foreground">No sales recorded yet</p>
+                      )}
                     </div>
                     <div className="mt-5 flex items-center justify-between gap-3">
                       <div className="flex items-center gap-3 text-muted-foreground">

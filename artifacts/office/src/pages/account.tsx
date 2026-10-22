@@ -12,6 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
+import { AgentPastSalesEditor } from '@/components/agent-past-sales-editor';
 import { useToast } from '@/hooks/use-toast';
 import { LoaderCircle, UserCircle } from 'lucide-react';
 
@@ -180,6 +181,18 @@ export default function Account() {
               </div>
             </CardContent>
           </Card>
+
+          {['principal', 'senior_agent', 'agent'].includes(user.role) && (
+            <Card>
+              <CardHeader className="border-b">
+                <CardTitle className="text-lg">My sales history</CardTitle>
+                <p className="text-sm text-muted-foreground">Add sales made before QuickProp. Sold listings are included automatically.</p>
+              </CardHeader>
+              <CardContent className="p-6">
+                <AgentPastSalesEditor agentId={user.id} />
+              </CardContent>
+            </Card>
+          )}
         </>
       )}
     </div>

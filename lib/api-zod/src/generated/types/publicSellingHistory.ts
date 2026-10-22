@@ -5,6 +5,7 @@
  * QuickProp Office API
  * OpenAPI spec version: 0.1.0
  */
+import type { PublicSellingHistorySource } from './publicSellingHistorySource';
 
 export interface PublicSellingHistory {
   id: number;
@@ -17,4 +18,5 @@ export interface PublicSellingHistory {
   salePrice?: number | null;
   /** @nullable */
   soldAt?: string | null;
+  source?: PublicSellingHistorySource;
 }
