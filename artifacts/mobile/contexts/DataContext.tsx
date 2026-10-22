@@ -297,71 +297,23 @@ async function uploadPropertyMedia(property: Property): Promise<Property> {
   return { ...property, photos, videoUrl };
 }
 
-const MOCK_PROPERTIES: Property[] = [
-  {
-    id: 'prop-001', referenceNumber: 'QP-2024-001', type: 'sale', status: 'published',
-    address: '14 Acacia Avenue', suburb: 'Borrowdale', price: 420000, currency: 'USD',
-    negotiable: true, bedrooms: 4, bathrooms: 3, garages: 2, landSize: 4200, floorArea: 380,
-    levies: 0, rates: 280,
-    features: ['Swimming Pool', 'Borehole', 'Solar', 'Electric Fence', 'Generator', 'Fibre'],
-    description: 'Exceptional four-bedroom home in the heart of Borrowdale. Double storey with a sun-drenched pool, lush garden and modern finishes throughout. Borehole and solar ensure full independence from municipal services.',
-    photos: [], coordinates: { lat: -17.7467, lng: 31.0969 },
-    seller: { name: 'Robert Chikwanda', phone: '+263 77 456 7890', email: 'r.chikwanda@mail.com', mandateExpiry: '2025-03-31', mandateType: 'sole', notes: 'Seller is motivated, willing to negotiate on price.' },
-    agentId: 'agent-001', createdAt: '2024-11-01T09:00:00Z', updatedAt: '2024-12-15T14:30:00Z',
-  },
-  {
-    id: 'prop-002', referenceNumber: 'QP-2024-002', type: 'sale', status: 'published',
-    address: '7 Jacaranda Close', suburb: 'Highlands', price: 350000, currency: 'USD',
-    negotiable: false, bedrooms: 3, bathrooms: 2, garages: 2, landSize: 3000, floorArea: 250,
-    levies: 0, rates: 220,
-    features: ['Solar', 'Electric Fence', 'Alarm System', 'Fitted Kitchen', 'Fibre', 'Municipal Water'],
-    description: 'Charming three-bedroom home in sought-after Highlands. Recently renovated with modern kitchen and bathrooms. Excellent security with electric fence and alarm system.',
-    photos: [], coordinates: { lat: -17.7850, lng: 31.0650 },
-    seller: { name: 'Sarah Moyo', phone: '+263 71 234 5678', email: 's.moyo@gmail.com', mandateExpiry: '2025-02-28', mandateType: 'sole', notes: 'Must sell by end of February.' },
-    agentId: 'agent-001', createdAt: '2024-11-15T10:00:00Z', updatedAt: '2024-12-10T11:00:00Z',
-  },
-  {
-    id: 'prop-003', referenceNumber: 'QP-2024-003', type: 'sale', status: 'published',
-    address: '22 Palm Drive', suburb: 'Greendale', price: 285000, currency: 'USD',
-    negotiable: true, bedrooms: 3, bathrooms: 2, garages: 1, landSize: 2500, floorArea: 200,
-    levies: 0, rates: 180,
-    features: ['Borehole', 'Solar', 'Swimming Pool', 'Garden', 'Paved Driveway'],
-    description: 'Well-maintained family home in quiet Greendale cul-de-sac. Features borehole, solar panels and a private pool. Ideal for families seeking a peaceful neighbourhood.',
-    photos: [], coordinates: { lat: -17.8050, lng: 31.1100 },
-    seller: { name: 'James Dube', phone: '+263 73 987 6543', email: 'j.dube@yahoo.com', mandateExpiry: '2025-04-30', mandateType: 'open', notes: 'Flexible on viewing times.' },
-    agentId: 'agent-001', createdAt: '2024-12-01T08:00:00Z', updatedAt: '2024-12-20T09:00:00Z',
-  },
-  {
-    id: 'prop-004', referenceNumber: 'QP-2024-004', type: 'rent', status: 'published',
-    address: '5B Mount Pleasant Heights', suburb: 'Mount Pleasant', price: 2200, currency: 'USD',
-    negotiable: false, bedrooms: 4, bathrooms: 3, garages: 2, landSize: 0, floorArea: 320,
-    features: ['Fully Furnished', 'Swimming Pool', 'Air Conditioning', 'Fibre', 'Generator', 'Solar'],
-    description: 'Luxurious furnished apartment in Mount Pleasant Heights. All utilities included. Access to communal pool and gym. Perfect for expats and diplomatic staff.',
-    photos: [], coordinates: { lat: -17.7600, lng: 31.0750 },
-    seller: { name: 'Michelle Kazingizi', phone: '+263 77 111 2222', email: 'm.k@prime.co.zw', mandateExpiry: '2025-06-30', mandateType: 'sole', notes: 'Monthly lease preferred. Security deposit 2 months.' },
-    agentId: 'agent-001', createdAt: '2024-10-01T09:00:00Z', updatedAt: '2024-12-05T15:00:00Z',
-  },
-  {
-    id: 'prop-005', referenceNumber: 'QP-2024-005', type: 'commercial', status: 'draft',
-    address: '103 Samora Machel Avenue', suburb: 'Avondale', price: 650000, currency: 'USD',
-    negotiable: true, bedrooms: 0, bathrooms: 4, garages: 8, landSize: 1200, floorArea: 800,
-    features: ['Generator', 'Air Conditioning', 'Fibre', 'Alarm System', 'Paved Driveway', 'Internet'],
-    description: 'Prime commercial property on Avondale\'s main commercial strip. Excellent exposure and foot traffic. Currently operating as office space with 12 workstations.',
-    photos: [],
-    seller: { name: 'Tendai Musariri', phone: '+263 71 555 6666', email: 't.musariri@corp.co.zw', mandateExpiry: '2025-05-31', mandateType: 'sole', notes: 'Needs valuation update. Draft mode.' },
-    agentId: 'agent-001', createdAt: '2024-12-10T14:00:00Z', updatedAt: '2024-12-18T16:00:00Z',
-  },
-  {
-    id: 'prop-006', referenceNumber: 'QP-2024-006', type: 'sale', status: 'sold',
-    address: '9 Msasa Park Drive', suburb: 'Msasa', price: 195000, currency: 'USD',
-    negotiable: false, bedrooms: 3, bathrooms: 2, garages: 1, landSize: 2200, floorArea: 180,
-    features: ['Electric Fence', 'Borehole', 'Municipal Water', 'Garden'],
-    description: 'Sold! Three-bedroom home in Msasa with borehole and electric fence. Good investment location.',
-    photos: [],
-    seller: { name: 'Patricia Ncube', phone: '+263 73 444 5555', email: 'p.ncube@mail.com', mandateExpiry: '2024-12-01', mandateType: 'sole', notes: 'SOLD - Transfer in progress.' },
-    agentId: 'agent-001', createdAt: '2024-09-01T09:00:00Z', updatedAt: '2024-12-12T09:00:00Z',
-  },
-];
+const LEGACY_DEMO_PROPERTY_IDS = new Set([
+  'prop-001',
+  'prop-002',
+  'prop-003',
+  'prop-004',
+  'prop-005',
+  'prop-006',
+]);
+
+function isLegacyDemoPropertyOperation(operation: PendingSync): boolean {
+  if (operation.kind === 'property-create') {
+    return LEGACY_DEMO_PROPERTY_IDS.has(operation.localId)
+      || LEGACY_DEMO_PROPERTY_IDS.has(operation.property.id);
+  }
+  return (operation.kind === 'property-update' || operation.kind === 'property-delete')
+    && LEGACY_DEMO_PROPERTY_IDS.has(operation.localId);
+}
 
 const MOCK_LEADS: Lead[] = [
   {
@@ -532,7 +484,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           AsyncStorage.getItem(PENDING_SYNC_KEY),
         ]);
         if (generation !== resetGenerationRef.current) return;
-        const loadedProperties = parseStoredArray(ps, remoteEnabled(user?.id) ? [] : MOCK_PROPERTIES);
+        const storedProperties = parseStoredArray<Property>(ps, []);
+        const loadedProperties = storedProperties.filter(
+          property => !LEGACY_DEMO_PROPERTY_IDS.has(property.id),
+        );
         const loadedLeads = parseStoredArray(ls, MOCK_LEADS);
         const loadedBuyerMatches = parseStoredArray(ms, MOCK_MATCHES);
         const loadedTasks = parseStoredArray(ts, MOCK_TASKS);
@@ -542,14 +497,19 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         // Queues written before viewing creates had an explicit mutation key
         // need one before replay. Persist the migration first so a restart
         // cannot make multiple legacy operations share a fallback key.
-        const migratedPending = parsedPending.map((operation) => {
+        const migratedPending = parsedPending.filter(
+          operation => !isLegacyDemoPropertyOperation(operation),
+        ).map((operation) => {
           if (operation.kind !== 'viewing-create' || typeof (operation as { mutationKey?: unknown }).mutationKey === 'string') {
             return operation;
           }
           return { ...operation, mutationKey: uid() };
         });
         pendingSyncRef.current = migratedPending;
-        if (migratedPending.some((operation, index) => operation !== parsedPending[index])) {
+        if (
+          migratedPending.length !== parsedPending.length
+          || migratedPending.some((operation, index) => operation !== parsedPending[index])
+        ) {
           await AsyncStorage.setItem(PENDING_SYNC_KEY, JSON.stringify(migratedPending));
         }
 
@@ -559,7 +519,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         ) {
           propertiesRef.current = loadedProperties;
           setProperties(loadedProperties);
-          if (!ps) await AsyncStorage.setItem(PROPS_KEY, JSON.stringify(propertiesRef.current));
+          if (!ps || loadedProperties.length !== storedProperties.length) {
+            await AsyncStorage.setItem(PROPS_KEY, JSON.stringify(propertiesRef.current));
+          }
         }
         viewingsRef.current = loadedViewings;
         setViewings(loadedViewings);
@@ -790,7 +752,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         .filter(property => !pendingPropertyDeletes.has(property.id))
         .map(property => ({ ...property, ...pendingPropertyUpdates.get(property.id) }));
       const localOnlyProperties = propertiesRef.current.filter(
-        property => !isServerId(property.id) && !pendingPropertyDeletes.has(property.id),
+        property => !isServerId(property.id)
+          && !LEGACY_DEMO_PROPERTY_IDS.has(property.id)
+          && !pendingPropertyDeletes.has(property.id),
       );
       propertiesRef.current = [...mappedProperties, ...localOnlyProperties];
       setProperties(propertiesRef.current);

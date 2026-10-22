@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import {
-  View, Text, FlatList, ScrollView, TouchableOpacity, StyleSheet, Platform,
+  View, Text, FlatList, ScrollView, TouchableOpacity, StyleSheet, Platform, RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -88,12 +88,24 @@ export default function ListingsScreen() {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const {
-    properties, unseenMatchCount,
+    properties, unseenMatchCount, syncNow,
   } = useData();
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<Filter>('all');
   const [shareOpen, setShareOpen] = useState(false);
   const [alertsOpen, setAlertsOpen] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    if (refreshing) return;
+    setRefreshing(true);
+    try {
+      await syncNow();
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   const filtered = useMemo(() => {
     let list = [...properties];
 
@@ -219,6 +231,14 @@ export default function ListingsScreen() {
             description={query ? 'Try suburb, beds, features or owner name.' : 'Tap the + button to add your first listing.'}
             actionLabel={query ? undefined : 'Create Listing'}
             onAction={() => router.push('/new-listing')}
+          />
+        }
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor={colors.primary}
+            colors={[colors.primary]}
           />
         }
         showsVerticalScrollIndicator={false}

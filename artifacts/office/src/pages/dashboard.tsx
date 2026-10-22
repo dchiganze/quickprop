@@ -9,6 +9,8 @@ import {
   useGetCommandCentre, 
   useGetDashboardCharts,
   useGetRecentActivity,
+  useGetCurrentUser,
+  useGetAdminAgencySettings,
   AttentionItem,
   ActivityEntry
 } from '@workspace/api-client-react';
@@ -168,25 +170,48 @@ function ActivityFeed({ entries, isLoading }: { entries?: ActivityEntry[], isLoa
   );
 }
 
-function getTimeOfDayGreeting(date = new Date()) {
+function getTimeOfDayGreeting(firstName: string, date = new Date()) {
   const hour = date.getHours();
-  if (hour < 12) return 'Good morning.';
-  if (hour < 18) return 'Good afternoon.';
-  return 'Good evening.';
+  const greeting = hour < 12
+    ? 'Good morning'
+    : hour < 18
+      ? 'Good afternoon'
+      : 'Good evening';
+  return `${greeting}, ${firstName}`;
 }
 
 export default function Dashboard() {
+  const { data: user } = useGetCurrentUser();
+  const { data: agencySettings } = useGetAdminAgencySettings();
   const { data: summary, isLoading: loadingSummary } = useGetDashboardSummary();
   const { data: commandCentre, isLoading: loadingCommand } = useGetCommandCentre();
   const { data: charts, isLoading: loadingCharts } = useGetDashboardCharts();
   const { data: activity, isLoading: loadingActivity } = useGetRecentActivity();
+  const firstName = user?.name.trim().split(/\s+/)[0] || 'there';
+  const agencyName = agencySettings?.agencyName.trim() || 'QuickProp Real Estate';
 
   return (
     <div className="p-8 space-y-8 max-w-[1600px] mx-auto">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">{getTimeOfDayGreeting()}</h1>
-          <p className="text-muted-foreground mt-1 text-lg">Here's what's happening across your agency today.</p>
+      <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-5">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-5 sm:gap-6 min-w-0">
+          <div className="min-w-0">
+            <h1 className="text-3xl font-bold tracking-tight text-foreground">{getTimeOfDayGreeting(firstName)}</h1>
+            <p className="text-muted-foreground mt-1 text-lg">Here's what's happening across your agency today.</p>
+          </div>
+          <div className="flex items-center gap-3 rounded-xl border bg-card px-3 py-2 min-w-0 w-fit max-w-full">
+            <div className="h-11 w-11 shrink-0 rounded-lg border bg-white p-1 flex items-center justify-center">
+              {agencySettings?.logoUrl ? (
+                <img
+                  src={agencySettings.logoUrl}
+                  alt={`${agencyName} logo`}
+                  className="h-full w-full object-contain"
+                />
+              ) : (
+                <Building2 className="h-5 w-5 text-primary" aria-hidden="true" />
+              )}
+            </div>
+            <span className="font-semibold text-foreground truncate">{agencyName}</span>
+          </div>
         </div>
         <div className="flex gap-3">
            <AddPropertyDialog />

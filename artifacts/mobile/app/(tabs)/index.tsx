@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {
-  View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, Alert,
+  View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, Alert, RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -19,8 +19,19 @@ export default function DashboardScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const { user, logout } = useAuth();
-  const { properties, leads, tasks } = useData();
+  const { properties, leads, tasks, syncNow } = useData();
   const [shareOpen, setShareOpen] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    if (refreshing) return;
+    setRefreshing(true);
+    try {
+      await syncNow();
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const activeListings = properties.filter(p => p.status === 'published').length;
   const draftListings = properties.filter(p => p.status === 'draft').length;
@@ -79,6 +90,14 @@ export default function DashboardScreen() {
         },
       ]}
       showsVerticalScrollIndicator={false}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={handleRefresh}
+          tintColor={colors.primary}
+          colors={[colors.primary]}
+        />
+      }
     >
       {/* Header */}
       <View style={styles.header}>

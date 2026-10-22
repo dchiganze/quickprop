@@ -63,6 +63,6 @@ constants/colors.ts    — QuickProp theme (deep blue + emerald green, dark mode
 
 Any email address and any password will log you in. Pre-populated with `demo@quickprop.co.zw`.
 
-## Mock Data
+## Sample Data
 
-Includes 6 sample properties (Borrowdale, Highlands, Greendale, Mount Pleasant, Avondale, Msasa), 4 leads, 4 buyer matches, 5 tasks — all set in Harare, Zimbabwe.
+Listings start empty and are populated only by agent-created or cloud-synced records. The offline demo may still include sample leads, buyer matches, and tasks.
