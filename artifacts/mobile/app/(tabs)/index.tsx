@@ -89,6 +89,7 @@ export default function DashboardScreen() {
           paddingBottom: insets.bottom + 100,
         },
       ]}
+      alwaysBounceVertical
       showsVerticalScrollIndicator={false}
       refreshControl={
         <RefreshControl

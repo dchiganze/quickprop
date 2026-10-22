@@ -241,6 +241,7 @@ export default function ListingsScreen() {
             colors={[colors.primary]}
           />
         }
+        alwaysBounceVertical
         showsVerticalScrollIndicator={false}
       />
 
