@@ -998,6 +998,22 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/User" }
+    delete:
+      operationId: deleteUser
+      tags: [users]
+      summary: Remove a team profile while retaining its linked business records
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "200":
+          description: Profile access removed and historical records retained
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/UserDeletionResult" }
+        "404":
+          description: Team profile not found
+        "409":
+          description: The profile cannot be deleted because it would remove the last active administrator
   /branches:
     get:
       operationId: listBranches
@@ -2773,8 +2789,13 @@ components:
         phone: { type: ["string", "null"] }
         role: { type: string, description: "principal | admin | senior_agent | agent | receptionist | marketing | viewer" }
         branchId: { type: ["integer", "null"] }
-        status: { type: string, description: "active | suspended | inactive" }
+        status: { type: string, description: "active | suspended | inactive | deleted (tombstone; excluded from team lists)" }
         avatarUrl: { type: ["string", "null"] }
+    UserDeletionResult:
+      type: object
+      required: [ok]
+      properties:
+        ok: { type: boolean }
     UserInput:
       type: object
       required: [name, email, role]
@@ -2796,12 +2817,15 @@ components:
         status: { type: string }
     Branch:
       type: object
-      required: [id, name]
+      required: [id, name, agencyId, isMain, status]
       properties:
         id: { type: integer }
         name: { type: string }
+        agencyId: { type: ["integer", "null"] }
         address: { type: ["string", "null"] }
         phone: { type: ["string", "null"] }
+        isMain: { type: boolean }
+        status: { type: string }
     BranchInput:
       type: object
       required: [name]

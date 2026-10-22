@@ -10,7 +10,11 @@ export interface Branch {
   id: number;
   name: string;
   /** @nullable */
+  agencyId: number | null;
+  /** @nullable */
   address?: string | null;
   /** @nullable */
   phone?: string | null;
+  isMain: boolean;
+  status: string;
 }

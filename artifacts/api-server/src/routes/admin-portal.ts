@@ -59,6 +59,7 @@ import {
 const router: IRouter = Router();
 
 const adminOnly = requireRole("principal", "admin");
+const agencyAdminOnly = requireRole("admin");
 
 async function loadAdminMyBranchSnapshot(userId: number) {
   const [user] = await db.select({ branchId: usersTable.branchId })
@@ -710,7 +711,7 @@ router.post("/admin/agencies/:agencyId/branches", adminOnly, async (req, res): P
   res.status(201).json(CreateAdminAgencyBranchResponse.parse(jsonify(result)));
 });
 
-router.post("/admin/agencies/:agencyId/agents", adminOnly, async (req, res): Promise<void> => {
+router.post("/admin/agencies/:agencyId/agents", agencyAdminOnly, async (req, res): Promise<void> => {
   const agencyId = Number(req.params.agencyId);
   if (!Number.isSafeInteger(agencyId) || agencyId < 1) {
     res.status(400).json({ error: "Invalid agency ID" });

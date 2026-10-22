@@ -28,7 +28,7 @@ export const LoginResponse = zod.object({
   "phone": zod.string().nullish(),
   "role": zod.string().describe('principal | admin | senior_agent | agent | receptionist | marketing | viewer'),
   "branchId": zod.number().nullish(),
-  "status": zod.string().describe('active | suspended | inactive'),
+  "status": zod.string().describe('active | suspended | inactive | deleted (tombstone; excluded from team lists)'),
   "avatarUrl": zod.string().nullish()
 }).and(zod.object({
   "accessToken": zod.string().describe('Signed bearer token for native clients, valid for up to 30 days.')
@@ -70,7 +70,7 @@ export const VerifyPhoneLoginResponse = zod.object({
   "phone": zod.string().nullish(),
   "role": zod.string().describe('principal | admin | senior_agent | agent | receptionist | marketing | viewer'),
   "branchId": zod.number().nullish(),
-  "status": zod.string().describe('active | suspended | inactive'),
+  "status": zod.string().describe('active | suspended | inactive | deleted (tombstone; excluded from team lists)'),
   "avatarUrl": zod.string().nullish()
 }).and(zod.object({
   "accessToken": zod.string().describe('Signed bearer token for native clients, valid for up to 30 days.')
@@ -109,7 +109,7 @@ export const VerifyPasskeyAuthenticationResponse = zod.object({
   "phone": zod.string().nullish(),
   "role": zod.string().describe('principal | admin | senior_agent | agent | receptionist | marketing | viewer'),
   "branchId": zod.number().nullish(),
-  "status": zod.string().describe('active | suspended | inactive'),
+  "status": zod.string().describe('active | suspended | inactive | deleted (tombstone; excluded from team lists)'),
   "avatarUrl": zod.string().nullish()
 }).and(zod.object({
   "accessToken": zod.string().describe('Signed bearer token for native clients, valid for up to 30 days.')
@@ -185,7 +185,7 @@ export const GetCurrentUserResponse = zod.object({
   "phone": zod.string().nullish(),
   "role": zod.string().describe('principal | admin | senior_agent | agent | receptionist | marketing | viewer'),
   "branchId": zod.number().nullish(),
-  "status": zod.string().describe('active | suspended | inactive'),
+  "status": zod.string().describe('active | suspended | inactive | deleted (tombstone; excluded from team lists)'),
   "avatarUrl": zod.string().nullish()
 })
 
@@ -211,7 +211,7 @@ export const UpdateCurrentUserProfileResponse = zod.object({
   "phone": zod.string().nullish(),
   "role": zod.string().describe('principal | admin | senior_agent | agent | receptionist | marketing | viewer'),
   "branchId": zod.number().nullish(),
-  "status": zod.string().describe('active | suspended | inactive'),
+  "status": zod.string().describe('active | suspended | inactive | deleted (tombstone; excluded from team lists)'),
   "avatarUrl": zod.string().nullish()
 })
 
@@ -1940,7 +1940,7 @@ export const ListUsersResponseItem = zod.object({
   "phone": zod.string().nullish(),
   "role": zod.string().describe('principal | admin | senior_agent | agent | receptionist | marketing | viewer'),
   "branchId": zod.number().nullish(),
-  "status": zod.string().describe('active | suspended | inactive'),
+  "status": zod.string().describe('active | suspended | inactive | deleted (tombstone; excluded from team lists)'),
   "avatarUrl": zod.string().nullish()
 })
 export const ListUsersResponse = zod.array(ListUsersResponseItem)
@@ -1962,7 +1962,7 @@ export const CreateUserResponse = zod.object({
   "phone": zod.string().nullish(),
   "role": zod.string().describe('principal | admin | senior_agent | agent | receptionist | marketing | viewer'),
   "branchId": zod.number().nullish(),
-  "status": zod.string().describe('active | suspended | inactive'),
+  "status": zod.string().describe('active | suspended | inactive | deleted (tombstone; excluded from team lists)'),
   "avatarUrl": zod.string().nullish()
 })
 
@@ -1987,16 +1987,31 @@ export const UpdateUserResponse = zod.object({
   "phone": zod.string().nullish(),
   "role": zod.string().describe('principal | admin | senior_agent | agent | receptionist | marketing | viewer'),
   "branchId": zod.number().nullish(),
-  "status": zod.string().describe('active | suspended | inactive'),
+  "status": zod.string().describe('active | suspended | inactive | deleted (tombstone; excluded from team lists)'),
   "avatarUrl": zod.string().nullish()
+})
+
+
+/**
+ * @summary Remove a team profile while retaining its linked business records
+ */
+export const DeleteUserParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const DeleteUserResponse = zod.object({
+  "ok": zod.boolean()
 })
 
 
 export const ListBranchesResponseItem = zod.object({
   "id": zod.number(),
   "name": zod.string(),
+  "agencyId": zod.number().nullable(),
   "address": zod.string().nullish(),
-  "phone": zod.string().nullish()
+  "phone": zod.string().nullish(),
+  "isMain": zod.boolean(),
+  "status": zod.string()
 })
 export const ListBranchesResponse = zod.array(ListBranchesResponseItem)
 
@@ -2010,8 +2025,11 @@ export const CreateBranchBody = zod.object({
 export const CreateBranchResponse = zod.object({
   "id": zod.number(),
   "name": zod.string(),
+  "agencyId": zod.number().nullable(),
   "address": zod.string().nullish(),
-  "phone": zod.string().nullish()
+  "phone": zod.string().nullish(),
+  "isMain": zod.boolean(),
+  "status": zod.string()
 })
 
 

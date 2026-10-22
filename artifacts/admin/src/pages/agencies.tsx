@@ -8,6 +8,7 @@ import {
   useCreateAdminAgencyBranch,
   useGetAdminAgencies,
   useGetAdminAgents,
+  useGetCurrentUser,
   useGetAdminMyBranch,
   useSetAdminBranchMembers,
   useSetAdminMyBranch,
@@ -66,6 +67,8 @@ export default function Agencies() {
     data: agents = [],
     refetch: refetchAgents,
   } = useGetAdminAgents();
+  const { data: currentUser } = useGetCurrentUser();
+  const canInviteAgents = currentUser?.role === 'admin';
 
   const createAgency = useCreateAdminAgency();
   const createAgent = useCreateAdminAgencyAgent();
@@ -442,6 +445,7 @@ export default function Agencies() {
                   onManageTeam={setTeamBranch}
                   onMoveBranch={handleUnassignedBranch}
                   savingBranchId={updateBranch.isPending ? updateBranch.variables?.id ?? null : null}
+                  canInviteAgents={canInviteAgents}
                 />
               ))}
             </div>
@@ -571,6 +575,7 @@ function AgencyCard({
   onManageTeam,
   onMoveBranch,
   savingBranchId,
+  canInviteAgents,
 }: {
   agency: AdminAgency;
   branches: AdminAgencyBranch[];
@@ -585,6 +590,7 @@ function AgencyCard({
   onManageTeam: (branch: AdminAgencyBranch) => void;
   onMoveBranch: (branchId: number, agencyId: string) => void;
   savingBranchId: number | null;
+  canInviteAgents: boolean;
 }) {
   return (
     <section className="overflow-hidden rounded-xl border bg-card">
@@ -611,7 +617,7 @@ function AgencyCard({
           {agency.status === 'active' && (
             <>
               <Button size="sm" variant="outline" onClick={onAddBranch}><Plus className="mr-2 h-3.5 w-3.5" /> Add branch</Button>
-              <Button size="sm" onClick={onAddAgent}><UserPlus className="mr-2 h-3.5 w-3.5" /> Add agent</Button>
+              {canInviteAgents && <Button size="sm" onClick={onAddAgent}><UserPlus className="mr-2 h-3.5 w-3.5" /> Add agent</Button>}
             </>
           )}
           <Button size="sm" variant="ghost" onClick={onArchive}>

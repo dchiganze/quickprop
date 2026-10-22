@@ -255,6 +255,7 @@ export * from './updateImportRecordInput';
 export * from './updateImportRecordInputData';
 export * from './updateRentalAgencyParams';
 export * from './user';
+export * from './userDeletionResult';
 export * from './userInput';
 export * from './userUpdate';
 export * from './viewing';

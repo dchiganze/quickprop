@@ -390,7 +390,7 @@ export interface User {
   role: string;
   /** @nullable */
   branchId?: number | null;
-  /** active | suspended | inactive */
+  /** active | suspended | inactive | deleted (tombstone; excluded from team lists) */
   status: string;
   /** @nullable */
   avatarUrl?: string | null;
@@ -462,6 +462,10 @@ export interface AccountDeletionResult {
   ok: boolean;
 }
 
+export interface UserDeletionResult {
+  ok: boolean;
+}
+
 export interface UserInput {
   name: string;
   email: string;
@@ -485,9 +489,13 @@ export interface Branch {
   id: number;
   name: string;
   /** @nullable */
+  agencyId: number | null;
+  /** @nullable */
   address?: string | null;
   /** @nullable */
   phone?: string | null;
+  isMain: boolean;
+  status: string;
 }
 
 export interface BranchInput {

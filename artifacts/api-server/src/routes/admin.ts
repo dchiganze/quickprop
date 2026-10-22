@@ -23,6 +23,7 @@ import { currentUser, requireRole } from "./auth";
 const router: IRouter = Router();
 
 const adminOnly = requireRole("principal", "admin");
+const teamAdminOnly = requireRole("admin");
 const ADMIN_ROLES = ["principal", "admin"] as const;
 
 function isAdminRole(role: string): boolean {
@@ -36,10 +37,10 @@ function stripUser(u: typeof usersTable.$inferSelect) {
 
 router.get("/users", async (_req, res): Promise<void> => {
   const rows = await db.select().from(usersTable).orderBy(usersTable.name);
-  res.json(ListUsersResponse.parse(jsonify(rows.map(stripUser))));
+  res.json(ListUsersResponse.parse(jsonify(rows.filter((user) => user.status !== "deleted").map(stripUser))));
 });
 
-router.post("/users", adminOnly, async (req, res): Promise<void> => {
+router.post("/users", teamAdminOnly, async (req, res): Promise<void> => {
   const parsed = CreateUserBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
@@ -59,11 +60,15 @@ router.post("/users", adminOnly, async (req, res): Promise<void> => {
   res.status(201).json(CreateUserResponse.parse(jsonify(stripUser(row))));
 });
 
-router.patch("/users/:id", adminOnly, async (req, res): Promise<void> => {
+router.patch("/users/:id", teamAdminOnly, async (req, res): Promise<void> => {
   const id = parseId(req);
   const parsed = UpdateUserBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+  if (parsed.data.status === "deleted") {
+    res.status(400).json({ error: "Use the delete profile action to remove a team member." });
     return;
   }
   const actor = await currentUser(req);
@@ -84,7 +89,7 @@ router.patch("/users/:id", adminOnly, async (req, res): Promise<void> => {
       .where(eq(usersTable.id, id))
       .limit(1)
       .for("update");
-    if (!existing) return { kind: "missing" as const };
+    if (!existing || existing.status === "deleted") return { kind: "missing" as const };
 
     const nextRole = parsed.data.role ?? existing.role;
     const nextStatus = parsed.data.status ?? existing.status;
@@ -109,6 +114,65 @@ router.patch("/users/:id", adminOnly, async (req, res): Promise<void> => {
   }
   await logAudit("edited", "user", id, `Updated user ${outcome.row.name}`, actor?.id, actor?.name);
   res.json(UpdateUserResponse.parse(jsonify(stripUser(outcome.row))));
+});
+
+router.delete("/users/:id", teamAdminOnly, async (req, res): Promise<void> => {
+  const id = parseId(req);
+  const actor = await currentUser(req);
+  if (!actor) {
+    res.status(401).json({ error: "Sign in as an Admin to delete a team profile." });
+    return;
+  }
+  if (actor.id === id) {
+    res.status(409).json({ error: "You cannot delete your own profile from Team & Branches." });
+    return;
+  }
+
+  const randomPassword = `${randomBytes(48).toString("base64url")}A1!`;
+  const passwordHash = await hashPassword(randomPassword);
+  const outcome = await db.transaction(async (tx) => {
+    const activeAdmins = await tx.select({ id: usersTable.id })
+      .from(usersTable)
+      .where(and(
+        eq(usersTable.status, "active"),
+        inArray(usersTable.role, [...ADMIN_ROLES]),
+      ))
+      .orderBy(usersTable.id)
+      .for("update");
+    const [target] = await tx.select().from(usersTable)
+      .where(eq(usersTable.id, id))
+      .limit(1)
+      .for("update");
+    if (!target || target.status === "deleted") return { kind: "missing" as const };
+
+    const isActiveAdmin = target.status === "active" && isAdminRole(target.role);
+    if (isActiveAdmin && activeAdmins.every((admin) => admin.id === id)) {
+      return { kind: "last-admin" as const };
+    }
+
+    await tx.update(usersTable).set({
+      name: "Deleted profile",
+      email: `deleted-profile-${id}@removed.quickprop.invalid`,
+      phone: null,
+      role: "viewer",
+      branchId: null,
+      status: "deleted",
+      avatarUrl: null,
+      password: passwordHash,
+    }).where(eq(usersTable.id, id));
+    return { kind: "deleted" as const, previousName: target.name };
+  });
+
+  if (outcome.kind === "missing") {
+    res.status(404).json({ error: "Team profile not found." });
+    return;
+  }
+  if (outcome.kind === "last-admin") {
+    res.status(409).json({ error: "QuickProp must keep at least one active administrator." });
+    return;
+  }
+  await logAudit("deleted", "user", id, `Deleted team profile ${outcome.previousName}; linked business records were retained.`, actor.id, actor.name);
+  res.json({ ok: true });
 });
 
 router.get("/branches", async (_req, res): Promise<void> => {
