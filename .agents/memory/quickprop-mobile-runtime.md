@@ -92,3 +92,9 @@ Also verify the signed manifest's account scope, not only that a signature exist
 **Why:** A managed login succeeded while Expo used a personal token or fell back to a cached certificate for the personally owned release project. A signed response therefore still produced an account-mismatch error on the phone.
 
 **How to apply:** Check the public manifest's scope and certificate-fallback warnings together. Do not silently replace the linked release project or change its ownership to repair preview access; coordinate any such change with release builds.
+
+Verify the mobile bundle and its API deployment separately: a phone running the Expo preview can still request data and media from the published backend.
+
+**Why:** Hot-reloaded photo UI changes and a restarted development API did not update the live backend that the phone was actually using. Passing workspace checks was therefore insufficient to confirm that private-photo previews were restored.
+
+**How to apply:** Confirm the runtime API target and that the required endpoint is active there before reporting a mobile fix as working. Distinguish an implemented workspace fix from a published and verified fix; do not repeatedly change UI code to compensate for an unpublished backend.

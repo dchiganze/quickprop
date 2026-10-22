@@ -89,6 +89,7 @@ import type {
   EnquiryResult,
   GetPasskeyAuthenticationOptions200,
   GetPasskeyRegistrationOptions200,
+  GetStoredMediaUrlParams,
   HealthStatus,
   HealthUpdateInput,
   HealthUpdateResult,
@@ -181,6 +182,7 @@ import type {
   SellerUpdate,
   ShareInput,
   ShareResult,
+  StoredMediaUrl,
   Task,
   TaskInput,
   TaskUpdate,
@@ -289,6 +291,90 @@ export function useHealthCheck<TData = Awaited<ReturnType<typeof healthCheck>>, 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getHealthCheckQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetStoredMediaUrlUrl = (params: GetStoredMediaUrlParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/storage/media-url?${stringifiedParams}` : `/api/storage/media-url`
+}
+
+/**
+ * @summary Resolve a stored photo or video to a short-lived authorised URL
+ */
+export const getStoredMediaUrl = async (params: GetStoredMediaUrlParams, options?: RequestInit): Promise<StoredMediaUrl> => {
+
+  return customFetch<StoredMediaUrl>(getGetStoredMediaUrlUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetStoredMediaUrlQueryKey = (params?: GetStoredMediaUrlParams,) => {
+    return [
+    `/api/storage/media-url`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetStoredMediaUrlQueryOptions = <TData = Awaited<ReturnType<typeof getStoredMediaUrl>>, TError = ErrorType<void>>(params: GetStoredMediaUrlParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getStoredMediaUrl>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetStoredMediaUrlQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getStoredMediaUrl>>> = ({ signal }) => getStoredMediaUrl(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getStoredMediaUrl>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetStoredMediaUrlQueryResult = NonNullable<Awaited<ReturnType<typeof getStoredMediaUrl>>>
+export type GetStoredMediaUrlQueryError = ErrorType<void>
+
+
+/**
+ * @summary Resolve a stored photo or video to a short-lived authorised URL
+ */
+
+export function useGetStoredMediaUrl<TData = Awaited<ReturnType<typeof getStoredMediaUrl>>, TError = ErrorType<void>>(
+ params: GetStoredMediaUrlParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getStoredMediaUrl>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetStoredMediaUrlQueryOptions(params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

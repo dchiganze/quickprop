@@ -980,7 +980,7 @@ export default function NewListingScreen() {
         )}
         {step < TOTAL_STEPS - 1 && (
           <TouchableOpacity
-            style={[styles.nextBtn, { backgroundColor: canNext() ? colors.primary : colors.muted, flex: step > 0 ? 1 : undefined, width: step === 0 ? '100%' : undefined }]}
+            style={[styles.nextBtn, { backgroundColor: canNext() ? colors.primary : colors.muted }]}
              onPress={handleNext}
           >
             <Text style={[styles.nextBtnText, { color: canNext() ? '#FFF' : colors.mutedForeground }]}>
@@ -1081,9 +1081,9 @@ const styles = StyleSheet.create({
   publishBtnText: { color: '#FFF', fontSize: 16, fontWeight: '800' },
   draftBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderRadius: 14, paddingVertical: 13, borderWidth: 1 },
   draftBtnText: { fontSize: 15, fontWeight: '600' },
-  navBar: { flexDirection: 'row', gap: 10, paddingHorizontal: 16, paddingTop: 12, borderTopWidth: 1 },
-  backNavBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 16, paddingVertical: 13, borderRadius: 12, borderWidth: 1 },
+  navBar: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingTop: 12, borderTopWidth: 1 },
+  backNavBtn: { flexShrink: 0, flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 16, paddingVertical: 13, borderRadius: 12, borderWidth: 1 },
   backNavText: { fontSize: 15, fontWeight: '600' },
-  nextBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderRadius: 14, paddingVertical: 14 },
-  nextBtnText: { fontSize: 16, fontWeight: '700' },
+  nextBtn: { flex: 1, minWidth: 0, maxWidth: '100%', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 14 },
+  nextBtnText: { flexShrink: 1, fontSize: 16, fontWeight: '700' },
 });

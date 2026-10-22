@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform,
-  TextInput, Switch, Alert, KeyboardAvoidingView, ActivityIndicator, Image,
+  TextInput, Switch, Alert, KeyboardAvoidingView, ActivityIndicator,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
@@ -11,6 +11,7 @@ import * as Haptics from 'expo-haptics';
 import { useColors } from '@/hooks/useColors';
 import { useData } from '@/contexts/DataContext';
 import { FeatureChip } from '@/components/FeatureChip';
+import { ListingImage } from '@/components/ListingImage';
 import { PROPERTY_FEATURES, Property } from '@/types';
 
 const CURRENCIES = ['USD', 'ZAR', 'ZWL', 'GBP', 'EUR'];
@@ -223,7 +224,7 @@ export default function EditListingScreen() {
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.photoRow}>
             {photos.map((uri, index) => (
               <View key={`${uri}-${index}`} style={styles.photoPreview}>
-                <Image source={{ uri }} style={styles.photoImage} />
+                <ListingImage uri={uri} style={styles.photoImage} resizeMode="cover" />
                 {index === 0 && <Text style={styles.mainPhotoLabel}>Main</Text>}
                 <TouchableOpacity
                   style={styles.photoRemove}

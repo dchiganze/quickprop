@@ -12,6 +12,7 @@ import * as Haptics from 'expo-haptics';
 import { useColors } from '@/hooks/useColors';
 import { propertyShareLinks } from '@/utils/shareLinks';
 import { getPrimaryListingPhoto } from '@/utils/listingPhoto';
+import { ListingImage } from '@/components/ListingImage';
 import { SharePropertyCard, SharePropertyCardHandle } from '@/components/SharePropertyCard';
 import { SharePropertyCollage, SharePropertyCollageHandle } from '@/components/SharePropertyCollage';
 import { PropertyShareSheet } from '@/components/PropertyShareSheet';
@@ -270,12 +271,12 @@ export default function ListingDetailScreen() {
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.galleryScroll}>
               {property.photos.length === 0 && primaryPhoto && (
                 <View style={styles.photoThumb}>
-                  <Image source={{ uri: primaryPhoto }} style={styles.photoImg} resizeMode="cover" />
+                  <ListingImage uri={primaryPhoto} style={styles.photoImg} resizeMode="cover" />
                 </View>
               )}
               {property.photos.map((uri, index) => (
                 <View key={index} style={styles.photoThumb}>
-                  <Image source={{ uri }} style={styles.photoImg} resizeMode="cover" />
+                  <ListingImage uri={uri} style={styles.photoImg} resizeMode="cover" />
                   <TouchableOpacity style={styles.photoDelete} onPress={() => handleRemovePhoto(index)}>
                     <Ionicons name="close-circle" size={24} color="#FFF" />
                   </TouchableOpacity>

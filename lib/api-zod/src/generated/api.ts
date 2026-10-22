@@ -16,6 +16,19 @@ export const HealthCheckResponse = zod.object({
 })
 
 
+/**
+ * @summary Resolve a stored photo or video to a short-lived authorised URL
+ */
+export const GetStoredMediaUrlQueryParams = zod.object({
+  "objectPath": zod.coerce.string()
+})
+
+export const GetStoredMediaUrlResponse = zod.object({
+  "url": zod.string(),
+  "expiresAt": zod.coerce.date()
+})
+
+
 export const LoginBody = zod.object({
   "email": zod.string(),
   "password": zod.string()

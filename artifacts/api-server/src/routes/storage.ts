@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { Router, type IRouter } from "express";
+import { Router, type IRouter, type Request } from "express";
 import { and, inArray, or, sql } from "drizzle-orm";
 import { db, propertiesTable } from "@workspace/db";
 import { currentUser } from "./auth";
@@ -10,6 +10,7 @@ const MAX_UPLOAD_BYTES = 25 * 1024 * 1024;
 const MAX_VIDEO_UPLOAD_BYTES = 100 * 1024 * 1024;
 const VIDEO_MIME_TYPES = new Set(["video/mp4", "video/quicktime", "video/webm"]);
 const PUBLIC_PROPERTY_STATUSES = ["public", "under_offer", "coming_soon"];
+const STORED_OBJECT_NAME = /^uploads\/\d+\/[a-f0-9-]+\.[a-z0-9]{1,8}$/i;
 
 function objectDirectory(): string {
   const value = process.env.PRIVATE_OBJECT_DIR;
@@ -39,11 +40,55 @@ async function signedObjectUrl(objectName: string, method: "GET" | "PUT"): Promi
 
 export async function getPrivateObjectDownloadUrl(objectPath: string): Promise<string> {
   const objectName = objectPath.replace(/^\/objects\//, "");
-  if (!/^uploads\/\d+\/[a-f0-9-]+\.[a-z0-9]{1,8}$/i.test(objectName)) {
+  if (!STORED_OBJECT_NAME.test(objectName)) {
     throw new Error("Invalid private object path.");
   }
   return signedObjectUrl(objectName, "GET");
 }
+
+async function canReadStoredMedia(req: Request, objectName: string): Promise<boolean> {
+  const mediaUrlSuffix = `/api/storage/objects/${objectName}`;
+  const [publicProperty] = await db
+    .select({ id: propertiesTable.id })
+    .from(propertiesTable)
+    .where(and(
+      inArray(propertiesTable.status, PUBLIC_PROPERTY_STATUSES),
+      or(
+        sql`EXISTS (SELECT 1 FROM unnest(${propertiesTable.photos}) AS photo WHERE photo LIKE ${`%${mediaUrlSuffix}`})`,
+        sql`${propertiesTable.videoUrl} LIKE ${`%${mediaUrlSuffix}`}`,
+      ),
+    ))
+    .limit(1);
+  if (publicProperty) return true;
+  const user = await currentUser(req);
+  return Boolean(user && objectName.startsWith(`uploads/${user.id}/`));
+}
+
+// Native and browser image elements cannot use the app's bearer-token fetch
+// client. Resolve private draft media with an authenticated API request, then
+// load only the short-lived signed URL in the image element.
+router.get("/storage/media-url", async (req, res): Promise<void> => {
+  const objectPath = typeof req.query.objectPath === "string" ? req.query.objectPath : "";
+  const objectName = objectPath.replace(/^\/objects\//, "");
+  if (!objectPath.startsWith("/objects/") || !STORED_OBJECT_NAME.test(objectName)) {
+    res.status(404).json({ error: "Object not found" });
+    return;
+  }
+  try {
+    if (!await canReadStoredMedia(req, objectName)) {
+      res.status(404).json({ error: "Object not found" });
+      return;
+    }
+    const url = await signedObjectUrl(objectName, "GET");
+    res.set("Cache-Control", "private, no-store").json({
+      url,
+      expiresAt: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
+    });
+  } catch (error) {
+    req.log.error({ err: error }, "Unable to resolve stored media");
+    res.status(404).json({ error: "Object not found" });
+  }
+});
 
 // Files are sent directly from the device to object storage. The API only
 // grants short-lived PUT URLs, so image bytes never pass through the server.
@@ -93,24 +138,11 @@ router.get("/storage/objects/*path", async (req, res): Promise<void> => {
     return;
   }
   try {
-    const mediaUrlSuffix = `/api/storage/objects/${objectName}`;
-    const [publicProperty] = await db
-      .select({ id: propertiesTable.id })
-      .from(propertiesTable)
-      .where(and(
-        inArray(propertiesTable.status, PUBLIC_PROPERTY_STATUSES),
-        or(
-          sql`EXISTS (SELECT 1 FROM unnest(${propertiesTable.photos}) AS photo WHERE photo LIKE ${`%${mediaUrlSuffix}`})`,
-          sql`${propertiesTable.videoUrl} LIKE ${`%${mediaUrlSuffix}`}`,
-        ),
-      ))
-      .limit(1);
-    const user = !publicProperty ? await currentUser(req) : null;
-    const isOwnedUpload = Boolean(user && objectName.startsWith(`uploads/${user.id}/`));
-    if (!publicProperty && !isOwnedUpload) {
+    if (!await canReadStoredMedia(req, objectName)) {
       res.status(404).json({ error: "Object not found" });
       return;
     }
+    res.set("Cache-Control", "private, no-store");
     res.redirect(302, await signedObjectUrl(objectName, "GET"));
   } catch (error) {
     req.log.error({ err: error }, "Unable to serve stored media");

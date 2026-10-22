@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useColors } from '@/hooks/useColors';
 import { Property } from '@/types';
 import { getPrimaryListingPhoto } from '@/utils/listingPhoto';
+import { ListingImage } from '@/components/ListingImage';
 
 interface Props {
   property: Property;
@@ -38,6 +39,8 @@ function formatPrice(price: number, currency: string, type: Property['type']) {
 export function PropertyCard({ property, onPress }: Props) {
   const colors = useColors();
   const photoUri = getPrimaryListingPhoto(property);
+  const [failedPhotoUri, setFailedPhotoUri] = useState<string>();
+  const photoFailed = Boolean(photoUri && failedPhotoUri === photoUri);
 
   return (
     <TouchableOpacity
@@ -47,15 +50,21 @@ export function PropertyCard({ property, onPress }: Props) {
     >
       {/* Photo placeholder / thumbnail */}
       <View style={[styles.imageContainer, { backgroundColor: colors.muted }]}>
-        <Image
-          source={photoUri ? { uri: photoUri } : require('../assets/images/logo.png')}
-          style={styles.mainImage}
-          resizeMode={photoUri ? 'cover' : 'contain'}
-        />
-        {!photoUri && (
+        {photoUri ? (
+          <ListingImage
+            uri={photoUri}
+            style={styles.mainImage}
+            resizeMode="cover"
+            onError={() => setFailedPhotoUri(photoUri)}
+            onLoad={() => setFailedPhotoUri(undefined)}
+          />
+        ) : (
+          <Image source={require('../assets/images/logo.png')} style={styles.mainImage} resizeMode="contain" />
+        )}
+        {(!photoUri || photoFailed) && (
           <View style={[styles.fallbackOverlay, { backgroundColor: colors.muted + 'CC' }]}>
             <Ionicons name="home-outline" size={32} color={colors.mutedForeground} />
-            <Text style={[styles.fallbackText, { color: colors.mutedForeground }]}>Photo coming soon</Text>
+            <Text style={[styles.fallbackText, { color: colors.mutedForeground }]}>{photoFailed ? 'Photo could not load' : 'Photo coming soon'}</Text>
           </View>
         )}
         <View style={[styles.statusBadge, { backgroundColor: STATUS_COLORS[property.status] }]}>

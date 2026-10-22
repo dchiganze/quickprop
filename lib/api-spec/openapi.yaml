@@ -44,6 +44,23 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /storage/media-url:
+    get:
+      operationId: getStoredMediaUrl
+      tags: [storage]
+      summary: Resolve a stored photo or video to a short-lived authorised URL
+      parameters:
+        - name: objectPath
+          in: query
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Authorised media URL
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/StoredMediaUrl" }
+        "404": { description: Media not found or access denied }
   /auth/login:
     post:
       operationId: login
@@ -2486,6 +2503,12 @@ paths:
         "409": { description: Branch assignment required }
 components:
   schemas:
+    StoredMediaUrl:
+      type: object
+      required: [url, expiresAt]
+      properties:
+        url: { type: string }
+        expiresAt: { type: string, format: date-time }
     PasskeyRegistrationVerificationInput:
       type: object
       required: [challengeId, credential]

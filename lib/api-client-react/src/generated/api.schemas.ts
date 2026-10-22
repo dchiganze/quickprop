@@ -5,6 +5,11 @@
  * QuickProp Office API
  * OpenAPI spec version: 0.1.0
  */
+export interface StoredMediaUrl {
+  url: string;
+  expiresAt: string;
+}
+
 export type PasskeyRegistrationVerificationInputCredential = { [key: string]: unknown };
 
 export interface PasskeyRegistrationVerificationInput {
@@ -2647,6 +2652,10 @@ export interface ImportAssistantResponse {
   message: string;
   suggestions: string[];
 }
+
+export type GetStoredMediaUrlParams = {
+objectPath: string;
+};
 
 export type GetPasskeyRegistrationOptions200Options = { [key: string]: unknown };
 
