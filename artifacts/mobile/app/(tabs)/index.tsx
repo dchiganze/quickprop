@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
-  View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, Alert, RefreshControl,
+  Animated, View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, Alert, RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -22,13 +22,42 @@ export default function DashboardScreen() {
   const { properties, leads, tasks, syncNow } = useData();
   const [shareOpen, setShareOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const refreshRotation = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (!refreshing) {
+      refreshRotation.stopAnimation();
+      refreshRotation.setValue(0);
+      return;
+    }
+
+    const animation = Animated.loop(
+      Animated.timing(refreshRotation, {
+        toValue: 1,
+        duration: 750,
+        useNativeDriver: true,
+      }),
+    );
+    animation.start();
+    return () => animation.stop();
+  }, [refreshing, refreshRotation]);
+
+  const refreshRotationDegrees = refreshRotation.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '360deg'],
+  });
 
   const handleRefresh = async () => {
     if (refreshing) return;
+    const startedAt = Date.now();
     setRefreshing(true);
     try {
       await syncNow();
     } finally {
+      const remainingIndicatorTime = 850 - (Date.now() - startedAt);
+      if (remainingIndicatorTime > 0) {
+        await new Promise<void>(resolve => setTimeout(resolve, remainingIndicatorTime));
+      }
       setRefreshing(false);
     }
   };
@@ -100,6 +129,20 @@ export default function DashboardScreen() {
         />
       }
     >
+      {refreshing && (
+        <View
+          style={[styles.refreshIndicator, { backgroundColor: colors.card, borderColor: colors.border }]}
+          accessibilityRole="progressbar"
+          accessibilityLabel="Refreshing dashboard"
+        >
+          <Animated.View style={{ transform: [{ rotate: refreshRotationDegrees }] }}>
+            <Ionicons name="refresh" size={16} color={colors.primary} />
+          </Animated.View>
+          <Text style={[styles.refreshIndicatorText, { color: colors.mutedForeground }]}>
+            Refreshing dashboard
+          </Text>
+        </View>
+      )}
       {/* Header */}
       <View style={styles.header}>
         <View>
@@ -231,6 +274,18 @@ export default function DashboardScreen() {
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   content: { paddingHorizontal: 16 },
+  refreshIndicator: {
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 999,
+    borderWidth: 1,
+    marginBottom: 12,
+  },
+  refreshIndicatorText: { fontSize: 12, fontWeight: '600' },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 22 },
   greeting: { fontSize: 13, fontWeight: '500', marginBottom: 3 },
   name: { fontSize: 24, fontWeight: '800', letterSpacing: -0.5 },
