@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="376" viewBox="0 0 175 47" fill="none">
+  <g stroke="#17A170" stroke-width="3.1" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M6.5 20.2 19.3 7.7l12.8 12.5"/>
+    <path d="M9.6 18.7v19.1h19.4V18.7"/>
+    <path d="M15.8 37.8V25.6h7v12.2"/>
+  </g>
+  <text x="43.5" y="33.7" fill="#17A170" font-family="Inter, Arial, sans-serif" font-size="23" font-weight="700" letter-spacing="-0.5">QuickProp</text>
+</svg>

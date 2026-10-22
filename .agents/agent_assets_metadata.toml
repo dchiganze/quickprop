@@ -246,3 +246,17 @@ mtime_ms = 1790863804022
 storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:cf900b3f-04ce-456b-888c-760ecb412036/58e92e29-73a7-4bd3-8712-5ccd556a767a/91e93241-d6b3-4efb-b515-fa2e74989f5e"
 storage_version_token = "1790863869741038"
 content_type = "video/mp4"
+
+[[outputs]]
+id = "jfdhhIM7fdDYPweu32L-L"
+uri = "file://artifacts/mobile/assets/images/logo.png"
+type = "image"
+title = "QuickProp high-resolution logo"
+description = "1400 × 376 transparent PNG rendered from the new scalable SVG logo source."
+logical_id = "dbe729cc-7409-4d61-a4d9-2b667590dc4e"
+content_hash = "sha256:bd7808d4cedd8edd98e4e28e33d0110b6900ca7506827080b69adc66e55dc3cd"
+size = 30577
+mtime_ms = 1792675553558
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:cf900b3f-04ce-456b-888c-760ecb412036/dbe729cc-7409-4d61-a4d9-2b667590dc4e/ee307129-39a4-4597-a833-190b0105748b"
+storage_version_token = "1792675611069994"
+content_type = "image/png"
