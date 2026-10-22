@@ -20,7 +20,18 @@ path = "scripts/post-merge.sh"
 timeoutMs = 20000
 
 [nix]
-packages = ["freetype", "gumbo", "harfbuzz", "jbig2dec", "libjpeg_turbo", "mupdf", "openjpeg", "swig", "xcbuild", "zulu8"]
+packages = [
+  "freetype",
+  "gumbo",
+  "harfbuzz",
+  "jbig2dec",
+  "libjpeg_turbo",
+  "mupdf",
+  "openjpeg",
+  "swig",
+  "xcbuild",
+  "zulu8",
+]
 channel = "stable-25_05"
 
 [[ports]]
