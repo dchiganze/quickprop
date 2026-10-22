@@ -86,3 +86,9 @@ Native phone preview must be able to fetch a development signing certificate whe
 **Why:** Forcing the preview server offline prevented manifest signing even after login succeeded. Expo Go misleadingly reported that Expo CLI was not signed in.
 
 **How to apply:** Preserve Replit's managed login flow, avoid forcing the native preview server offline, and confirm a phone-style manifest request returns an `expo-signature` through the public preview URL before treating repeated login errors as account failures.
+
+Also verify the signed manifest's account scope, not only that a signature exists. An existing release project's ownership can differ from the managed preview account.
+
+**Why:** A managed login succeeded while Expo used a personal token or fell back to a cached certificate for the personally owned release project. A signed response therefore still produced an account-mismatch error on the phone.
+
+**How to apply:** Check the public manifest's scope and certificate-fallback warnings together. Do not silently replace the linked release project or change its ownership to repair preview access; coordinate any such change with release builds.
