@@ -4,6 +4,7 @@ import * as Sharing from 'expo-sharing';
 import { Property } from '@/types';
 import { shareProperty } from '@workspace/api-client-react';
 import { ensurePublicSharePreview, getFacebookShareUrl, propertyShareLinks } from '@/utils/shareLinks';
+import { prepareShareImage, runNativeSocialShare } from '@/utils/socialShareFlow';
 import {
   buildPropertyShareMessage,
   buildPropertySocialShareMessage,
@@ -65,7 +66,7 @@ export async function sharePropertyToWhatsApp(
     return { caption, sharedPhoto: false };
   }
 
-  const cardUri = await captureCard();
+  const cardUri = await prepareShareImage(captureCard);
   await recordPropertyShare(property);
 
   try {
@@ -106,7 +107,7 @@ export async function shareCatalogueToWhatsApp(
     return { caption, sharedPhoto: false };
   }
 
-  const cardUri = await captureCard();
+  const cardUri = await prepareShareImage(captureCard);
   try {
     const { default: NativeShare } = await import('react-native-share');
     await NativeShare.open({
@@ -174,7 +175,7 @@ export async function shareCatalogueToSocial(
       return;
     }
 
-    const cardUri = await captureCard();
+    const cardUri = await prepareShareImage(captureCard);
 
     // Facebook and LinkedIn buttons should open their own composer directly,
     // not the Windows/browser share panel. The generic "More" action below
@@ -215,7 +216,7 @@ export async function shareCatalogueToSocial(
     return;
   }
 
-  const cardUri = await captureCard();
+  const cardUri = await prepareShareImage(captureCard);
   if (directDestination) {
     await shareNativeSocialPost(directDestination, cardUri, caption, dialogTitle);
     return;
@@ -251,24 +252,38 @@ async function shareNativeSocialPost(
   caption: string,
   title: string,
 ): Promise<void> {
-  const { default: NativeShare } = await import('react-native-share');
-  const social = ({
-    facebook: NativeShare.Social.FACEBOOK,
-    instagram: NativeShare.Social.INSTAGRAM,
-    linkedin: NativeShare.Social.LINKEDIN,
-  }[destination]) as Exclude<
-      import('react-native-share').Social,
-      import('react-native-share').Social.FacebookStories | import('react-native-share').Social.InstagramStories
-    >;
-
-  await NativeShare.shareSingle({
-    social,
-    url: cardUri,
-    type: 'image/jpeg',
-    message: caption,
-    title,
-    useInternalStorage: true,
-  });
+  await runNativeSocialShare(
+    Platform.OS,
+    async () => {
+      if (!await Sharing.isAvailableAsync()) {
+        throw new Error('Image sharing is unavailable on this device.');
+      }
+      await Sharing.shareAsync(cardUri, {
+        dialogTitle: title,
+        mimeType: 'image/jpeg',
+        UTI: 'public.jpeg',
+      });
+    },
+    async () => {
+      const { default: NativeShare } = await import('react-native-share');
+      const social = ({
+        facebook: NativeShare.Social.FACEBOOK,
+        instagram: NativeShare.Social.INSTAGRAM,
+        linkedin: NativeShare.Social.LINKEDIN,
+      }[destination]) as Exclude<
+          import('react-native-share').Social,
+          import('react-native-share').Social.FacebookStories | import('react-native-share').Social.InstagramStories
+        >;
+      await NativeShare.shareSingle({
+        social,
+        url: cardUri,
+        type: 'image/jpeg',
+        message: caption,
+        title,
+        useInternalStorage: true,
+      });
+    },
+  );
 }
 
 export async function sharePropertyToSocial(
@@ -305,49 +320,13 @@ export async function sharePropertyToSocial(
     return;
   }
 
-  if (destination === 'facebook' || destination === 'instagram' || destination === 'linkedin') {
-    const cardUri = await captureCard();
-    await shareNativeSocialPost(
-      destination,
-      cardUri,
-      caption,
-      `Share property to ${destination.charAt(0).toUpperCase() + destination.slice(1)}`,
-    );
-    return;
-  }
-
-  const cardUri = await captureCard();
-
-  try {
-    const { default: NativeShare } = await import('react-native-share');
-    const social = {
-      facebook: NativeShare.Social.FACEBOOK,
-      instagram: NativeShare.Social.INSTAGRAM,
-      linkedin: NativeShare.Social.LINKEDIN,
-    }[destination] as Exclude<
-      import('react-native-share').Social,
-      import('react-native-share').Social.FacebookStories | import('react-native-share').Social.InstagramStories
-    >;
-
-    await NativeShare.shareSingle({
-      social,
-      url: cardUri,
-      type: 'image/jpeg',
-      message: caption,
-      useInternalStorage: true,
-    });
-    return;
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message.toLowerCase() : '';
-    if (message.includes('cancel') || message.includes('dismiss')) return;
-    if (!(await Sharing.isAvailableAsync())) throw error;
-  }
-
-  await Sharing.shareAsync(cardUri, {
-    dialogTitle: 'Share property',
-    mimeType: 'image/jpeg',
-    UTI: 'public.jpeg',
-  });
+  const cardUri = await prepareShareImage(captureCard);
+  await shareNativeSocialPost(
+    destination,
+    cardUri,
+    caption,
+    `Share property to ${destination.charAt(0).toUpperCase() + destination.slice(1)}`,
+  );
 }
 
 export async function sharePropertyToFacebookStory(
@@ -367,7 +346,7 @@ export async function sharePropertyToFacebookStory(
     return;
   }
 
-  const cardUri = await captureCard();
+  const cardUri = await prepareShareImage(captureCard);
   const propertyUrl = propertyShareLinks(property).webUrl;
   const { default: NativeShare, Social } = await import('react-native-share');
 
@@ -394,7 +373,7 @@ export async function sharePropertyToInstagramStory(
     throw new Error('Instagram Stories sharing needs Meta app setup before it can be used.');
   }
 
-  const cardUri = await captureCard();
+  const cardUri = await prepareShareImage(captureCard);
   const propertyUrl = propertyShareLinks(property).webUrl;
   const { default: NativeShare, Social } = await import('react-native-share');
 
@@ -423,7 +402,13 @@ export async function sharePropertyGeneric(
     return;
   }
 
-  const cardUri = await captureCard();
+  const cardUri = await prepareShareImage(captureCard);
+
+  if (Platform.OS === 'ios' && !includeCaption) {
+    if (!await Sharing.isAvailableAsync()) throw new Error('Image sharing is unavailable on this device.');
+    await Sharing.shareAsync(cardUri, { dialogTitle, mimeType: 'image/jpeg', UTI: 'public.jpeg' });
+    return;
+  }
 
   try {
     const { default: NativeShare } = await import('react-native-share');

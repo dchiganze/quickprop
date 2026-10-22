@@ -69,7 +69,7 @@ const SHARE_OPTIONS: Array<{
   {
     key: 'linkedin',
     label: 'LinkedIn',
-    description: 'Open LinkedIn post composer',
+    description: Platform.OS === 'ios' ? 'Choose LinkedIn · caption copied' : 'Open LinkedIn post composer',
     icon: 'logo-linkedin',
     color: '#0A66C2',
   },
@@ -131,7 +131,7 @@ export function PropertyShareSheet({
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message.toLowerCase() : '';
       if (!message.includes('cancel') && !message.includes('dismiss')) {
-        Alert.alert('Could not share property', 'That app is unavailable right now. Please choose another destination.');
+        Alert.alert('Could not share property', error instanceof Error ? error.message : 'That app is unavailable right now. Please choose another destination.');
         await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
       }
     } finally {
@@ -237,7 +237,9 @@ export function PropertyShareSheet({
                   <View style={styles.choiceCopy}>
                     <Text style={[styles.optionLabel, { color: colors.foreground }]}>Post</Text>
                     <Text style={[styles.optionDescription, { color: colors.mutedForeground }]}>
-                      Open {socialLabel.charAt(0) + socialLabel.slice(1).toLowerCase()}’s post composer
+                      {Platform.OS === 'ios'
+                        ? `Choose ${socialLabel.charAt(0) + socialLabel.slice(1).toLowerCase()} in the share sheet`
+                        : `Open ${socialLabel.charAt(0) + socialLabel.slice(1).toLowerCase()}’s post composer`}
                     </Text>
                   </View>
                   <Ionicons name="chevron-forward" size={18} color={colors.mutedForeground} />
@@ -310,7 +312,9 @@ export function PropertyShareSheet({
           )}
 
           <Text style={[styles.footerNote, { color: colors.mutedForeground }]}>
-            Your property card will be prepared before the app opens.
+            {Platform.OS === 'ios'
+              ? 'Choose the app in the share sheet, then paste the copied caption into your post.'
+              : 'Your property card will be prepared before the app opens.'}
           </Text>
           </Pressable>
         </Pressable>

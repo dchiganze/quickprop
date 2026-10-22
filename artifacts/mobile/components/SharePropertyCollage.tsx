@@ -7,10 +7,12 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import { Image, ImageStyle, StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
+import { ImageStyle, StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
 import ViewShot, { type ViewShotRef } from 'react-native-view-shot';
 import { Property } from '@/types';
 import { getPrimaryListingPhoto } from '@/utils/listingPhoto';
+import { ListingImage } from '@/components/ListingImage';
+import { prepareShareImage } from '@/utils/socialShareFlow';
 
 const COLLAGE_WIDTH = 360;
 const COLLAGE_HEIGHT = 360;
@@ -63,8 +65,8 @@ function PhotoTile({
   }
 
   return (
-    <Image
-      source={{ uri }}
+    <ListingImage
+      uri={uri}
       style={[styles.tile, style]}
       resizeMode="cover"
       onLoad={() => onReady(uri)}
@@ -79,7 +81,13 @@ function PhotoTile({
 export const SharePropertyCollage = forwardRef<SharePropertyCollageHandle, SharePropertyCollageProps>(
   function SharePropertyCollage({ property }, ref) {
     const viewShotRef = useRef<ViewShotRef>(null);
-    const photoUris = useMemo(() => getCollagePhotos(property), [property]);
+    const [firstPhoto, secondPhoto, thirdPhoto] = getCollagePhotos(property);
+    // A data refresh can replace the property object without changing its
+    // photos. Do not reset already-loaded tiles in that case.
+    const photoUris = useMemo(
+      () => [firstPhoto, secondPhoto, thirdPhoto],
+      [firstPhoto, secondPhoto, thirdPhoto],
+    );
     const photoKey = photoUris.join('|');
     const pendingPhotosRef = useRef<Set<string>>(new Set());
     const readyRef = useRef(false);
@@ -106,19 +114,18 @@ export const SharePropertyCollage = forwardRef<SharePropertyCollageHandle, Share
 
     useImperativeHandle(ref, () => ({
       capture: async () => {
-        await Promise.all(
-          photoUris
-            .filter((uri): uri is string => Boolean(uri))
-            .map(uri => Image.prefetch(uri).catch(() => false)),
-        );
-        await wait(100);
-
         if (!readyRef.current) {
-          await Promise.race([
-            new Promise<void>(resolve => waitersRef.current.push(resolve)),
-            wait(3000),
-          ]);
+          let waiter: (() => void) | undefined;
+          try {
+            await prepareShareImage(() => new Promise<void>(resolve => {
+              waiter = resolve;
+              waitersRef.current.push(resolve);
+            }), 8_000);
+          } finally {
+            waitersRef.current = waitersRef.current.filter(resolve => resolve !== waiter);
+          }
         }
+        await wait(100);
 
         const capture = viewShotRef.current?.capture;
         if (!capture) throw new Error('Unable to prepare the property collage.');

@@ -80,3 +80,9 @@ Only public, currently available listings should produce crawler-facing social p
 **Why:** Draft references can exist in the agent/office database but intentionally return 404 from the public share route; sending those URLs to Facebook produces a domain-only card.
 
 **How to apply:** Gate Facebook and LinkedIn actions on public listing status, and use direct URL sharing on web without downloading a local card image.
+
+Bound property-card preparation before a native social handoff, and wait on the rendered, authorised photo loader rather than separately prefetching raw private media URLs.
+
+**Why:** An unresolved image-prefetch promise can prevent the app chooser from opening at all, leaving a permanent sharing spinner. A property refresh can also replace the data object without triggering another image-load event.
+
+**How to apply:** Keep readiness keyed to photo URI changes, time out preparation with a visible retryable error, and clear pending waiters. Do not apply an automatic fallback timer to an already-open native chooser: that can open a second dialog after the user has begun sharing.

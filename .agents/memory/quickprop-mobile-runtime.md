@@ -98,3 +98,9 @@ Verify the mobile bundle and its API deployment separately: a phone running the 
 **Why:** Hot-reloaded photo UI changes and a restarted development API did not update the live backend that the phone was actually using. Passing workspace checks was therefore insufficient to confirm that private-photo previews were restored.
 
 **How to apply:** Confirm the runtime API target and that the required endpoint is active there before reporting a mobile fix as working. Distinguish an implemented workspace fix from a published and verified fix; do not repeatedly change UI code to compensate for an unpublished backend.
+
+Check whether Metro is running in CI mode before assuming that Expo hot reload will discover newly created source files.
+
+**Why:** In this workspace, Metro reported that reloads were disabled and could not resolve a new utility that existed on disk and passed TypeScript checks; one managed workflow restart restored module discovery.
+
+**How to apply:** When the workflow log says CI mode is active, restart the existing mobile workflow once after a coherent change that adds modules. Otherwise retain normal hot reload and avoid unnecessary restarts.

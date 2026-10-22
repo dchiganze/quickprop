@@ -9,6 +9,8 @@ import { Image, StyleSheet, Text, View } from 'react-native';
 import ViewShot, { type ViewShotRef } from 'react-native-view-shot';
 import { Property } from '@/types';
 import { getPrimaryListingPhoto } from '@/utils/listingPhoto';
+import { ListingImage } from '@/components/ListingImage';
+import { prepareShareImage } from '@/utils/socialShareFlow';
 import colors from '@/constants/colors';
 
 const CARD_WIDTH = 360;
@@ -99,7 +101,15 @@ export const SharePropertyCard = forwardRef<SharePropertyCardHandle, ShareProper
     useImperativeHandle(ref, () => ({
       capture: async () => {
         if (!readyRef.current) {
-          await new Promise<void>(resolve => waitersRef.current.push(resolve));
+          let waiter: (() => void) | undefined;
+          try {
+            await prepareShareImage(() => new Promise<void>(resolve => {
+              waiter = resolve;
+              waitersRef.current.push(resolve);
+            }), 8_000);
+          } finally {
+            waitersRef.current = waitersRef.current.filter(resolve => resolve !== waiter);
+          }
         }
         await wait(100);
         const capture = viewShotRef.current?.capture;
@@ -125,8 +135,8 @@ export const SharePropertyCard = forwardRef<SharePropertyCardHandle, ShareProper
       >
         <View style={styles.photoSection}>
           {photoUri && !imageFailed ? (
-            <Image
-              source={{ uri: photoUri }}
+            <ListingImage
+              uri={photoUri}
               style={styles.photo}
               resizeMode="cover"
               onLoad={markReady}
