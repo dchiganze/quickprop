@@ -93,8 +93,8 @@ Dismiss QuickProp's iOS sharing modal before presenting the system share panel, 
 
 **How to apply:** Prepare the attachment first, close the app modal, await its dismissal with a bounded failure path, then open the system chooser. A dismissal failure must stop the handoff, not open a second panel later. Validate the external-app handoff on an installed iPhone build; browser previews and ordering tests cannot prove that device behaviour.
 
-Use LinkedIn's public-link composer for individual property posts rather than depending on its image-sharing extension.
+For individual property posts, LinkedIn on phones must use the native share sheet with a single listing link, not automatically open its browser composer.
 
-**Why:** The user confirmed Facebook sharing worked in Expo Go while LinkedIn still failed with the image-only chooser. Facebook succeeding does not prove that LinkedIn exposes a compatible share extension.
+**Why:** The user confirmed Facebook sharing worked in Expo Go while LinkedIn failed with the image-only chooser, then explicitly chose sharing the listing link through the phone's share sheet rather than opening LinkedIn in the browser.
 
-**How to apply:** Pass the public metadata preview URL to LinkedIn's HTTPS composer, keep the caption copied for pasting, and dismiss the iOS app modal before opening it. LinkedIn controls sign-in and preview rendering; do not claim native-device success from a browser screenshot or ordering tests.
+**How to apply:** Share only the public preview URL (iOS URL item, Android text item), copy the caption separately, and await iOS modal dismissal first. Keep the HTTPS composer for web only. Never open a browser automatically after native cancellation. LinkedIn must be installed and enabled in the share sheet; browser screenshots and ordering tests do not prove the external-app handoff works.

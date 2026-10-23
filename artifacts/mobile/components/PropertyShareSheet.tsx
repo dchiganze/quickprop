@@ -70,7 +70,7 @@ const SHARE_OPTIONS: Array<{
   {
     key: 'linkedin',
     label: 'LinkedIn',
-    description: 'Open LinkedIn · caption copied',
+    description: Platform.OS === 'web' ? 'Open LinkedIn · caption copied' : 'Choose LinkedIn · caption copied',
     icon: 'logo-linkedin',
     color: '#0A66C2',
   },

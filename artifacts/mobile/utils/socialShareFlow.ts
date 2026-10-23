@@ -3,17 +3,24 @@ export function isShareCancellation(error: unknown): boolean {
   return message.includes('cancel') || message.includes('dismiss') || message.includes('user did not share');
 }
 
-/** LinkedIn's public composer does not require an installed share extension. */
+/** Native LinkedIn sharing uses a link-only chooser; web uses its composer. */
 export async function openLinkedInPreviewShare(
   previewUrl: string,
   actions: {
+    platform: string;
     validatePreview: (url: string) => Promise<void>;
     beforeOpen?: () => Promise<void>;
+    shareLink: (url: string) => Promise<unknown>;
     openUrl: (url: string) => Promise<unknown>;
   },
 ): Promise<void> {
   await actions.validatePreview(previewUrl);
   await actions.beforeOpen?.();
+  if (actions.platform !== 'web') {
+    // Do not open a browser after a cancelled or failed native share.
+    await actions.shareLink(previewUrl);
+    return;
+  }
   await actions.openUrl(
     `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(previewUrl)}`,
   );

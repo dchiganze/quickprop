@@ -2,12 +2,28 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { openLinkedInPreviewShare, prepareShareImage, runNativeSocialShare, waitForShareModalDismissal } from '../artifacts/mobile/utils/socialShareFlow';
 
-test('LinkedIn validates the public preview, dismisses the modal, then opens its own composer', async () => {
+test('LinkedIn on iOS and Android validates, dismisses, then shares only the listing link', async () => {
+  for (const platform of ['ios', 'android']) {
+    const calls: string[] = [];
+    const previewUrl = 'https://example.com/api/share/properties/demo?v=2';
+    await openLinkedInPreviewShare(previewUrl, {
+      platform,
+      validatePreview: async url => { assert.equal(url, previewUrl); calls.push('validate'); },
+      beforeOpen: async () => { calls.push('dismiss'); },
+      shareLink: async url => { assert.equal(url, previewUrl); calls.push('link chooser'); },
+      openUrl: async () => { assert.fail('Native sharing must not open a browser'); },
+    });
+    assert.deepEqual(calls, ['validate', 'dismiss', 'link chooser']);
+  }
+});
+
+test('LinkedIn on web retains its public-link composer', async () => {
   const calls: string[] = [];
   const previewUrl = 'https://www.quickprop.melios.co.zw/api/share/properties/DEMO-SHARE-DOUGLAS?v=2';
   await openLinkedInPreviewShare(previewUrl, {
+    platform: 'web',
     validatePreview: async url => { assert.equal(url, previewUrl); calls.push('validate'); },
-    beforeOpen: async () => { calls.push('dismiss'); },
+    shareLink: async () => { assert.fail('Web must not open the native chooser'); },
     openUrl: async url => {
       const composer = new URL(url);
       assert.equal(composer.origin, 'https://www.linkedin.com');
@@ -16,17 +32,21 @@ test('LinkedIn validates the public preview, dismisses the modal, then opens its
       calls.push('composer');
     },
   });
-  assert.deepEqual(calls, ['validate', 'dismiss', 'composer']);
+  assert.deepEqual(calls, ['validate', 'composer']);
 });
 
 test('LinkedIn does not open a composer for an unavailable preview or failed modal dismissal', async () => {
   let opened = false;
   const openUrl = async () => { opened = true; };
   await assert.rejects(openLinkedInPreviewShare('https://example.com/preview', {
+    platform: 'ios',
+    shareLink: openUrl,
     validatePreview: async () => { throw new Error('Preview unavailable'); },
     openUrl,
   }), /Preview unavailable/);
   await assert.rejects(openLinkedInPreviewShare('https://example.com/preview', {
+    platform: 'ios',
+    shareLink: openUrl,
     validatePreview: async () => {},
     beforeOpen: async () => { throw new Error('Modal still open'); },
     openUrl,
@@ -36,11 +56,30 @@ test('LinkedIn does not open a composer for an unavailable preview or failed mod
 
 test('LinkedIn supports web without modal dismissal and reports URL-opening failures', async () => {
   await assert.rejects(openLinkedInPreviewShare('https://example.com/preview', {
+    platform: 'web',
+    shareLink: async () => { assert.fail('Web must not open the native chooser'); },
     validatePreview: async () => {},
     openUrl: async () => { throw new Error('Browser unavailable'); },
   }), /Browser unavailable/);
 });
 
+test('LinkedIn native cancellation or failure never falls back to the browser', async () => {
+  let browserOpened = false;
+  for (const fails of [false, true]) {
+    const share = openLinkedInPreviewShare('https://example.com/preview', {
+      platform: 'ios',
+      validatePreview: async () => {},
+      shareLink: async () => {
+        if (fails) throw new Error('Native sharing failed');
+        return { action: 'dismissedAction' };
+      },
+      openUrl: async () => { browserOpened = true; },
+    });
+    if (fails) await assert.rejects(share, /Native sharing failed/);
+    else await share;
+  }
+  assert.equal(browserOpened, false);
+});
 test('iOS opens the system chooser without calling the targeted social bridge', async () => {
   const calls: string[] = [];
   await runNativeSocialShare('ios', async () => { calls.push('chooser'); }, async () => { calls.push('targeted'); });

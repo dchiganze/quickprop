@@ -309,11 +309,16 @@ export async function sharePropertyToSocial(
   await Clipboard.setStringAsync(caption).catch(() => {});
 
   if (destination === 'linkedin') {
-    // Share the public metadata URL, rather than a local JPEG that depends
-    // on LinkedIn exposing a compatible native share extension in Expo Go.
+    // A single URL lets LinkedIn's share extension load the public preview.
+    // Keep the caption on the clipboard instead of adding a second item.
     await openLinkedInPreviewShare(propertyShareLinks(property).previewUrl, {
+      platform: Platform.OS,
       validatePreview: ensurePublicSharePreview,
       beforeOpen: Platform.OS === 'web' ? undefined : beforeNativeShare,
+      shareLink: url => Share.share(
+        Platform.OS === 'ios' ? { url } : { message: url },
+        { dialogTitle: 'Share property to LinkedIn' },
+      ),
       openUrl: url => Linking.openURL(url),
     });
     return;
