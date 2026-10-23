@@ -3,11 +3,10 @@ import * as Clipboard from 'expo-clipboard';
 import * as Sharing from 'expo-sharing';
 import { Property } from '@/types';
 import { shareProperty } from '@workspace/api-client-react';
-import { ensurePublicSharePreview, getFacebookShareUrl, propertyShareLinks } from '@/utils/shareLinks';
-import { openLinkedInPreviewShare, prepareShareImage, runNativeSocialShare } from '@/utils/socialShareFlow';
+import { prepareShareImage, runNativeSocialShare, runPropertyFlyerShare } from '@/utils/socialShareFlow';
 import {
   buildPropertyShareMessage,
-  buildPropertySocialShareMessage,
+  buildPropertyFlyerCaption,
 } from '@/utils/shareContent';
 
 /**
@@ -57,17 +56,26 @@ async function recordPropertyShare(property: Property): Promise<void> {
 export async function sharePropertyToWhatsApp(
   property: Property,
   captureCard: () => Promise<string>,
+  options: { agentId?: string; beforeNativeShare?: () => Promise<void> } = {},
 ): Promise<{ caption: string; sharedPhoto: boolean }> {
-  const caption = buildPropertyShareMessage(property);
+  const caption = buildPropertyFlyerCaption(options.agentId ?? property.agentId);
   await Clipboard.setStringAsync(caption);
+  const cardUri = await prepareShareImage(captureCard);
 
   if (Platform.OS === 'web') {
-    await Share.share({ message: caption });
-    return { caption, sharedPhoto: false };
+    await shareFlyerInBrowser(cardUri, 'QuickProp property flyer', caption);
+    return { caption, sharedPhoto: true };
   }
 
-  const cardUri = await prepareShareImage(captureCard);
+  await options.beforeNativeShare?.();
   await recordPropertyShare(property);
+
+  if (Platform.OS === 'ios') {
+    // Available in Expo Go. Some WhatsApp versions still require pasting the
+    // caption, so keep the same text on the clipboard as a fallback.
+    await Share.share({ url: cardUri, message: caption });
+    return { caption, sharedPhoto: true };
+  }
 
   try {
     const { default: NativeShare } = await import('react-native-share');
@@ -138,7 +146,7 @@ export type PropertySocialDestination = 'facebook' | 'instagram' | 'linkedin' | 
 
 type BrowserFileShareData = {
   files: File[];
-  text: string;
+  text?: string;
   title: string;
 };
 
@@ -147,13 +155,24 @@ type BrowserFileShareNavigator = Navigator & {
   canShare?: (data: Pick<BrowserFileShareData, 'files'>) => boolean;
 };
 
-async function shareWebFacebookPost(
-  property: Property,
-  caption: string,
-): Promise<void> {
-  const previewUrl = propertyShareLinks(property).previewUrl;
-  await ensurePublicSharePreview(previewUrl);
-  await Linking.openURL(getFacebookShareUrl(previewUrl, caption));
+async function shareFlyerInBrowser(uri: string, title: string, caption = ''): Promise<void> {
+  const response = await fetch(uri);
+  if (!response.ok) throw new Error('Unable to prepare the flyer image.');
+  const file = new File([await response.blob()], 'quickprop-property-flyer.jpg', { type: 'image/jpeg' });
+  const browser = navigator as BrowserFileShareNavigator;
+  if (browser.share && browser.canShare?.({ files: [file] })) {
+    await browser.share({ files: [file], title, ...(caption ? { text: caption } : {}) });
+    return;
+  }
+  // A social composer URL cannot attach a local JPEG. Download the flyer
+  // rather than silently substituting a link-only post on desktop browsers.
+  const download = document.createElement('a');
+  download.href = uri;
+  download.download = 'quickprop-property-flyer.jpg';
+  document.body.appendChild(download);
+  download.click();
+  download.remove();
+  if (caption) await Linking.openURL(`https://api.whatsapp.com/send?text=${encodeURIComponent(caption)}`);
 }
 
 export async function shareCatalogueToSocial(
@@ -243,11 +262,16 @@ export async function shareCatalogueToSocial(
 }
 
 async function shareNativeSocialPost(
-  destination: 'facebook' | 'instagram' | 'linkedin',
+  destination: 'facebook' | 'instagram' | 'linkedin' | 'tiktok',
   cardUri: string,
   caption: string,
   title: string,
 ): Promise<void> {
+  if (destination === 'tiktok') {
+    if (!await Sharing.isAvailableAsync()) throw new Error('Image sharing is unavailable on this device.');
+    await Sharing.shareAsync(cardUri, { dialogTitle: title, mimeType: 'image/jpeg', UTI: 'public.jpeg' });
+    return;
+  }
   await runNativeSocialShare(
     Platform.OS,
     async () => {
@@ -274,7 +298,7 @@ async function shareNativeSocialPost(
         social,
         url: cardUri,
         type: 'image/jpeg',
-        message: caption,
+        ...(caption ? { message: caption } : {}),
         title,
         useInternalStorage: true,
       });
@@ -288,66 +312,20 @@ export async function sharePropertyToSocial(
   captureCard: () => Promise<string>,
   beforeNativeShare?: () => Promise<void>,
 ): Promise<void> {
-  if (destination === 'tiktok') {
-    // TikTok's iOS share extension accepts the image from Photos, but can
-    // hide itself when the system payload contains a second text item. The
-    // generic share helper already copies the caption for pasting, so send
-    // TikTok only the JPEG, matching the Photos app handoff.
-    await sharePropertyGeneric(
-      property,
-      captureCard,
-      'Share property via TikTok',
-      Platform.OS !== 'ios',
-    );
-    return;
-  }
-
-  const isSocialPost = destination === 'facebook' || destination === 'instagram' || destination === 'linkedin';
-  const caption = isSocialPost
-    ? buildPropertySocialShareMessage(property)
-    : buildPropertyShareMessage(property);
-  await Clipboard.setStringAsync(caption).catch(() => {});
-
-  if (destination === 'linkedin') {
-    // A single URL lets LinkedIn's share extension load the public preview.
-    // Keep the caption on the clipboard instead of adding a second item.
-    await openLinkedInPreviewShare(propertyShareLinks(property).previewUrl, {
-      platform: Platform.OS,
-      validatePreview: ensurePublicSharePreview,
-      beforeOpen: Platform.OS === 'web' ? undefined : beforeNativeShare,
-      shareLink: url => Share.share(
-        Platform.OS === 'ios' ? { url } : { message: url },
-        { dialogTitle: 'Share property to LinkedIn' },
-      ),
-      openUrl: url => Linking.openURL(url),
-    });
-    return;
-  }
-
-  if (Platform.OS === 'web') {
-    if (destination === 'facebook') {
-      await shareWebFacebookPost(property, caption);
-      return;
-    }
-    await Share.share({ message: caption });
-    return;
-  }
-
-  const cardUri = await prepareShareImage(captureCard);
-  // iOS cannot reliably present a system activity controller while the
-  // app's own share Modal is still presented or being dismissed.
-  await beforeNativeShare?.();
-  await shareNativeSocialPost(
-    destination,
-    cardUri,
-    caption,
-    `Share property to ${destination.charAt(0).toUpperCase() + destination.slice(1)}`,
-  );
+  const title = `Share flyer to ${destination.charAt(0).toUpperCase() + destination.slice(1)}`;
+  await runPropertyFlyerShare({
+    platform: Platform.OS,
+    capture: captureCard,
+    beforeNativeShare,
+    shareWeb: uri => shareFlyerInBrowser(uri, title),
+    shareNative: uri => shareNativeSocialPost(destination, uri, '', title),
+  });
 }
 
 export async function sharePropertyToFacebookStory(
   property: Property,
   captureCard: () => Promise<string>,
+  beforeNativeShare?: () => Promise<void>,
 ): Promise<void> {
   if (Platform.OS === 'web') {
     throw new Error('Facebook Stories sharing is available in the mobile app only.');
@@ -358,27 +336,32 @@ export async function sharePropertyToFacebookStory(
     // A direct Stories handoff requires a Meta app ID in the standalone build.
     // Keep the action useful until that configuration is supplied by opening
     // the system chooser with the image only.
-    await sharePropertyGeneric(property, captureCard, 'Share property to Facebook Story', false);
+    await sharePropertyToSocial(property, 'facebook', captureCard, beforeNativeShare);
     return;
   }
 
   const cardUri = await prepareShareImage(captureCard);
-  const propertyUrl = propertyShareLinks(property).webUrl;
-  const { default: NativeShare, Social } = await import('react-native-share');
-
-  await NativeShare.shareSingle({
-    social: Social.FacebookStories,
-    appId: metaAppId,
-    backgroundImage: cardUri,
-    linkUrl: propertyUrl,
-    attributionURL: propertyUrl,
-    useInternalStorage: true,
-  });
+  await beforeNativeShare?.();
+  try {
+    const { default: NativeShare, Social } = await import('react-native-share');
+    await NativeShare.shareSingle({
+      social: Social.FacebookStories,
+      appId: metaAppId,
+      backgroundImage: cardUri,
+      useInternalStorage: true,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message.toLowerCase() : '';
+    if (message.includes('cancel') || message.includes('dismiss')) return;
+    if (!await Sharing.isAvailableAsync()) throw error;
+    await Sharing.shareAsync(cardUri, { mimeType: 'image/jpeg', UTI: 'public.jpeg' });
+  }
 }
 
 export async function sharePropertyToInstagramStory(
   property: Property,
   captureCard: () => Promise<string>,
+  beforeNativeShare?: () => Promise<void>,
 ): Promise<void> {
   if (Platform.OS === 'web') {
     throw new Error('Instagram Stories sharing is available in the mobile app only.');
@@ -386,21 +369,26 @@ export async function sharePropertyToInstagramStory(
 
   const metaAppId = process.env.EXPO_PUBLIC_META_APP_ID ?? process.env.EXPO_PUBLIC_FACEBOOK_APP_ID;
   if (!metaAppId) {
-    throw new Error('Instagram Stories sharing needs Meta app setup before it can be used.');
+    await sharePropertyToSocial(property, 'instagram', captureCard, beforeNativeShare);
+    return;
   }
 
   const cardUri = await prepareShareImage(captureCard);
-  const propertyUrl = propertyShareLinks(property).webUrl;
-  const { default: NativeShare, Social } = await import('react-native-share');
-
-  await NativeShare.shareSingle({
-    social: Social.InstagramStories,
-    appId: metaAppId,
-    backgroundImage: cardUri,
-    linkUrl: propertyUrl,
-    attributionURL: propertyUrl,
-    useInternalStorage: true,
-  });
+  await beforeNativeShare?.();
+  try {
+    const { default: NativeShare, Social } = await import('react-native-share');
+    await NativeShare.shareSingle({
+      social: Social.InstagramStories,
+      appId: metaAppId,
+      backgroundImage: cardUri,
+      useInternalStorage: true,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message.toLowerCase() : '';
+    if (message.includes('cancel') || message.includes('dismiss')) return;
+    if (!await Sharing.isAvailableAsync()) throw error;
+    await Sharing.shareAsync(cardUri, { mimeType: 'image/jpeg', UTI: 'public.jpeg' });
+  }
 }
 
 export async function sharePropertyGeneric(

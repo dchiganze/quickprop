@@ -93,8 +93,8 @@ Dismiss QuickProp's iOS sharing modal before presenting the system share panel, 
 
 **How to apply:** Prepare the attachment first, close the app modal, await its dismissal with a bounded failure path, then open the system chooser. A dismissal failure must stop the handoff, not open a second panel later. Validate the external-app handoff on an installed iPhone build; browser previews and ordering tests cannot prove that device behaviour.
 
-For individual property posts, LinkedIn on phones must use the native share sheet with a single listing link, not automatically open its browser composer.
+Standard property sharing should generate a branded flyer, with template choices, editable agency logo/colours, and an agent-selected main photo.
 
-**Why:** The user confirmed Facebook sharing worked in Expo Go while LinkedIn failed with the image-only chooser, then explicitly chose sharing the listing link through the phone's share sheet rather than opening LinkedIn in the browser.
+**Why:** The user requested standardised flyers like their DBT Properties reference and explicitly replaced caption-based social posts with flyer-only sharing.
 
-**How to apply:** Share only the public preview URL (iOS URL item, Android text item), copy the caption separately, and await iOS modal dismissal first. Keep the HTTPS composer for web only. Never open a browser automatically after native cancellation. LinkedIn must be installed and enabled in the share sheet; browser screenshots and ordering tests do not prove the external-app handoff works.
+**How to apply:** WhatsApp gets the flyer plus “For my full catalogue on QuickProp click this link” and the sharing agent's catalogue URL. Facebook, LinkedIn, TikTok and Instagram get the flyer only, with no caption or automatic browser composer. This supersedes the earlier link-only LinkedIn workaround. Keep the WhatsApp caption copied when an external app drops attachment text; do not promise platform-controlled caption prefilling or direct app handoff without device verification.

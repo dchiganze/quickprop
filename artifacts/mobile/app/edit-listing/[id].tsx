@@ -12,6 +12,7 @@ import { useColors } from '@/hooks/useColors';
 import { useData } from '@/contexts/DataContext';
 import { FeatureChip } from '@/components/FeatureChip';
 import { ListingImage } from '@/components/ListingImage';
+import { selectMainListingPhoto } from '@/utils/listingPhoto';
 import { PROPERTY_FEATURES, Property } from '@/types';
 
 const CURRENCIES = ['USD', 'ZAR', 'ZWL', 'GBP', 'EUR'];
@@ -220,11 +221,18 @@ export default function EditListingScreen() {
           </View>
 
           <Text style={[styles.sectionHeading, { color: colors.mutedForeground, marginTop: 20 }]}>PHOTOS</Text>
-          <Text style={[styles.mediaHint, { color: colors.mutedForeground }]}>The first photo is used as the main listing image.</Text>
+          <Text style={[styles.mediaHint, { color: colors.mutedForeground }]}>Tap a photo to make it the main listing and flyer image. Save to keep your selection.</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.photoRow}>
             {photos.map((uri, index) => (
               <View key={`${uri}-${index}`} style={styles.photoPreview}>
-                <ListingImage uri={uri} style={styles.photoImage} resizeMode="cover" />
+                <TouchableOpacity
+                  onPress={() => setPhotos(current => selectMainListingPhoto(current, index))}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Use photo ${index + 1} as main listing and flyer photo`}
+                  accessibilityState={{ selected: index === 0 }}
+                >
+                  <ListingImage uri={uri} style={styles.photoImage} resizeMode="cover" />
+                </TouchableOpacity>
                 {index === 0 && <Text style={styles.mainPhotoLabel}>Main</Text>}
                 <TouchableOpacity
                   style={styles.photoRemove}

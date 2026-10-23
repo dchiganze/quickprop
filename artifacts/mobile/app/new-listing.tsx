@@ -17,6 +17,7 @@ import { StepIndicator } from '@/components/StepIndicator';
 import { PROPERTY_FEATURES, Property } from '@/types';
 import { apiOrigin } from '@/contexts/AuthContext';
 import { addMyAgencyToProperty, findPropertyDuplicates } from '@/utils/multiAgent';
+import { selectMainListingPhoto } from '@/utils/listingPhoto';
 
 const TOTAL_STEPS = 11;
 const STEP_LABELS = [
@@ -425,7 +426,7 @@ export default function NewListingScreen() {
       case 0: return ( // Photos
         <View style={styles.stepContent}>
           <Text style={[styles.stepHeading, { color: colors.foreground }]}>Property Photos</Text>
-          <Text style={[styles.stepSub, { color: colors.mutedForeground }]}>Add high-quality photos to attract buyers.</Text>
+          <Text style={[styles.stepSub, { color: colors.mutedForeground }]}>Add high-quality photos. Tap a photo to use it as the main listing and flyer image.</Text>
           <View style={styles.photoButtons}>
             <TouchableOpacity style={[styles.photoBtn, { backgroundColor: colors.primary }]} onPress={handleTakePhoto}>
               <Ionicons name="camera" size={24} color="#FFF" />
@@ -445,7 +446,14 @@ export default function NewListingScreen() {
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.photoPreviewRow}>
                 {form.photos.map((uri, index) => (
                   <View key={`${uri}-${index}`} style={styles.photoPreview}>
-                    <Image source={{ uri }} style={styles.photoPreviewImage} />
+                    <TouchableOpacity
+                      onPress={() => set('photos', selectMainListingPhoto(form.photos, index))}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Use photo ${index + 1} as main listing and flyer photo`}
+                      accessibilityState={{ selected: index === 0 }}
+                    >
+                      <Image source={{ uri }} style={styles.photoPreviewImage} />
+                    </TouchableOpacity>
                     {index === 0 && <Text style={styles.mainPhotoLabel}>Main</Text>}
                     <TouchableOpacity
                       accessibilityLabel={`Remove photo ${index + 1}`}

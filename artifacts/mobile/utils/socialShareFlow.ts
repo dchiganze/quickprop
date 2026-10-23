@@ -3,27 +3,23 @@ export function isShareCancellation(error: unknown): boolean {
   return message.includes('cancel') || message.includes('dismiss') || message.includes('user did not share');
 }
 
-/** Native LinkedIn sharing uses a link-only chooser; web uses its composer. */
-export async function openLinkedInPreviewShare(
-  previewUrl: string,
+/** All property social posts receive the same flyer image, without text. */
+export async function runPropertyFlyerShare(
   actions: {
     platform: string;
-    validatePreview: (url: string) => Promise<void>;
-    beforeOpen?: () => Promise<void>;
-    shareLink: (url: string) => Promise<unknown>;
-    openUrl: (url: string) => Promise<unknown>;
+    capture: () => Promise<string>;
+    beforeNativeShare?: () => Promise<void>;
+    shareNative: (imageUri: string) => Promise<unknown>;
+    shareWeb: (imageUri: string) => Promise<unknown>;
   },
 ): Promise<void> {
-  await actions.validatePreview(previewUrl);
-  await actions.beforeOpen?.();
-  if (actions.platform !== 'web') {
-    // Do not open a browser after a cancelled or failed native share.
-    await actions.shareLink(previewUrl);
+  const imageUri = await prepareShareImage(actions.capture);
+  if (actions.platform === 'web') {
+    await actions.shareWeb(imageUri);
     return;
   }
-  await actions.openUrl(
-    `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(previewUrl)}`,
-  );
+  await actions.beforeNativeShare?.();
+  await actions.shareNative(imageUri);
 }
 
 /** Wait for the real iOS Modal.onDismiss event, not a guessed animation delay. */

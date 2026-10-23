@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { Property } from '@/types';
 import { useColors } from '@/hooks/useColors';
+import { useAuth } from '@/contexts/AuthContext';
 import { waitForShareModalDismissal } from '@/utils/socialShareFlow';
 import {
   PropertySocialDestination,
@@ -30,11 +31,8 @@ interface PropertyShareSheetProps {
   captureCard: () => Promise<string>;
   captureSocialCard: () => Promise<string>;
   onClose: () => void;
-}
-
-function canSharePublicPreview(property: Property): boolean {
-  return property.status === 'published'
-    && (!property.availabilityStatus || ['available', 'under_offer'].includes(property.availabilityStatus));
+  onCustomizeFlyer?: () => void;
+  flyerLoading?: boolean;
 }
 
 type ShareDestination = 'whatsapp' | 'share' | PropertySocialDestination;
@@ -49,35 +47,35 @@ const SHARE_OPTIONS: Array<{
   {
     key: 'whatsapp',
     label: 'WhatsApp',
-    description: 'Image + property link',
+    description: 'Flyer + catalogue caption',
     icon: 'logo-whatsapp',
     color: '#25D366',
   },
   {
     key: 'facebook',
     label: 'Facebook',
-    description: 'Image + caption',
+    description: 'Flyer only',
     icon: 'logo-facebook',
     color: '#1877F2',
   },
   {
     key: 'instagram',
     label: 'Instagram',
-    description: 'Image + caption copied',
+    description: 'Flyer only',
     icon: 'logo-instagram',
     color: '#E1306C',
   },
   {
     key: 'linkedin',
     label: 'LinkedIn',
-    description: Platform.OS === 'web' ? 'Open LinkedIn · caption copied' : 'Choose LinkedIn · caption copied',
+    description: 'Flyer only',
     icon: 'logo-linkedin',
     color: '#0A66C2',
   },
   {
     key: 'tiktok',
     label: 'TikTok',
-    description: 'Open share sheet',
+    description: 'Flyer only',
     icon: 'logo-tiktok',
     color: '#111827',
   },
@@ -96,8 +94,11 @@ export function PropertyShareSheet({
   captureCard,
   captureSocialCard,
   onClose,
+  onCustomizeFlyer,
+  flyerLoading = false,
 }: PropertyShareSheetProps) {
   const colors = useColors();
+  const { user } = useAuth();
   const [sharing, setSharing] = useState<ShareDestination | 'facebook-post' | 'facebook-story' | 'instagram-post' | 'instagram-story' | null>(null);
   const [socialOptionsOpen, setSocialOptionsOpen] = useState<'facebook' | 'instagram' | null>(null);
   const didDismissRef = useRef<(() => void) | null>(null);
@@ -124,18 +125,15 @@ export function PropertyShareSheet({
 
   const handleShare = async (destination: ShareDestination) => {
     if (sharing) return;
-    if ((destination === 'facebook' || destination === 'linkedin') && !canSharePublicPreview(property)) {
-      Alert.alert(
-        'Publish this property first',
-        'Facebook and LinkedIn previews are only available for published listings.',
-      );
+    if (flyerLoading) {
+      Alert.alert('Preparing flyer', 'Please wait while your saved flyer and agency branding load.');
       return;
     }
     setSharing(destination);
     try {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       if (destination === 'whatsapp') {
-        await sharePropertyToWhatsApp(property, captureCard);
+        await sharePropertyToWhatsApp(property, captureCard, { agentId: user?.id, beforeNativeShare });
       } else if (destination === 'share') {
         await sharePropertyGeneric(property, captureCard);
       } else {
@@ -158,11 +156,8 @@ export function PropertyShareSheet({
 
   const handleSocialShare = async (social: 'facebook' | 'instagram', choice: 'post' | 'story') => {
     if (sharing) return;
-    if (social === 'facebook' && !canSharePublicPreview(property)) {
-      Alert.alert(
-        'Publish this property first',
-        'Facebook previews are only available for published listings.',
-      );
+    if (flyerLoading) {
+      Alert.alert('Preparing flyer', 'Please wait while your saved flyer and agency branding load.');
       return;
     }
     const shareKey = `${social}-${choice}` as const;
@@ -172,9 +167,9 @@ export function PropertyShareSheet({
       if (choice === 'post') {
         await sharePropertyToSocial(property, social, social === 'facebook' ? captureSocialCard : captureCard, beforeNativeShare);
       } else if (social === 'facebook') {
-        await sharePropertyToFacebookStory(property, captureCard);
+        await sharePropertyToFacebookStory(property, captureCard, beforeNativeShare);
       } else {
-        await sharePropertyToInstagramStory(property, captureCard);
+        await sharePropertyToInstagramStory(property, captureCard, beforeNativeShare);
       }
       closeSheet();
     } catch (error: unknown) {
@@ -213,6 +208,26 @@ export function PropertyShareSheet({
               <Text style={[styles.subtitle, { color: colors.mutedForeground }]} numberOfLines={1}>
                 {property.referenceNumber} · {property.suburb}
               </Text>
+              {onCustomizeFlyer && (
+                <TouchableOpacity
+                  accessibilityRole="button"
+                  disabled={!!sharing || flyerLoading}
+                  onPress={async () => {
+                    try {
+                      await beforeNativeShare();
+                      if (Platform.OS !== 'ios') closeSheet();
+                      onCustomizeFlyer();
+                    } catch (error) {
+                      Alert.alert('Could not open flyer', error instanceof Error ? error.message : 'Please try again.');
+                    }
+                  }}
+                  style={{ paddingVertical: 10 }}
+                >
+                  <Text style={{ color: colors.primary, fontWeight: '700' }}>
+                    {flyerLoading ? 'Loading flyer…' : 'Preview & customise flyer'}
+                  </Text>
+                </TouchableOpacity>
+              )}
             </View>
             <TouchableOpacity
               style={[styles.closeButton, { backgroundColor: colors.muted }]}
@@ -331,8 +346,8 @@ export function PropertyShareSheet({
 
           <Text style={[styles.footerNote, { color: colors.mutedForeground }]}>
             {Platform.OS === 'ios'
-              ? 'Choose the app in the share sheet, then paste the copied caption into your post.'
-              : 'Your property card will be prepared before the app opens.'}
+              ? 'Social posts share the flyer only. For WhatsApp, the catalogue caption is also copied if you need to paste it.'
+              : 'Your branded flyer will be prepared before sharing.'}
           </Text>
           </Pressable>
         </Pressable>

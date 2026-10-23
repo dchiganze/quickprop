@@ -13,8 +13,9 @@ import { useColors } from '@/hooks/useColors';
 import { propertyShareLinks } from '@/utils/shareLinks';
 import { getPrimaryListingPhoto } from '@/utils/listingPhoto';
 import { ListingImage } from '@/components/ListingImage';
-import { SharePropertyCard, SharePropertyCardHandle } from '@/components/SharePropertyCard';
-import { SharePropertyCollage, SharePropertyCollageHandle } from '@/components/SharePropertyCollage';
+import { PropertyFlyer, PropertyFlyerHandle } from '@/components/PropertyFlyer';
+import { FlyerCustomizer } from '@/components/FlyerCustomizer';
+import { useFlyerSettings } from '@/hooks/useFlyerSettings';
 import { PropertyShareSheet } from '@/components/PropertyShareSheet';
 import { useData } from '@/contexts/DataContext';
 import { Property } from '@/types';
@@ -82,8 +83,9 @@ export default function ListingDetailScreen() {
   const [shareOptionsOpen, setShareOptionsOpen] = useState(false);
   const [saleModalVisible, setSaleModalVisible] = useState(false);
   const [salePriceInput, setSalePriceInput] = useState('');
-  const shareCardRef = useRef<SharePropertyCardHandle>(null);
-  const shareCollageRef = useRef<SharePropertyCollageHandle>(null);
+  const shareCardRef = useRef<PropertyFlyerHandle>(null);
+  const [flyerOpen, setFlyerOpen] = useState(false);
+  const flyer = useFlyerSettings(property, user);
 
   const handleAddAgency = async () => {
     if (!multiAgent || !user || !property) return;
@@ -233,15 +235,23 @@ export default function ListingDetailScreen() {
   return (
     <View style={[styles.flex, { backgroundColor: colors.background }]}>
       <View style={styles.shareCardHost} pointerEvents="none">
-        <SharePropertyCard
+        <PropertyFlyer
           ref={shareCardRef}
           property={property}
+          settings={flyer.settings}
           shareUrl={propertyShareLinks(property).webUrl}
         />
-        <View style={styles.shareCollageHost}>
-          <SharePropertyCollage ref={shareCollageRef} property={property} />
-        </View>
       </View>
+      <FlyerCustomizer
+        visible={flyerOpen}
+        onClose={() => setFlyerOpen(false)}
+        property={property}
+        settings={flyer.settings}
+        onChange={flyer.setSettings}
+        onReset={flyer.reset}
+        shareUrl={propertyShareLinks(property).webUrl}
+      />
+      {flyer.error && <Text style={{ color: colors.destructive, padding: 12 }}>{flyer.error}</Text>}
       {videoPlayerVisible && property.videoUrl && (
         <VideoPlayerModal uri={property.videoUrl} onClose={() => setVideoPlayerVisible(false)} />
       )}
@@ -625,10 +635,12 @@ export default function ListingDetailScreen() {
         visible={shareOptionsOpen}
         onClose={() => setShareOptionsOpen(false)}
         property={property}
+        flyerLoading={flyer.loading}
+        onCustomizeFlyer={() => setFlyerOpen(true)}
         captureCard={() => shareCardRef.current?.capture()
           ?? Promise.reject(new Error('Unable to prepare the property image.'))}
-        captureSocialCard={() => shareCollageRef.current?.capture()
-          ?? Promise.reject(new Error('Unable to prepare the property collage.'))}
+        captureSocialCard={() => shareCardRef.current?.capture()
+          ?? Promise.reject(new Error('Unable to prepare the property flyer.'))}
       />
     </View>
   );

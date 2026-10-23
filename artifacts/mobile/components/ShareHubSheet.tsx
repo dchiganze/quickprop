@@ -18,8 +18,10 @@ import {
   sharePropertyToWhatsApp,
   sharePropertyToSocial,
 } from '@/utils/whatsapp';
-import { SharePropertyCard, SharePropertyCardHandle } from '@/components/SharePropertyCard';
-import { SharePropertyCollage, SharePropertyCollageHandle } from '@/components/SharePropertyCollage';
+import { PropertyFlyer, PropertyFlyerHandle } from '@/components/PropertyFlyer';
+import { FlyerCustomizer } from '@/components/FlyerCustomizer';
+import { useFlyerSettings } from '@/hooks/useFlyerSettings';
+import { waitForShareModalDismissal } from '@/utils/socialShareFlow';
 import { ShareCatalogueCard, ShareCatalogueCardHandle } from '@/components/ShareCatalogueCard';
 
 type Step = 'hub' | 'property-select' | 'property-share' | 'catalogue-share';
@@ -43,8 +45,21 @@ export function ShareHubSheet({ visible, onClose }: Props) {
   const [catalogMode, setCatalogMode] = useState<CatalogMode>('agent');
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
   const [sharing, setSharing] = useState(false);
-  const shareCardRef = useRef<SharePropertyCardHandle>(null);
-  const shareCollageRef = useRef<SharePropertyCollageHandle>(null);
+  const shareCardRef = useRef<PropertyFlyerHandle>(null);
+  const flyer = useFlyerSettings(selectedProperty ?? undefined, user);
+  const [flyerEditorOpen, setFlyerEditorOpen] = useState(false);
+  const dismissRef = useRef<(() => void) | null>(null);
+  const beforeNativeShare = useCallback(async () => {
+    if (Platform.OS !== 'ios') return;
+    try {
+      await waitForShareModalDismissal(done => {
+        dismissRef.current = done;
+        onClose();
+      });
+    } finally {
+      dismissRef.current = null;
+    }
+  }, [onClose]);
   const catalogueCardRef = useRef<ShareCatalogueCardHandle>(null);
 
   const myProps = properties.filter(p => p.agentId === user?.id && p.status === 'published');
@@ -64,6 +79,7 @@ export function ShareHubSheet({ visible, onClose }: Props) {
 
   // ── Property share actions ─────────────────────────────────────────────────
   const sharePropertyWhatsApp = useCallback(async (p: Property) => {
+    if (flyer.loading) return;
     setSharing(true);
     try {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -71,6 +87,7 @@ export function ShareHubSheet({ visible, onClose }: Props) {
         p,
         () => shareCardRef.current?.capture()
           ?? Promise.reject(new Error('Unable to prepare the property image.')),
+        { agentId: user?.id, beforeNativeShare },
       );
       handleClose();
     } catch (e: unknown) {
@@ -81,7 +98,7 @@ export function ShareHubSheet({ visible, onClose }: Props) {
     } finally {
       setSharing(false);
     }
-  }, [user?.id]);
+  }, [user?.id, flyer.loading, beforeNativeShare]);
 
   const sharePropertyNative = useCallback(async (p: Property) => {
     setSharing(true);
@@ -103,14 +120,16 @@ export function ShareHubSheet({ visible, onClose }: Props) {
   }, [user?.name]);
 
   const sharePropertySocial = useCallback(async (p: Property, destination: PropertySocialDestination) => {
+    if (flyer.loading) return;
     setSharing(true);
     try {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       await sharePropertyToSocial(
         p,
         destination,
-        () => shareCollageRef.current?.capture()
-          ?? Promise.reject(new Error('Unable to prepare the property collage.')),
+        () => shareCardRef.current?.capture()
+          ?? Promise.reject(new Error('Unable to prepare the property flyer.')),
+        beforeNativeShare,
       );
       handleClose();
     } catch (e: unknown) {
@@ -121,7 +140,7 @@ export function ShareHubSheet({ visible, onClose }: Props) {
     } finally {
       setSharing(false);
     }
-  }, [user?.id]);
+  }, [user?.id, flyer.loading, beforeNativeShare]);
 
   // ── Catalogue share actions ────────────────────────────────────────────────
   const activeProps = catalogMode === 'agent' ? myProps : allProps;
@@ -345,6 +364,24 @@ export function ShareHubSheet({ visible, onClose }: Props) {
           </View>
         </View>
 
+        <TouchableOpacity
+          disabled={sharing || flyer.loading}
+          style={{ paddingVertical: 12 }}
+          onPress={async () => {
+            try {
+              await beforeNativeShare();
+              if (Platform.OS !== 'ios') onClose();
+              setFlyerEditorOpen(true);
+            } catch (error) {
+              Alert.alert('Could not open flyer', error instanceof Error ? error.message : 'Please try again.');
+            }
+          }}
+        >
+          <Text style={{ color: colors.primary, fontWeight: '700' }}>
+            {flyer.loading ? 'Loading flyer…' : 'Preview & customise flyer'}
+          </Text>
+        </TouchableOpacity>
+        {!!flyer.error && <Text style={{ color: colors.destructive }}>{flyer.error}</Text>}
         <Text style={[s.sectionLabel, { color: colors.mutedForeground }]}>SHARE VIA</Text>
 
         <TouchableOpacity
@@ -378,7 +415,7 @@ export function ShareHubSheet({ visible, onClose }: Props) {
               <Text style={[s.socialShareLabel, { color: colors.foreground }]}>
                 {destination === 'facebook' ? 'Facebook' : 'LinkedIn'}
               </Text>
-              <Text style={[s.socialShareHint, { color: colors.mutedForeground }]}>Image + caption</Text>
+              <Text style={[s.socialShareHint, { color: colors.mutedForeground }]}>Flyer only</Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -529,31 +566,36 @@ export function ShareHubSheet({ visible, onClose }: Props) {
   };
 
   return (
+    <>
+    {selectedProperty && (
+      <FlyerCustomizer
+        visible={flyerEditorOpen}
+        onClose={() => setFlyerEditorOpen(false)}
+        property={selectedProperty}
+        settings={flyer.settings}
+        onChange={flyer.setSettings}
+        onReset={flyer.reset}
+        shareUrl={propertyShareLinks(selectedProperty).webUrl}
+      />
+    )}
     <Modal
       visible={visible}
       animationType="slide"
       transparent
       onRequestClose={handleClose}
+      onDismiss={() => dismissRef.current?.()}
       statusBarTranslucent
     >
       <Pressable style={s.backdrop} onPress={handleClose}>
         <Pressable style={[s.sheet, { backgroundColor: colors.card }]} onPress={() => {}}>
           {selectedProperty && (
             <View style={s.shareCardHost} pointerEvents="none">
-              <SharePropertyCard
+              <PropertyFlyer
                 key={selectedProperty.id}
                 ref={shareCardRef}
                 property={selectedProperty}
+                settings={flyer.settings}
                 shareUrl={propertyShareLinks(selectedProperty).webUrl}
-              />
-            </View>
-          )}
-          {selectedProperty && (
-            <View style={s.shareCollageHost} pointerEvents="none">
-              <SharePropertyCollage
-                key={`collage-${selectedProperty.id}`}
-                ref={shareCollageRef}
-                property={selectedProperty}
               />
             </View>
           )}
@@ -593,6 +635,7 @@ export function ShareHubSheet({ visible, onClose }: Props) {
         </Pressable>
       </Pressable>
     </Modal>
+    </>
   );
 }
 
