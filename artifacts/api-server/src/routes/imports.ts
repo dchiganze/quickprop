@@ -31,7 +31,7 @@ import { findImportTitleValue } from "../lib/import-title";
 import { findStalePdfDraftIds } from "../lib/import-reconcile";
 import { jsonify, logAudit } from "../lib/helpers";
 import { logger } from "../lib/logger";
-import { matchPropertyToAlerts } from "../lib/property-alerts";
+import { importedPropertyDraft } from "../lib/property-drafts";
 import { flattenPdfPageRows } from "../lib/pdf-import";
 import { parseAiJsonResponse } from "../lib/ai-import";
 
@@ -1366,7 +1366,6 @@ router.post("/imports/sessions/:id/publish", async (req, res): Promise<void> => 
   if (!session || !recordIds.length) { res.status(400).json({ error: "Select at least one approved record to publish." }); return; }
   const records = await db.select().from(importRecordsTable).where(and(eq(importRecordsTable.sessionId, sessionId), inArray(importRecordsTable.id, recordIds)));
   let created = 0; let linked = 0; let published = 0; const errors: string[] = [];
-  const createdPropertyIds: number[] = [];
   for (const record of records) {
     const data = effectiveData(record);
     const targetBranchId = record.branchId ?? session.defaultBranchId ?? branchContext.mainBranchId;
@@ -1396,8 +1395,7 @@ router.post("/imports/sessions/:id/publish", async (req, res): Promise<void> => 
           description: asText(data.description) || null,
           propertyType: asText(data.propertyType) || "residential",
           listingType: "sale",
-          status: "public",
-          pipelineStage: "published",
+          ...importedPropertyDraft(data.photos),
           price: numberValue(data.price) ?? 0,
           currency: asText(data.currency) || "USD",
           suburb: asText(data.suburb),
@@ -1405,17 +1403,14 @@ router.post("/imports/sessions/:id/publish", async (req, res): Promise<void> => 
           address: asText(data.address) || null,
           bedrooms: numberValue(data.bedrooms),
           bathrooms: numberValue(data.bathrooms),
-          photos: Array.isArray(data.photos) ? data.photos.map(asText).filter(Boolean) : [],
           agentId: record.agentId,
           branchId: targetBranchId,
           mandateType: asText(data.mandateType) || null,
           mandateStart: asText(data.mandateStart) || null,
           mandateExpiry: asText(data.mandateExpiry) || null,
-          publishedAt: new Date(),
           updatedAt: new Date(),
         }).returning({ id: propertiesTable.id });
         propertyId = property.id;
-        createdPropertyIds.push(property.id);
         created += 1;
       } else {
         linked += 1;
@@ -1452,12 +1447,8 @@ router.post("/imports/sessions/:id/publish", async (req, res): Promise<void> => 
   }
   await updateCounters(sessionId);
   await db.update(importSessionsTable).set({ status: errors.length ? "review" : "published", currentStage: errors.length ? "review" : "published", updatedAt: new Date() }).where(eq(importSessionsTable.id, sessionId));
-  for (const propertyId of createdPropertyIds) {
-    void matchPropertyToAlerts(propertyId).catch((error) => {
-      logger.warn({ propertyId, error }, "Imported property alert matching failed");
-    });
-  }
-  await logAudit("import_published", "import_session", sessionId, `Published ${published} record(s)`, user.id, user.name);
+  // Import-session "published" means committed to inventory, not public visibility.
+  await logAudit("import_published", "import_session", sessionId, `Imported ${created} draft(s), linked ${linked} existing record(s)`, user.id, user.name);
   res.json({ published, linked, created, failed: errors.length, errors });
 });
 

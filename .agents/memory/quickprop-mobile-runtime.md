@@ -99,8 +99,8 @@ Verify the mobile bundle and its API deployment separately: a phone running the 
 
 **How to apply:** Confirm the runtime API target and that the required endpoint is active there before reporting a mobile fix as working. Distinguish an implemented workspace fix from a published and verified fix; do not repeatedly change UI code to compensate for an unpublished backend.
 
-Check whether Metro is running in CI mode before assuming that Expo hot reload will discover newly created source files.
+Keep file watching enabled for persistent Expo phone previews; reserve CI mode for build/export jobs.
 
-**Why:** In this workspace, Metro reported that reloads were disabled and could not resolve a new utility that existed on disk and passed TypeScript checks; one managed workflow restart restored module discovery.
+**Why:** CI mode disabled reloads and left Metro serving stale modules. An older Metro process also continued occupying the assigned port while the managed workflow was failed, so a successful health check alone did not prove that the current preview was running.
 
-**How to apply:** When the workflow log says CI mode is active, restart the existing mobile workflow once after a coherent change that adds modules. Otherwise retain normal hot reload and avoid unnecessary restarts.
+**How to apply:** Verify managed-workflow state and port ownership together, not just an HTTP status. If a previous Metro process blocks the assigned port, verify its command and working directory before stopping only that process; then restart the existing managed workflow. Preserve the injected port and managed login, keep the listener externally reachable, and use the Expo preview domain in advertised native URLs.

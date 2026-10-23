@@ -40,6 +40,7 @@ import { queuePrimaryReviewInvitation } from "../lib/agent-reviews";
 import { matchPropertyToAlerts } from "../lib/property-alerts";
 import { logger } from "../lib/logger";
 import { isPublicProperty, syncPropertyToProduction } from "../lib/publication-sync";
+import { hasListingPhotos, needsPublicationPhoto } from "../lib/property-drafts";
 
 const router: IRouter = Router();
 
@@ -107,7 +108,7 @@ router.post("/properties", async (req, res): Promise<void> => {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
-  if (!parsed.data.photos?.length) {
+  if (!hasListingPhotos(parsed.data.photos)) {
     res.status(400).json({ error: "At least one listing photo is required." });
     return;
   }
@@ -236,10 +237,6 @@ router.patch("/properties/:id", async (req, res): Promise<void> => {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
-  if (parsed.data.photos && parsed.data.photos.length === 0) {
-    res.status(400).json({ error: "At least one listing photo is required." });
-    return;
-  }
   const user = await currentUser(req);
   const ownership = user?.role === "agent" || user?.role === "senior_agent"
     ? and(eq(propertiesTable.id, id), eq(propertiesTable.agentId, user.id))
@@ -247,6 +244,14 @@ router.patch("/properties/:id", async (req, res): Promise<void> => {
   const [existing] = await db.select().from(propertiesTable).where(ownership);
   if (!existing) {
     res.status(404).json({ error: "Property not found" });
+    return;
+  }
+  if (needsPublicationPhoto({
+    status: parsed.data.status ?? existing.status,
+    pipelineStage: parsed.data.pipelineStage,
+    photos: parsed.data.photos ?? existing.photos,
+  })) {
+    res.status(400).json({ error: "Upload at least one property photo before publishing. You can save this property as a draft without photos." });
     return;
   }
   if (parsed.data.salePrice != null && parsed.data.salePrice <= 0) {
@@ -304,6 +309,10 @@ router.patch("/properties/:id", async (req, res): Promise<void> => {
   }
   if (parsed.data.status === "public" && existing.status !== "public") {
     update.publishedAt = new Date();
+    update.pipelineStage = "published";
+  } else if (parsed.data.status === "draft") {
+    update.pipelineStage = "draft";
+    update.publishedAt = null;
   }
   const existingSellingStatus = ["available", "under_offer", "sold", "withdrawn"].includes(existing.availabilityStatus)
     ? existing.availabilityStatus

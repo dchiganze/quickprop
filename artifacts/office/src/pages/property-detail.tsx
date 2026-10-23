@@ -183,7 +183,7 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
   const photoInputRef = useRef<HTMLInputElement>(null);
   const editPhotoInputRef = useRef<HTMLInputElement>(null);
   const editVideoInputRef = useRef<HTMLInputElement>(null);
-  const [listingVisibility, setListingVisibility] = useState<'public' | 'internal_only'>('internal_only');
+  const [listingVisibility, setListingVisibility] = useState<'public' | 'internal_only' | 'draft'>('internal_only');
   const [sellingStatus, setSellingStatus] = useState<SellingStatus>('available');
   const [edit, setEdit] = useState({
     title: '', propertyType: 'house', listingType: 'sale', price: '', negotiable: false,
@@ -231,7 +231,7 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
 
   useEffect(() => {
     if (!property) return;
-    setListingVisibility(property.status === 'public' ? 'public' : 'internal_only');
+    setListingVisibility(property.status === 'public' ? 'public' : property.status === 'draft' ? 'draft' : 'internal_only');
   }, [property?.id, property?.status]);
 
   useEffect(() => {
@@ -254,17 +254,21 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
   const editPhotoUrls = edit.photos.split(/\r?\n|,/).map((value) => value.trim()).filter(Boolean);
 
   const handleVisibilityChange = (newStatus: string) => {
-    const nextStatus = newStatus === 'public' ? 'public' : 'internal_only';
+    const nextStatus = newStatus === 'public' ? 'public' : newStatus === 'draft' ? 'draft' : 'internal_only';
+    if (nextStatus === 'public' && !property.photos?.some(photo => photo.trim())) {
+      toast({ title: 'Add a property photo first', description: 'Upload at least one photo before publishing this draft.', variant: 'destructive' });
+      return;
+    }
     setListingVisibility(nextStatus);
     updateProperty.mutate({ id: propertyId, data: { status: nextStatus } }, {
       onSuccess: () => {
         toast({
           title: 'Status updated',
-          description: `Property status is now ${nextStatus === 'public' ? 'Publicly Listed' : 'Internally Only'}.`,
+          description: `Property status is now ${nextStatus === 'public' ? 'Publicly Listed' : nextStatus === 'draft' ? 'Draft' : 'Internally Only'}.`,
         });
       },
       onError: () => {
-        setListingVisibility(property.status === 'public' ? 'public' : 'internal_only');
+        setListingVisibility(property.status === 'public' ? 'public' : property.status === 'draft' ? 'draft' : 'internal_only');
         toast({ title: 'Could not update status', description: 'Please try again.', variant: 'destructive' });
       },
     });
@@ -648,8 +652,12 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
       .filter((value) => !Number.isNaN(value.getTime()))
       .slice(0, 3)
       .map((value) => value.toISOString());
-    if (!edit.title.trim() || !edit.suburb.trim() || !edit.city.trim() || !Number.isFinite(price) || price <= 0 || photos.length === 0) {
-      toast({ title: 'Title, location, price and photos are required', variant: 'destructive' });
+    if (!edit.title.trim() || !edit.suburb.trim() || !edit.city.trim() || !Number.isFinite(price) || price <= 0) {
+      toast({ title: 'Title, location and price are required', variant: 'destructive' });
+      return;
+    }
+    if (PUBLIC_PROPERTY_STATUSES.has(property.status) && photos.length === 0) {
+      toast({ title: 'Public listings need at least one photo', description: 'Save the property as a draft before removing its last photo.', variant: 'destructive' });
       return;
     }
     updateProperty.mutate({
@@ -674,7 +682,7 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
         description: edit.description.trim() || undefined,
          features: edit.features,
         photos,
-        coverImage: edit.coverImage || photos[0],
+        coverImage: edit.coverImage || photos[0] || '',
         videoUrl: edit.videoUrl.trim() || undefined,
          proposedViewingTimes,
          sellerName: edit.sellerName.trim() || undefined,
@@ -1017,10 +1025,14 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="public">Publicly Listed</SelectItem>
+              <SelectItem value="draft">Draft</SelectItem>
+              <SelectItem value="public" disabled={!property.photos?.some(photo => photo.trim())}>Publicly Listed</SelectItem>
               <SelectItem value="internal_only">Internally Only</SelectItem>
             </SelectContent>
           </Select>
+          {!property.photos?.some(photo => photo.trim()) && (
+            <span className="text-xs text-muted-foreground">Add at least one photo to publish.</span>
+          )}
           <Button variant="outline" className="shadow-sm" onClick={() => setEditOpen(true)}>
             <PenLine className="w-4 h-4 mr-2" />
             Edit

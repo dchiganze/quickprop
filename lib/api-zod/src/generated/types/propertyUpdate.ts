@@ -35,7 +35,7 @@ export interface PropertyUpdate {
   latitude?: number;
   longitude?: number;
   features?: string[];
-  /** @minItems 1 */
+  /** Drafts may have no photos. Public listings require at least one photo. */
   photos?: string[];
   /** Optional proposed viewing slots as ISO 8601 date-time strings. */
   proposedViewingTimes?: Date[];

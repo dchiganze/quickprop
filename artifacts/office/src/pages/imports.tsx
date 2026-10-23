@@ -13,6 +13,7 @@ import {
   useGetImportBranches,
   useListImportSessions, useProcessImportSession, usePublishImportSession,
   useUpdateImportRecord,
+  getListPropertiesQueryKey, getGetPipelineQueryKey,
 } from '@workspace/api-client-react';
 import type { ImportRecord, ImportSession, ImportSessionDetail } from '@workspace/api-client-react';
 
@@ -111,7 +112,7 @@ function apiErrorMessage(error: unknown): string | null {
 
 function StatusPill({ value }: { value: string }) {
   const normalizedValue = value === 'uploading' ? 'ready' : value;
-  const label = value === 'uploading' ? 'Ready to process' : titleCase(value || 'pending');
+  const label = value === 'uploading' ? 'Ready to process' : value === 'published' ? 'Imported' : titleCase(value || 'pending');
   const tone = normalizedValue === 'approved' || normalizedValue === 'published' || normalizedValue === 'ready'
     ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
     : normalizedValue === 'rejected' || normalizedValue === 'failed'
@@ -462,7 +463,7 @@ function ImportsList() {
       </ImportHeader>
       <div className="mx-auto max-w-[1640px] space-y-6 p-6 md:p-9">
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-          {[['Active sessions', sessions?.filter((item) => !['published', 'failed'].includes(item.status)).length || 0, 'work in motion', 'text-primary'], ['Records in review', sessions?.reduce((sum, item) => sum + item.recordsNeedingReview, 0) || 0, 'need a decision', 'text-amber-700'], ['Duplicate matches', sessions?.reduce((sum, item) => sum + item.recordsDuplicate, 0) || 0, 'need provenance', 'text-red-700'], ['Published this month', sessions?.reduce((sum, item) => sum + item.recordsPublished, 0) || 0, 'human-approved', 'text-slate-700']].map(([label, value, detail, tone]) => (
+          {[['Active sessions', sessions?.filter((item) => !['published', 'failed'].includes(item.status)).length || 0, 'work in motion', 'text-primary'], ['Records in review', sessions?.reduce((sum, item) => sum + item.recordsNeedingReview, 0) || 0, 'need a decision', 'text-amber-700'], ['Duplicate matches', sessions?.reduce((sum, item) => sum + item.recordsDuplicate, 0) || 0, 'need provenance', 'text-red-700'], ['Imported records', sessions?.reduce((sum, item) => sum + item.recordsPublished, 0) || 0, 'saved to inventory', 'text-slate-700']].map(([label, value, detail, tone]) => (
             <Card key={label as string} className="border-border/80 shadow-none"><CardContent className="p-4"><p className="text-[10px] font-bold uppercase tracking-[0.13em] text-muted-foreground">{label}</p><p className={cn('mt-2 text-2xl font-extrabold tracking-tight', tone as string)}>{value}</p><p className="mt-1 text-xs text-muted-foreground">{detail}</p></CardContent></Card>
           ))}
         </div>
@@ -698,15 +699,17 @@ function ImportDetail({ id }: { id: number }) {
   };
   const publish = async () => {
     const approved = (detail?.records || []).filter((record) => record.reviewStatus === 'approved').map((record) => record.id);
-    if (!approved.length || !window.confirm(`Publish ${approved.length} approved record${approved.length === 1 ? '' : 's'}? Only these human-approved rows will be sent to the marketplace.`)) return;
+    if (!approved.length || !window.confirm(`Add ${approved.length} approved record${approved.length === 1 ? '' : 's'} to inventory? New properties will be saved as drafts, not published. Upload at least one photo before publishing each property. Linked existing properties keep their current visibility.`)) return;
     setPublishError('');
     try {
       const result = await publishSession.mutateAsync({ id, data: { recordIds: approved } });
       queryClient.invalidateQueries({ queryKey: getListImportSessionsQueryKey() });
+      queryClient.invalidateQueries({ queryKey: getListPropertiesQueryKey() });
+      queryClient.invalidateQueries({ queryKey: getGetPipelineQueryKey() });
       await refetch();
-      if (result.failed) setPublishError(`${result.failed} record${result.failed === 1 ? '' : 's'} failed during publish. ${result.errors.join(' ')}`);
-      toast({ title: result.failed ? 'Publish completed with failures' : 'Publish complete', description: `${result.created} created, ${result.linked} linked, ${result.failed} failed.` , variant: result.failed ? 'destructive' : 'default' });
-    } catch { setPublishError('Publish was rejected by the server. No assumption was made about which records were published. Refresh the session before retrying.'); }
+      if (result.failed) setPublishError(`${result.failed} record${result.failed === 1 ? '' : 's'} could not be imported. ${result.errors.join(' ')}`);
+      toast({ title: result.failed ? 'Import completed with failures' : 'Drafts saved', description: `${result.created} saved as drafts, ${result.linked} linked, ${result.failed} failed. Add a photo to each draft before publishing.` , variant: result.failed ? 'destructive' : 'default' });
+    } catch { setPublishError('Import was rejected by the server. Refresh the session before retrying.'); }
   };
   const downloadErrors = async () => {
     try {
@@ -781,7 +784,16 @@ function ImportDetail({ id }: { id: number }) {
             <div className="hidden grid-cols-[24px_minmax(160px,1.25fr)_minmax(150px,1fr)_100px_80px_96px_128px] gap-3 bg-slate-50/70 px-4 py-2 text-[10px] font-bold uppercase tracking-[0.11em] text-muted-foreground md:grid"><span /><span>Property identity</span><span>Location</span><span>Price</span><span>Beds</span><span>AI signal</span><span>Decision</span></div>
             {records.length ? records.map((record) => <RecordRow key={record.id} record={record} selected={selected.has(record.id)} onToggle={() => toggle(record.id)} draft={drafts[record.id] || toRecord(record.data)} setDraft={(data) => setDraftState((current) => ({ ...current, drafts: { ...current.drafts, [record.id]: data } }))} onSave={() => saveRecord(record)} saving={savingId === record.id} branches={branchOptions?.branches ?? []} />) : <div className="px-6 py-20 text-center"><SlidersHorizontal className="mx-auto mb-3 h-8 w-8 text-muted-foreground/40" /><p className="text-sm font-semibold">No rows match this view</p><p className="mt-1 text-xs text-muted-foreground">Try clearing the search or changing the review filter.</p></div>}
           </Card>
-          <div className="flex flex-col gap-3 rounded-lg border border-primary/20 bg-primary/[0.035] p-4 md:flex-row md:items-center"><ShieldCheck className="h-6 w-6 shrink-0 text-primary" /><div className="flex-1"><p className="text-sm font-bold">Publishing is a deliberate hand-off</p><p className="mt-0.5 text-xs text-muted-foreground">{approvedCount} approved row{approvedCount === 1 ? '' : 's'} will be published. Rejected, unresolved and unreviewed records stay in this session.</p></div><Button onClick={publish} disabled={!approvedCount || publishSession.isPending || processing} className="gap-2">{publishSession.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />} Publish approved only</Button></div>
+          <div className="flex flex-col gap-3 rounded-lg border border-primary/20 bg-primary/[0.035] p-4 md:flex-row md:items-center">
+            <ShieldCheck className="h-6 w-6 shrink-0 text-primary" />
+            <div className="flex-1">
+              <p className="text-sm font-bold">Imported properties start as drafts</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">{approvedCount} approved row{approvedCount === 1 ? '' : 's'} will be added to inventory. New properties stay in drafts until you add at least one photo and choose to publish. Linked existing properties keep their current visibility. Rejected, unresolved and unreviewed records stay in this session.</p>
+            </div>
+            <Button onClick={publish} disabled={!approvedCount || publishSession.isPending || processing} className="gap-2">
+              {publishSession.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />} Add approved to drafts
+            </Button>
+          </div>
         </main>
         <aside className="space-y-5">
           <Card className="border-border/80 shadow-none"><CardHeader className="border-b px-4 py-3"><CardTitle className="flex items-center gap-2 text-sm"><FileArchive className="h-4 w-4 text-primary" /> Source traceability</CardTitle></CardHeader><CardContent className="space-y-3 p-4">{detail.files.map((file) => { const imageSource = /\.(jpg|jpeg|png)$/i.test(file.fileName); return <div key={file.id} className="rounded border bg-muted/25 p-3"><div className="flex items-start gap-2">{imageSource ? <ScanText className="mt-0.5 h-4 w-4 shrink-0 text-primary" /> : <FileText className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />}<div className="min-w-0"><p className="truncate text-xs font-bold">{file.fileName}</p><p className="mt-1 text-[10px] text-muted-foreground">{file.extractedRecordCount} extracted candidate{file.extractedRecordCount === 1 ? '' : 's'} · {(file.sizeBytes / 1024 / 1024).toFixed(1)} MB{imageSource ? ' · Vision OCR' : ''}</p></div></div><div className="mt-2 flex items-center justify-between"><StatusPill value={file.processingStatus} /><span className="font-mono text-[10px] text-muted-foreground">#{file.id} · attempt {file.processingAttempt}</span></div>{file.error && <p className="mt-2 text-[10px] text-red-700">{file.error} Use the retry action above to process this source again.</p>}</div>; })}</CardContent></Card>

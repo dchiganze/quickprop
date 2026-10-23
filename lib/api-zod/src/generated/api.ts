@@ -612,9 +612,6 @@ export const UpdatePropertyParams = zod.object({
   "id": zod.coerce.number()
 })
 
-
-
-
 export const UpdatePropertyBody = zod.object({
   "title": zod.string().optional(),
   "description": zod.string().optional(),
@@ -642,7 +639,7 @@ export const UpdatePropertyBody = zod.object({
   "latitude": zod.number().optional(),
   "longitude": zod.number().optional(),
   "features": zod.array(zod.string()).optional(),
-  "photos": zod.array(zod.string()).min(1).optional(),
+  "photos": zod.array(zod.string()).optional().describe('Drafts may have no photos. Public listings require at least one photo.'),
   "proposedViewingTimes": zod.array(zod.coerce.date()).optional().describe('Optional proposed viewing slots as ISO 8601 date-time strings.'),
   "videoUrl": zod.string().optional(),
   "coverImage": zod.string().optional(),

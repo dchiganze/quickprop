@@ -922,6 +922,12 @@ test(
       assert.equal(publishedBeforeRetry?.reviewStatus, "published");
       assert.ok(publishedBeforeRetry?.finalPropertyId);
       fixture.propertyIds.push(publishedBeforeRetry.finalPropertyId);
+      const [importedDraft] = await db.select({
+        status: propertiesTable.status,
+        pipelineStage: propertiesTable.pipelineStage,
+        publishedAt: propertiesTable.publishedAt,
+      }).from(propertiesTable).where(eq(propertiesTable.id, publishedBeforeRetry.finalPropertyId));
+      assert.deepEqual(importedDraft, { status: "draft", pipelineStage: "draft", publishedAt: null });
 
       providerResponses.push(imageResponse([
         {

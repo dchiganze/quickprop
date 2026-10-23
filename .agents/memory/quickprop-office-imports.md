@@ -3,11 +3,17 @@ name: QuickProp Office bulk imports
 description: Durable rules and parser constraints for agency-scoped portfolio imports.
 ---
 
-Bulk imports must preserve the original source in private object storage, keep every extracted record as a draft, and require an explicit duplicate decision before publish can create or link a property.
+Bulk imports must preserve the original source in private object storage, keep every extracted record as a draft, and require an explicit duplicate decision before adding properties to inventory or linking existing properties.
 
 **Why:** Agency files are sensitive and automated matching can otherwise silently overwrite or merge the wrong canonical property.
 
-**How to apply:** Keep source ownership checks, correction history, provenance, and human publish/link decisions in any future import changes.
+**How to apply:** Keep source ownership checks, correction history, provenance, and human approval/link decisions in any future import changes.
+
+All newly bulk-imported properties must enter inventory as drafts, even when the source includes photos. At least one photo is required before an agent can explicitly publish a property; uploading a photo does not itself publish it.
+
+**Why:** The user requested that bulk uploads always go into drafts and become publishable only after a photo is uploaded.
+
+**How to apply:** Keep import completion separate from marketplace publication, allow photo-less draft edits, and enforce the photo requirement on the server as well as the publishing controls. Do not change an existing linked property's visibility merely because another import links to it.
 
 Import processing must wait for the Office user to review and explicitly confirm source-column mappings. Preserve the confirmed mapping on retries.
 
