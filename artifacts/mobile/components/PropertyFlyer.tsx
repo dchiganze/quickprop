@@ -53,12 +53,16 @@ export const PropertyFlyer = forwardRef<PropertyFlyerHandle, Props>(function Pro
     setStatus(next);
   }, [main, logo, candidates]);
 
-  const pic = useCallback((uri: string, style: StyleProp<ImageStyle>) => (
+  const pic = useCallback((
+    uri: string,
+    style: StyleProp<ImageStyle>,
+    resizeMode: 'cover' | 'contain' = 'cover',
+  ) => (
     <ListingImage
       key={uri}
       uri={uri}
       style={style}
-      resizeMode="cover"
+      resizeMode={resizeMode}
       onLoad={() => mark(uri, 'ok')}
       onError={() => mark(uri, 'fail')}
     />

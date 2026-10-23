@@ -17,7 +17,11 @@ export interface TemplateProps {
   extras: string[];
   mainFailed: boolean;
   logoOk: boolean;
-  pic: (uri: string, style: StyleProp<ImageStyle>) => React.ReactNode;
+  pic: (
+    uri: string,
+    style: StyleProp<ImageStyle>,
+    resizeMode?: 'cover' | 'contain',
+  ) => React.ReactNode;
 }
 
 function Brand({ s, logoOk, pic, size = 34, color, align = 'flex-start' }: {
@@ -25,7 +29,9 @@ function Brand({ s, logoOk, pic, size = 34, color, align = 'flex-start' }: {
 }) {
   return (
     <View style={{ alignItems: align, maxWidth: 150 }}>
-      {logoOk && !!s.logoUrl ? pic(s.logoUrl, { width: size * 2.6, height: size, resizeMode: 'contain' }) : null}
+      {logoOk && !!s.logoUrl
+        ? pic(s.logoUrl, { width: size * 2.6, height: size }, 'contain')
+        : null}
       {!!s.agencyName && (!logoOk || !s.logoUrl) && (
         <Text style={{ color, fontWeight: '900', fontSize: 14, letterSpacing: 0.5 }} numberOfLines={2}>
           {s.agencyName.toUpperCase()}
