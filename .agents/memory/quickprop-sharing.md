@@ -86,3 +86,9 @@ Bound property-card preparation before a native social handoff, and wait on the 
 **Why:** An unresolved image-prefetch promise can prevent the app chooser from opening at all, leaving a permanent sharing spinner. A property refresh can also replace the data object without triggering another image-load event.
 
 **How to apply:** Keep readiness keyed to photo URI changes, time out preparation with a visible retryable error, and clear pending waiters. Do not apply an automatic fallback timer to an already-open native chooser: that can open a second dialog after the user has begun sharing.
+
+Dismiss QuickProp's iOS sharing modal before presenting the system share panel, and wait for the actual `Modal.onDismiss` event.
+
+**Why:** Image preparation completing does not mean the current native presenter is free. Starting another presentation while the custom modal is still open or animating creates a presentation conflict; a fixed sleep does not reliably establish dismissal.
+
+**How to apply:** Prepare the attachment first, close the app modal, await its dismissal with a bounded failure path, then open the system chooser. A dismissal failure must stop the handoff, not open a second panel later. Validate the external-app handoff on an installed iPhone build; browser previews and ordering tests cannot prove that device behaviour.

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { Property } from '@/types';
 import { useColors } from '@/hooks/useColors';
+import { waitForShareModalDismissal } from '@/utils/socialShareFlow';
 import {
   PropertySocialDestination,
   sharePropertyGeneric,
@@ -99,10 +100,26 @@ export function PropertyShareSheet({
   const colors = useColors();
   const [sharing, setSharing] = useState<ShareDestination | 'facebook-post' | 'facebook-story' | 'instagram-post' | 'instagram-story' | null>(null);
   const [socialOptionsOpen, setSocialOptionsOpen] = useState<'facebook' | 'instagram' | null>(null);
+  const didDismissRef = useRef<(() => void) | null>(null);
+  const visibleRef = useRef(visible);
+  visibleRef.current = visible;
 
   const closeSheet = () => {
     setSocialOptionsOpen(null);
     onClose();
+  };
+
+  const beforeNativeShare = async () => {
+    if (Platform.OS !== 'ios') return;
+    if (!visibleRef.current) throw new Error('Sharing cancelled.');
+    try {
+      await waitForShareModalDismissal((didDismiss) => {
+        didDismissRef.current = didDismiss;
+        closeSheet();
+      });
+    } finally {
+      didDismissRef.current = null;
+    }
   };
 
   const handleShare = async (destination: ShareDestination) => {
@@ -125,7 +142,7 @@ export function PropertyShareSheet({
         const socialCapture = destination === 'facebook' || destination === 'linkedin'
           ? captureSocialCard
           : captureCard;
-        await sharePropertyToSocial(property, destination, socialCapture);
+        await sharePropertyToSocial(property, destination, socialCapture, beforeNativeShare);
       }
       closeSheet();
     } catch (error: unknown) {
@@ -153,7 +170,7 @@ export function PropertyShareSheet({
     try {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       if (choice === 'post') {
-        await sharePropertyToSocial(property, social, social === 'facebook' ? captureSocialCard : captureCard);
+        await sharePropertyToSocial(property, social, social === 'facebook' ? captureSocialCard : captureCard, beforeNativeShare);
       } else if (social === 'facebook') {
         await sharePropertyToFacebookStory(property, captureCard);
       } else {
@@ -184,6 +201,7 @@ export function PropertyShareSheet({
         animationType="slide"
         statusBarTranslucent
         onRequestClose={closeSheet}
+        onDismiss={() => didDismissRef.current?.()}
       >
         <Pressable style={styles.backdrop} onPress={closeSheet}>
           <Pressable style={[styles.sheet, { backgroundColor: colors.card }]} onPress={() => {}}>

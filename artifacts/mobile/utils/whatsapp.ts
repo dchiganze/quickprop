@@ -290,6 +290,7 @@ export async function sharePropertyToSocial(
   property: Property,
   destination: PropertySocialDestination,
   captureCard: () => Promise<string>,
+  beforeNativeShare?: () => Promise<void>,
 ): Promise<void> {
   if (destination === 'tiktok') {
     // TikTok's iOS share extension accepts the image from Photos, but can
@@ -321,6 +322,9 @@ export async function sharePropertyToSocial(
   }
 
   const cardUri = await prepareShareImage(captureCard);
+  // iOS cannot reliably present a system activity controller while the
+  // app's own share Modal is still presented or being dismissed.
+  await beforeNativeShare?.();
   await shareNativeSocialPost(
     destination,
     cardUri,

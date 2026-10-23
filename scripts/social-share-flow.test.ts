@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { prepareShareImage, runNativeSocialShare } from '../artifacts/mobile/utils/socialShareFlow';
+import { prepareShareImage, runNativeSocialShare, waitForShareModalDismissal } from '../artifacts/mobile/utils/socialShareFlow';
 
 test('iOS opens the system chooser without calling the targeted social bridge', async () => {
   const calls: string[] = [];
@@ -32,4 +32,31 @@ test('stalled image preparation fails with a retryable error instead of waiting 
 test('capture and chooser errors propagate so the UI can clear loading and show the cause', async () => {
   await assert.rejects(prepareShareImage(async () => { throw new Error('Capture failed'); }), /Capture failed/);
   await assert.rejects(runNativeSocialShare('ios', async () => { throw new Error('Chooser unavailable'); }, async () => {}), /Chooser unavailable/);
+});
+
+test('native sharing waits until the app modal actually finishes dismissing', async () => {
+  const calls: string[] = [];
+  let didDismiss: (() => void) | undefined;
+  const handoff = waitForShareModalDismissal((done) => {
+    calls.push('close modal');
+    didDismiss = done;
+  }).then(() => runNativeSocialShare('ios', async () => { calls.push('open chooser'); }, async () => { calls.push('targeted'); }));
+  await Promise.resolve();
+  assert.deepEqual(calls, ['close modal']);
+  didDismiss?.();
+  await handoff;
+  assert.deepEqual(calls, ['close modal', 'open chooser']);
+});
+
+test('failed modal dismissal stops the handoff instead of opening another native panel', async () => {
+  let opened = false;
+  await assert.rejects(
+    waitForShareModalDismissal(() => {}, 15).then(() => { opened = true; }),
+    /sharing window could not close/,
+  );
+  assert.equal(opened, false);
+});
+
+test('modal close errors propagate and do not trigger a handoff', async () => {
+  await assert.rejects(waitForShareModalDismissal(() => { throw new Error('Close failed'); }), /Close failed/);
 });

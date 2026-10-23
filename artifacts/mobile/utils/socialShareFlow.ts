@@ -3,6 +3,24 @@ export function isShareCancellation(error: unknown): boolean {
   return message.includes('cancel') || message.includes('dismiss') || message.includes('user did not share');
 }
 
+/** Wait for the real iOS Modal.onDismiss event, not a guessed animation delay. */
+export async function waitForShareModalDismissal(
+  dismiss: (didDismiss: () => void) => void,
+  timeoutMs = 4_000,
+): Promise<void> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    await new Promise<void>((resolve, reject) => {
+      timer = setTimeout(() => reject(new Error(
+        'The sharing window could not close. Please open Share and try again.',
+      )), timeoutMs);
+      dismiss(resolve);
+    });
+  } finally {
+    if (timer !== undefined) clearTimeout(timer);
+  }
+}
+
 export async function prepareShareImage<T>(
   prepare: () => Promise<T>,
   timeoutMs = 15_000,
