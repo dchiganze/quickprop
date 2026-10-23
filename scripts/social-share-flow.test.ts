@@ -1,6 +1,45 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { prepareShareImage, runNativeSocialShare, waitForShareModalDismissal } from '../artifacts/mobile/utils/socialShareFlow';
+import { openLinkedInPreviewShare, prepareShareImage, runNativeSocialShare, waitForShareModalDismissal } from '../artifacts/mobile/utils/socialShareFlow';
+
+test('LinkedIn validates the public preview, dismisses the modal, then opens its own composer', async () => {
+  const calls: string[] = [];
+  const previewUrl = 'https://www.quickprop.melios.co.zw/api/share/properties/DEMO-SHARE-DOUGLAS?v=2';
+  await openLinkedInPreviewShare(previewUrl, {
+    validatePreview: async url => { assert.equal(url, previewUrl); calls.push('validate'); },
+    beforeOpen: async () => { calls.push('dismiss'); },
+    openUrl: async url => {
+      const composer = new URL(url);
+      assert.equal(composer.origin, 'https://www.linkedin.com');
+      assert.equal(composer.pathname, '/sharing/share-offsite/');
+      assert.equal(composer.searchParams.get('url'), previewUrl);
+      calls.push('composer');
+    },
+  });
+  assert.deepEqual(calls, ['validate', 'dismiss', 'composer']);
+});
+
+test('LinkedIn does not open a composer for an unavailable preview or failed modal dismissal', async () => {
+  let opened = false;
+  const openUrl = async () => { opened = true; };
+  await assert.rejects(openLinkedInPreviewShare('https://example.com/preview', {
+    validatePreview: async () => { throw new Error('Preview unavailable'); },
+    openUrl,
+  }), /Preview unavailable/);
+  await assert.rejects(openLinkedInPreviewShare('https://example.com/preview', {
+    validatePreview: async () => {},
+    beforeOpen: async () => { throw new Error('Modal still open'); },
+    openUrl,
+  }), /Modal still open/);
+  assert.equal(opened, false);
+});
+
+test('LinkedIn supports web without modal dismissal and reports URL-opening failures', async () => {
+  await assert.rejects(openLinkedInPreviewShare('https://example.com/preview', {
+    validatePreview: async () => {},
+    openUrl: async () => { throw new Error('Browser unavailable'); },
+  }), /Browser unavailable/);
+});
 
 test('iOS opens the system chooser without calling the targeted social bridge', async () => {
   const calls: string[] = [];

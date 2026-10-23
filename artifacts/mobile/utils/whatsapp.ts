@@ -4,7 +4,7 @@ import * as Sharing from 'expo-sharing';
 import { Property } from '@/types';
 import { shareProperty } from '@workspace/api-client-react';
 import { ensurePublicSharePreview, getFacebookShareUrl, propertyShareLinks } from '@/utils/shareLinks';
-import { prepareShareImage, runNativeSocialShare } from '@/utils/socialShareFlow';
+import { openLinkedInPreviewShare, prepareShareImage, runNativeSocialShare } from '@/utils/socialShareFlow';
 import {
   buildPropertyShareMessage,
   buildPropertySocialShareMessage,
@@ -147,17 +147,13 @@ type BrowserFileShareNavigator = Navigator & {
   canShare?: (data: Pick<BrowserFileShareData, 'files'>) => boolean;
 };
 
-async function shareWebSocialPost(
+async function shareWebFacebookPost(
   property: Property,
-  destination: 'facebook' | 'linkedin',
   caption: string,
 ): Promise<void> {
   const previewUrl = propertyShareLinks(property).previewUrl;
   await ensurePublicSharePreview(previewUrl);
-  const shareUrl = destination === 'facebook'
-    ? getFacebookShareUrl(previewUrl, caption)
-    : `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(previewUrl)}`;
-  await Linking.openURL(shareUrl);
+  await Linking.openURL(getFacebookShareUrl(previewUrl, caption));
 }
 
 export async function shareCatalogueToSocial(
@@ -312,9 +308,20 @@ export async function sharePropertyToSocial(
     : buildPropertyShareMessage(property);
   await Clipboard.setStringAsync(caption).catch(() => {});
 
+  if (destination === 'linkedin') {
+    // Share the public metadata URL, rather than a local JPEG that depends
+    // on LinkedIn exposing a compatible native share extension in Expo Go.
+    await openLinkedInPreviewShare(propertyShareLinks(property).previewUrl, {
+      validatePreview: ensurePublicSharePreview,
+      beforeOpen: Platform.OS === 'web' ? undefined : beforeNativeShare,
+      openUrl: url => Linking.openURL(url),
+    });
+    return;
+  }
+
   if (Platform.OS === 'web') {
-    if (destination === 'facebook' || destination === 'linkedin') {
-      await shareWebSocialPost(property, destination, caption);
+    if (destination === 'facebook') {
+      await shareWebFacebookPost(property, caption);
       return;
     }
     await Share.share({ message: caption });

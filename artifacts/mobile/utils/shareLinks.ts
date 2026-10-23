@@ -40,15 +40,26 @@ export function propertyShareLinks(property: Pick<Property, 'id' | 'referenceNum
 
 export async function ensurePublicSharePreview(previewUrl: string): Promise<void> {
   let response: Response;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 12_000);
   try {
     response = await fetch(previewUrl, {
       cache: 'no-store',
       redirect: 'manual',
+      signal: controller.signal,
     });
   } catch {
+    if (controller.signal.aborted) {
+      throw new Error('Checking the public listing took too long. Check your connection and try again.');
+    }
     throw new Error('This listing is not published on the live QuickProp site. Publish it before sharing.');
+  } finally {
+    clearTimeout(timeout);
   }
+  // Browsers hide a manual redirect; native fetch can expose its HTTP status.
+  // Valid human preview requests redirect to the public marketplace listing.
   if (response.type === 'opaqueredirect') return;
+  if ([301, 302, 303, 307, 308].includes(response.status)) return;
   if (!response.ok) {
     throw new Error('This listing is not published on the live QuickProp site. Publish it before sharing.');
   }

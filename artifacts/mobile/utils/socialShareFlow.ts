@@ -3,6 +3,22 @@ export function isShareCancellation(error: unknown): boolean {
   return message.includes('cancel') || message.includes('dismiss') || message.includes('user did not share');
 }
 
+/** LinkedIn's public composer does not require an installed share extension. */
+export async function openLinkedInPreviewShare(
+  previewUrl: string,
+  actions: {
+    validatePreview: (url: string) => Promise<void>;
+    beforeOpen?: () => Promise<void>;
+    openUrl: (url: string) => Promise<unknown>;
+  },
+): Promise<void> {
+  await actions.validatePreview(previewUrl);
+  await actions.beforeOpen?.();
+  await actions.openUrl(
+    `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(previewUrl)}`,
+  );
+}
+
 /** Wait for the real iOS Modal.onDismiss event, not a guessed animation delay. */
 export async function waitForShareModalDismissal(
   dismiss: (didDismiss: () => void) => void,

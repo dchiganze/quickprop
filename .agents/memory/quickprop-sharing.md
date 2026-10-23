@@ -92,3 +92,9 @@ Dismiss QuickProp's iOS sharing modal before presenting the system share panel, 
 **Why:** Image preparation completing does not mean the current native presenter is free. Starting another presentation while the custom modal is still open or animating creates a presentation conflict; a fixed sleep does not reliably establish dismissal.
 
 **How to apply:** Prepare the attachment first, close the app modal, await its dismissal with a bounded failure path, then open the system chooser. A dismissal failure must stop the handoff, not open a second panel later. Validate the external-app handoff on an installed iPhone build; browser previews and ordering tests cannot prove that device behaviour.
+
+Use LinkedIn's public-link composer for individual property posts rather than depending on its image-sharing extension.
+
+**Why:** The user confirmed Facebook sharing worked in Expo Go while LinkedIn still failed with the image-only chooser. Facebook succeeding does not prove that LinkedIn exposes a compatible share extension.
+
+**How to apply:** Pass the public metadata preview URL to LinkedIn's HTTPS composer, keep the caption copied for pasting, and dismiss the iOS app modal before opening it. LinkedIn controls sign-in and preview rendering; do not claim native-device success from a browser screenshot or ordering tests.
