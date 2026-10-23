@@ -180,6 +180,12 @@ export async function syncPropertyToProduction(
   if (process.env.NODE_ENV === "production") return;
 
   const payload = await propertyPublicationPayload(property);
+  await sendPropertyPublication(payload);
+}
+
+/** Send a validated snapshot through the existing authenticated publication API. */
+export async function sendPropertyPublication(input: PropertyPublicationPayload): Promise<void> {
+  const payload = propertyPublicationSchema.parse(input);
   const body = JSON.stringify(payload);
   const timestamp = String(Date.now());
   const response = await fetch(`${QUICKPROP_PUBLIC_ORIGIN}${PUBLICATION_SYNC_PATH}`, {
