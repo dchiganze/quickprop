@@ -13,6 +13,7 @@ import { useData } from '@/contexts/DataContext';
 import { StatCard } from '@/components/StatCard';
 import { PropertyCard } from '@/components/PropertyCard';
 import { QuickShareSheet } from '@/components/QuickShareSheet';
+import { useMatchNotifications } from '@/hooks/useMatchNotifications';
 
 export default function DashboardScreen() {
   const colors = useColors();
@@ -20,6 +21,7 @@ export default function DashboardScreen() {
   const navigation = useNavigation();
   const { user, logout } = useAuth();
   const { properties, leads, tasks, syncNow } = useData();
+  const matchInbox = useMatchNotifications();
   const [shareOpen, setShareOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const refreshRotation = useRef(new Animated.Value(0)).current;
@@ -52,7 +54,7 @@ export default function DashboardScreen() {
     const startedAt = Date.now();
     setRefreshing(true);
     try {
-      await syncNow();
+      await Promise.all([syncNow(), matchInbox.refetch()]);
     } finally {
       const remainingIndicatorTime = 850 - (Date.now() - startedAt);
       if (remainingIndicatorTime > 0) {
@@ -154,9 +156,9 @@ export default function DashboardScreen() {
           onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}); NavigationFlags.notificationsFromDashboard = true; navigation.getParent()?.navigate('notifications' as never); }}
         >
           <Ionicons name="notifications-outline" size={22} color={colors.foreground} />
-          {newLeads > 0 && (
+          {newLeads + matchInbox.unreadCount > 0 && (
             <View style={[styles.badge, { backgroundColor: colors.accent }]}>
-              <Text style={styles.badgeText}>{newLeads}</Text>
+              <Text style={styles.badgeText}>{newLeads + matchInbox.unreadCount}</Text>
             </View>
           )}
         </TouchableOpacity>

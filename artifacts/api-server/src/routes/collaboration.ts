@@ -5,6 +5,7 @@ import {
   db,
   propertiesTable,
   usersTable,
+  notificationsTable,
 } from "@workspace/db";
 import {
   CreateCollaborationRequestBody,
@@ -299,9 +300,31 @@ router.patch("/collaboration/requests/:id", async (req, res): Promise<void> => {
     res.status(409).json({ error: "Only pending collaboration requests can be updated." });
     return;
   }
-  await db.update(collaborationMatchRequestsTable)
-    .set({ status: parsed.data.status, respondedAt: new Date(), updatedAt: new Date() })
-    .where(eq(collaborationMatchRequestsTable.id, id));
+  const changed = await db.transaction(async tx => {
+    const [updated] = await tx.update(collaborationMatchRequestsTable)
+      .set({ status: parsed.data.status, respondedAt: new Date(), updatedAt: new Date() })
+      .where(and(
+        eq(collaborationMatchRequestsTable.id, id),
+        eq(collaborationMatchRequestsTable.propertyOwnerId, user.id),
+        eq(collaborationMatchRequestsTable.status, "pending"),
+      )).returning();
+    if (!updated) return false;
+    if (updated.status === "approved") {
+      const [property] = await tx.select({ reference: propertiesTable.reference })
+        .from(propertiesTable).where(eq(propertiesTable.id, updated.propertyId));
+      await tx.insert(notificationsTable).values({
+        userId: updated.requesterId,
+        type: "collaboration_match",
+        title: "It's a match!",
+        message: `${user.name} accepted your collaboration request${property ? ` for ${property.reference}` : ""}. Open Matches to view your match and contact each other.`,
+      });
+    }
+    return true;
+  });
+  if (!changed) {
+    res.status(409).json({ error: "This request has already been answered. Refresh to see its current status." });
+    return;
+  }
   const result = await requestWithContacts(id);
   res.json(UpdateCollaborationRequestResponse.parse(jsonify(result)));
 });

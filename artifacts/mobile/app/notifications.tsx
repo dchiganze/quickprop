@@ -9,11 +9,13 @@ import * as Haptics from 'expo-haptics';
 import { useColors } from '@/hooks/useColors';
 import { useData } from '@/contexts/DataContext';
 import { NavigationFlags } from '@/utils/navigationFlags';
+import { useMatchNotifications } from '@/hooks/useMatchNotifications';
 
 export default function NotificationsScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { leads, tasks } = useData();
+  const matchInbox = useMatchNotifications();
 
   // On cold launch, NavigationFlags.notificationsFromDashboard is false
   // (fresh JS context). If the user intentionally tapped the bell, the
@@ -54,7 +56,7 @@ export default function NotificationsScreen() {
   const hasAny =
     newLeads.length + overdueTasks.length +
     viewingsToday.length + tasksDueToday.length +
-    mandateRenewals.length > 0;
+    mandateRenewals.length + matchInbox.notifications.length > 0;
 
   const TASK_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
     call_seller: 'call-outline', viewing: 'eye-outline',
@@ -85,6 +87,24 @@ export default function NotificationsScreen() {
         contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 100 }]}
         showsVerticalScrollIndicator={false}
       >
+        {matchInbox.notifications.length > 0 && (
+          <Section title="Collaboration matches" color={colors.accent} icon="people-outline" colors={colors}>
+            {matchInbox.notifications.map(notification => (
+              <NotifRow
+                key={`match-${notification.id}`}
+                icon="heart-outline"
+                iconColor={colors.accent}
+                title={`${notification.read ? '' : 'New · '}${notification.title}`}
+                subtitle={notification.message ?? 'Your collaboration request was accepted.'}
+                colors={colors}
+                onPress={() => {
+                  matchInbox.markRead(notification.id);
+                  router.push({ pathname: '/(tabs)/matches', params: { section: 'outgoing' } });
+                }}
+              />
+            ))}
+          </Section>
+        )}
         {!hasAny && (
           <View style={styles.emptyWrap}>
             <Ionicons name="checkmark-circle-outline" size={56} color={colors.mutedForeground} />

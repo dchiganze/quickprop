@@ -14,3 +14,9 @@ Collaboration should work like Hinge: an agent requests to collaborate on anothe
 **Why:** The user explicitly specified this collaboration and contact-privacy behaviour.
 
 **How to apply:** Keep request identity visible to the recipient, gate both phone numbers on mutual acceptance at the API boundary, and do not send decline notifications. Whether a declined status should also be hidden in the Sent list is not yet specified; do not assume that silent notifications alone settles that UI choice.
+
+Match notifications currently mean durable, private in-app inbox notifications, not phone lock-screen push notifications.
+
+**Why:** Reusing QuickProp's existing inbox supports both Office and Expo Go without promising an unconfigured operating-system push channel. Match acceptance and notification creation must succeed together, or retries can create duplicate or misleading notifications.
+
+**How to apply:** Keep notifications scoped to their recipient, including read actions, and keep polling restricted to relevant active screens/app sessions. Describe delivery as in-app; physical-device push delivery requires separate implementation and verification.

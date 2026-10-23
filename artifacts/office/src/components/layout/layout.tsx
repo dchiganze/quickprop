@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link, useLocation } from 'wouter';
-import { useLogout, useGetCurrentUser, useListNotifications, useMarkNotificationRead } from '@workspace/api-client-react';
+import { useLogout, useGetCurrentUser, useListNotifications, useMarkNotificationRead, getListNotificationsQueryKey } from '@workspace/api-client-react';
+import { useQueryClient } from '@tanstack/react-query';
 import { 
   LayoutDashboard, Database, KanbanSquare, Users, Handshake, Home, UserRound,
   Target, CheckSquare, Calendar, FileText, Briefcase, BarChart3, Settings, 
@@ -41,8 +42,16 @@ function NavItem({ href, icon: Icon, label, exact = false }: NavItemProps) {
 }
 
 function NotificationsDropdown() {
-  const { data: notifications } = useListNotifications();
-  const markRead = useMarkNotificationRead();
+  const [, navigate] = useLocation();
+  const client = useQueryClient();
+  const { data: currentUser } = useGetCurrentUser();
+  const queryKey = [...getListNotificationsQueryKey(), currentUser?.id];
+  const { data: notifications } = useListNotifications({
+    query: { queryKey, enabled: !!currentUser, refetchInterval: 10_000, refetchOnMount: 'always' },
+  });
+  const markRead = useMarkNotificationRead({
+    mutation: { onSuccess: () => { void client.invalidateQueries({ queryKey }); } },
+  });
   const unreadCount = notifications?.filter(n => !n.read).length || 0;
 
   return (
@@ -72,6 +81,7 @@ function NotificationsDropdown() {
                   key={notif.id}
                   onClick={() => {
                     if (!notif.read) markRead.mutate({ id: notif.id });
+                    if (notif.type === 'collaboration_match') navigate('/matches?section=outgoing');
                   }}
                   className={cn(
                     "flex flex-col gap-1 p-4 text-left transition-colors hover:bg-muted/50",

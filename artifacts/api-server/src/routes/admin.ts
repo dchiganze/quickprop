@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { randomBytes } from "node:crypto";
-import { eq, and, desc, inArray, type SQL } from "drizzle-orm";
+import { eq, and, desc, inArray, or, isNull, type SQL } from "drizzle-orm";
 import { db, usersTable, branchesTable, notificationsTable, auditLogTable } from "@workspace/db";
 import {
   ListUsersResponse,
@@ -190,17 +190,23 @@ router.post("/branches", adminOnly, async (req, res): Promise<void> => {
   res.status(201).json(CreateBranchResponse.parse(jsonify(row)));
 });
 
-router.get("/notifications", async (_req, res): Promise<void> => {
-  const rows = await db.select().from(notificationsTable).orderBy(desc(notificationsTable.createdAt)).limit(50);
+router.get("/notifications", async (req, res): Promise<void> => {
+  const user = await currentUser(req);
+  if (!user) { res.status(401).json({ error: "Not authenticated" }); return; }
+  const rows = await db.select().from(notificationsTable)
+    .where(or(eq(notificationsTable.userId, user.id), isNull(notificationsTable.userId)))
+    .orderBy(desc(notificationsTable.createdAt)).limit(50);
   res.json(ListNotificationsResponse.parse(jsonify(rows)));
 });
 
 router.patch("/notifications/:id/read", async (req, res): Promise<void> => {
   const id = parseId(req);
+  const user = await currentUser(req);
+  if (!user) { res.status(401).json({ error: "Not authenticated" }); return; }
   const [row] = await db
     .update(notificationsTable)
     .set({ read: true })
-    .where(eq(notificationsTable.id, id))
+    .where(and(eq(notificationsTable.id, id), or(eq(notificationsTable.userId, user.id), isNull(notificationsTable.userId))))
     .returning();
   if (!row) {
     res.status(404).json({ error: "Notification not found" });

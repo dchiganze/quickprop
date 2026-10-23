@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Link } from 'wouter';
+import { Link, useSearch } from 'wouter';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   CollaborationMatchRequest,
@@ -241,6 +241,8 @@ function RequestCard({
             </>
           ) : request.status === 'approved' ? (
             contactPhone ? (
+              <div className="flex flex-col gap-2">
+              <span className="select-text text-sm font-medium">{contactName || 'Agent'} · {contactPhone}</span>
               <Button
                 className="bg-[#25D366] text-white hover:bg-[#1fbd5b]"
                 onClick={() => openWhatsApp(contactPhone, contactName, property)}
@@ -249,6 +251,7 @@ function RequestCard({
                 <MessageCircle className="mr-2 h-4 w-4" />
                 WhatsApp {contactName || 'agent'}
               </Button>
+              </div>
             ) : (
               <span className="inline-flex items-center gap-2 rounded-md border border-border px-3 py-2 text-xs text-muted-foreground">
                 <Phone className="h-3.5 w-3.5" />
@@ -323,17 +326,28 @@ export default function Matches() {
   }, [search]);
 
   const discoveryParams = { q: debouncedSearch || undefined };
-  const { data: listings, isLoading: loadingListings, isError: listingsError } = useListCollaborationDiscovery(discoveryParams);
+  const searchParams = useSearch();
+  useEffect(() => {
+    const tab = new URLSearchParams(searchParams).get('section');
+    if (tab === 'incoming' || tab === 'outgoing') setSection(tab);
+  }, [searchParams]);
+  const { data: listings, isLoading: loadingListings, isError: listingsError } = useListCollaborationDiscovery(discoveryParams, {
+    query: { queryKey: [...getListCollaborationDiscoveryQueryKey(discoveryParams), user?.id], enabled: !!user, refetchInterval: 10_000 },
+  });
   const {
     data: incoming,
     isLoading: loadingIncoming,
     isError: incomingError,
-  } = useListCollaborationRequests({ direction: 'incoming' });
+  } = useListCollaborationRequests({ direction: 'incoming' }, {
+    query: { queryKey: [...getListCollaborationRequestsQueryKey({ direction: 'incoming' }), user?.id], enabled: !!user, refetchInterval: 10_000, refetchOnMount: 'always' },
+  });
   const {
     data: outgoing,
     isLoading: loadingOutgoing,
     isError: outgoingError,
-  } = useListCollaborationRequests({ direction: 'outgoing' });
+  } = useListCollaborationRequests({ direction: 'outgoing' }, {
+    query: { queryKey: [...getListCollaborationRequestsQueryKey({ direction: 'outgoing' }), user?.id], enabled: !!user, refetchInterval: 10_000, refetchOnMount: 'always' },
+  });
 
   const outgoingByProperty = useMemo(() => {
     const map = new Map<number, CollaborationMatchRequest>();

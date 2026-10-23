@@ -1,6 +1,6 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ActivityIndicator, Alert, FlatList, Image, Platform, RefreshControl,
+  ActivityIndicator, Alert, AppState, FlatList, Image, Platform, RefreshControl,
   StyleSheet, Text, TextInput, TouchableOpacity, View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -16,6 +16,7 @@ import {
 } from '@/utils/collaboration';
 import { openWhatsAppMessage } from '@/utils/whatsapp';
 import { CollaborationListing, CollaborationRequest } from '@/types';
+import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 
 type Section = 'discover' | 'incoming' | 'outgoing';
 
@@ -29,6 +30,8 @@ function propertyLabel(property: CollaborationListing) {
 }
 
 export default function MatchesScreen() {
+  const params = useLocalSearchParams<{ section?: string }>();
+  const generation = useRef(0);
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
@@ -42,29 +45,46 @@ export default function MatchesScreen() {
   const [alertsOpen, setAlertsOpen] = useState(false);
   const [requestingId, setRequestingId] = useState<number | null>(null);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (quiet = false) => {
+    const current = ++generation.current;
+    if (!quiet) setLoading(true);
     try {
       const [discovery, incomingRequests, outgoingRequests] = await Promise.all([
         discoverCollaborations({ q: search }),
         listCollaborationRequests('incoming'),
         listCollaborationRequests('outgoing'),
       ]);
+      if (current !== generation.current) return;
       setListings(discovery);
       setIncoming(incomingRequests);
       setOutgoing(outgoingRequests);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Could not load Matches.';
-      Alert.alert('Matches unavailable', message);
+      if (!quiet && current === generation.current) Alert.alert('Matches unavailable', message);
     } finally {
-      setLoading(false);
+      if (current === generation.current) setLoading(false);
     }
-  }, [search]);
+  }, [search, user?.id]);
 
   useEffect(() => {
-    const timeout = setTimeout(() => { load(); }, search ? 350 : 0);
-    return () => clearTimeout(timeout);
-  }, [load, search]);
+    if (params.section === 'outgoing' || params.section === 'incoming') setSection(params.section);
+  }, [params.section]);
+
+  useFocusEffect(useCallback(() => {
+    const timeout = setTimeout(() => { void load(); }, search ? 350 : 0);
+    const interval = setInterval(() => {
+      if (AppState.currentState === 'active' || Platform.OS === 'web') void load(true);
+    }, 10_000);
+    const subscription = AppState.addEventListener('change', state => {
+      if (state === 'active') void load(true);
+    });
+    return () => {
+      generation.current++;
+      clearTimeout(timeout);
+      clearInterval(interval);
+      subscription.remove();
+    };
+  }, [load, search]));
 
   const outgoingByProperty = useMemo(
     () => new Map(outgoing.map(request => [request.propertyId, request])),
@@ -195,6 +215,8 @@ export default function MatchesScreen() {
               </TouchableOpacity>
             </View>
           ) : approved ? (
+            <View>
+            {!!phone && <Text style={{ color: colors.foreground, marginBottom: 6 }} selectable>{contact || 'Agent'} · {phone}</Text>}
             <TouchableOpacity
               style={[styles.whatsAppButton, { backgroundColor: '#25D366' }]}
               onPress={() => openAgentWhatsApp(item, isIncoming ? 'requester' : 'owner')}
@@ -203,6 +225,7 @@ export default function MatchesScreen() {
               <Ionicons name="logo-whatsapp" size={17} color="#FFF" />
               <Text style={styles.acceptText}>WhatsApp {contact || 'agent'}</Text>
             </TouchableOpacity>
+            </View>
           ) : (
             <View style={[styles.ownPill, { backgroundColor: colors.muted }]}>
               <Text style={[styles.ownPillText, { color: colors.mutedForeground }]}>{item.status === 'pending' ? 'Awaiting a response' : `Request ${item.status}`}</Text>
