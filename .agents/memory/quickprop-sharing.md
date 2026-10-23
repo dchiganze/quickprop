@@ -98,3 +98,9 @@ Standard property sharing should generate a branded flyer, with template choices
 **Why:** The user requested standardised flyers like their DBT Properties reference and explicitly replaced caption-based social posts with flyer-only sharing.
 
 **How to apply:** WhatsApp gets the flyer plus “For my full catalogue on QuickProp click this link” and the sharing agent's catalogue URL. Facebook, LinkedIn, TikTok and Instagram get the flyer only, with no caption or automatic browser composer. This supersedes the earlier link-only LinkedIn workaround. Keep the WhatsApp caption copied when an external app drops attachment text; do not promise platform-controlled caption prefilling or direct app handoff without device verification.
+
+Configured branding logos are staff-shared assets, unlike private listing media. Check media authorisation before treating a missing logo as a layout problem.
+
+**Why:** An admin-uploaded logo existed in live Office branding settings, but owner-only media rules prevented other agents from loading it. The separate agency profile had no logo, so checking only that record would also give the wrong diagnosis.
+
+**How to apply:** Verify the actual configured asset and agent access; permit only registered branding assets without opening unrelated private uploads. Derive default flyer accents from the logo, preserve explicit custom colours, and do not let previously saved empty defaults permanently hide newer agency branding.

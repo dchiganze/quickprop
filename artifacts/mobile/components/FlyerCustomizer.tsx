@@ -37,7 +37,7 @@ export function FlyerCustomizer({ visible, onClose, property, settings, onChange
     busy.current = true; setPicking(true); setLogoError(undefined);
     try {
       const uri = await pickAndPersistLogo(property.id);
-      if (uri) set({ logoUrl: uri });
+      if (uri) set({ logoUrl: uri, logoSource: 'custom' });
     } catch (e) {
       setLogoError(e instanceof Error ? e.message : 'Could not choose that logo.');
     } finally { busy.current = false; setPicking(false); }
@@ -48,7 +48,10 @@ export function FlyerCustomizer({ visible, onClose, property, settings, onChange
       <Text style={[s.label, { color: c.mutedForeground }]}>{label}</Text>
       <TextInput
         value={String(settings[key])}
-        onChangeText={t => set({ [key]: t } as Partial<FlyerSettings>)}
+        onChangeText={t => set({
+          [key]: t,
+          ...(key === 'primaryColor' ? { accentSource: 'custom' } : {}),
+        } as Partial<FlyerSettings>)}
         style={[s.input, { backgroundColor: c.input, color: c.foreground, borderColor: c.border }]}
         placeholderTextColor={c.mutedForeground}
         {...extra}
@@ -92,20 +95,32 @@ export function FlyerCustomizer({ visible, onClose, property, settings, onChange
               <Text style={{ color: c.primaryForeground, fontWeight: '700' }}>{picking ? 'Saving...' : 'Choose logo'}</Text>
             </Pressable>
             {!!settings.logoUrl && (
-              <Pressable onPress={() => set({ logoUrl: '' })} style={[s.btn, { backgroundColor: c.secondary }]}>
+              <Pressable onPress={() => set({ logoUrl: '', logoSource: 'none' })} style={[s.btn, { backgroundColor: c.secondary }]}>
                 <Text style={{ color: c.secondaryForeground, fontWeight: '700' }}>Remove</Text>
               </Pressable>
             )}
           </View>
+          <Pressable onPress={() => set({ logoSource: 'agency' })} style={{ paddingTop: 10 }}>
+            <Text style={{ color: c.primary, fontWeight: '700' }}>Use agency logo</Text>
+          </Pressable>
           {!!logoError && <Text style={{ color: c.destructive, fontSize: 12, marginTop: 6 }}>{logoError}</Text>}
 
           <Text style={[s.label, { color: c.mutedForeground, marginTop: 16 }]}>AGENCY COLOUR</Text>
           <View style={{ flexDirection: 'row', gap: 10, marginTop: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-            {SWATCHES.map(sw => (
-              <Pressable key={sw} onPress={() => set({ primaryColor: sw })}
+            {[...new Set([...(settings.logoColors ?? []), ...SWATCHES])].map(sw => (
+              <Pressable key={sw} onPress={() => set({ primaryColor: sw, accentSource: 'custom' })}
                 style={[s.swatch, { backgroundColor: sw, borderColor: settings.primaryColor.toLowerCase() === sw.toLowerCase() ? c.foreground : 'transparent' }]} />
             ))}
           </View>
+          <Pressable
+            onPress={() => set({
+              accentSource: 'logo',
+              primaryColor: settings.logoColors?.[0] ?? settings.agencyPrimaryColor ?? settings.primaryColor,
+            })}
+            style={{ paddingTop: 10 }}
+          >
+            <Text style={{ color: c.primary, fontWeight: '700' }}>Use logo colours</Text>
+          </Pressable>
           {field('HEX COLOUR', 'primaryColor', { autoCapitalize: 'characters', autoCorrect: false, maxLength: 7 })}
           {!isHexColor(settings.primaryColor) && <Text style={{ color: c.destructive, fontSize: 11, marginTop: 4 }}>Use a 6-digit hex such as #1A3C6E. The flyer uses a fallback until valid.</Text>}
           {field('AGENCY NAME', 'agencyName')}

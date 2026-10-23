@@ -11,6 +11,10 @@ export interface FlyerSettings {
   contactName: string;
   contactPhone: string;
   tagline: string;
+  logoSource?: 'agency' | 'custom' | 'none';
+  accentSource?: 'logo' | 'custom';
+  logoColors?: string[];
+  agencyPrimaryColor?: string;
 }
 
 export const FLYER_TEMPLATES: Array<{ id: FlyerTemplate; label: string; hint: string }> = [
@@ -46,34 +50,54 @@ export function defaultHeadline(property: Property): string {
 export function buildDefaultFlyerSettings(
   property: Property,
   user: User | null,
-  agency?: { agencyName?: string; logoUrl?: string | null; primaryColor?: string; tagline?: string } | null,
+  agency?: { agencyName?: string; logoUrl?: string | null; primaryColor?: string; tagline?: string; logoColors?: string[] } | null,
 ): FlyerSettings {
+  const logoColors = agency?.logoColors?.filter(isHexColor) ?? [];
+  const agencyPrimaryColor = agency?.primaryColor && isHexColor(agency.primaryColor)
+    ? agency.primaryColor : FALLBACK_FLYER_COLOR;
   return {
     template: 'editorial',
     agencyName: agency?.agencyName?.trim() || user?.agency?.trim() || '',
     logoUrl: agency?.logoUrl?.trim() || '',
-    primaryColor: agency?.primaryColor && isHexColor(agency.primaryColor) ? agency.primaryColor : FALLBACK_FLYER_COLOR,
+    primaryColor: logoColors[0] ?? agencyPrimaryColor,
     headline: defaultHeadline(property),
     contactName: user?.name?.trim() || '',
     contactPhone: user?.phone?.trim() || '',
     tagline: agency?.tagline?.trim() || '',
+    logoSource: 'agency',
+    accentSource: 'logo',
+    logoColors,
+    agencyPrimaryColor,
   };
 }
 
 export function mergeFlyerSettings(base: FlyerSettings, saved: unknown): FlyerSettings {
   if (!saved || typeof saved !== 'object') return base;
   const s = saved as Record<string, unknown>;
-  const str = (k: keyof FlyerSettings) => (typeof s[k] === 'string' ? (s[k] as string) : base[k]);
+  const str = (k: 'agencyName' | 'logoUrl' | 'primaryColor' | 'headline' | 'contactName' | 'contactPhone' | 'tagline'): string =>
+    typeof s[k] === 'string' ? s[k] as string : base[k];
   const template = (['editorial', 'showcase', 'minimal'] as const).find(t => t === s.template) ?? base.template;
+  const logoSource = s.logoSource === 'none' ? 'none'
+    : s.logoSource === 'custom' || (s.logoSource !== 'agency' && typeof s.logoUrl === 'string' && s.logoUrl && s.logoUrl !== base.logoUrl)
+      ? 'custom' : 'agency';
+  // Old records saved the entire default form. Empty logos/default colours
+  // must not mask branding that was configured or fixed afterwards.
+  const accentSource = s.accentSource === 'custom' ? 'custom'
+    : s.accentSource === 'logo' || !s.primaryColor || s.primaryColor === base.agencyPrimaryColor
+      ? 'logo' : 'custom';
   return {
     template,
     agencyName: str('agencyName'),
-    logoUrl: str('logoUrl'),
-    primaryColor: str('primaryColor'),
+    logoUrl: logoSource === 'none' ? '' : logoSource === 'custom' ? str('logoUrl') as string : base.logoUrl,
+    primaryColor: accentSource === 'logo' ? base.primaryColor : str('primaryColor') as string,
     headline: str('headline'),
-    contactName: str('contactName'),
-    contactPhone: str('contactPhone'),
-    tagline: str('tagline'),
+    contactName: str('contactName') as string,
+    contactPhone: str('contactPhone') as string,
+    tagline: str('tagline') as string,
+    logoSource,
+    accentSource,
+    logoColors: base.logoColors,
+    agencyPrimaryColor: base.agencyPrimaryColor,
   };
 }
 

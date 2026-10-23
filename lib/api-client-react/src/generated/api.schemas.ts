@@ -2123,6 +2123,8 @@ export interface AgencySettings {
   aboutText: string;
   tagline: string;
   primaryColor: string;
+  /** Dominant accent colours extracted from the agency logo. */
+  logoColors?: string[];
   newLeadAlerts: boolean;
   mandateExpiryAlerts: boolean;
   weeklyReport: boolean;

@@ -67,3 +67,25 @@ test('WhatsApp flyer caption uses the exact requested words and the sharing agen
   assert.equal(caption, 'For my full catalogue on QuickProp click this link\nhttps://www.quickprop.melios.co.zw/agents/2535');
   assert.equal(caption.includes('/properties/'), false);
 });
+
+test('logo palette supplies flyer accents, with manual custom colours preserved', () => {
+  const base = buildDefaultFlyerSettings(property, user, {
+    primaryColor: '#10B981', logoColors: ['#343CCF', '#6E72D8'], logoUrl: '/api/storage/objects/uploads/1/logo.png',
+  });
+  assert.equal(base.primaryColor, '#343CCF');
+  assert.deepEqual(base.logoColors, ['#343CCF', '#6E72D8']);
+  const inherited = mergeFlyerSettings(base, { primaryColor: '#10B981', logoUrl: '' });
+  assert.equal(inherited.primaryColor, '#343CCF');
+  assert.equal(inherited.logoUrl, base.logoUrl);
+  const manual = mergeFlyerSettings(base, { primaryColor: '#FF8800', accentSource: 'custom' });
+  assert.equal(manual.primaryColor, '#FF8800');
+  const automatic = mergeFlyerSettings(base, { primaryColor: '#FF8800', accentSource: 'logo' });
+  assert.equal(automatic.primaryColor, '#343CCF');
+});
+
+test('agency-logo inheritance does not override custom or deliberately removed logos', () => {
+  const base = buildDefaultFlyerSettings(property, user, { logoUrl: 'https://example.com/agency-logo.png' });
+  assert.equal(mergeFlyerSettings(base, { logoUrl: '', logoSource: 'none' }).logoUrl, '');
+  assert.equal(mergeFlyerSettings(base, { logoUrl: 'file:///my-logo.png', logoSource: 'custom' }).logoUrl, 'file:///my-logo.png');
+  assert.equal(mergeFlyerSettings(base, { logoUrl: 'file:///old-logo.png', logoSource: 'agency' }).logoUrl, base.logoUrl);
+});

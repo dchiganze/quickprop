@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { agencySettingsTable, db } from "@workspace/db";
 import { requireAuth, requireRole } from "./auth";
 import { jsonify } from "../lib/helpers";
+import { getAgencyLogoColors } from "../lib/logo-colors";
 
 const router: IRouter = Router();
 const DEFAULTS = {
@@ -37,7 +38,8 @@ function booleanValue(value: unknown, fallback: boolean) {
 }
 
 router.get("/admin/agency-settings", requireAuth, async (_req, res): Promise<void> => {
-  res.json(jsonify(await getSettings()));
+  const settings = await getSettings();
+  res.json(jsonify({ ...settings, logoColors: await getAgencyLogoColors(settings.logoUrl) }));
 });
 
 router.patch("/admin/agency-settings", requireAuth, requireRole("principal", "admin"), async (req, res): Promise<void> => {

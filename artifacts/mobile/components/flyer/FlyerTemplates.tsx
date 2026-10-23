@@ -37,6 +37,9 @@ function Brand({ s, logoOk, pic, size = 34, color, align = 'flex-start' }: {
           {s.agencyName.toUpperCase()}
         </Text>
       )}
+      {!!s.logoUrl && !logoOk && (
+        <Text style={{ color, fontSize: 7 }}>Logo unavailable</Text>
+      )}
       {!!s.tagline && <Text style={{ color, fontSize: 7, fontStyle: 'italic', marginTop: 2, opacity: 0.85 }} numberOfLines={1}>{s.tagline}</Text>}
     </View>
   );

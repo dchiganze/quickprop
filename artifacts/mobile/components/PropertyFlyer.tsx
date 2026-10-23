@@ -75,19 +75,29 @@ export const PropertyFlyer = forwardRef<PropertyFlyerHandle, Props>(function Pro
   useImperativeHandle(ref, () => ({
     capture: async () => {
       if (!main) throw new Error('This listing has no main photo, so a flyer cannot be created.');
+      const retry = [main, logo].filter((uri): uri is string => !!uri && statusRef.current[uri] === 'fail');
+      if (retry.length) {
+        const next = { ...statusRef.current };
+        retry.forEach(uri => { delete next[uri]; });
+        statusRef.current = next;
+        setStatus(next);
+      }
       const deadline = Date.now() + READY_TIMEOUT_MS;
       while (requiredRef.current.some(u => !statusRef.current[u])) {
-        if (statusRef.current[main] === 'fail') break;
+        if (statusRef.current[main] === 'fail' || (logo && statusRef.current[logo] === 'fail')) break;
         if (Date.now() > deadline) break;
         await sleep(100);
       }
       if (statusRef.current[main] !== 'ok') throw new Error('The main property photo could not be loaded. Check your connection and try again.');
+      if (logo && statusRef.current[logo] !== 'ok') {
+        throw new Error('The agency logo could not be loaded. Check your connection and try again, or choose a logo in the flyer editor.');
+      }
       await sleep(150);
       const cap = viewShot.current?.capture;
       if (!cap) throw new Error('Unable to prepare the flyer image.');
       return cap.call(viewShot.current);
     },
-  }), [main]);
+  }), [main, logo]);
 
   const tp: TemplateProps = {
     property, settings, shareUrl, main, extras, pic,

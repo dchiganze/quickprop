@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { Router, type IRouter, type Request } from "express";
-import { and, inArray, or, sql } from "drizzle-orm";
-import { db, propertiesTable } from "@workspace/db";
+import { and, eq, inArray, like, or, sql } from "drizzle-orm";
+import { agencySettingsTable, businessAgenciesTable, db, propertiesTable } from "@workspace/db";
 import { currentUser } from "./auth";
 
 const router: IRouter = Router();
@@ -61,7 +61,20 @@ async function canReadStoredMedia(req: Request, objectName: string): Promise<boo
     .limit(1);
   if (publicProperty) return true;
   const user = await currentUser(req);
-  return Boolean(user && objectName.startsWith(`uploads/${user.id}/`));
+  if (!user) return false;
+  if (objectName.startsWith(`uploads/${user.id}/`)) return true;
+  // A configured brand logo is shared with signed-in staff, even if an admin
+  // uploaded it. This does not grant access to unrelated private uploads.
+  const suffix = `%/objects/${objectName}`;
+  const [settingsLogo] = await db.select({ id: agencySettingsTable.id })
+    .from(agencySettingsTable)
+    .where(and(eq(agencySettingsTable.id, 1), like(agencySettingsTable.logoUrl, suffix)))
+    .limit(1);
+  if (settingsLogo) return true;
+  const [agencyLogo] = await db.select({ id: businessAgenciesTable.id })
+    .from(businessAgenciesTable)
+    .where(like(businessAgenciesTable.logoUrl, suffix)).limit(1);
+  return Boolean(agencyLogo);
 }
 
 // Native and browser image elements cannot use the app's bearer-token fetch

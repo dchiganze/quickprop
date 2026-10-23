@@ -4256,6 +4256,10 @@ components:
         aboutText: { type: string }
         tagline: { type: string }
         primaryColor: { type: string }
+        logoColors:
+          type: array
+          description: Dominant accent colours extracted from the agency logo.
+          items: { type: string }
         newLeadAlerts: { type: boolean }
         mandateExpiryAlerts: { type: boolean }
         weeklyReport: { type: boolean }
