@@ -274,3 +274,31 @@ mtime_ms = 1792851507823
 storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:cf900b3f-04ce-456b-888c-760ecb412036/69e7479e-7f65-4fe2-8af2-ac1900517b80/3020be5f-1626-465d-b113-585332971192"
 storage_version_token = "1792851529533413"
 content_type = "image/png"
+
+[[outputs]]
+id = "uf2kAmLnAhqN3TNZq3HHI"
+uri = "file://generated-artifacts/quickprop-logo/quickprop-house-logo-8k.png"
+type = "image"
+title = "QuickProp house logo — 8K PNG"
+description = "High-resolution 7,760 × 8,160 px logo with matching green and white background."
+logical_id = "3b7feb41-131b-457a-98a9-b5c211f18008"
+content_hash = "sha256:a2f9beb2f23e11aceb5682177545c43875a6f9d06e84c64fd7540c92e6f943df"
+size = 2650096
+mtime_ms = 1792851919360
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:cf900b3f-04ce-456b-888c-760ecb412036/3b7feb41-131b-457a-98a9-b5c211f18008/bf0463bb-3e9b-4e6e-948e-e4f710c1daa3"
+storage_version_token = "1792851933589002"
+content_type = "image/png"
+
+[[outputs]]
+id = "YUgv6Gxi5SqbkmskwpQQi"
+uri = "file://generated-artifacts/quickprop-logo/quickprop-house-logo.svg"
+type = "image"
+title = "QuickProp house logo — scalable SVG"
+description = "Vector version: scales cleanly to any size without pixelation."
+logical_id = "989a08a2-ddee-4449-a640-f422d92abe57"
+content_hash = "sha256:dc86b77af4de6f02afcdebdda3cc3b680d3b792508d2a7e5cf9ea6e9ab52f530"
+size = 655
+mtime_ms = 1792851913908
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:cf900b3f-04ce-456b-888c-760ecb412036/989a08a2-ddee-4449-a640-f422d92abe57/f9c16839-fae7-43bd-b845-9a9409fc63b2"
+storage_version_token = "1792851934437533"
+content_type = "image/svg+xml"
