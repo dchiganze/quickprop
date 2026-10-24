@@ -293,7 +293,7 @@ function EmptyState({ section }: { section: Section }) {
   const content = {
     matched: {
       title: 'No accepted matches yet',
-      body: 'Accepted collaborations appear here. Use Explore to find properties and request collaboration.',
+      body: 'Your accepted collaborations will appear here.',
       icon: CheckCircle2,
     },
     discover: {
@@ -436,10 +436,10 @@ export default function Matches() {
             Collaboration workspace
           </div>
           <h1 className="text-3xl font-bold tracking-tight text-foreground">Matches</h1>
-          <p className="mt-1 text-muted-foreground">Your accepted collaborations, available listings, and requests.</p>
+          <p className="mt-1 text-muted-foreground">Your accepted collaborations and requests.</p>
         </div>
         <div className="rounded-lg border border-primary/15 bg-primary/5 px-4 py-3 text-sm text-primary">
-          <span className="font-semibold">{listings?.length || 0}</span> listings available to explore
+          <span className="font-semibold">{matched.length}</span> accepted collaborations
         </div>
       </div>
 
@@ -463,10 +463,6 @@ export default function Matches() {
         <TabsList className="h-auto w-full justify-start gap-1 overflow-x-auto rounded-lg border border-border bg-card p-1 md:w-fit">
           <TabsTrigger value="matched" className="gap-2 px-4 py-2.5">
             <CheckCircle2 className="h-4 w-4" />Matched
-          </TabsTrigger>
-          <TabsTrigger value="discover" className="gap-2 px-4 py-2.5">
-            <Search className="h-4 w-4" />
-            Explore
           </TabsTrigger>
           <TabsTrigger value="incoming" className="gap-2 px-4 py-2.5">
             <Users className="h-4 w-4" />

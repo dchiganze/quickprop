@@ -273,7 +273,7 @@ export default function MatchesScreen() {
   }, [incoming, outgoing, search]);
   const currentData = section === 'matched' ? matched : section === 'discover' ? listings : section === 'incoming' ? incoming : outgoing;
   const emptyTitle = section === 'matched' ? 'No accepted matches yet' : section === 'discover' ? 'No properties found' : section === 'incoming' ? 'No incoming requests' : 'No outgoing requests';
-  const emptyText = section === 'matched' ? 'Accepted collaborations appear here. Use Explore to find properties and request collaboration.' : section === 'discover'
+  const emptyText = section === 'matched' ? 'Your accepted collaborations will appear here.' : section === 'discover'
     ? 'Search every property at your agency and external listings opened for collaboration.'
     : section === 'incoming'
       ? 'Requests from other agents will appear here.'
@@ -313,7 +313,6 @@ export default function MatchesScreen() {
         <View style={styles.tabs}>
           {([
             ['matched', 'Matched'],
-            ['discover', 'Explore'],
             ['incoming', `Requests${incoming.filter(request => request.status === 'pending').length ? ` (${incoming.filter(request => request.status === 'pending').length})` : ''}`],
             ['outgoing', 'Sent'],
           ] as [Section, string][]).map(([value, label]) => (

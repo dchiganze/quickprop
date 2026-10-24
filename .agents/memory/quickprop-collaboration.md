@@ -25,4 +25,4 @@ The default collaboration tab is "Matched" and contains accepted collaborations 
 
 **Why:** The user requested a distinct accepted-match view, with WhatsApp preloading listing information and "Hi x, it's x, let's collaborate to close this deal".
 
-**How to apply:** Resolve the other participant correctly for both listing owners and requesters. Keep property discovery available separately as Explore. Demonstration matches are explicitly fictional previews, not real portfolio records or notifications; their contact buttons must not contact anyone.
+**How to apply:** Resolve the other participant correctly for both listing owners and requesters. The user subsequently asked to remove Explore; do not restore that tab. Demonstration matches are explicitly fictional previews, not real portfolio records or notifications; their contact buttons must not contact anyone.
