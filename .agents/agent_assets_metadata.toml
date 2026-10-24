@@ -117,8 +117,15 @@ logical_id = "958d3753-5311-4174-b593-2afd135587f5"
 id = "C2s48Hak_DxtqLvzpSKk7"
 uri = "file://artifacts/mobile/assets/images/icon.png"
 type = "image"
-title = "icon.png (1024×1024)"
+title = "QuickProp Agent app icon — iOS"
+description = "1024×1024 PNG featuring the centered house mark on a white background."
 logical_id = "9b0b047b-3773-485f-b6d6-52ddbdbbe5ff"
+content_hash = "sha256:14a6c347c260a71148f9fb687dae4c2a4b721b607c2d26d5b2b869085c58c91f"
+size = 37239
+mtime_ms = 1792852586659
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:cf900b3f-04ce-456b-888c-760ecb412036/9b0b047b-3773-485f-b6d6-52ddbdbbe5ff/2c0306eb-0ddc-4eee-8f20-455f76bc8b75"
+storage_version_token = "1792852644273901"
+content_type = "image/png"
 
 [[outputs]]
 id = "HZ8hsP4bfJ5U49wSYXp4p"
@@ -302,3 +309,17 @@ mtime_ms = 1792852170759
 storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:cf900b3f-04ce-456b-888c-760ecb412036/989a08a2-ddee-4449-a640-f422d92abe57/754809cb-7a81-4813-a624-fc92d13ff0ec"
 storage_version_token = "1792852223785730"
 content_type = "image/svg+xml"
+
+[[outputs]]
+id = "3jLvNDvAOFSvOcP2WU3vM"
+uri = "file://artifacts/mobile/assets/images/adaptive-icon.png"
+type = "image"
+title = "QuickProp Agent app icon — Android"
+description = "1024×1024 transparent adaptive foreground, centered within the launcher-mask safe area."
+logical_id = "76314354-f838-4b43-a2a9-c64c9261d5b8"
+content_hash = "sha256:f442f8394061d79a44267fe230d8a26abd6f23748dfdb5f1f45052074e1ecd84"
+size = 31783
+mtime_ms = 1792852586662
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:cf900b3f-04ce-456b-888c-760ecb412036/76314354-f838-4b43-a2a9-c64c9261d5b8/f27155a4-0146-41db-bdc9-0f9f0d6ef80c"
+storage_version_token = "1792852645091351"
+content_type = "image/png"
