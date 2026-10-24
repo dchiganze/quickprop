@@ -3116,8 +3116,10 @@ components:
         updatedAt: { type: string }
         property: { $ref: "#/components/schemas/Property" }
         requesterName: { type: string }
+        requesterAgencyName: { type: ["string", "null"] }
         requesterPhone: { type: ["string", "null"] }
         ownerName: { type: string }
+        ownerAgencyName: { type: ["string", "null"] }
         ownerPhone: { type: ["string", "null"] }
     PriceHistoryEntry:
       type: object

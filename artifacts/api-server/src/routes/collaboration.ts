@@ -6,6 +6,8 @@ import {
   propertiesTable,
   usersTable,
   notificationsTable,
+  branchesTable,
+  businessAgenciesTable,
 } from "@workspace/db";
 import {
   CreateCollaborationRequestBody,
@@ -24,6 +26,10 @@ const router: IRouter = Router();
 const ACTIVE_REQUEST_STATUSES = ["pending", "approved"] as const;
 const requester = aliasedTable(usersTable, "collaboration_requester");
 const owner = aliasedTable(usersTable, "collaboration_owner");
+const requesterBranch = aliasedTable(branchesTable, "requester_branch");
+const ownerBranch = aliasedTable(branchesTable, "owner_branch");
+const requesterAgency = aliasedTable(businessAgenciesTable, "requester_agency");
+const ownerAgency = aliasedTable(businessAgenciesTable, "owner_agency");
 
 type CollaborationRequestRow = {
   request: typeof collaborationMatchRequestsTable.$inferSelect;
@@ -32,6 +38,8 @@ type CollaborationRequestRow = {
   requesterPhone: string | null;
   ownerName: string | null;
   ownerPhone: string | null;
+  requesterAgencyName: string | null;
+  ownerAgencyName: string | null;
 };
 
 function serializeCollaborationRequest(row: CollaborationRequestRow) {
@@ -43,6 +51,8 @@ function serializeCollaborationRequest(row: CollaborationRequestRow) {
     requesterPhone: contactsVisible ? row.requesterPhone : null,
     ownerName: row.ownerName,
     ownerPhone: contactsVisible ? row.ownerPhone : null,
+    requesterAgencyName: row.requesterAgencyName,
+    ownerAgencyName: row.ownerAgencyName,
   };
 }
 
@@ -116,11 +126,17 @@ async function requestWithContacts(id: number) {
       requesterPhone: requester.phone,
       ownerName: owner.name,
       ownerPhone: owner.phone,
+      requesterAgencyName: requesterAgency.name,
+      ownerAgencyName: ownerAgency.name,
     })
     .from(collaborationMatchRequestsTable)
     .innerJoin(propertiesTable, eq(collaborationMatchRequestsTable.propertyId, propertiesTable.id))
     .innerJoin(requester, eq(collaborationMatchRequestsTable.requesterId, requester.id))
     .innerJoin(owner, eq(collaborationMatchRequestsTable.propertyOwnerId, owner.id))
+    .leftJoin(requesterBranch, eq(requester.branchId, requesterBranch.id))
+    .leftJoin(ownerBranch, eq(owner.branchId, ownerBranch.id))
+    .leftJoin(requesterAgency, eq(requesterBranch.agencyId, requesterAgency.id))
+    .leftJoin(ownerAgency, eq(ownerBranch.agencyId, ownerAgency.id))
     .where(eq(collaborationMatchRequestsTable.id, id));
   return row ? serializeCollaborationRequest(row) : null;
 }
@@ -213,11 +229,17 @@ router.get("/collaboration/requests", async (req, res): Promise<void> => {
       requesterPhone: requester.phone,
       ownerName: owner.name,
       ownerPhone: owner.phone,
+      requesterAgencyName: requesterAgency.name,
+      ownerAgencyName: ownerAgency.name,
     })
     .from(collaborationMatchRequestsTable)
     .innerJoin(propertiesTable, eq(collaborationMatchRequestsTable.propertyId, propertiesTable.id))
     .innerJoin(requester, eq(collaborationMatchRequestsTable.requesterId, requester.id))
     .innerJoin(owner, eq(collaborationMatchRequestsTable.propertyOwnerId, owner.id))
+    .leftJoin(requesterBranch, eq(requester.branchId, requesterBranch.id))
+    .leftJoin(ownerBranch, eq(owner.branchId, ownerBranch.id))
+    .leftJoin(requesterAgency, eq(requesterBranch.agencyId, requesterAgency.id))
+    .leftJoin(ownerAgency, eq(ownerBranch.agencyId, ownerAgency.id))
     .where(and(...conds))
     .orderBy(desc(collaborationMatchRequestsTable.createdAt));
   const result = rows.map(serializeCollaborationRequest);

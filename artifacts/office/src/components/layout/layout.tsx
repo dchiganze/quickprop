@@ -81,7 +81,7 @@ function NotificationsDropdown() {
                   key={notif.id}
                   onClick={() => {
                     if (!notif.read) markRead.mutate({ id: notif.id });
-                    if (notif.type === 'collaboration_match') navigate('/matches?section=outgoing');
+                    if (notif.type === 'collaboration_match') navigate('/matches?section=matched');
                   }}
                   className={cn(
                     "flex flex-col gap-1 p-4 text-left transition-colors hover:bg-muted/50",

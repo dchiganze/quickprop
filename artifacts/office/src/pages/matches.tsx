@@ -36,7 +36,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 
-type Section = 'discover' | 'incoming' | 'outgoing';
+type Section = 'matched' | 'discover' | 'incoming' | 'outgoing';
 
 function getErrorMessage(error: unknown, fallback: string) {
   return error instanceof Error && error.message ? error.message : fallback;
@@ -62,11 +62,11 @@ function requestStatusClass(status: CollaborationMatchRequest['status']) {
 }
 
 function normalizePhone(phone: string) {
-  return phone.replace(/[^\d+]/g, '').replace(/^\+/, '');
+  return phone.replace(/\D/g, '').replace(/^00/, '');
 }
 
-function openWhatsApp(phone: string, name: string, property: Property) {
-  const message = `Hi ${name || 'there'}, our collaboration request for ${property.reference} was accepted. Shall we coordinate the next steps?`;
+function openWhatsApp(phone: string, name: string, property: Property, sender: string) {
+  const message = `Hi ${name?.split(' ')[0] || 'there'}, it's ${sender?.split(' ')[0] || 'your fellow agent'}, let's collaborate to close this deal.\n\n${property.title}\n${property.reference}\n${propertyLabel(property)}\n${formatMoney(property.price, property.currency)}\n${property.address || property.suburb}`;
   window.open(`https://wa.me/${normalizePhone(phone)}?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');
 }
 
@@ -189,15 +189,18 @@ function RequestCard({
   direction,
   isUpdating,
   onRespond,
+  sender,
 }: {
   request: CollaborationMatchRequest;
   direction: 'incoming' | 'outgoing';
   isUpdating: boolean;
   onRespond: (request: CollaborationMatchRequest, status: 'approved' | 'declined') => void;
+  sender: string;
 }) {
   const isIncoming = direction === 'incoming';
   const contactName = isIncoming ? request.requesterName : request.ownerName;
   const contactPhone = isIncoming ? request.requesterPhone : request.ownerPhone;
+  const agencyName = isIncoming ? request.requesterAgencyName : request.ownerAgencyName;
   const property = request.property;
 
   return (
@@ -216,11 +219,13 @@ function RequestCard({
             </Badge>
           </div>
           <p className="text-sm text-muted-foreground">
-            {isIncoming ? `${request.requesterName || 'An agent'} wants to collaborate` : `Request sent to ${request.ownerName || 'the listing agent'}`}
+            {request.status === 'approved'
+              ? `You can now collaborate with ${contactName || 'this agent'}${agencyName ? ` of ${agencyName}` : ''} to close this ${property.listingType === 'rent' ? 'lease' : 'sale'}.`
+              : isIncoming ? `${request.requesterName || 'An agent'} wants to collaborate` : `Request sent to ${request.ownerName || 'the listing agent'}`}
             <span className="mx-2 text-border">•</span>
             {property.reference}
           </p>
-          {request.message && <p className="max-w-2xl rounded-md bg-muted/50 px-3 py-2 text-sm text-foreground">{request.message}</p>}
+          {request.message && request.status !== 'approved' && <p className="max-w-2xl rounded-md bg-muted/50 px-3 py-2 text-sm text-foreground">{request.message}</p>}
           <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
             <span>{formatMoney(property.price, property.currency)}</span>
             <span>{property.address || property.suburb}</span>
@@ -243,14 +248,19 @@ function RequestCard({
             contactPhone ? (
               <div className="flex flex-col gap-2">
               <span className="select-text text-sm font-medium">{contactName || 'Agent'} · {contactPhone}</span>
+              <div className="flex flex-wrap gap-2">
+              <Button variant="outline" asChild>
+                <a href={`tel:${contactPhone.replace(/[^\d+]/g, '')}`} data-testid={`button-call-${request.id}`}><Phone className="mr-2 h-4 w-4" />Call</a>
+              </Button>
               <Button
                 className="bg-[#25D366] text-white hover:bg-[#1fbd5b]"
-                onClick={() => openWhatsApp(contactPhone, contactName, property)}
+                onClick={() => openWhatsApp(contactPhone, contactName, property, sender)}
                 data-testid={`button-whatsapp-${request.id}`}
               >
                 <MessageCircle className="mr-2 h-4 w-4" />
-                WhatsApp {contactName || 'agent'}
+                WhatsApp
               </Button>
+              </div>
               </div>
             ) : (
               <span className="inline-flex items-center gap-2 rounded-md border border-border px-3 py-2 text-xs text-muted-foreground">
@@ -281,6 +291,11 @@ function LoadingCards({ count = 3 }: { count?: number }) {
 
 function EmptyState({ section }: { section: Section }) {
   const content = {
+    matched: {
+      title: 'No accepted matches yet',
+      body: 'Accepted collaborations appear here. Use Explore to find properties and request collaboration.',
+      icon: CheckCircle2,
+    },
     discover: {
       title: 'No properties found',
       body: 'Search your agency inventory and external listings that are open for collaboration.',
@@ -311,7 +326,8 @@ function EmptyState({ section }: { section: Section }) {
 }
 
 export default function Matches() {
-  const [section, setSection] = useState<Section>('discover');
+  const [section, setSection] = useState<Section>('matched');
+  const [demoVisible, setDemoVisible] = useState(import.meta.env.DEV);
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [requestingId, setRequestingId] = useState<number | null>(null);
@@ -329,7 +345,7 @@ export default function Matches() {
   const searchParams = useSearch();
   useEffect(() => {
     const tab = new URLSearchParams(searchParams).get('section');
-    if (tab === 'incoming' || tab === 'outgoing') setSection(tab);
+    if (tab === 'incoming' || tab === 'outgoing' || tab === 'matched') setSection(tab);
   }, [searchParams]);
   const { data: listings, isLoading: loadingListings, isError: listingsError } = useListCollaborationDiscovery(discoveryParams, {
     query: { queryKey: [...getListCollaborationDiscoveryQueryKey(discoveryParams), user?.id], enabled: !!user, refetchInterval: 10_000 },
@@ -399,9 +415,17 @@ export default function Matches() {
     );
   };
 
-  const isLoading = section === 'discover' ? loadingListings : section === 'incoming' ? loadingIncoming : loadingOutgoing;
-  const isError = section === 'discover' ? listingsError : section === 'incoming' ? incomingError : outgoingError;
-  const currentItems = section === 'discover' ? listings : section === 'incoming' ? incoming : outgoing;
+  const matched = useMemo(() => {
+    const unique = new Map([...(incoming || []), ...(outgoing || [])].filter(item => item.status === 'approved').map(item => [item.id, item]));
+    const query = debouncedSearch.toLowerCase();
+    return [...unique.values()].filter(item => !query || [
+      item.property.title, item.property.reference, item.property.address, item.property.suburb, item.property.price,
+      item.requesterName, item.ownerName, item.requesterAgencyName, item.ownerAgencyName,
+    ].join(' ').toLowerCase().includes(query));
+  }, [incoming, outgoing, debouncedSearch]);
+  const isLoading = section === 'matched' ? loadingIncoming || loadingOutgoing : section === 'discover' ? loadingListings : section === 'incoming' ? loadingIncoming : loadingOutgoing;
+  const isError = section === 'matched' ? incomingError || outgoingError : section === 'discover' ? listingsError : section === 'incoming' ? incomingError : outgoingError;
+  const currentItems = section === 'matched' ? matched : section === 'discover' ? listings : section === 'incoming' ? incoming : outgoing;
 
   return (
     <div className="mx-auto max-w-[1400px] space-y-6 p-6 md:p-8">
@@ -412,7 +436,7 @@ export default function Matches() {
             Collaboration workspace
           </div>
           <h1 className="text-3xl font-bold tracking-tight text-foreground">Matches</h1>
-          <p className="mt-1 text-muted-foreground">Discover listings, collaborate with agents, and track your requests.</p>
+          <p className="mt-1 text-muted-foreground">Your accepted collaborations, available listings, and requests.</p>
         </div>
         <div className="rounded-lg border border-primary/15 bg-primary/5 px-4 py-3 text-sm text-primary">
           <span className="font-semibold">{listings?.length || 0}</span> listings available to explore
@@ -437,9 +461,12 @@ export default function Matches() {
 
       <Tabs value={section} onValueChange={(value) => setSection(value as Section)}>
         <TabsList className="h-auto w-full justify-start gap-1 overflow-x-auto rounded-lg border border-border bg-card p-1 md:w-fit">
+          <TabsTrigger value="matched" className="gap-2 px-4 py-2.5">
+            <CheckCircle2 className="h-4 w-4" />Matched
+          </TabsTrigger>
           <TabsTrigger value="discover" className="gap-2 px-4 py-2.5">
             <Search className="h-4 w-4" />
-            Discover
+            Explore
           </TabsTrigger>
           <TabsTrigger value="incoming" className="gap-2 px-4 py-2.5">
             <Users className="h-4 w-4" />
@@ -453,6 +480,24 @@ export default function Matches() {
         </TabsList>
 
         <TabsContent value={section} className="mt-5">
+          {section === 'matched' && (demoVisible ? (
+            <Card className="mb-5 border-primary/40" data-testid="demo-match">
+              <CardContent className="space-y-3 p-5">
+                <div className="flex items-center justify-between gap-3">
+                  <Badge variant="outline">Demo match · Preview only</Badge>
+                  <Button size="sm" variant="ghost" onClick={() => setDemoVisible(false)} aria-label="Hide demo match"><X className="h-4 w-4" /></Button>
+                </div>
+                <h3 className="text-lg font-semibold">3-bedroom home in Borrowdale</h3>
+                <p className="text-sm text-muted-foreground">DEMO-MATCH · USD 250,000 · For sale</p>
+                <p>You can now collaborate with Alex Moyo of Example Realty to close this sale.</p>
+                <p className="text-xs text-muted-foreground">Fictional example — no real agent will be contacted.</p>
+                <div className="flex flex-wrap gap-2">
+                  <Button variant="outline" onClick={() => toast({ title: 'Demo call', description: 'A real match opens the matched agent’s phone number in your dialler.' })}><Phone className="mr-2 h-4 w-4" />Call</Button>
+                  <Button onClick={() => window.alert(`WhatsApp message preview\n\nHi Alex, it's ${user?.name?.split(' ')[0] || 'your fellow agent'}, let's collaborate to close this deal.\n\n3-bedroom home in Borrowdale\nDEMO-MATCH\nFor sale · USD 250,000\nBorrowdale`)}><MessageCircle className="mr-2 h-4 w-4" />WhatsApp</Button>
+                </div>
+              </CardContent>
+            </Card>
+          ) : <Button variant="ghost" className="mb-4" onClick={() => setDemoVisible(true)}>Show demo match</Button>)}
           {isLoading ? (
             <LoadingCards count={section === 'discover' ? 4 : 3} />
           ) : isError ? (
@@ -478,11 +523,12 @@ export default function Matches() {
             </div>
           ) : (
             <div className="space-y-4">
-              {(section === 'incoming' ? incoming || [] : outgoing || []).map((request) => (
+              {(section === 'matched' ? matched : section === 'incoming' ? incoming || [] : outgoing || []).map((request) => (
                 <RequestCard
                   key={request.id}
                   request={request}
-                  direction={section === 'incoming' ? 'incoming' : 'outgoing'}
+                  direction={section === 'incoming' || (section === 'matched' && request.requesterId !== user?.id) ? 'incoming' : 'outgoing'}
+                  sender={user?.name || ''}
                   isUpdating={updatingId === request.id}
                   onRespond={respondToRequest}
                 />

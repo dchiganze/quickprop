@@ -20,3 +20,9 @@ Match notifications currently mean durable, private in-app inbox notifications, 
 **Why:** Reusing QuickProp's existing inbox supports both Office and Expo Go without promising an unconfigured operating-system push channel. Match acceptance and notification creation must succeed together, or retries can create duplicate or misleading notifications.
 
 **How to apply:** Keep notifications scoped to their recipient, including read actions, and keep polling restricted to relevant active screens/app sessions. Describe delivery as in-app; physical-device push delivery requires separate implementation and verification.
+
+The default collaboration tab is "Matched" and contains accepted collaborations only. Each match identifies the other agent and their agency, says they can collaborate to close the sale/lease, and offers Call and WhatsApp.
+
+**Why:** The user requested a distinct accepted-match view, with WhatsApp preloading listing information and "Hi x, it's x, let's collaborate to close this deal".
+
+**How to apply:** Resolve the other participant correctly for both listing owners and requesters. Keep property discovery available separately as Explore. Demonstration matches are explicitly fictional previews, not real portfolio records or notifications; their contact buttons must not contact anyone.

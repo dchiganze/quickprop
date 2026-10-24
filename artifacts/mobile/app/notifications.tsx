@@ -99,7 +99,7 @@ export default function NotificationsScreen() {
                 colors={colors}
                 onPress={() => {
                   matchInbox.markRead(notification.id);
-                  router.push({ pathname: '/(tabs)/matches', params: { section: 'outgoing' } });
+              router.push({ pathname: '/(tabs)/matches', params: { section: 'matched' } });
                 }}
               />
             ))}

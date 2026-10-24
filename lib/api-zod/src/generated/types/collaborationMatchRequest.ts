@@ -23,8 +23,12 @@ export interface CollaborationMatchRequest {
   property: Property;
   requesterName: string;
   /** @nullable */
+  requesterAgencyName?: string | null;
+  /** @nullable */
   requesterPhone?: string | null;
   ownerName: string;
+  /** @nullable */
+  ownerAgencyName?: string | null;
   /** @nullable */
   ownerPhone?: string | null;
 }

@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ActivityIndicator, Alert, AppState, FlatList, Image, Platform, RefreshControl,
+   ActivityIndicator, Alert, AppState, FlatList, Image, Linking, Platform, RefreshControl,
   StyleSheet, Text, TextInput, TouchableOpacity, View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -14,11 +14,10 @@ import {
   createCollaborationRequest, discoverCollaborations, listCollaborationRequests,
   updateCollaborationRequest,
 } from '@/utils/collaboration';
-import { openWhatsAppMessage } from '@/utils/whatsapp';
 import { CollaborationListing, CollaborationRequest } from '@/types';
 import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 
-type Section = 'discover' | 'incoming' | 'outgoing';
+type Section = 'matched' | 'discover' | 'incoming' | 'outgoing';
 
 function money(value: number, currency: string) {
   return `${currency} ${value.toLocaleString()}`;
@@ -36,7 +35,8 @@ export default function MatchesScreen() {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const { alerts, alertMatches, unseenMatchCount } = useData();
-  const [section, setSection] = useState<Section>('discover');
+  const [section, setSection] = useState<Section>('matched');
+  const [demoVisible, setDemoVisible] = useState(__DEV__);
   const [search, setSearch] = useState('');
   const [listings, setListings] = useState<CollaborationListing[]>([]);
   const [incoming, setIncoming] = useState<CollaborationRequest[]>([]);
@@ -44,6 +44,12 @@ export default function MatchesScreen() {
   const [loading, setLoading] = useState(true);
   const [alertsOpen, setAlertsOpen] = useState(false);
   const [requestingId, setRequestingId] = useState<number | null>(null);
+
+  useEffect(() => {
+    setListings([]);
+    setIncoming([]);
+    setOutgoing([]);
+  }, [user?.id]);
 
   const load = useCallback(async (quiet = false) => {
     const current = ++generation.current;
@@ -67,7 +73,7 @@ export default function MatchesScreen() {
   }, [search, user?.id]);
 
   useEffect(() => {
-    if (params.section === 'outgoing' || params.section === 'incoming') setSection(params.section);
+    if (params.section === 'outgoing' || params.section === 'incoming' || params.section === 'matched') setSection(params.section);
   }, [params.section]);
 
   useFocusEffect(useCallback(() => {
@@ -127,8 +133,18 @@ export default function MatchesScreen() {
       Alert.alert('Contact unavailable', 'This agent has not added a phone number yet.');
       return;
     }
-    const ref = request.property?.reference || `listing ${request.propertyId}`;
-    await openWhatsAppMessage(`Hi ${name || 'there'}, our collaboration request for ${ref} was accepted. Shall we coordinate the next steps?`);
+    const property = request.property;
+    const message = `Hi ${name?.split(' ')[0] || 'there'}, it's ${user?.name?.split(' ')[0] || 'your fellow agent'}, let's collaborate to close this deal.\n\n${property?.title || 'Property'}\n${property?.reference || `Listing ${request.propertyId}`}\n${property ? `${propertyLabel(property)}\n${money(property.price, property.currency)}\n${property.address || property.suburb}` : ''}`;
+    try {
+      await Linking.openURL(`https://wa.me/${phone.replace(/\D/g, '').replace(/^00/, '')}?text=${encodeURIComponent(message)}`);
+    } catch {
+      Alert.alert('WhatsApp unavailable', 'Please check that WhatsApp is installed, or call the agent instead.');
+    }
+  };
+
+  const callAgent = async (phone: string) => {
+    try { await Linking.openURL(`tel:${phone.replace(/[^\d+]/g, '')}`); }
+    catch { Alert.alert('Call unavailable', 'This device cannot open the phone dialler.'); }
   };
 
   const renderListing = ({ item }: { item: CollaborationListing }) => {
@@ -187,24 +203,28 @@ export default function MatchesScreen() {
   };
 
   const renderRequest = ({ item }: { item: CollaborationRequest }) => {
-    const isIncoming = section === 'incoming';
+    const isIncoming = section === 'incoming' || (section === 'matched' && String(item.requesterId) !== user?.id);
     const property = item.property;
     const approved = item.status === 'approved';
     const phone = isIncoming ? item.requesterPhone : item.ownerPhone;
     const contact = isIncoming ? item.requesterName : item.ownerName;
+    const agency = isIncoming ? item.requesterAgencyName : item.ownerAgencyName;
     return (
       <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
-        <View style={[styles.requestIcon, { backgroundColor: approved ? colors.accent + '1E' : colors.primary + '16' }]}>
+        {approved && property?.photos?.[0] ? <Image source={{ uri: property.photos[0] }} style={styles.photo} /> : <View style={[styles.requestIcon, { backgroundColor: approved ? colors.accent + '1E' : colors.primary + '16' }]}>
           <Ionicons name={approved ? 'checkmark-circle-outline' : 'people-outline'} size={26} color={approved ? colors.accent : colors.primary} />
-        </View>
+        </View>}
         <View style={styles.requestBody}>
           <Text style={[styles.cardTitle, { color: colors.foreground }]} numberOfLines={1}>
             {property ? propertyLabel(property) : `Property #${item.propertyId}`}
           </Text>
           <Text style={[styles.meta, { color: colors.mutedForeground }]}>
-            {isIncoming ? `${item.requesterName || 'An agent'} wants to collaborate` : `Request sent to ${item.ownerName || 'listing agent'}`}
+            {approved
+              ? `You can now collaborate with ${contact || 'this agent'}${agency ? ` of ${agency}` : ''} to close this ${property?.listingType === 'rent' ? 'lease' : 'sale'}.`
+              : isIncoming ? `${item.requesterName || 'An agent'} wants to collaborate` : `Request sent to ${item.ownerName || 'listing agent'}`}
           </Text>
-          {item.message ? <Text style={[styles.requestMessage, { color: colors.foreground }]} numberOfLines={2}>{item.message}</Text> : null}
+          {property && approved ? <Text style={[styles.meta, { color: colors.foreground }]}>{property.reference} · {money(property.price, property.currency)}</Text> : null}
+          {item.message && !approved ? <Text style={[styles.requestMessage, { color: colors.foreground }]} numberOfLines={2}>{item.message}</Text> : null}
           {item.status === 'pending' && isIncoming ? (
             <View style={styles.responseRow}>
               <TouchableOpacity style={[styles.declineButton, { borderColor: colors.border }]} onPress={() => respondToRequest(item, 'declined')}>
@@ -217,14 +237,21 @@ export default function MatchesScreen() {
           ) : approved ? (
             <View>
             {!!phone && <Text style={{ color: colors.foreground, marginBottom: 6 }} selectable>{contact || 'Agent'} · {phone}</Text>}
+             <View style={styles.contactActions}>
+             <TouchableOpacity style={[styles.whatsAppButton, { backgroundColor: colors.primary, opacity: phone ? 1 : 0.5 }]} onPress={() => phone && callAgent(phone)} disabled={!phone}>
+               <Ionicons name="call-outline" size={17} color="#FFF" />
+               <Text style={styles.acceptText}>Call</Text>
+             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.whatsAppButton, { backgroundColor: '#25D366' }]}
+              style={[styles.whatsAppButton, { backgroundColor: colors.accent, opacity: phone ? 1 : 0.5 }]}
               onPress={() => openAgentWhatsApp(item, isIncoming ? 'requester' : 'owner')}
               disabled={!phone}
             >
               <Ionicons name="logo-whatsapp" size={17} color="#FFF" />
-              <Text style={styles.acceptText}>WhatsApp {contact || 'agent'}</Text>
+              <Text style={styles.acceptText}>WhatsApp</Text>
             </TouchableOpacity>
+             </View>
+             {!phone && <Text style={[styles.meta, { color: colors.mutedForeground }]}>This agent has not added a phone number yet.</Text>}
             </View>
           ) : (
             <View style={[styles.ownPill, { backgroundColor: colors.muted }]}>
@@ -236,9 +263,17 @@ export default function MatchesScreen() {
     );
   };
 
-  const currentData = section === 'discover' ? listings : section === 'incoming' ? incoming : outgoing;
-  const emptyTitle = section === 'discover' ? 'No properties found' : section === 'incoming' ? 'No incoming requests' : 'No outgoing requests';
-  const emptyText = section === 'discover'
+  const matched = useMemo(() => {
+    const unique = new Map([...incoming, ...outgoing].filter(item => item.status === 'approved').map(item => [item.id, item]));
+    const query = search.trim().toLowerCase();
+    return [...unique.values()].filter(item => !query || [
+      item.property?.title, item.property?.reference, item.property?.address, item.property?.suburb,
+      item.property?.price, item.requesterName, item.ownerName, item.requesterAgencyName, item.ownerAgencyName,
+    ].join(' ').toLowerCase().includes(query));
+  }, [incoming, outgoing, search]);
+  const currentData = section === 'matched' ? matched : section === 'discover' ? listings : section === 'incoming' ? incoming : outgoing;
+  const emptyTitle = section === 'matched' ? 'No accepted matches yet' : section === 'discover' ? 'No properties found' : section === 'incoming' ? 'No incoming requests' : 'No outgoing requests';
+  const emptyText = section === 'matched' ? 'Accepted collaborations appear here. Use Explore to find properties and request collaboration.' : section === 'discover'
     ? 'Search every property at your agency and external listings opened for collaboration.'
     : section === 'incoming'
       ? 'Requests from other agents will appear here.'
@@ -250,7 +285,7 @@ export default function MatchesScreen() {
         <View style={styles.headerRow}>
           <View>
             <Text style={[styles.title, { color: colors.foreground }]}>Matches</Text>
-            <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>Discover, collaborate, and track requests</Text>
+            <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>Your collaborations and requests</Text>
           </View>
           <TouchableOpacity style={[styles.alertButton, { backgroundColor: colors.muted }]} onPress={() => setAlertsOpen(true)}>
             <Ionicons name="notifications-outline" size={20} color={colors.primary} />
@@ -277,7 +312,8 @@ export default function MatchesScreen() {
         </View>
         <View style={styles.tabs}>
           {([
-            ['discover', 'Discover'],
+            ['matched', 'Matched'],
+            ['discover', 'Explore'],
             ['incoming', `Requests${incoming.filter(request => request.status === 'pending').length ? ` (${incoming.filter(request => request.status === 'pending').length})` : ''}`],
             ['outgoing', 'Sent'],
           ] as [Section, string][]).map(([value, label]) => (
@@ -291,7 +327,23 @@ export default function MatchesScreen() {
         data={currentData}
         keyExtractor={(item: CollaborationListing | CollaborationRequest) => String(item.id)}
         renderItem={section === 'discover' ? renderListing as any : renderRequest as any}
-        refreshControl={<RefreshControl refreshing={loading} onRefresh={load} tintColor={colors.primary} />}
+        refreshControl={<RefreshControl refreshing={loading} onRefresh={() => void load()} tintColor={colors.primary} />}
+        ListHeaderComponent={section === 'matched' ? (
+          demoVisible ? <View style={[styles.demoCard, { backgroundColor: colors.card, borderColor: colors.accent }]}>
+            <View style={styles.headerRow}>
+              <Text style={[styles.cardTitle, { color: colors.accent }]}>Demo match · Preview only</Text>
+              <TouchableOpacity onPress={() => setDemoVisible(false)} accessibilityLabel="Hide demo match"><Ionicons name="close-outline" size={22} color={colors.mutedForeground} /></TouchableOpacity>
+            </View>
+            <Text style={[styles.cardTitle, { color: colors.foreground }]}>3-bedroom home in Borrowdale</Text>
+            <Text style={[styles.meta, { color: colors.mutedForeground }]}>DEMO-MATCH · USD 250,000 · For sale</Text>
+            <Text style={[styles.requestMessage, { color: colors.foreground }]}>You can now collaborate with Alex Moyo of Example Realty to close this sale.</Text>
+            <Text style={[styles.meta, { color: colors.mutedForeground }]}>Fictional example — no real agent will be contacted.</Text>
+            <View style={styles.contactActions}>
+              <TouchableOpacity style={[styles.whatsAppButton, { backgroundColor: colors.primary }]} onPress={() => Alert.alert('Demo call', 'A real match opens the matched agent’s phone number in your dialler.')}><Ionicons name="call-outline" size={17} color="#FFF" /><Text style={styles.acceptText}>Call</Text></TouchableOpacity>
+              <TouchableOpacity style={[styles.whatsAppButton, { backgroundColor: colors.accent }]} onPress={() => Alert.alert('WhatsApp message preview', `Hi Alex, it's ${user?.name?.split(' ')[0] || 'your fellow agent'}, let's collaborate to close this deal.\n\n3-bedroom home in Borrowdale\nDEMO-MATCH\nFor sale · USD 250,000\nBorrowdale`)}><Ionicons name="logo-whatsapp" size={17} color="#FFF" /><Text style={styles.acceptText}>WhatsApp</Text></TouchableOpacity>
+            </View>
+          </View> : <TouchableOpacity onPress={() => setDemoVisible(true)}><Text style={{ color: colors.primary, paddingBottom: 12 }}>Show demo match</Text></TouchableOpacity>
+        ) : null}
         contentContainerStyle={[styles.list, { paddingBottom: insets.bottom + 100 }, !loading && currentData.length === 0 && styles.emptyList]}
         ListEmptyComponent={!loading ? (
           <View style={styles.empty}>
@@ -321,6 +373,8 @@ const styles = StyleSheet.create({
   search: { flexDirection: 'row', gap: 9, alignItems: 'center', borderWidth: 1, borderRadius: 13, paddingHorizontal: 12, height: 46 },
   searchInput: { flex: 1, fontSize: 14 },
   tabs: { flexDirection: 'row', gap: 18 },
+  contactActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  demoCard: { borderWidth: 1, borderRadius: 16, padding: 14, gap: 9, marginBottom: 14 },
   tab: { paddingVertical: 10, borderBottomWidth: 2 },
   tabText: { fontSize: 13, fontWeight: '700' },
   list: { paddingHorizontal: 16, paddingTop: 14, gap: 12 },

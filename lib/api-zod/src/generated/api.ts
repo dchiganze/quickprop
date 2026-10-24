@@ -1024,8 +1024,10 @@ export const ListCollaborationRequestsResponseItem = zod.object({
   "staleSince": zod.string().nullish()
 }),
   "requesterName": zod.string(),
+  "requesterAgencyName": zod.string().nullish(),
   "requesterPhone": zod.string().nullish(),
   "ownerName": zod.string(),
+  "ownerAgencyName": zod.string().nullish(),
   "ownerPhone": zod.string().nullish()
 })
 export const ListCollaborationRequestsResponse = zod.array(ListCollaborationRequestsResponseItem)
@@ -1114,8 +1116,10 @@ export const CreateCollaborationRequestResponse = zod.object({
   "staleSince": zod.string().nullish()
 }),
   "requesterName": zod.string(),
+  "requesterAgencyName": zod.string().nullish(),
   "requesterPhone": zod.string().nullish(),
   "ownerName": zod.string(),
+  "ownerAgencyName": zod.string().nullish(),
   "ownerPhone": zod.string().nullish()
 })
 
@@ -1202,8 +1206,10 @@ export const UpdateCollaborationRequestResponse = zod.object({
   "staleSince": zod.string().nullish()
 }),
   "requesterName": zod.string(),
+  "requesterAgencyName": zod.string().nullish(),
   "requesterPhone": zod.string().nullish(),
   "ownerName": zod.string(),
+  "ownerAgencyName": zod.string().nullish(),
   "ownerPhone": zod.string().nullish()
 })
 

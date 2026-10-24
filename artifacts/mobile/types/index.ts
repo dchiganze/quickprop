@@ -106,8 +106,10 @@ export interface CollaborationRequest {
   property?: CollaborationListing;
   requesterName?: string | null;
   requesterPhone?: string | null;
+  requesterAgencyName?: string | null;
   ownerName?: string | null;
   ownerPhone?: string | null;
+  ownerAgencyName?: string | null;
 }
 
 export interface Lead {
