@@ -260,3 +260,17 @@ mtime_ms = 1792675553558
 storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:cf900b3f-04ce-456b-888c-760ecb412036/dbe729cc-7409-4d61-a4d9-2b667590dc4e/ee307129-39a4-4597-a833-190b0105748b"
 storage_version_token = "1792675611069994"
 content_type = "image/png"
+
+[[outputs]]
+id = "iyhP4c0-kEkfxFOtOTtnW"
+uri = "file://generated-artifacts/quickprop-logo/quickprop-exact-logo-8k.png"
+type = "image"
+title = "QuickProp logo — 8K PNG"
+description = "7760 × 8160 pixels, 300 DPI. Enlarged directly from your supplied image without redesigning it, preserving its proportions, colour and white background."
+logical_id = "69e7479e-7f65-4fe2-8af2-ac1900517b80"
+content_hash = "sha256:95c10690ce764e7c18fa07b4319dc4e470407620e96e274e1f0c95db58829f41"
+size = 4228358
+mtime_ms = 1792851507823
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:cf900b3f-04ce-456b-888c-760ecb412036/69e7479e-7f65-4fe2-8af2-ac1900517b80/3020be5f-1626-465d-b113-585332971192"
+storage_version_token = "1792851529533413"
+content_type = "image/png"
