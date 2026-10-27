@@ -21,7 +21,7 @@ export default function DashboardScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const { user, logout } = useAuth();
-  const { properties, leads, tasks, syncNow } = useData();
+  const { properties, leads, syncNow } = useData();
   const { data: sellers } = useGetAgentContacts({ type: 'seller' });
   const { data: landlords } = useGetAgentContacts({ type: 'landlord' });
   const matchInbox = useMatchNotifications();
@@ -71,18 +71,10 @@ export default function DashboardScreen() {
   const draftListings = properties.filter(p => p.status === 'draft').length;
   const activeLeads = leads.filter(l => !['completed', 'lost'].includes(l.stage)).length;
   const newLeads = leads.filter(l => l.stage === 'new').length;
-  const todayStr = new Date().toDateString();
-  const todayTasks = tasks.filter(t => !t.completed && new Date(t.dueDate).toDateString() === todayStr);
   const recentProperties = [...properties].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()).slice(0, 3);
 
   const firstName = user?.name.split(' ')[0] ?? 'Agent';
   const dateStr = new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
-
-  const TASK_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
-    call_seller: 'call-outline', viewing: 'eye-outline',
-    price_update: 'trending-down-outline', renew_mandate: 'refresh-outline',
-    take_photos: 'camera-outline', other: 'checkbox-outline',
-  };
 
   const handleSignOut = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
@@ -204,36 +196,6 @@ export default function DashboardScreen() {
         ))}
       </View>
 
-      {/* Today's Tasks */}
-      {todayTasks.length > 0 && (
-        <>
-          <View style={styles.sectionHeader}>
-            <Text style={[styles.sectionTitle, { color: colors.foreground, marginBottom: 0 }]}>Today's Tasks</Text>
-            <Text style={[styles.seeAll, { color: colors.primary }]}>{todayTasks.length} tasks</Text>
-          </View>
-          <View style={[styles.tasksCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            {todayTasks.map((task, i) => (
-              <TouchableOpacity
-                key={task.id}
-                style={[styles.taskRow, i < todayTasks.length - 1 && { borderBottomWidth: 1, borderBottomColor: colors.border }]}
-                onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}); router.push(`/task/${task.id}`); }}
-              >
-                <View style={[styles.taskIcon, { backgroundColor: colors.secondary }]}>
-                  <Ionicons name={TASK_ICONS[task.type] || 'checkbox-outline'} size={16} color={colors.primary} />
-                </View>
-                <View style={styles.taskInfo}>
-                  <Text style={[styles.taskTitle, { color: colors.foreground }]} numberOfLines={1}>{task.title}</Text>
-                  {task.propertyAddress && (
-                    <Text style={[styles.taskSub, { color: colors.mutedForeground }]} numberOfLines={1}>{task.propertyAddress}</Text>
-                  )}
-                </View>
-                <Ionicons name="chevron-forward" size={16} color={colors.mutedForeground} />
-              </TouchableOpacity>
-            ))}
-          </View>
-        </>
-      )}
-
       {/* Recent Listings */}
       <View style={styles.sectionHeader}>
         <Text style={[styles.sectionTitle, { color: colors.foreground, marginBottom: 0 }]}>Recent Listings</Text>
@@ -312,17 +274,6 @@ const styles = StyleSheet.create({
   },
   actionIcon: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   actionLabel: { fontSize: 13, fontWeight: '600', flex: 1, lineHeight: 17 },
-
-  tasksCard: {
-    borderRadius: 16, borderWidth: 1,
-    ...Platform.select({ ios: { shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.07, shadowRadius: 6 }, android: { elevation: 2 } }),
-    marginBottom: 4,
-  },
-  taskRow: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14 },
-  taskIcon: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  taskInfo: { flex: 1 },
-  taskTitle: { fontSize: 14, fontWeight: '600', marginBottom: 2 },
-  taskSub: { fontSize: 12 },
 
   signOutBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
