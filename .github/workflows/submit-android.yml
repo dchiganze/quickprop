@@ -66,6 +66,7 @@ jobs:
           releaseFiles: ${{ steps.aab.outputs.path }}
           tracks: ${{ inputs.track }}
           status: completed
+          changesNotSentForReview: true
 
       - name: Set up Ruby for track promotion
         if: ${{ inputs.track == 'production' }}
