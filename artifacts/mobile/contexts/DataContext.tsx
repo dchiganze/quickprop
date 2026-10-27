@@ -6,10 +6,14 @@ import { registerDataReset } from './dataReset';
 import { useNetworkStatus } from './ConnectivityContext';
 import { apiBaseUrl, apiOrigin, getStoredAccessToken, useAuth } from './AuthContext';
 import {
-  createProperty, createTask, createViewing, deleteProperty as deleteRemoteProperty,
+  createProperty, createTask, createViewing, deleteAgentSearchAlert, deleteProperty as deleteRemoteProperty,
   deleteTask as deleteRemoteTask, deleteViewing as deleteRemoteViewing,
-  listProperties, listTasks, listViewings, updateProperty as updateRemoteProperty,
+  listAgentSearchAlerts, listProperties, listTasks, listViewings,
+  markAgentSearchAlertMatchesSeen, upsertAgentSearchAlert,
+  updateProperty as updateRemoteProperty,
   updateTask as updateRemoteTask, updateViewing as updateRemoteViewing,
+  type AgentSearchAlert as ApiAgentSearchAlert,
+  type AgentSearchAlertInput,
   type Property as ApiProperty, type PropertyInput, type PropertyUpdate,
   type Task as ApiTask, type TaskInput, type TaskUpdate,
   type Viewing as ApiViewing, type ViewingInput, type ViewingUpdate,
@@ -77,6 +81,7 @@ type PendingSync = PendingSyncMetadata & (
   | { kind: 'viewing-create'; localId: string; mutationKey: string; viewing: ViewingInput }
   | { kind: 'viewing-update'; localId: string; updates: ViewingUpdate }
   | { kind: 'viewing-delete'; localId: string }
+  | { kind: 'alert-delete'; localId: string }
 );
 
 export function propertyMatchesAlert(p: Property, alert: PropertyAlert): boolean {
@@ -117,6 +122,12 @@ function syncErrorMessage(error: unknown): string {
 function isConnectivityError(error: unknown): boolean {
   const message = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
   return error instanceof TypeError || /network request failed|network error|failed to fetch|offline|timed out|timeout|connection reset|internet disconnected/.test(message);
+}
+
+function isApiNotFoundError(error: unknown): boolean {
+  return typeof error === 'object' && error !== null
+    && 'status' in error
+    && (error as { status?: unknown }).status === 404;
 }
 
 function mobileStatus(status: string): Property['status'] {
@@ -261,6 +272,34 @@ function toMobileTask(task: ApiTask, properties: Property[]): Task {
     propertyAddress: property?.address,
     completed: task.status === 'done',
     createdAt: task.createdAt,
+  };
+}
+
+function toAgentSearchAlertInput(alert: PropertyAlert): AgentSearchAlertInput {
+  return {
+    name: alert.name,
+    type: alert.type ?? null,
+    suburb: alert.suburb ?? null,
+    minBedrooms: alert.minBedrooms ?? null,
+    maxPrice: alert.maxPrice ?? null,
+    currency: alert.currency ?? null,
+    features: alert.features,
+  };
+}
+
+function toMobileSearchAlert(alert: ApiAgentSearchAlert, agentId: string): PropertyAlert {
+  return {
+    id: alert.id,
+    agentId,
+    name: alert.name,
+    type: (alert.type ?? undefined) as PropertyAlert['type'],
+    suburb: alert.suburb ?? undefined,
+    minBedrooms: alert.minBedrooms ?? undefined,
+    maxPrice: alert.maxPrice ?? undefined,
+    currency: alert.currency ?? undefined,
+    features: alert.features,
+    createdAt: alert.createdAt,
+    seenPropertyIds: alert.seenPropertyIds,
   };
 }
 
@@ -684,6 +723,13 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         } else if (operation.kind === 'viewing-delete') {
           const id = resolveId(operation.localId);
           if (isServerId(id)) await deleteRemoteViewing(Number(id));
+        } else if (operation.kind === 'alert-delete') {
+          try {
+            await deleteAgentSearchAlert(operation.localId);
+          } catch (error) {
+            // An older API deployment has no search-alert route or synced alert to delete.
+            if (!isApiNotFoundError(error)) throw error;
+          }
         }
 
         pendingSyncRef.current.shift();
@@ -725,6 +771,46 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         listTasks({ assigneeId: Number(user!.id) }),
         listViewings({ agentId: Number(user!.id) }),
       ]);
+      try {
+        const remoteSearchAlerts = await listAgentSearchAlerts();
+        const pendingAlertDeletes = new Set(
+          pendingSyncRef.current
+            .filter((operation): operation is Extract<PendingSync, { kind: 'alert-delete' }> => operation.kind === 'alert-delete')
+            .map(operation => operation.localId),
+        );
+        const remoteAlertsById = new Map(remoteSearchAlerts.map(alert => [alert.id, alert]));
+        for (const localAlert of alertsRef.current) {
+          if (pendingAlertDeletes.has(localAlert.id)) continue;
+          let remoteAlert = remoteAlertsById.get(localAlert.id);
+          if (!remoteAlert) {
+            remoteAlert = await upsertAgentSearchAlert(localAlert.id, toAgentSearchAlertInput(localAlert));
+            remoteAlertsById.set(localAlert.id, remoteAlert);
+          }
+          const remoteSeen = new Set(remoteAlert.seenPropertyIds);
+          const unseenServerIds = localAlert.seenPropertyIds
+            .filter(id => /^\d+$/.test(id) && !remoteSeen.has(id))
+            .map(Number);
+          if (unseenServerIds.length) {
+            await markAgentSearchAlertMatchesSeen(localAlert.id, { propertyIds: unseenServerIds });
+          }
+        }
+        const refreshedAlerts = [...remoteAlertsById.values()]
+          .filter(alert => !pendingAlertDeletes.has(alert.id))
+          .map(alert => {
+            const local = alertsRef.current.find(item => item.id === alert.id);
+            const merged = toMobileSearchAlert(alert, user!.id);
+            return local
+              ? { ...merged, seenPropertyIds: [...new Set([...merged.seenPropertyIds, ...local.seenPropertyIds])] }
+              : merged;
+          });
+        alertsRef.current = refreshedAlerts;
+        alertsVersionRef.current += 1;
+        setAlerts(refreshedAlerts);
+        await save(ALERTS_KEY, alertsRef);
+      } catch (error) {
+        console.warn('Saved-search alert sync deferred; local alerts are preserved.', error);
+      }
+
       const pendingPropertyDeletes = new Set(
         pendingSyncRef.current
           .filter((operation): operation is Extract<PendingSync, { kind: 'property-delete' }> => operation.kind === 'property-delete')
@@ -1066,6 +1152,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     alertsVersionRef.current += 1;
     setAlerts(updated);
     await save(ALERTS_KEY, alertsRef);
+    void syncNowRef.current().catch(() => {});
   };
 
   const deleteAlert = async (id: string) => {
@@ -1074,6 +1161,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     alertsVersionRef.current += 1;
     setAlerts(updated);
     await save(ALERTS_KEY, alertsRef);
+    if (remoteEnabled(user?.id)) {
+      pendingSyncRef.current.push({ kind: 'alert-delete', localId: id });
+      await persistPending();
+      void syncNowRef.current().catch(() => {});
+    }
   };
 
   const dismissAlertMatches = async (alertId: string, propertyIds: string[]) => {
@@ -1086,6 +1178,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     alertsVersionRef.current += 1;
     setAlerts(updated);
     await save(ALERTS_KEY, alertsRef);
+    void syncNowRef.current().catch(() => {});
   };
 
   return (

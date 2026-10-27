@@ -36,6 +36,11 @@ export interface PropertyAlertUpdate {
      */
   maxPrice?: number | null;
   /**
+     * @maxLength 12
+     * @nullable
+     */
+  currency?: string | null;
+  /**
      * @minimum 0
      * @maximum 20
      * @nullable

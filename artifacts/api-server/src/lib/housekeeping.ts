@@ -37,6 +37,15 @@ export type HousekeepingSettings = {
 };
 
 export const DEFAULT_HOUSEKEEPING_SETTINGS: HousekeepingSettings = {
+  softReminderDays: 5,
+  firstConfirmationDays: 30,
+  recurringConfirmationDays: 30,
+  updateRequiredOverdueDays: 5,
+  potentiallyStaleOverdueDays: 10,
+  staleOverdueDays: 15,
+};
+
+const LEGACY_DEFAULT_HOUSEKEEPING_SETTINGS: HousekeepingSettings = {
   softReminderDays: 7,
   firstConfirmationDays: 14,
   recurringConfirmationDays: 30,
@@ -45,7 +54,42 @@ export const DEFAULT_HOUSEKEEPING_SETTINGS: HousekeepingSettings = {
   staleOverdueDays: 30,
 };
 
+export function normalizeHousekeepingSettings(
+  values?: Partial<HousekeepingSettings> | null,
+): HousekeepingSettings {
+  const normalized = { ...DEFAULT_HOUSEKEEPING_SETTINGS, ...values };
+  for (const key of Object.keys(DEFAULT_HOUSEKEEPING_SETTINGS) as (keyof HousekeepingSettings)[]) {
+    if (values?.[key] === LEGACY_DEFAULT_HOUSEKEEPING_SETTINGS[key]) {
+      normalized[key] = DEFAULT_HOUSEKEEPING_SETTINGS[key];
+    }
+  }
+  return normalized;
+}
+
 const DAY = 24 * 60 * 60 * 1000;
+
+export function makeReminderEventKey(reminderKey: string, nextConfirmationAt: Date): string {
+  return `${reminderKey}:${nextConfirmationAt.toISOString()}`;
+}
+
+export function needsPublicationBaseline(
+  status: string,
+  publishedAt: Date | null | undefined,
+  lastAvailabilityConfirmedAt: Date | null | undefined,
+): boolean {
+  return status === "public" && !publishedAt && !lastAvailabilityConfirmedAt;
+}
+
+export function shouldAutoDraftPublishedListing(
+  status: string,
+  availabilityStatus: string,
+  nextConfirmationAt: Date,
+  now = new Date(),
+): boolean {
+  return status === "public"
+    && (availabilityStatus === "available" || availabilityStatus === "under_offer")
+    && nextConfirmationAt.getTime() <= now.getTime();
+}
 
 export type FreshnessInput = {
   createdAt: Date;
@@ -138,10 +182,11 @@ export function calculateFreshness(
   let reminderKey: string | null = null;
   const daysUntilDue = Math.ceil((nextConfirmationAt.getTime() - now.getTime()) / DAY);
   if (daysUntilDue <= settings.softReminderDays && daysUntilDue > 0) reminderKey = "due-soon";
-  else if (daysUntilDue <= 0 && overdueDays < settings.updateRequiredOverdueDays) reminderKey = "due";
-  else if (overdueDays >= settings.updateRequiredOverdueDays && overdueDays < settings.potentiallyStaleOverdueDays) reminderKey = "overdue-7";
-  else if (overdueDays >= settings.potentiallyStaleOverdueDays && overdueDays < settings.staleOverdueDays) reminderKey = "overdue-14";
-  else if (overdueDays >= settings.staleOverdueDays) reminderKey = "overdue-30";
+  else if (daysUntilDue <= 0) {
+    const reminderIntervalDays = Math.max(1, settings.softReminderDays);
+    const intervalStart = Math.floor(overdueDays / reminderIntervalDays) * reminderIntervalDays;
+    reminderKey = `overdue-${intervalStart}`;
+  }
 
   return {
     freshnessStatus,
@@ -181,7 +226,7 @@ export function freshnessRankBonus(status: string | null | undefined): number {
 
 export function inputFromProperty(property: Property): FreshnessInput {
   return {
-    createdAt: property.createdAt,
+    createdAt: property.publishedAt ?? property.createdAt,
     lastConfirmedAt: property.lastAvailabilityConfirmedAt,
     lastUpdatedAt: property.updatedAt,
     nextConfirmationAt: property.nextConfirmationAt,

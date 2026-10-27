@@ -137,6 +137,7 @@ export function AgentContactDirectory({ contacts, kind }: { contacts: AgentConta
               <div className="min-w-0 flex-1">
                 <h3 className="font-semibold">{contact.name}</h3>
                 {contact.idNumber && <p className="text-xs text-muted-foreground">ID: {contact.idNumber}</p>}
+                {contact.standalone && <p className="text-xs text-muted-foreground">Standalone contact</p>}
               </div>
             </div>
             <div className="grid gap-2 text-sm text-muted-foreground sm:grid-cols-2">
@@ -146,7 +147,7 @@ export function AgentContactDirectory({ contacts, kind }: { contacts: AgentConta
             </div>
             {contact.notes && <p className="whitespace-pre-wrap text-sm text-muted-foreground">{contact.notes}</p>}
 
-            <div className="space-y-3 border-t pt-4">
+            {contact.properties.length > 0 && <div className="space-y-3 border-t pt-4">
               {contact.properties.map((property) => {
                 const busy = busyPropertyId === property.id;
                 return (
@@ -184,7 +185,7 @@ export function AgentContactDirectory({ contacts, kind }: { contacts: AgentConta
                   </div>
                 );
               })}
-            </div>
+            </div>}
           </CardContent>
         </Card>
       ))}

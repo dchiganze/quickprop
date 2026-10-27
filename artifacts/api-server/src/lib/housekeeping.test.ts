@@ -4,6 +4,10 @@ import {
   calculateFreshness,
   DEFAULT_HOUSEKEEPING_SETTINGS,
   inputFromRelationship,
+  makeReminderEventKey,
+  needsPublicationBaseline,
+  normalizeHousekeepingSettings,
+  shouldAutoDraftPublishedListing,
   type FreshnessInput,
 } from "./housekeeping";
 
@@ -35,9 +39,9 @@ test("classifies every active freshness state at its threshold", () => {
     ["new", calculateFreshness(input(), now)],
     ["fresh", withNextConfirmation(10)],
     ["due", withNextConfirmation(-3)],
-    ["update_required", withNextConfirmation(-10)],
-    ["potentially_stale", withNextConfirmation(-20)],
-    ["stale", withNextConfirmation(-35)],
+    ["update_required", withNextConfirmation(-7)],
+    ["potentially_stale", withNextConfirmation(-12)],
+    ["stale", withNextConfirmation(-20)],
   ] as const;
 
   for (const [expected, result] of cases) {
@@ -46,10 +50,10 @@ test("classifies every active freshness state at its threshold", () => {
 
   assert.equal(cases[0][1].reminderKey, null);
   assert.equal(cases[1][1].reminderKey, null);
-  assert.equal(cases[2][1].reminderKey, "due");
-  assert.equal(cases[3][1].reminderKey, "overdue-7");
-  assert.equal(cases[4][1].reminderKey, "overdue-14");
-  assert.equal(cases[5][1].reminderKey, "overdue-30");
+  assert.equal(cases[2][1].reminderKey, "overdue-0");
+  assert.equal(cases[3][1].reminderKey, "overdue-5");
+  assert.equal(cases[4][1].reminderKey, "overdue-10");
+  assert.equal(cases[5][1].reminderKey, "overdue-20");
 });
 
 test("changes state exactly at each freshness boundary", () => {
@@ -62,13 +66,13 @@ test("changes state exactly at each freshness boundary", () => {
   );
   const cases = [
     ["fresh", atOverdue(-1), "due-soon"],
-    ["due", atOverdue(0), "due"],
-    ["due", atOverdue(7 * DAY - 1), "due"],
-    ["update_required", atOverdue(7 * DAY), "overdue-7"],
-    ["update_required", atOverdue(14 * DAY - 1), "overdue-7"],
-    ["potentially_stale", atOverdue(14 * DAY), "overdue-14"],
-    ["potentially_stale", atOverdue(30 * DAY - 1), "overdue-14"],
-    ["stale", atOverdue(30 * DAY), "overdue-30"],
+    ["due", atOverdue(0), "overdue-0"],
+    ["due", atOverdue(5 * DAY - 1), "overdue-0"],
+    ["update_required", atOverdue(5 * DAY), "overdue-5"],
+    ["update_required", atOverdue(10 * DAY - 1), "overdue-5"],
+    ["potentially_stale", atOverdue(10 * DAY), "overdue-10"],
+    ["potentially_stale", atOverdue(15 * DAY - 1), "overdue-10"],
+    ["stale", atOverdue(15 * DAY), "overdue-15"],
   ] as const;
 
   for (const [status, result, reminderKey] of cases) {
@@ -92,7 +96,7 @@ test("uses the configured first and recurring confirmation windows", () => {
 
   assert.equal(
     firstConfirmation.nextConfirmationAt.getTime(),
-    now.getTime() + 13 * DAY,
+    now.getTime() + 29 * DAY,
   );
   assert.equal(
     recurringConfirmation.nextConfirmationAt.getTime(),
@@ -146,7 +150,7 @@ test("confirmation timing is scoped to each agent relationship", () => {
     createdAt: new Date(now.getTime() - 60 * DAY),
     lastAvailabilityConfirmation: new Date(now.getTime() - 60 * DAY),
     lastUpdate: new Date(now.getTime() - 60 * DAY),
-    nextConfirmationAt: new Date(now.getTime() - 5 * DAY),
+    nextConfirmationAt: new Date(now.getTime() - 4 * DAY),
     availabilityStatus: "available",
     description: null,
     askingPrice: 250000,
@@ -167,5 +171,46 @@ test("keeps freshness score stable for identical inputs", () => {
 
   assert.deepEqual(second, first);
   assert.equal(first.freshnessScore, 100);
-  assert.equal(DEFAULT_HOUSEKEEPING_SETTINGS.staleOverdueDays, 30);
+  assert.equal(DEFAULT_HOUSEKEEPING_SETTINGS.firstConfirmationDays, 30);
+  assert.equal(DEFAULT_HOUSEKEEPING_SETTINGS.softReminderDays, 5);
+  assert.equal(DEFAULT_HOUSEKEEPING_SETTINGS.staleOverdueDays, 15);
+});
+
+test("normalizes the previous default policy to 30-day listing cycles", () => {
+  const normalized = normalizeHousekeepingSettings({
+    softReminderDays: 7,
+    firstConfirmationDays: 14,
+    recurringConfirmationDays: 30,
+    updateRequiredOverdueDays: 7,
+    potentiallyStaleOverdueDays: 14,
+    staleOverdueDays: 30,
+  });
+
+  assert.deepEqual(normalized, DEFAULT_HOUSEKEEPING_SETTINGS);
+});
+
+test("reminder event keys are stable per confirmation cycle", () => {
+  const firstDueDate = new Date("2026-09-01T12:00:00.000Z");
+  const nextDueDate = new Date("2026-10-01T12:00:00.000Z");
+
+  assert.equal(makeReminderEventKey("due-soon", firstDueDate), makeReminderEventKey("due-soon", firstDueDate));
+  assert.notEqual(makeReminderEventKey("due-soon", firstDueDate), makeReminderEventKey("due-soon", nextDueDate));
+});
+
+test("legacy public listings without dates receive a fresh baseline", () => {
+  assert.equal(needsPublicationBaseline("public", null, null), true);
+  assert.equal(needsPublicationBaseline("public", new Date(), null), false);
+  assert.equal(needsPublicationBaseline("public", null, new Date()), false);
+  assert.equal(needsPublicationBaseline("draft", null, null), false);
+});
+
+test("only expired, publicly available listings are auto-drafted", () => {
+  const overdue = new Date(now.getTime() - 1);
+  const future = new Date(now.getTime() + 1);
+
+  assert.equal(shouldAutoDraftPublishedListing("public", "available", overdue, now), true);
+  assert.equal(shouldAutoDraftPublishedListing("public", "under_offer", overdue, now), true);
+  assert.equal(shouldAutoDraftPublishedListing("public", "sold", overdue, now), false);
+  assert.equal(shouldAutoDraftPublishedListing("draft", "available", overdue, now), false);
+  assert.equal(shouldAutoDraftPublishedListing("public", "available", future, now), false);
 });

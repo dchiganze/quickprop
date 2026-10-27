@@ -20,5 +20,6 @@ export interface AgentContact {
   postalAddress?: string | null;
   /** @nullable */
   notes?: string | null;
+  standalone?: boolean;
   properties: AgentContactProperty[];
 }

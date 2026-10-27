@@ -153,12 +153,12 @@ export const userPushTokensTable = pgTable(
 
 export const listingHousekeepingSettingsTable = pgTable("listing_housekeeping_settings", {
   id: serial("id").primaryKey(),
-  softReminderDays: integer("soft_reminder_days").notNull().default(7),
-  firstConfirmationDays: integer("first_confirmation_days").notNull().default(14),
+  softReminderDays: integer("soft_reminder_days").notNull().default(5),
+  firstConfirmationDays: integer("first_confirmation_days").notNull().default(30),
   recurringConfirmationDays: integer("recurring_confirmation_days").notNull().default(30),
-  updateRequiredOverdueDays: integer("update_required_overdue_days").notNull().default(7),
-  potentiallyStaleOverdueDays: integer("potentially_stale_overdue_days").notNull().default(14),
-  staleOverdueDays: integer("stale_overdue_days").notNull().default(30),
+  updateRequiredOverdueDays: integer("update_required_overdue_days").notNull().default(5),
+  potentiallyStaleOverdueDays: integer("potentially_stale_overdue_days").notNull().default(10),
+  staleOverdueDays: integer("stale_overdue_days").notNull().default(15),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 

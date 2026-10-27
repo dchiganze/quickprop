@@ -1336,6 +1336,7 @@ export const GetAgentContactsResponseItem = zod.object({
   "email": zod.string().nullish(),
   "postalAddress": zod.string().nullish(),
   "notes": zod.string().nullish(),
+  "standalone": zod.boolean().optional(),
   "properties": zod.array(zod.object({
   "id": zod.number(),
   "reference": zod.string(),
@@ -1364,6 +1365,57 @@ export const GetAgentContactsResponseItem = zod.object({
 }))
 })
 export const GetAgentContactsResponse = zod.array(GetAgentContactsResponseItem)
+
+
+export const createAgentContactBodyNameMax = 120;
+
+export const createAgentContactBodyPhoneMin = 5;
+export const createAgentContactBodyPhoneMax = 40;
+
+
+
+export const CreateAgentContactBody = zod.object({
+  "type": zod.enum(['seller', 'landlord']),
+  "name": zod.string().min(1).max(createAgentContactBodyNameMax),
+  "phone": zod.string().min(createAgentContactBodyPhoneMin).max(createAgentContactBodyPhoneMax)
+})
+
+export const CreateAgentContactResponse = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "idNumber": zod.string().nullish(),
+  "phone": zod.string().nullish(),
+  "email": zod.string().nullish(),
+  "postalAddress": zod.string().nullish(),
+  "notes": zod.string().nullish(),
+  "standalone": zod.boolean().optional(),
+  "properties": zod.array(zod.object({
+  "id": zod.number(),
+  "reference": zod.string(),
+  "title": zod.string(),
+  "address": zod.string().nullish(),
+  "suburb": zod.string(),
+  "city": zod.string(),
+  "price": zod.number().optional(),
+  "currency": zod.string().optional(),
+  "listingType": zod.string(),
+  "status": zod.string(),
+  "availabilityStatus": zod.string().nullish(),
+  "mandateType": zod.string().nullish(),
+  "mandateExpiry": zod.string().nullish(),
+  "documents": zod.array(zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "category": zod.string().describe('mandate | title_deed | id | contract | photo | video | inspection | valuation | other'),
+  "propertyId": zod.number().nullish(),
+  "url": zod.string().nullish(),
+  "sizeKb": zod.number().nullish(),
+  "version": zod.number().optional(),
+  "uploadedBy": zod.string().nullish(),
+  "createdAt": zod.string()
+}))
+}))
+})
 
 
 export const CreateAgentContactMandateParams = zod.object({
@@ -3187,12 +3239,13 @@ export const ListPropertyAlertsResponseItem = zod.object({
   "id": zod.number(),
   "userId": zod.number(),
   "name": zod.string(),
-  "transactionType": zod.enum(['sale', 'rent']),
+  "transactionType": zod.enum(['sale', 'rent', 'any']),
   "propertyTypes": zod.array(zod.string()),
   "cities": zod.array(zod.string()),
   "suburbs": zod.array(zod.string()),
   "minPrice": zod.number().nullable(),
   "maxPrice": zod.number().nullable(),
+  "currency": zod.string().nullable(),
   "minBedrooms": zod.number().nullable(),
   "minBathrooms": zod.number().nullable(),
   "requiredAmenities": zod.array(zod.string()),
@@ -3203,7 +3256,7 @@ export const ListPropertyAlertsResponseItem = zod.object({
   "powerPreference": zod.string(),
   "waterPreference": zod.string(),
   "notificationFrequency": zod.enum(['immediately', 'daily', 'weekly']),
-  "notificationChannels": zod.array(zod.enum(['in_app', 'email', 'whatsapp'])),
+  "notificationChannels": zod.array(zod.enum(['in_app', 'email', 'whatsapp', 'push'])),
   "active": zod.boolean(),
   "sourcePropertyId": zod.number().nullable(),
   "matchedCount": zod.number(),
@@ -3226,6 +3279,8 @@ export const createPropertyAlertBodyMinPriceMin = 0;
 
 export const createPropertyAlertBodyMaxPriceMin = 0;
 
+export const createPropertyAlertBodyCurrencyMax = 12;
+
 export const createPropertyAlertBodyMinBedroomsMin = 0;
 export const createPropertyAlertBodyMinBedroomsMax = 20;
 
@@ -3242,6 +3297,7 @@ export const CreatePropertyAlertBody = zod.object({
   "suburbs": zod.array(zod.string()).optional(),
   "minPrice": zod.number().min(createPropertyAlertBodyMinPriceMin).nullish(),
   "maxPrice": zod.number().min(createPropertyAlertBodyMaxPriceMin).nullish(),
+  "currency": zod.string().max(createPropertyAlertBodyCurrencyMax).nullish(),
   "minBedrooms": zod.number().min(createPropertyAlertBodyMinBedroomsMin).max(createPropertyAlertBodyMinBedroomsMax).nullish(),
   "minBathrooms": zod.number().min(createPropertyAlertBodyMinBathroomsMin).max(createPropertyAlertBodyMinBathroomsMax).nullish(),
   "requiredAmenities": zod.array(zod.string()).optional(),
@@ -3252,7 +3308,7 @@ export const CreatePropertyAlertBody = zod.object({
   "powerPreference": zod.enum(['any', 'backup_power', 'solar']).optional(),
   "waterPreference": zod.enum(['any', 'borehole']).optional(),
   "notificationFrequency": zod.enum(['immediately', 'daily', 'weekly']).optional(),
-  "notificationChannels": zod.array(zod.enum(['in_app', 'email', 'whatsapp'])).optional(),
+  "notificationChannels": zod.array(zod.enum(['in_app', 'email', 'whatsapp', 'push'])).optional(),
   "sourcePropertyId": zod.number().nullish()
 })
 
@@ -3260,12 +3316,13 @@ export const CreatePropertyAlertResponse = zod.object({
   "id": zod.number(),
   "userId": zod.number(),
   "name": zod.string(),
-  "transactionType": zod.enum(['sale', 'rent']),
+  "transactionType": zod.enum(['sale', 'rent', 'any']),
   "propertyTypes": zod.array(zod.string()),
   "cities": zod.array(zod.string()),
   "suburbs": zod.array(zod.string()),
   "minPrice": zod.number().nullable(),
   "maxPrice": zod.number().nullable(),
+  "currency": zod.string().nullable(),
   "minBedrooms": zod.number().nullable(),
   "minBathrooms": zod.number().nullable(),
   "requiredAmenities": zod.array(zod.string()),
@@ -3276,7 +3333,7 @@ export const CreatePropertyAlertResponse = zod.object({
   "powerPreference": zod.string(),
   "waterPreference": zod.string(),
   "notificationFrequency": zod.enum(['immediately', 'daily', 'weekly']),
-  "notificationChannels": zod.array(zod.enum(['in_app', 'email', 'whatsapp'])),
+  "notificationChannels": zod.array(zod.enum(['in_app', 'email', 'whatsapp', 'push'])),
   "active": zod.boolean(),
   "sourcePropertyId": zod.number().nullable(),
   "matchedCount": zod.number(),
@@ -3302,6 +3359,8 @@ export const updatePropertyAlertBodyMinPriceMin = 0;
 
 export const updatePropertyAlertBodyMaxPriceMin = 0;
 
+export const updatePropertyAlertBodyCurrencyMax = 12;
+
 export const updatePropertyAlertBodyMinBedroomsMin = 0;
 export const updatePropertyAlertBodyMinBedroomsMax = 20;
 
@@ -3318,6 +3377,7 @@ export const UpdatePropertyAlertBody = zod.object({
   "suburbs": zod.array(zod.string()).optional(),
   "minPrice": zod.number().min(updatePropertyAlertBodyMinPriceMin).nullish(),
   "maxPrice": zod.number().min(updatePropertyAlertBodyMaxPriceMin).nullish(),
+  "currency": zod.string().max(updatePropertyAlertBodyCurrencyMax).nullish(),
   "minBedrooms": zod.number().min(updatePropertyAlertBodyMinBedroomsMin).max(updatePropertyAlertBodyMinBedroomsMax).nullish(),
   "minBathrooms": zod.number().min(updatePropertyAlertBodyMinBathroomsMin).max(updatePropertyAlertBodyMinBathroomsMax).nullish(),
   "requiredAmenities": zod.array(zod.string()).optional(),
@@ -3328,19 +3388,20 @@ export const UpdatePropertyAlertBody = zod.object({
   "powerPreference": zod.enum(['any', 'backup_power', 'solar']).optional(),
   "waterPreference": zod.enum(['any', 'borehole']).optional(),
   "notificationFrequency": zod.enum(['immediately', 'daily', 'weekly']).optional(),
-  "notificationChannels": zod.array(zod.enum(['in_app', 'email', 'whatsapp'])).optional()
+  "notificationChannels": zod.array(zod.enum(['in_app', 'email', 'whatsapp', 'push'])).optional()
 })
 
 export const UpdatePropertyAlertResponse = zod.object({
   "id": zod.number(),
   "userId": zod.number(),
   "name": zod.string(),
-  "transactionType": zod.enum(['sale', 'rent']),
+  "transactionType": zod.enum(['sale', 'rent', 'any']),
   "propertyTypes": zod.array(zod.string()),
   "cities": zod.array(zod.string()),
   "suburbs": zod.array(zod.string()),
   "minPrice": zod.number().nullable(),
   "maxPrice": zod.number().nullable(),
+  "currency": zod.string().nullable(),
   "minBedrooms": zod.number().nullable(),
   "minBathrooms": zod.number().nullable(),
   "requiredAmenities": zod.array(zod.string()),
@@ -3351,7 +3412,7 @@ export const UpdatePropertyAlertResponse = zod.object({
   "powerPreference": zod.string(),
   "waterPreference": zod.string(),
   "notificationFrequency": zod.enum(['immediately', 'daily', 'weekly']),
-  "notificationChannels": zod.array(zod.enum(['in_app', 'email', 'whatsapp'])),
+  "notificationChannels": zod.array(zod.enum(['in_app', 'email', 'whatsapp', 'push'])),
   "active": zod.boolean(),
   "sourcePropertyId": zod.number().nullable(),
   "matchedCount": zod.number(),
@@ -3387,12 +3448,13 @@ export const UpdatePropertyAlertStatusResponse = zod.object({
   "id": zod.number(),
   "userId": zod.number(),
   "name": zod.string(),
-  "transactionType": zod.enum(['sale', 'rent']),
+  "transactionType": zod.enum(['sale', 'rent', 'any']),
   "propertyTypes": zod.array(zod.string()),
   "cities": zod.array(zod.string()),
   "suburbs": zod.array(zod.string()),
   "minPrice": zod.number().nullable(),
   "maxPrice": zod.number().nullable(),
+  "currency": zod.string().nullable(),
   "minBedrooms": zod.number().nullable(),
   "minBathrooms": zod.number().nullable(),
   "requiredAmenities": zod.array(zod.string()),
@@ -3403,7 +3465,7 @@ export const UpdatePropertyAlertStatusResponse = zod.object({
   "powerPreference": zod.string(),
   "waterPreference": zod.string(),
   "notificationFrequency": zod.enum(['immediately', 'daily', 'weekly']),
-  "notificationChannels": zod.array(zod.enum(['in_app', 'email', 'whatsapp'])),
+  "notificationChannels": zod.array(zod.enum(['in_app', 'email', 'whatsapp', 'push'])),
   "active": zod.boolean(),
   "sourcePropertyId": zod.number().nullable(),
   "matchedCount": zod.number(),
@@ -3425,12 +3487,13 @@ export const CreateSimilarPropertyAlertResponse = zod.object({
   "id": zod.number(),
   "userId": zod.number(),
   "name": zod.string(),
-  "transactionType": zod.enum(['sale', 'rent']),
+  "transactionType": zod.enum(['sale', 'rent', 'any']),
   "propertyTypes": zod.array(zod.string()),
   "cities": zod.array(zod.string()),
   "suburbs": zod.array(zod.string()),
   "minPrice": zod.number().nullable(),
   "maxPrice": zod.number().nullable(),
+  "currency": zod.string().nullable(),
   "minBedrooms": zod.number().nullable(),
   "minBathrooms": zod.number().nullable(),
   "requiredAmenities": zod.array(zod.string()),
@@ -3441,7 +3504,7 @@ export const CreateSimilarPropertyAlertResponse = zod.object({
   "powerPreference": zod.string(),
   "waterPreference": zod.string(),
   "notificationFrequency": zod.enum(['immediately', 'daily', 'weekly']),
-  "notificationChannels": zod.array(zod.enum(['in_app', 'email', 'whatsapp'])),
+  "notificationChannels": zod.array(zod.enum(['in_app', 'email', 'whatsapp', 'push'])),
   "active": zod.boolean(),
   "sourcePropertyId": zod.number().nullable(),
   "matchedCount": zod.number(),
@@ -3450,6 +3513,109 @@ export const CreateSimilarPropertyAlertResponse = zod.object({
   "createdAt": zod.string(),
   "updatedAt": zod.string()
 })
+
+
+/**
+ * @summary List the signed-in agent's saved search alerts
+ */
+export const ListAgentSearchAlertsResponseItem = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "type": zod.string().nullable(),
+  "suburb": zod.string().nullable(),
+  "minBedrooms": zod.number().nullable(),
+  "maxPrice": zod.number().nullable(),
+  "currency": zod.string().nullable(),
+  "features": zod.array(zod.string()),
+  "seenPropertyIds": zod.array(zod.string()),
+  "createdAt": zod.string()
+})
+export const ListAgentSearchAlertsResponse = zod.array(ListAgentSearchAlertsResponseItem)
+
+
+/**
+ * @summary Upsert an agent search alert using its stable client ID
+ */
+export const upsertAgentSearchAlertPathClientIdMax = 80;
+
+
+
+export const UpsertAgentSearchAlertParams = zod.object({
+  "clientId": zod.coerce.string().min(1).max(upsertAgentSearchAlertPathClientIdMax)
+})
+
+export const upsertAgentSearchAlertBodyNameMax = 120;
+
+export const upsertAgentSearchAlertBodySuburbMax = 120;
+
+export const upsertAgentSearchAlertBodyMinBedroomsMin = 0;
+export const upsertAgentSearchAlertBodyMinBedroomsMax = 20;
+
+export const upsertAgentSearchAlertBodyMaxPriceMin = 0;
+
+export const upsertAgentSearchAlertBodyCurrencyMax = 12;
+
+export const upsertAgentSearchAlertBodyFeaturesItemMax = 120;
+
+
+
+export const UpsertAgentSearchAlertBody = zod.object({
+  "name": zod.string().min(1).max(upsertAgentSearchAlertBodyNameMax),
+  "type": zod.union([zod.literal('sale'),zod.literal('rent'),zod.literal('commercial'),zod.literal('stand'),zod.literal('farm'),zod.literal('mine'),zod.literal(null)]).nullable(),
+  "suburb": zod.string().max(upsertAgentSearchAlertBodySuburbMax).nullable(),
+  "minBedrooms": zod.number().min(upsertAgentSearchAlertBodyMinBedroomsMin).max(upsertAgentSearchAlertBodyMinBedroomsMax).nullable(),
+  "maxPrice": zod.number().min(upsertAgentSearchAlertBodyMaxPriceMin).nullable(),
+  "currency": zod.string().max(upsertAgentSearchAlertBodyCurrencyMax).nullable(),
+  "features": zod.array(zod.string().max(upsertAgentSearchAlertBodyFeaturesItemMax))
+})
+
+export const UpsertAgentSearchAlertResponse = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "type": zod.string().nullable(),
+  "suburb": zod.string().nullable(),
+  "minBedrooms": zod.number().nullable(),
+  "maxPrice": zod.number().nullable(),
+  "currency": zod.string().nullable(),
+  "features": zod.array(zod.string()),
+  "seenPropertyIds": zod.array(zod.string()),
+  "createdAt": zod.string()
+})
+
+
+/**
+ * @summary Delete an agent's saved search alert
+ */
+export const deleteAgentSearchAlertPathClientIdMax = 80;
+
+
+
+export const DeleteAgentSearchAlertParams = zod.object({
+  "clientId": zod.coerce.string().min(1).max(deleteAgentSearchAlertPathClientIdMax)
+})
+
+export const DeleteAgentSearchAlertResponse = zod.void()
+
+
+/**
+ * @summary Mark matching listings as seen for an agent search alert
+ */
+export const markAgentSearchAlertMatchesSeenPathClientIdMax = 80;
+
+
+
+export const MarkAgentSearchAlertMatchesSeenParams = zod.object({
+  "clientId": zod.coerce.string().min(1).max(markAgentSearchAlertMatchesSeenPathClientIdMax)
+})
+
+
+
+
+export const MarkAgentSearchAlertMatchesSeenBody = zod.object({
+  "propertyIds": zod.array(zod.number().min(1))
+})
+
+export const MarkAgentSearchAlertMatchesSeenResponse = zod.void()
 
 
 /**
@@ -4273,7 +4439,8 @@ export const GetListingHousekeepingResponse = zod.object({
   "staleSince": zod.string().nullish(),
   "photos": zod.array(zod.string()).optional(),
   "bedrooms": zod.number().nullish(),
-  "bathrooms": zod.number().nullish()
+  "bathrooms": zod.number().nullish(),
+  "expiredDraft": zod.boolean()
 })),
   "thresholds": zod.object({
   "softReminderDays": zod.number(),
@@ -4292,7 +4459,7 @@ export const GetListingHousekeepingResponse = zod.object({
 export const ConfirmListingHousekeepingBody = zod.object({
   "propertyId": zod.number().optional(),
   "relationshipId": zod.number().optional(),
-  "action": zod.string().optional().describe('update | confirm | mark_unavailable | temporarily_unavailable | under_offer | sold | let | withdrawn | reactivate')
+  "action": zod.enum(['update', 'confirm', 'mark_unavailable', 'temporarily_unavailable', 'under_offer', 'sold', 'let', 'withdrawn', 'reactivate', 'republish', 'archive']).optional().describe('Republish is only for a listing auto-drafted after its confirmation deadline. Archive preserves listing history.')
 })
 
 export const ConfirmListingHousekeepingResponse = zod.object({
@@ -4325,7 +4492,8 @@ export const ConfirmListingHousekeepingResponse = zod.object({
   "staleSince": zod.string().nullish(),
   "photos": zod.array(zod.string()).optional(),
   "bedrooms": zod.number().nullish(),
-  "bathrooms": zod.number().nullish()
+  "bathrooms": zod.number().nullish(),
+  "expiredDraft": zod.boolean()
 }).optional()
 })
 
@@ -4350,7 +4518,7 @@ export const BulkConfirmListingHousekeepingResponse = zod.object({
 export const ApplyListingHousekeepingActionBody = zod.object({
   "propertyId": zod.number().optional(),
   "relationshipId": zod.number().optional(),
-  "action": zod.string().optional().describe('update | confirm | mark_unavailable | temporarily_unavailable | under_offer | sold | let | withdrawn | reactivate')
+  "action": zod.enum(['update', 'confirm', 'mark_unavailable', 'temporarily_unavailable', 'under_offer', 'sold', 'let', 'withdrawn', 'reactivate', 'republish', 'archive']).optional().describe('Republish is only for a listing auto-drafted after its confirmation deadline. Archive preserves listing history.')
 })
 
 export const ApplyListingHousekeepingActionResponse = zod.object({
@@ -4383,7 +4551,8 @@ export const ApplyListingHousekeepingActionResponse = zod.object({
   "staleSince": zod.string().nullish(),
   "photos": zod.array(zod.string()).optional(),
   "bedrooms": zod.number().nullish(),
-  "bathrooms": zod.number().nullish()
+  "bathrooms": zod.number().nullish(),
+  "expiredDraft": zod.boolean()
 }).optional()
 })
 
@@ -4485,7 +4654,8 @@ export const GetAdminListingHealthResponse = zod.object({
   "staleSince": zod.string().nullish(),
   "photos": zod.array(zod.string()).optional(),
   "bedrooms": zod.number().nullish(),
-  "bathrooms": zod.number().nullish()
+  "bathrooms": zod.number().nullish(),
+  "expiredDraft": zod.boolean()
 })),
   "agents": zod.array(zod.object({
   "agentId": zod.number().optional(),

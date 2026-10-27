@@ -9,7 +9,6 @@ import {
   Sparkles,
 } from "lucide-react";
 import {
-  getGetListingHousekeepingQueryKey,
   useApplyListingHousekeepingAction,
   useBulkConfirmListingHousekeeping,
   useGetListingHousekeeping,
@@ -38,6 +37,7 @@ const STATUS_STYLES: Record<string, string> = {
   stale: "bg-red-100 text-red-800 border-red-200",
   inactive: "bg-muted text-muted-foreground border-border",
 };
+type HousekeepingUiAction = "republish" | "archive" | "update" | "mark_unavailable" | "confirm";
 
 function ListingRow({
   listing,
@@ -50,17 +50,17 @@ function ListingRow({
   selected: boolean;
   onSelect: () => void;
   onConfirm: () => void;
-  onAction: (action: string) => void;
+  onAction: (action: HousekeepingUiAction) => void;
 }) {
-  const needsAttention = ["due", "update_required", "potentially_stale", "stale"].includes(listing.freshnessStatus);
+  const needsAttention = listing.expiredDraft || ["due", "update_required", "potentially_stale", "stale"].includes(listing.freshnessStatus);
   return (
     <div className="flex flex-col gap-3 border-b last:border-0 py-4 md:flex-row md:items-center" data-testid={`housekeeping-row-${listing.id}`}>
-      <input aria-label={`Select ${listing.reference}`} type="checkbox" checked={selected} onChange={onSelect} className="h-4 w-4 accent-primary" />
+      <input aria-label={`Select ${listing.reference}`} type="checkbox" checked={selected} onChange={onSelect} disabled={listing.expiredDraft} className="h-4 w-4 accent-primary" />
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
           <span className="font-semibold">{listing.reference}</span>
-          <Badge variant="outline" className={STATUS_STYLES[listing.freshnessStatus] ?? ""}>
-            {STATUS_LABELS[listing.freshnessStatus] ?? listing.freshnessStatus}
+          <Badge variant="outline" className={STATUS_STYLES[listing.expiredDraft ? "stale" : listing.freshnessStatus] ?? ""}>
+            {listing.expiredDraft ? "Expired · Draft" : STATUS_LABELS[listing.freshnessStatus] ?? listing.freshnessStatus}
           </Badge>
           {listing.availabilityStatus !== "available" && (
             <Badge variant="secondary">{listing.availabilityStatus.replaceAll("_", " ")}</Badge>
@@ -74,18 +74,30 @@ function ListingRow({
         <span>Quality <strong className="text-foreground">{listing.qualityScore}</strong></span>
         <span className="col-span-2">{listing.freshnessLabel}</span>
       </div>
-      <div className="flex shrink-0 gap-2">
-        <Button size="sm" onClick={onConfirm} disabled={listing.freshnessStatus === "inactive"} data-testid={`button-confirm-${listing.id}`}>
-          <CheckCircle2 className="mr-1.5 h-4 w-4" /> Confirm
-        </Button>
-        {needsAttention && (
-          <Button size="sm" variant="outline" onClick={() => onAction("update")}>
-            Update
-          </Button>
+      <div className="flex shrink-0 flex-wrap gap-2">
+        {listing.expiredDraft ? (
+          <>
+            <Button size="sm" onClick={() => onAction("republish")} disabled={(listing.photos?.length ?? 0) === 0} data-testid={`button-republish-${listing.id}`}>
+              <CheckCircle2 className="mr-1.5 h-4 w-4" /> Republish
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => onAction("archive")}>Archive</Button>
+            {(listing.photos?.length ?? 0) === 0 && <span className="basis-full text-xs text-muted-foreground">Add at least one photo before republishing.</span>}
+          </>
+        ) : (
+          <>
+            <Button size="sm" onClick={onConfirm} disabled={listing.freshnessStatus === "inactive"} data-testid={`button-confirm-${listing.id}`}>
+              <CheckCircle2 className="mr-1.5 h-4 w-4" /> Confirm
+            </Button>
+            {needsAttention && (
+              <Button size="sm" variant="outline" onClick={() => onAction("update")}>
+                Update
+              </Button>
+            )}
+            <Button size="sm" variant="ghost" onClick={() => onAction("mark_unavailable")}>
+              Mark unavailable
+            </Button>
+          </>
         )}
-        <Button size="sm" variant="ghost" onClick={() => onAction("mark_unavailable")}>
-          Mark unavailable
-        </Button>
       </div>
     </div>
   );
@@ -96,7 +108,7 @@ export default function Housekeeping() {
   const { data, isLoading, isError } = useGetListingHousekeeping();
   const [filter, setFilter] = useState("all");
   const [selected, setSelected] = useState<number[]>([]);
-  const invalidate = () => queryClient.invalidateQueries({ queryKey: getGetListingHousekeepingQueryKey() });
+  const invalidate = () => queryClient.invalidateQueries();
   const confirm = useBulkConfirmListingHousekeeping({ mutation: { onSuccess: () => { setSelected([]); invalidate(); } } });
   const action = useApplyListingHousekeepingAction({ mutation: { onSuccess: invalidate } });
   const listings = useMemo(() => (data?.listings ?? []).filter((listing) => filter === "all" || listing.freshnessStatus === filter), [data?.listings, filter]);
@@ -109,9 +121,12 @@ export default function Housekeeping() {
       propertyIds: rows.filter((row) => row.relationshipId == null).map((row) => row.propertyId),
     } });
   };
-  const mutateAction = (listing: ListingHousekeepingItem, actionName: string) => action.mutate({
-    data: { propertyId: listing.propertyId, relationshipId: listing.relationshipId ?? undefined, action: actionName },
-  });
+  const mutateAction = (listing: ListingHousekeepingItem, actionName: HousekeepingUiAction) => {
+    if (actionName === "archive" && !window.confirm("Archive this listing from the marketplace? Its viewings, documents, and history will be kept.")) return;
+    action.mutate({
+      data: { propertyId: listing.propertyId, relationshipId: listing.relationshipId ?? undefined, action: actionName },
+    });
+  };
 
   return (
     <div className="mx-auto max-w-[1400px] space-y-6 p-8">
@@ -119,7 +134,7 @@ export default function Housekeeping() {
         <div>
           <div className="mb-2 flex items-center gap-2 text-primary"><Sparkles className="h-5 w-5" /><span className="text-sm font-semibold uppercase tracking-wider">Listing operations</span></div>
           <h1 className="text-3xl font-bold tracking-tight">Listing Housekeeping</h1>
-          <p className="mt-1 text-muted-foreground">Keep availability accurate, listings fresh, and marketplace trust high.</p>
+          <p className="mt-1 text-muted-foreground">Listings stay live for 30 days, with a reminder 5 days before expiry. Expired listings move to drafts and receive reminders every 5 days.</p>
         </div>
         <Button variant="outline" onClick={() => invalidate()}><RefreshCw className="mr-2 h-4 w-4" />Refresh queue</Button>
       </div>
@@ -156,9 +171,9 @@ export default function Housekeeping() {
       <Card>
         <CardHeader><CardTitle className="flex items-center gap-2 text-base"><SlidersHorizontal className="h-4 w-4" />Current policy</CardTitle></CardHeader>
         <CardContent className="grid gap-2 text-sm text-muted-foreground md:grid-cols-3">
-          <span>First confirmation: <strong className="text-foreground">{data?.thresholds.firstConfirmationDays ?? 14} days</strong></span>
-          <span>Recurring confirmation: <strong className="text-foreground">{data?.thresholds.recurringConfirmationDays ?? 30} days</strong></span>
-          <span>Stale after: <strong className="text-foreground">{data?.thresholds.staleOverdueDays ?? 30} overdue days</strong></span>
+          <span>Live period: <strong className="text-foreground">{data?.thresholds.firstConfirmationDays ?? 30} days</strong></span>
+          <span>Reminder: <strong className="text-foreground">{data?.thresholds.softReminderDays ?? 5} days before expiry</strong></span>
+          <span>Unconfirmed listings move to drafts, with reminders every 5 days.</span>
         </CardContent>
       </Card>
     </div>

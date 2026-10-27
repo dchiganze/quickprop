@@ -914,7 +914,30 @@ export interface AgentContact {
   postalAddress?: string | null;
   /** @nullable */
   notes?: string | null;
+  standalone?: boolean;
   properties: AgentContactProperty[];
+}
+
+export type AgentContactCreateInputType = typeof AgentContactCreateInputType[keyof typeof AgentContactCreateInputType];
+
+
+export const AgentContactCreateInputType = {
+  seller: 'seller',
+  landlord: 'landlord',
+} as const;
+
+export interface AgentContactCreateInput {
+  type: AgentContactCreateInputType;
+  /**
+     * @minLength 1
+     * @maxLength 120
+     */
+  name: string;
+  /**
+     * @minLength 5
+     * @maxLength 40
+     */
+  phone: string;
 }
 
 export interface AgentContactMandateInput {
@@ -1778,6 +1801,7 @@ export type PropertyAlertTransactionType = typeof PropertyAlertTransactionType[k
 export const PropertyAlertTransactionType = {
   sale: 'sale',
   rent: 'rent',
+  any: 'any',
 } as const;
 
 export type PropertyAlertNotificationFrequency = typeof PropertyAlertNotificationFrequency[keyof typeof PropertyAlertNotificationFrequency];
@@ -1796,6 +1820,7 @@ export const PropertyAlertNotificationChannelsItem = {
   in_app: 'in_app',
   email: 'email',
   whatsapp: 'whatsapp',
+  push: 'push',
 } as const;
 
 export interface PropertyAlert {
@@ -1810,6 +1835,8 @@ export interface PropertyAlert {
   minPrice: number | null;
   /** @nullable */
   maxPrice: number | null;
+  /** @nullable */
+  currency: string | null;
   /** @nullable */
   minBedrooms: number | null;
   /** @nullable */
@@ -1899,6 +1926,7 @@ export const PropertyAlertInputNotificationChannelsItem = {
   in_app: 'in_app',
   email: 'email',
   whatsapp: 'whatsapp',
+  push: 'push',
 } as const;
 
 export interface PropertyAlertInput {
@@ -1922,6 +1950,11 @@ export interface PropertyAlertInput {
      * @nullable
      */
   maxPrice?: number | null;
+  /**
+     * @maxLength 12
+     * @nullable
+     */
+  currency?: string | null;
   /**
      * @minimum 0
      * @maximum 20
@@ -2013,6 +2046,7 @@ export const PropertyAlertUpdateNotificationChannelsItem = {
   in_app: 'in_app',
   email: 'email',
   whatsapp: 'whatsapp',
+  push: 'push',
 } as const;
 
 export interface PropertyAlertUpdate {
@@ -2036,6 +2070,11 @@ export interface PropertyAlertUpdate {
      * @nullable
      */
   maxPrice?: number | null;
+  /**
+     * @maxLength 12
+     * @nullable
+     */
+  currency?: string | null;
   /**
      * @minimum 0
      * @maximum 20
@@ -2061,6 +2100,77 @@ export interface PropertyAlertUpdate {
 
 export interface PropertyAlertStatusInput {
   active: boolean;
+}
+
+export interface AgentSearchAlert {
+  id: string;
+  name: string;
+  /** @nullable */
+  type: string | null;
+  /** @nullable */
+  suburb: string | null;
+  /** @nullable */
+  minBedrooms: number | null;
+  /** @nullable */
+  maxPrice: number | null;
+  /** @nullable */
+  currency: string | null;
+  features: string[];
+  seenPropertyIds: string[];
+  createdAt: string;
+}
+
+/**
+ * @nullable
+ */
+export type AgentSearchAlertInputType = typeof AgentSearchAlertInputType[keyof typeof AgentSearchAlertInputType] | null;
+
+
+export const AgentSearchAlertInputType = {
+  sale: 'sale',
+  rent: 'rent',
+  commercial: 'commercial',
+  stand: 'stand',
+  farm: 'farm',
+  mine: 'mine',
+} as const;
+
+export interface AgentSearchAlertInput {
+  /**
+     * @minLength 1
+     * @maxLength 120
+     */
+  name: string;
+  /** @nullable */
+  type: AgentSearchAlertInputType;
+  /**
+     * @maxLength 120
+     * @nullable
+     */
+  suburb: string | null;
+  /**
+     * @minimum 0
+     * @maximum 20
+     * @nullable
+     */
+  minBedrooms: number | null;
+  /**
+     * @minimum 0
+     * @nullable
+     */
+  maxPrice: number | null;
+  /**
+     * @maxLength 12
+     * @nullable
+     */
+  currency: string | null;
+  /** @items.maxLength 120 */
+  features: string[];
+}
+
+export interface AgentSearchAlertSeenInput {
+  /** @items.minimum 1 */
+  propertyIds: number[];
 }
 
 export interface MarketplaceStats {
@@ -2250,6 +2360,7 @@ export interface ListingHousekeepingItem {
   bedrooms?: number | null;
   /** @nullable */
   bathrooms?: number | null;
+  expiredDraft: boolean;
 }
 
 export type ListingHousekeepingResponseSummary = {[key: string]: number};
@@ -2260,11 +2371,31 @@ export interface ListingHousekeepingResponse {
   thresholds: ListingHousekeepingSettings;
 }
 
+/**
+ * Republish is only for a listing auto-drafted after its confirmation deadline. Archive preserves listing history.
+ */
+export type ListingHousekeepingActionInputAction = typeof ListingHousekeepingActionInputAction[keyof typeof ListingHousekeepingActionInputAction];
+
+
+export const ListingHousekeepingActionInputAction = {
+  update: 'update',
+  confirm: 'confirm',
+  mark_unavailable: 'mark_unavailable',
+  temporarily_unavailable: 'temporarily_unavailable',
+  under_offer: 'under_offer',
+  sold: 'sold',
+  let: 'let',
+  withdrawn: 'withdrawn',
+  reactivate: 'reactivate',
+  republish: 'republish',
+  archive: 'archive',
+} as const;
+
 export interface ListingHousekeepingActionInput {
   propertyId?: number;
   relationshipId?: number;
-  /** update | confirm | mark_unavailable | temporarily_unavailable | under_offer | sold | let | withdrawn | reactivate */
-  action?: string;
+  /** Republish is only for a listing auto-drafted after its confirmation deadline. Archive preserves listing history. */
+  action?: ListingHousekeepingActionInputAction;
 }
 
 export interface BulkListingHousekeepingInput {

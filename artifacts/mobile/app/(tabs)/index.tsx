@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  Animated, View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, Alert, RefreshControl,
+  Animated, View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, Alert, RefreshControl, Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -12,7 +12,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
 import { StatCard } from '@/components/StatCard';
 import { PropertyCard } from '@/components/PropertyCard';
-import { QuickShareSheet } from '@/components/QuickShareSheet';
 import { useMatchNotifications } from '@/hooks/useMatchNotifications';
 import { useGetAgentContacts } from '@workspace/api-client-react';
 
@@ -25,7 +24,6 @@ export default function DashboardScreen() {
   const { data: sellers } = useGetAgentContacts({ type: 'seller' });
   const { data: landlords } = useGetAgentContacts({ type: 'landlord' });
   const matchInbox = useMatchNotifications();
-  const [shareOpen, setShareOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const refreshRotation = useRef(new Animated.Value(0)).current;
 
@@ -74,7 +72,6 @@ export default function DashboardScreen() {
   const recentProperties = [...properties].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()).slice(0, 3);
 
   const firstName = user?.name.split(' ')[0] ?? 'Agent';
-  const dateStr = new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
 
   const handleSignOut = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
@@ -93,7 +90,7 @@ export default function DashboardScreen() {
   const QUICK_ACTIONS = [
     { label: 'New Listing', icon: 'add-circle' as const, accent: true, onPress: () => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}); router.push('/new-listing'); } },
     { label: 'Search Inventory', icon: 'search-outline' as const, accent: false, onPress: () => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}); router.push('/(tabs)/listings'); } },
-    { label: 'Share Brochure', icon: 'share-outline' as const, accent: true, onPress: () => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {}); setShareOpen(true); } },
+    { label: 'Share Brochure', icon: 'share-outline' as const, accent: true, onPress: () => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {}); router.push('/brochure'); } },
     { label: 'Upcoming Viewings', icon: 'calendar-outline' as const, accent: false, onPress: () => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}); router.push('/viewings'); } },
   ];
 
@@ -119,6 +116,17 @@ export default function DashboardScreen() {
         />
       }
     >
+      <View style={styles.brandRow}>
+        <View style={[styles.brandMarkFrame, { backgroundColor: colors.primary }]}>
+          <Image
+            source={require('../../assets/images/quickprop-house-mark-white.png')}
+            style={styles.brandMark}
+            resizeMode="contain"
+            accessibilityLabel="QuickProp house logo"
+          />
+        </View>
+        <Text style={[styles.brandTitle, { color: colors.foreground }]}>QuickProp Agent</Text>
+      </View>
       {refreshing && (
         <View
           style={[styles.refreshIndicator, { backgroundColor: colors.card, borderColor: colors.border }]}
@@ -136,7 +144,6 @@ export default function DashboardScreen() {
       {/* Header */}
       <View style={styles.header}>
         <View>
-          <Text style={[styles.greeting, { color: colors.mutedForeground }]}>{dateStr}</Text>
           <Text style={[styles.name, { color: colors.foreground }]}>Welcome back, {firstName}</Text>
         </View>
         <TouchableOpacity
@@ -220,7 +227,6 @@ export default function DashboardScreen() {
       </TouchableOpacity>
     </ScrollView>
 
-    <QuickShareSheet visible={shareOpen} onClose={() => setShareOpen(false)} />
     </>
   );
 }
@@ -240,8 +246,11 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   refreshIndicatorText: { fontSize: 12, fontWeight: '600' },
+  brandRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 16 },
+  brandMarkFrame: { width: 28, height: 28, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
+  brandMark: { width: 22, height: 22 },
+  brandTitle: { fontSize: 18, lineHeight: 24, fontWeight: '800', letterSpacing: -0.3 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 22 },
-  greeting: { fontSize: 13, fontWeight: '500', marginBottom: 3 },
   name: { fontSize: 24, fontWeight: '800', letterSpacing: -0.5 },
   notifBtn: {
     width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center', borderWidth: 1,

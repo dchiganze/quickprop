@@ -299,16 +299,17 @@ router.patch("/properties/:id", async (req, res): Promise<void> => {
     mandateType: propertyData.mandateType === "exclusive" ? "sole" : propertyData.mandateType,
   };
   const update: Record<string, unknown> = { ...normalizedData, updatedAt: new Date() };
-  const meaningfulFields = ["title", "description", "price", "photos", "features", "address", "suburb", "bedrooms", "bathrooms", "buildingSize", "landSize"];
-  if (meaningfulFields.some((field) => field in parsed.data)) {
-    update.nextConfirmationAt = new Date(Date.now() + DEFAULT_HOUSEKEEPING_SETTINGS.recurringConfirmationDays * 86400000);
+  if (parsed.data.status === "public" && existing.status !== "public") {
+    const publishedAt = new Date();
+    update.publishedAt = publishedAt;
+    update.lastAvailabilityConfirmedAt = publishedAt;
+    update.nextConfirmationAt = new Date(
+      publishedAt.getTime() + DEFAULT_HOUSEKEEPING_SETTINGS.firstConfirmationDays * 86400000,
+    );
     update.freshnessStatus = "fresh";
     update.freshnessScore = 100;
     update.daysSinceConfirmation = 0;
     update.staleSince = null;
-  }
-  if (parsed.data.status === "public" && existing.status !== "public") {
-    update.publishedAt = new Date();
     update.pipelineStage = "published";
   } else if (parsed.data.status === "draft") {
     update.pipelineStage = "draft";

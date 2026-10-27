@@ -5,10 +5,11 @@
  * QuickProp Office API
  * OpenAPI spec version: 0.1.0
  */
+import type { ListingHousekeepingActionInputAction } from './listingHousekeepingActionInputAction';
 
 export interface ListingHousekeepingActionInput {
   propertyId?: number;
   relationshipId?: number;
-  /** update | confirm | mark_unavailable | temporarily_unavailable | under_offer | sold | let | withdrawn | reactivate */
-  action?: string;
+  /** Republish is only for a listing auto-drafted after its confirmation deadline. Archive preserves listing history. */
+  action?: ListingHousekeepingActionInputAction;
 }

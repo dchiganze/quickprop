@@ -12,4 +12,5 @@ export type PropertyAlertTransactionType = typeof PropertyAlertTransactionType[k
 export const PropertyAlertTransactionType = {
   sale: 'sale',
   rent: 'rent',
+  any: 'any',
 } as const;

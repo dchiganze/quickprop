@@ -3,10 +3,12 @@ import {
   ActivityIndicator,
   Alert,
   Linking,
+  Modal,
   ScrollView,
   Share,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -17,12 +19,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   AgentContact,
   getGetAgentContactsQueryKey,
+  useCreateAgentContact,
   useCreateAgentContactReviewInvitation,
   useGetAgentContacts,
 } from '@workspace/api-client-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useColors } from '@/hooks/useColors';
 import { apiBaseUrl, getStoredAccessToken } from '@/contexts/AuthContext';
+import { KeyboardAwareScrollViewCompat } from '@/components/KeyboardAwareScrollViewCompat';
 
 type ContactKind = 'seller' | 'landlord';
 
@@ -81,8 +85,37 @@ export default function ContactRecordsScreen() {
   const title = kind === 'seller' ? 'Sellers' : 'Landlords';
   const queryClient = useQueryClient();
   const { data: contacts, isLoading, isError, refetch } = useGetAgentContacts({ type: kind });
+  const createContact = useCreateAgentContact();
   const requestReview = useCreateAgentContactReviewInvitation();
   const [busyPropertyId, setBusyPropertyId] = useState<number | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [contactName, setContactName] = useState('');
+  const [contactPhone, setContactPhone] = useState('');
+  const [createError, setCreateError] = useState('');
+  const [savingContact, setSavingContact] = useState(false);
+
+  const saveStandaloneContact = async () => {
+    const name = contactName.trim();
+    const phone = contactPhone.trim();
+    if (!name || !phone) {
+      setCreateError('Enter a name and phone number.');
+      return;
+    }
+    setSavingContact(true);
+    setCreateError('');
+    try {
+      await createContact.mutateAsync({ data: { type: kind, name, phone } });
+      await queryClient.invalidateQueries({ queryKey: getGetAgentContactsQueryKey({ type: kind }) });
+      setContactName('');
+      setContactPhone('');
+      setCreateOpen(false);
+      Alert.alert('Contact added', `${name} is now listed under ${title.toLowerCase()}.`);
+    } catch (error) {
+      setCreateError(error instanceof Error ? error.message : 'The contact could not be saved.');
+    } finally {
+      setSavingContact(false);
+    }
+  };
 
   const captureMandate = async (propertyId: number) => {
     try {
@@ -138,6 +171,7 @@ export default function ContactRecordsScreen() {
   };
 
   return (
+    <>
     <ScrollView
       style={[styles.flex, { backgroundColor: colors.background }]}
       contentContainerStyle={[styles.content, { paddingTop: insets.top + 14, paddingBottom: insets.bottom + 32 }]}
@@ -150,12 +184,21 @@ export default function ContactRecordsScreen() {
         <View style={styles.heading}>
           <Text style={[styles.title, { color: colors.foreground }]}>{title}</Text>
           <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>
-            Contacts linked to your {kind === 'seller' ? 'sale' : 'rental'} properties
+            Standalone contacts and details linked to your {kind === 'seller' ? 'sale' : 'rental'} properties
           </Text>
         </View>
-        <TouchableOpacity onPress={() => refetch()} style={styles.refresh} accessibilityLabel={`Refresh ${title.toLowerCase()}`}>
-          <Ionicons name="refresh-outline" size={20} color={colors.primary} />
-        </TouchableOpacity>
+        <View style={styles.headerActions}>
+          <TouchableOpacity
+            onPress={() => { setCreateError(''); setCreateOpen(true); }}
+            style={[styles.headerAction, { backgroundColor: colors.primary }]}
+            accessibilityLabel={`Add ${kind}`}
+          >
+            <Ionicons name="add" size={21} color={colors.primaryForeground} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => refetch()} style={styles.headerAction} accessibilityLabel={`Refresh ${title.toLowerCase()}`}>
+            <Ionicons name="refresh-outline" size={20} color={colors.primary} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {isLoading ? (
@@ -169,7 +212,7 @@ export default function ContactRecordsScreen() {
         <View style={[styles.empty, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <Ionicons name={kind === 'seller' ? 'briefcase-outline' : 'home-outline'} size={32} color={colors.primary} />
           <Text style={[styles.emptyTitle, { color: colors.foreground }]}>No {title.toLowerCase()} on file</Text>
-          <Text style={[styles.stateText, { color: colors.mutedForeground }]}>Add contact details to a {kind === 'seller' ? 'sale' : 'rental'} listing to see them here.</Text>
+          <Text style={[styles.stateText, { color: colors.mutedForeground }]}>Add a standalone contact here or enter contact details on a {kind === 'seller' ? 'sale' : 'rental'} listing.</Text>
         </View>
       ) : (
         contacts.map((contact) => (
@@ -185,8 +228,67 @@ export default function ContactRecordsScreen() {
           />
         ))
       )}
-      <Text style={[styles.privacy, { color: colors.mutedForeground }]}>Contact details and mandates are private to your agency team.</Text>
+      <Text style={[styles.privacy, { color: colors.mutedForeground }]}>Standalone contacts are visible only to your account.</Text>
     </ScrollView>
+    <Modal
+      visible={createOpen}
+      transparent
+      animationType="slide"
+      statusBarTranslucent
+      onRequestClose={() => setCreateOpen(false)}
+    >
+      <View style={[styles.modalBackdrop, { backgroundColor: colors.overlay }]}>
+        <KeyboardAwareScrollViewCompat
+          style={styles.modalScroll}
+          contentContainerStyle={[styles.modalScrollContent, { paddingTop: insets.top + 18, paddingBottom: insets.bottom + 24 }]}
+          bottomOffset={24}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={[styles.modalCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <View style={styles.modalHeader}>
+              <View style={styles.flex}>
+                <Text style={[styles.modalTitle, { color: colors.foreground }]}>New {kind} contact</Text>
+                <Text style={[styles.modalSubtitle, { color: colors.mutedForeground }]}>Standalone contact · no listing required</Text>
+              </View>
+              <TouchableOpacity onPress={() => setCreateOpen(false)} accessibilityLabel="Close">
+                <Ionicons name="close" size={22} color={colors.mutedForeground} />
+              </TouchableOpacity>
+            </View>
+            <Text style={[styles.inputLabel, { color: colors.mutedForeground }]}>NAME</Text>
+            <TextInput
+              style={[styles.input, { backgroundColor: colors.input, borderColor: colors.border, color: colors.foreground }]}
+              value={contactName}
+              onChangeText={setContactName}
+              placeholder={kind === 'seller' ? 'Seller name' : 'Landlord name'}
+              placeholderTextColor={colors.mutedForeground}
+              autoCapitalize="words"
+              returnKeyType="next"
+              accessibilityLabel={`${title} contact name`}
+            />
+            <Text style={[styles.inputLabel, { color: colors.mutedForeground }]}>PHONE NUMBER</Text>
+            <TextInput
+              style={[styles.input, { backgroundColor: colors.input, borderColor: colors.border, color: colors.foreground }]}
+              value={contactPhone}
+              onChangeText={setContactPhone}
+              placeholder="Phone number"
+              placeholderTextColor={colors.mutedForeground}
+              keyboardType="phone-pad"
+              returnKeyType="done"
+              accessibilityLabel={`${title} contact phone number`}
+            />
+            {!!createError && <Text style={[styles.errorText, { color: colors.destructive }]}>{createError}</Text>}
+            <TouchableOpacity
+              onPress={() => void saveStandaloneContact()}
+              disabled={savingContact}
+              style={[styles.saveButton, { backgroundColor: colors.primary, opacity: savingContact ? 0.6 : 1 }]}
+            >
+              {savingContact ? <ActivityIndicator color={colors.primaryForeground} /> : <Text style={[styles.saveButtonText, { color: colors.primaryForeground }]}>Save contact</Text>}
+            </TouchableOpacity>
+          </View>
+        </KeyboardAwareScrollViewCompat>
+      </View>
+    </Modal>
+    </>
   );
 }
 
@@ -214,6 +316,7 @@ function ContactCard({
         <View style={styles.flex}>
           <Text style={[styles.name, { color: colors.foreground }]}>{contact.name}</Text>
           {contact.idNumber ? <Text style={[styles.detail, { color: colors.mutedForeground }]}>ID: {contact.idNumber}</Text> : null}
+          {contact.standalone ? <Text style={[styles.standalone, { color: colors.mutedForeground }]}>Standalone contact</Text> : null}
         </View>
       </View>
       {!!contact.phone && <TouchableOpacity style={styles.contactLine} onPress={() => Linking.openURL(`tel:${contact.phone}`)}><Ionicons name="call-outline" size={16} color={colors.primary} /><Text style={[styles.detail, { color: colors.foreground }]}>{contact.phone}</Text></TouchableOpacity>}
@@ -221,7 +324,7 @@ function ContactCard({
       {!!contact.postalAddress && <View style={styles.contactLine}><Ionicons name="location-outline" size={16} color={colors.primary} /><Text style={[styles.detail, { color: colors.foreground }]}>{contact.postalAddress}</Text></View>}
       {!!contact.notes && <Text style={[styles.notes, { color: colors.mutedForeground }]}>{contact.notes}</Text>}
 
-      <View style={[styles.divider, { backgroundColor: colors.border }]} />
+      {contact.properties.length > 0 ? <View style={[styles.divider, { backgroundColor: colors.border }]} /> : null}
       {contact.properties.map((property) => {
         const closed = ['sold', 'rented', 'withdrawn', 'archived'].includes(property.status)
           || ['sold', 'let', 'withdrawn'].includes(property.availabilityStatus ?? '');
@@ -274,7 +377,8 @@ const styles = StyleSheet.create({
   heading: { flex: 1 },
   title: { fontSize: 28, fontWeight: '800' },
   subtitle: { fontSize: 13, marginTop: 2 },
-  refresh: { padding: 10 },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  headerAction: { width: 42, height: 42, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   state: { paddingVertical: 38, alignItems: 'center', gap: 10 },
   stateText: { fontSize: 13, lineHeight: 19, textAlign: 'center' },
   empty: { borderWidth: 1, borderRadius: 20, padding: 24, alignItems: 'center', gap: 10 },
@@ -288,6 +392,7 @@ const styles = StyleSheet.create({
   detail: { fontSize: 13, lineHeight: 18, flexShrink: 1 },
   contactLine: { flexDirection: 'row', alignItems: 'center', gap: 9 },
   notes: { fontSize: 13, lineHeight: 18 },
+  standalone: { fontSize: 11, fontWeight: '600', marginTop: 3 },
   divider: { height: 1, marginTop: 3 },
   property: { borderBottomWidth: 1, paddingVertical: 10, gap: 9 },
   propertyHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
@@ -298,4 +403,16 @@ const styles = StyleSheet.create({
   actionText: { fontSize: 13, fontWeight: '700' },
   reviewHint: { fontSize: 11, textAlign: 'center' },
   privacy: { fontSize: 11, lineHeight: 16, textAlign: 'center', marginTop: 2 },
+  modalBackdrop: { flex: 1, justifyContent: 'center' },
+  modalScroll: { flex: 1 },
+  modalScrollContent: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 20 },
+  modalCard: { borderWidth: 1, borderRadius: 22, padding: 20, gap: 10 },
+  modalHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: 16, marginBottom: 8 },
+  modalTitle: { fontSize: 22, fontWeight: '800' },
+  modalSubtitle: { fontSize: 13, marginTop: 4 },
+  inputLabel: { fontSize: 11, fontWeight: '700', letterSpacing: 0.7, marginTop: 4 },
+  input: { minHeight: 50, borderWidth: 1, borderRadius: 13, paddingHorizontal: 14, fontSize: 15 },
+  errorText: { fontSize: 13, lineHeight: 18 },
+  saveButton: { minHeight: 50, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginTop: 6 },
+  saveButtonText: { fontSize: 15, fontWeight: '700' },
 });

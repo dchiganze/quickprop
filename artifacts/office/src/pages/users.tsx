@@ -1,11 +1,14 @@
 import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import {
+  getGetAdminAgenciesQueryKey,
   getListBranchesQueryKey,
   getListUsersQueryKey,
   useCreateAdminAgencyAgent,
+  useCreateAdminAgencyBranch,
   useCreateUser,
   useDeleteUser,
+  useGetAdminAgencies,
   useGetCurrentUser,
   useListUsers,
   useListBranches,
@@ -60,6 +63,14 @@ const teamInviteSchema = z.object({
 });
 type TeamInviteValues = z.infer<typeof teamInviteSchema>;
 const emptyTeamInvite: TeamInviteValues = { name: '', email: '', phone: '', branchId: 0 };
+const branchSchema = z.object({
+  agencyId: z.coerce.number().int().positive('Choose an agency.'),
+  name: z.string().trim().min(2, 'Enter a branch name.').max(500),
+  address: z.string().trim().max(500).optional(),
+  phone: z.string().trim().max(40).optional(),
+});
+type BranchValues = z.infer<typeof branchSchema>;
+const emptyBranch: BranchValues = { agencyId: 0, name: '', address: '', phone: '' };
 const administratorRoles = ['principal', 'admin'];
 
 function errorText(error: unknown, fallback: string): string {
@@ -67,11 +78,16 @@ function errorText(error: unknown, fallback: string): string {
 }
 
 export default function Users() {
+  const { data: currentUser } = useGetCurrentUser();
+  const canManageUsers = currentUser?.role === 'admin';
   const { data: users, isLoading: loadingUsers } = useListUsers();
   const { data: branches, isLoading: loadingBranches } = useListBranches();
-  const { data: currentUser } = useGetCurrentUser();
+  const { data: agencies } = useGetAdminAgencies({
+    query: { enabled: canManageUsers, queryKey: getGetAdminAgenciesQueryKey() },
+  });
   const createUser = useCreateUser();
   const createTeamMember = useCreateAdminAgencyAgent();
+  const createBranch = useCreateAdminAgencyBranch();
   const updateUser = useUpdateUser();
   const deleteUser = useDeleteUser();
   const requestPasswordReset = useRequestAdminPasswordReset();
@@ -79,18 +95,19 @@ export default function Users() {
   const { toast } = useToast();
   const [inviteOpen, setInviteOpen] = useState(false);
   const [teamInviteOpen, setTeamInviteOpen] = useState(false);
+  const [branchOpen, setBranchOpen] = useState(false);
   const [deactivationTarget, setDeactivationTarget] = useState<{ id: number; name: string; email: string } | null>(null);
   const [deletionTarget, setDeletionTarget] = useState<{ id: number; name: string; email: string; role: string; status: string } | null>(null);
   const [setupLinkTargetId, setSetupLinkTargetId] = useState<number | null>(null);
-  const canManageUsers = currentUser?.role === 'admin';
   const activeAdminCount = users?.filter((user) => administratorRoles.includes(user.role) && user.status === 'active').length ?? 0;
-  const assignedBranch = branches?.find((branch) => branch.id === currentUser?.branchId);
+  const activeAgencies = (agencies?.agencies ?? []).filter((agency) => agency.status === 'active');
+  const activeAgencyIds = new Set(activeAgencies.map((agency) => agency.id));
   const teamBranches = (branches ?? []).filter((branch) =>
     branch.status === 'active'
-    && (assignedBranch?.agencyId != null
-      ? branch.agencyId === assignedBranch.agencyId
-      : branch.id === currentUser?.branchId),
+    && branch.agencyId != null
+    && activeAgencyIds.has(branch.agencyId),
   );
+  const currentBranchAgencyId = branches?.find((branch) => branch.id === currentUser?.branchId)?.agencyId ?? null;
 
   const inviteForm = useForm<InviteValues>({
     resolver: zodResolver(inviteSchema),
@@ -99,6 +116,10 @@ export default function Users() {
   const teamInviteForm = useForm<TeamInviteValues>({
     resolver: zodResolver(teamInviteSchema),
     defaultValues: emptyTeamInvite,
+  });
+  const branchForm = useForm<BranchValues>({
+    resolver: zodResolver(branchSchema),
+    defaultValues: emptyBranch,
   });
 
   const closeInviteDialog = (open: boolean) => {
@@ -147,6 +168,53 @@ export default function Users() {
         },
         onError: (error) => toast({
           title: 'Could not invite team member',
+          description: errorText(error, 'Check the details and try again.'),
+          variant: 'destructive',
+        }),
+      },
+    );
+  };
+
+  const openBranchDialog = () => {
+    branchForm.reset({
+      ...emptyBranch,
+      agencyId: currentBranchAgencyId
+        ?? activeAgencies[0]?.id
+        ?? 0,
+    });
+    setBranchOpen(true);
+  };
+
+  const addBranch = (values: BranchValues) => {
+    const agency = activeAgencies.find((item) => item.id === values.agencyId);
+    if (!agency) {
+      toast({
+        title: 'Choose an active agency',
+        description: 'An active agency is required before a branch can be added.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    createBranch.mutate(
+      {
+        agencyId: agency.id,
+        data: {
+          name: values.name.trim(),
+          address: values.address?.trim() || null,
+          phone: values.phone?.trim() || null,
+          isMain: false,
+        },
+      },
+      {
+        onSuccess: (created) => {
+          void queryClient.invalidateQueries({ queryKey: getListBranchesQueryKey() });
+          void queryClient.invalidateQueries({ queryKey: getGetAdminAgenciesQueryKey() });
+          setBranchOpen(false);
+          branchForm.reset(emptyBranch);
+          toast({ title: 'Branch added', description: `${created.name} is ready for team assignments.` });
+        },
+        onError: (error) => toast({
+          title: 'Could not add branch',
           description: errorText(error, 'Check the details and try again.'),
           variant: 'destructive',
         }),
@@ -253,12 +321,14 @@ export default function Users() {
           <p className="text-muted-foreground mt-1">Manage agency staff and office locations.</p>
         </div>
         <div className="flex flex-wrap gap-3">
-          <Button variant="outline" className="shadow-sm" disabled title="Branch creation is not available yet.">
-            <Plus className="w-4 h-4 mr-2" />
-            Add Branch
-          </Button>
           {canManageUsers && (
-            <Button variant="outline" className="shadow-sm" onClick={openTeamInvite} disabled={!teamBranches.length || createTeamMember.isPending} data-testid="button-add-team-member">
+            <Button variant="outline" className="shadow-sm" onClick={openBranchDialog} disabled={createBranch.isPending} data-testid="button-add-branch">
+              <Plus className="w-4 h-4 mr-2" />
+              Add Branch
+            </Button>
+          )}
+          {canManageUsers && (
+            <Button variant="outline" className="shadow-sm" onClick={openTeamInvite} disabled={loadingBranches || createTeamMember.isPending} data-testid="button-add-team-member">
               <UserPlus className="w-4 h-4 mr-2" />
               Add team member
             </Button>
@@ -509,6 +579,80 @@ export default function Users() {
               </DialogFooter>
             </form>
           </Form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={branchOpen} onOpenChange={(open) => {
+        setBranchOpen(open);
+        if (!open) branchForm.reset(emptyBranch);
+      }}>
+        <DialogContent className="sm:max-w-lg" data-testid="dialog-add-branch">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Building2 className="h-5 w-5 text-primary" />
+              Add branch
+            </DialogTitle>
+            <DialogDescription>
+              Add another office location to an active agency. You can assign team members to it afterward.
+            </DialogDescription>
+          </DialogHeader>
+          {activeAgencies.length ? (
+            <Form {...branchForm}>
+              <form onSubmit={branchForm.handleSubmit(addBranch)} className="space-y-4">
+                <FormField control={branchForm.control} name="agencyId" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Agency</FormLabel>
+                    <Select value={field.value ? String(field.value) : ''} onValueChange={(value) => field.onChange(Number(value))}>
+                      <FormControl>
+                        <SelectTrigger data-testid="select-branch-agency"><SelectValue placeholder="Choose an agency" /></SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {activeAgencies.map((agency) => <SelectItem key={agency.id} value={String(agency.id)}>{agency.name}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+                <FormField control={branchForm.control} name="name" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Branch name</FormLabel>
+                    <FormControl><Input {...field} maxLength={500} placeholder="e.g. Avondale" data-testid="input-branch-name" /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+                <FormField control={branchForm.control} name="address" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Address</FormLabel>
+                    <FormControl><Input {...field} maxLength={500} placeholder="Street address (optional)" data-testid="input-branch-address" /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+                <FormField control={branchForm.control} name="phone" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Phone</FormLabel>
+                    <FormControl><Input {...field} type="tel" maxLength={40} placeholder="Branch phone (optional)" data-testid="input-branch-phone" /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+                <DialogFooter>
+                  <Button type="button" variant="outline" onClick={() => setBranchOpen(false)} disabled={createBranch.isPending}>Cancel</Button>
+                  <Button type="submit" disabled={createBranch.isPending} data-testid="button-submit-branch">
+                    {createBranch.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Add branch
+                  </Button>
+                </DialogFooter>
+              </form>
+            </Form>
+          ) : (
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                There is no active agency to attach this branch to. Create or reactivate an agency in QuickProp Admin first.
+              </p>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setBranchOpen(false)}>Close</Button>
+              </DialogFooter>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 

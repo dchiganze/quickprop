@@ -54,12 +54,16 @@ import type {
   AgencySettings,
   AgencySettingsInput,
   AgentContact,
+  AgentContactCreateInput,
   AgentContactMandateInput,
   AgentContactReviewInvitation,
   AgentPastSaleInput,
   AgentReviewInput,
   AgentReviewResult,
   AgentSalesHistory,
+  AgentSearchAlert,
+  AgentSearchAlertInput,
+  AgentSearchAlertSeenInput,
   AgentSetupCompleteInput,
   AnalyticsSummary,
   AttentionItem,
@@ -2898,6 +2902,71 @@ export function useGetAgentContacts<TData = Awaited<ReturnType<typeof getAgentCo
 
 
 
+
+export const getCreateAgentContactUrl = () => {
+
+
+
+
+  return `/api/agent-contacts`
+}
+
+export const createAgentContact = async (agentContactCreateInput: AgentContactCreateInput, options?: RequestInit): Promise<AgentContact> => {
+
+  return customFetch<AgentContact>(getCreateAgentContactUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(agentContactCreateInput)
+  }
+);}
+
+
+
+
+
+export const getCreateAgentContactMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAgentContact>>, TError,{data: BodyType<AgentContactCreateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createAgentContact>>, TError,{data: BodyType<AgentContactCreateInput>}, TContext> => {
+
+const mutationKey = ['createAgentContact'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createAgentContact>>, {data: BodyType<AgentContactCreateInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createAgentContact(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateAgentContactMutationResult = NonNullable<Awaited<ReturnType<typeof createAgentContact>>>
+    export type CreateAgentContactMutationBody = BodyType<AgentContactCreateInput>
+    export type CreateAgentContactMutationError = ErrorType<unknown>
+
+    export const useCreateAgentContact = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAgentContact>>, TError,{data: BodyType<AgentContactCreateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createAgentContact>>,
+        TError,
+        {data: BodyType<AgentContactCreateInput>},
+        TContext
+      > => {
+      return useMutation(getCreateAgentContactMutationOptions(options));
+    }
 
 export const getCreateAgentContactMandateUrl = (propertyId: number,) => {
 
@@ -7872,6 +7941,298 @@ export const useCreateSimilarPropertyAlert = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getCreateSimilarPropertyAlertMutationOptions(options));
+    }
+
+export const getListAgentSearchAlertsUrl = () => {
+
+
+
+
+  return `/api/agent/search-alerts`
+}
+
+/**
+ * @summary List the signed-in agent's saved search alerts
+ */
+export const listAgentSearchAlerts = async ( options?: RequestInit): Promise<AgentSearchAlert[]> => {
+
+  return customFetch<AgentSearchAlert[]>(getListAgentSearchAlertsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListAgentSearchAlertsQueryKey = () => {
+    return [
+    `/api/agent/search-alerts`
+    ] as const;
+    }
+
+
+export const getListAgentSearchAlertsQueryOptions = <TData = Awaited<ReturnType<typeof listAgentSearchAlerts>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAgentSearchAlerts>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListAgentSearchAlertsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listAgentSearchAlerts>>> = ({ signal }) => listAgentSearchAlerts({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listAgentSearchAlerts>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListAgentSearchAlertsQueryResult = NonNullable<Awaited<ReturnType<typeof listAgentSearchAlerts>>>
+export type ListAgentSearchAlertsQueryError = ErrorType<void>
+
+
+/**
+ * @summary List the signed-in agent's saved search alerts
+ */
+
+export function useListAgentSearchAlerts<TData = Awaited<ReturnType<typeof listAgentSearchAlerts>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAgentSearchAlerts>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListAgentSearchAlertsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getUpsertAgentSearchAlertUrl = (clientId: string,) => {
+
+
+
+
+  return `/api/agent/search-alerts/${clientId}`
+}
+
+/**
+ * @summary Upsert an agent search alert using its stable client ID
+ */
+export const upsertAgentSearchAlert = async (clientId: string,
+    agentSearchAlertInput: AgentSearchAlertInput, options?: RequestInit): Promise<AgentSearchAlert> => {
+
+  return customFetch<AgentSearchAlert>(getUpsertAgentSearchAlertUrl(clientId),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(agentSearchAlertInput)
+  }
+);}
+
+
+
+
+
+export const getUpsertAgentSearchAlertMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof upsertAgentSearchAlert>>, TError,{clientId: string;data: BodyType<AgentSearchAlertInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof upsertAgentSearchAlert>>, TError,{clientId: string;data: BodyType<AgentSearchAlertInput>}, TContext> => {
+
+const mutationKey = ['upsertAgentSearchAlert'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof upsertAgentSearchAlert>>, {clientId: string;data: BodyType<AgentSearchAlertInput>}> = (props) => {
+          const {clientId,data} = props ?? {};
+
+          return  upsertAgentSearchAlert(clientId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpsertAgentSearchAlertMutationResult = NonNullable<Awaited<ReturnType<typeof upsertAgentSearchAlert>>>
+    export type UpsertAgentSearchAlertMutationBody = BodyType<AgentSearchAlertInput>
+    export type UpsertAgentSearchAlertMutationError = ErrorType<void>
+
+    /**
+ * @summary Upsert an agent search alert using its stable client ID
+ */
+export const useUpsertAgentSearchAlert = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof upsertAgentSearchAlert>>, TError,{clientId: string;data: BodyType<AgentSearchAlertInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof upsertAgentSearchAlert>>,
+        TError,
+        {clientId: string;data: BodyType<AgentSearchAlertInput>},
+        TContext
+      > => {
+      return useMutation(getUpsertAgentSearchAlertMutationOptions(options));
+    }
+
+export const getDeleteAgentSearchAlertUrl = (clientId: string,) => {
+
+
+
+
+  return `/api/agent/search-alerts/${clientId}`
+}
+
+/**
+ * @summary Delete an agent's saved search alert
+ */
+export const deleteAgentSearchAlert = async (clientId: string, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getDeleteAgentSearchAlertUrl(clientId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteAgentSearchAlertMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteAgentSearchAlert>>, TError,{clientId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteAgentSearchAlert>>, TError,{clientId: string}, TContext> => {
+
+const mutationKey = ['deleteAgentSearchAlert'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteAgentSearchAlert>>, {clientId: string}> = (props) => {
+          const {clientId} = props ?? {};
+
+          return  deleteAgentSearchAlert(clientId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteAgentSearchAlertMutationResult = NonNullable<Awaited<ReturnType<typeof deleteAgentSearchAlert>>>
+
+    export type DeleteAgentSearchAlertMutationError = ErrorType<void>
+
+    /**
+ * @summary Delete an agent's saved search alert
+ */
+export const useDeleteAgentSearchAlert = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteAgentSearchAlert>>, TError,{clientId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteAgentSearchAlert>>,
+        TError,
+        {clientId: string},
+        TContext
+      > => {
+      return useMutation(getDeleteAgentSearchAlertMutationOptions(options));
+    }
+
+export const getMarkAgentSearchAlertMatchesSeenUrl = (clientId: string,) => {
+
+
+
+
+  return `/api/agent/search-alerts/${clientId}/seen`
+}
+
+/**
+ * @summary Mark matching listings as seen for an agent search alert
+ */
+export const markAgentSearchAlertMatchesSeen = async (clientId: string,
+    agentSearchAlertSeenInput: AgentSearchAlertSeenInput, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getMarkAgentSearchAlertMatchesSeenUrl(clientId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(agentSearchAlertSeenInput)
+  }
+);}
+
+
+
+
+
+export const getMarkAgentSearchAlertMatchesSeenMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof markAgentSearchAlertMatchesSeen>>, TError,{clientId: string;data: BodyType<AgentSearchAlertSeenInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof markAgentSearchAlertMatchesSeen>>, TError,{clientId: string;data: BodyType<AgentSearchAlertSeenInput>}, TContext> => {
+
+const mutationKey = ['markAgentSearchAlertMatchesSeen'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof markAgentSearchAlertMatchesSeen>>, {clientId: string;data: BodyType<AgentSearchAlertSeenInput>}> = (props) => {
+          const {clientId,data} = props ?? {};
+
+          return  markAgentSearchAlertMatchesSeen(clientId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type MarkAgentSearchAlertMatchesSeenMutationResult = NonNullable<Awaited<ReturnType<typeof markAgentSearchAlertMatchesSeen>>>
+    export type MarkAgentSearchAlertMatchesSeenMutationBody = BodyType<AgentSearchAlertSeenInput>
+    export type MarkAgentSearchAlertMatchesSeenMutationError = ErrorType<void>
+
+    /**
+ * @summary Mark matching listings as seen for an agent search alert
+ */
+export const useMarkAgentSearchAlertMatchesSeen = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof markAgentSearchAlertMatchesSeen>>, TError,{clientId: string;data: BodyType<AgentSearchAlertSeenInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof markAgentSearchAlertMatchesSeen>>,
+        TError,
+        {clientId: string;data: BodyType<AgentSearchAlertSeenInput>},
+        TContext
+      > => {
+      return useMutation(getMarkAgentSearchAlertMatchesSeenMutationOptions(options));
     }
 
 export const getGetMarketplaceStatsUrl = () => {

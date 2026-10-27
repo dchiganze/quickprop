@@ -22,6 +22,8 @@ export interface PropertyAlert {
   /** @nullable */
   maxPrice: number | null;
   /** @nullable */
+  currency: string | null;
+  /** @nullable */
   minBedrooms: number | null;
   /** @nullable */
   minBathrooms: number | null;

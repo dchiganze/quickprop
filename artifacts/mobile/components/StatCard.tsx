@@ -38,8 +38,10 @@ export function StatCard({ label, value, icon, color, subtitle, onPress }: Props
 const styles = StyleSheet.create({
   card: {
     flex: 1,
+    height: 108,
     borderRadius: 14,
-    padding: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
     borderWidth: 1,
     alignItems: 'flex-start',
     ...Platform.select({
@@ -48,11 +50,11 @@ const styles = StyleSheet.create({
     }),
   },
   iconWrap: {
-    width: 40, height: 40, borderRadius: 12,
+    width: 30, height: 30, borderRadius: 9,
     alignItems: 'center', justifyContent: 'center',
-    marginBottom: 10,
+    marginBottom: 5,
   },
-  value: { fontSize: 26, fontWeight: '800', marginBottom: 2 },
-  label: { fontSize: 12, fontWeight: '500' },
-  subtitle: { fontSize: 11, fontWeight: '600', marginTop: 3 },
+  value: { fontSize: 23, lineHeight: 27, fontWeight: '800', marginBottom: 1 },
+  label: { fontSize: 11, lineHeight: 13, fontWeight: '500' },
+  subtitle: { fontSize: 10, lineHeight: 12, fontWeight: '600', marginTop: 2 },
 });

@@ -24,7 +24,7 @@ import { useNetworkStatus } from "@/contexts/ConnectivityContext";
 
 const CACHE_KEY = "@qp_listing_housekeeping";
 const QUEUE_KEY = "@qp_listing_housekeeping_queue";
-type PendingAction = { action: "confirm" | "mark_unavailable" | "reactivate"; propertyId: number; relationshipId?: number | null };
+type PendingAction = { action: "confirm" | "mark_unavailable" | "reactivate" | "republish" | "archive"; propertyId: number; relationshipId?: number | null };
 
 const LABELS: Record<string, string> = {
   new: "New listing",
@@ -78,6 +78,7 @@ function localHousekeeping(properties: ReturnType<typeof useData>["properties"])
         photos: property.photos,
         bedrooms: property.bedrooms ?? null,
         bathrooms: property.bathrooms ?? null,
+        expiredDraft: false,
       };
     });
   const summary = listings.reduce<Record<string, number>>((result, listing) => {
@@ -85,18 +86,18 @@ function localHousekeeping(properties: ReturnType<typeof useData>["properties"])
     return result;
   }, {});
   return { listings, summary: { total: listings.length, ...summary }, thresholds: {
-    softReminderDays: 7,
-    firstConfirmationDays: 14,
+    softReminderDays: 5,
+    firstConfirmationDays: 30,
     recurringConfirmationDays: 30,
-    updateRequiredOverdueDays: 7,
-    potentiallyStaleOverdueDays: 14,
-    staleOverdueDays: 30,
+    updateRequiredOverdueDays: 5,
+    potentiallyStaleOverdueDays: 10,
+    staleOverdueDays: 15,
   } };
 }
 
 export default function HousekeepingScreen() {
   const colors = useColors();
-  const { properties } = useData();
+  const { properties, syncNow } = useData();
   const network = useNetworkStatus();
   const [data, setData] = useState<ListingHousekeepingResponse>(() => localHousekeeping(properties));
   const [refreshing, setRefreshing] = useState(false);
@@ -141,8 +142,11 @@ export default function HousekeepingScreen() {
     }
     await AsyncStorage.setItem(QUEUE_KEY, JSON.stringify(remaining));
     setPendingCount(remaining.length);
-    if (remaining.length !== queue.length) refresh();
-  }, [network.isOnline, refresh]);
+    if (remaining.length !== queue.length) {
+      await syncNow();
+      refresh();
+    }
+  }, [network.isOnline, refresh, syncNow]);
 
   useEffect(() => {
     const cached = AsyncStorage.getItem(CACHE_KEY).then((raw) => { if (raw) setData(JSON.parse(raw)); });
@@ -153,25 +157,30 @@ export default function HousekeepingScreen() {
 
   useEffect(() => { flushQueue(); }, [flushQueue]);
 
-  const needsAttention = useMemo(() => data.listings.filter((listing) => ["due", "update_required", "potentially_stale", "stale"].includes(listing.freshnessStatus)).length, [data.listings]);
+  const needsAttention = useMemo(() => data.listings.filter((listing) => listing.expiredDraft || ["due", "update_required", "potentially_stale", "stale"].includes(listing.freshnessStatus)).length, [data.listings]);
   const optimistic = (listing: ListingHousekeepingItem, action: PendingAction["action"]) => {
     setData((current) => ({
       ...current,
       listings: current.listings.map((item) => item.id !== listing.id ? item : {
         ...item,
-        freshnessStatus: action === "confirm" || action === "reactivate" ? "fresh" : "inactive",
-        availabilityStatus: action === "confirm" || action === "reactivate" ? "available" : "temporarily_unavailable",
-        freshnessLabel: action === "confirm" ? "Updated today" : "Inactive until reactivated",
+        freshnessStatus: action === "confirm" || action === "reactivate" || action === "republish" ? "fresh" : "inactive",
+        status: action === "republish" ? "public" : action === "archive" ? "archived" : item.status,
+        expiredDraft: action === "republish" || action === "archive" ? false : item.expiredDraft,
+        availabilityStatus: action === "confirm" || action === "reactivate" || action === "republish"
+          ? "available"
+          : action === "archive" ? "withdrawn" : "temporarily_unavailable",
+        freshnessLabel: action === "confirm" || action === "republish" ? "Updated today" : "Inactive until reactivated",
         daysSinceConfirmation: 0,
-        freshnessScore: action === "confirm" || action === "reactivate" ? 100 : 0,
+        freshnessScore: action === "confirm" || action === "reactivate" || action === "republish" ? 100 : 0,
       }),
     }));
   };
-  const act = async (listing: ListingHousekeepingItem, action: PendingAction["action"]) => {
+  const performAction = async (listing: ListingHousekeepingItem, action: PendingAction["action"]) => {
     optimistic(listing, action);
     try {
       if (action === "confirm") await confirmListingHousekeeping({ propertyId: listing.propertyId, relationshipId: listing.relationshipId ?? undefined });
       else await applyListingHousekeepingAction({ propertyId: listing.propertyId, relationshipId: listing.relationshipId ?? undefined, action });
+      await syncNow();
       await refresh();
     } catch {
       const raw = await AsyncStorage.getItem(QUEUE_KEY);
@@ -182,6 +191,20 @@ export default function HousekeepingScreen() {
       Alert.alert("Saved offline", "Your action is on the device queue and will sync when you reconnect.");
     }
   };
+  const act = (listing: ListingHousekeepingItem, action: PendingAction["action"]) => {
+    if (action === "archive") {
+      Alert.alert(
+        "Archive this listing?",
+        "It will be hidden from the marketplace. Viewings, documents, and listing history will be kept.",
+        [
+          { text: "Cancel", style: "cancel" },
+          { text: "Archive", style: "destructive", onPress: () => { void performAction(listing, action); } },
+        ],
+      );
+      return;
+    }
+    void performAction(listing, action);
+  };
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -191,6 +214,7 @@ export default function HousekeepingScreen() {
         <Ionicons name="sparkles-outline" size={24} color={colors.primary} />
       </View>
       {!network.isOnline && <View style={[styles.offline, { backgroundColor: colors.secondary }]}><Ionicons name="cloud-offline-outline" size={16} color={colors.primary} /><Text style={[styles.offlineText, { color: colors.foreground }]}>Offline mode — actions will sync automatically.</Text></View>}
+      <Text style={[styles.policyNote, { color: colors.mutedForeground }]}>Listings stay live for 30 days. Confirm within 5 days of the reminder to extend the listing.</Text>
       <View style={styles.summaryRow}>
         {[
           ["fresh", "Fresh"], ["due", "Due"], ["update_required", "Update"], ["stale", "Stale"],
@@ -204,8 +228,34 @@ export default function HousekeepingScreen() {
         renderItem={({ item }) => (
           <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <View style={styles.cardTop}><View style={[styles.dot, { backgroundColor: COLORS[item.freshnessStatus] ?? colors.mutedForeground }]} /><View style={styles.cardCopy}><Text style={[styles.reference, { color: colors.foreground }]}>{item.reference}</Text><Text style={[styles.address, { color: colors.mutedForeground }]} numberOfLines={1}>{item.title}</Text><Text style={[styles.meta, { color: colors.mutedForeground }]}>{item.suburb} · {item.daysSinceConfirmation} days since confirmation</Text></View><Text style={[styles.score, { color: COLORS[item.freshnessStatus] ?? colors.primary }]}>{item.freshnessScore}</Text></View>
-            <View style={styles.statusLine}><Text style={[styles.status, { color: COLORS[item.freshnessStatus] ?? colors.foreground }]}>{LABELS[item.freshnessStatus] ?? item.freshnessStatus}</Text><Text style={[styles.quality, { color: colors.mutedForeground }]}>Quality {item.qualityScore}</Text></View>
-            <View style={styles.actions}><TouchableOpacity style={[styles.primaryAction, { backgroundColor: colors.primary }]} onPress={() => act(item, "confirm")}><Ionicons name="checkmark-circle-outline" size={17} color="#FFF" /><Text style={styles.primaryText}>Confirm</Text></TouchableOpacity>{item.freshnessStatus !== "inactive" ? <TouchableOpacity style={[styles.secondaryAction, { borderColor: colors.border }]} onPress={() => act(item, "mark_unavailable")}><Text style={[styles.secondaryText, { color: colors.foreground }]}>Unavailable</Text></TouchableOpacity> : <TouchableOpacity style={[styles.secondaryAction, { borderColor: colors.border }]} onPress={() => act(item, "reactivate")}><Text style={[styles.secondaryText, { color: colors.foreground }]}>Reactivate</Text></TouchableOpacity>}</View>
+            <View style={styles.statusLine}><Text style={[styles.status, { color: COLORS[item.freshnessStatus] ?? colors.foreground }]}>{item.expiredDraft ? "Expired · Draft" : LABELS[item.freshnessStatus] ?? item.freshnessStatus}</Text><Text style={[styles.quality, { color: colors.mutedForeground }]}>Quality {item.qualityScore}</Text></View>
+            {item.expiredDraft ? (
+              <>
+                <View style={styles.actions}>
+                  <TouchableOpacity
+                    style={[styles.primaryAction, { backgroundColor: colors.primary, opacity: item.photos?.length ? 1 : 0.55 }]}
+                    disabled={(item.photos?.length ?? 0) === 0}
+                    onPress={() => act(item, "republish")}
+                  >
+                    <Ionicons name="refresh-circle-outline" size={17} color="#FFF" />
+                    <Text style={styles.primaryText}>Republish</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={[styles.secondaryAction, { borderColor: colors.border }]} onPress={() => act(item, "archive")}>
+                    <Text style={[styles.secondaryText, { color: colors.foreground }]}>Archive</Text>
+                  </TouchableOpacity>
+                </View>
+                {(item.photos?.length ?? 0) === 0 && <Text style={[styles.meta, { color: colors.mutedForeground }]}>Add at least one photo before republishing.</Text>}
+              </>
+            ) : (
+              <View style={styles.actions}>
+                <TouchableOpacity style={[styles.primaryAction, { backgroundColor: colors.primary }]} onPress={() => act(item, "confirm")}>
+                  <Ionicons name="checkmark-circle-outline" size={17} color="#FFF" /><Text style={styles.primaryText}>Confirm</Text>
+                </TouchableOpacity>
+                {item.freshnessStatus !== "inactive"
+                  ? <TouchableOpacity style={[styles.secondaryAction, { borderColor: colors.border }]} onPress={() => act(item, "mark_unavailable")}><Text style={[styles.secondaryText, { color: colors.foreground }]}>Unavailable</Text></TouchableOpacity>
+                  : <TouchableOpacity style={[styles.secondaryAction, { borderColor: colors.border }]} onPress={() => act(item, "reactivate")}><Text style={[styles.secondaryText, { color: colors.foreground }]}>Reactivate</Text></TouchableOpacity>}
+              </View>
+            )}
           </View>
         )}
         ListEmptyComponent={<Text style={[styles.empty, { color: colors.mutedForeground }]}>No listings need housekeeping.</Text>}
@@ -223,6 +273,7 @@ const styles = StyleSheet.create({
   subtitle: { fontSize: 13, marginTop: 3 },
   offline: { marginHorizontal: 18, marginBottom: 12, padding: 10, borderRadius: 10, flexDirection: "row", alignItems: "center", gap: 7 },
   offlineText: { fontSize: 12, flex: 1 },
+  policyNote: { marginHorizontal: 18, marginBottom: 10, fontSize: 12, lineHeight: 17 },
   summaryRow: { flexDirection: "row", gap: 8, paddingHorizontal: 18, paddingBottom: 10 },
   summaryCard: { flex: 1, borderRadius: 12, borderWidth: 1, padding: 10 },
   summaryNumber: { fontSize: 20, fontWeight: "800" },

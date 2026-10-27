@@ -162,7 +162,7 @@ export function AlertsSheet({ visible, onClose }: Props) {
     <>
       <Text style={[s.title, { color: colors.foreground }]}>Property Alerts</Text>
       <Text style={[s.sub, { color: colors.mutedForeground }]}>
-        Get notified when a matching listing is uploaded by any agent.
+        Get notified when a matching listing is uploaded. Enable Push Notifications in Settings to receive alerts when the app is closed.
       </Text>
 
       {/* New matches banner */}
@@ -310,7 +310,7 @@ export function AlertsSheet({ visible, onClose }: Props) {
     <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
       <Text style={[s.title, { color: colors.foreground }]}>New Alert</Text>
       <Text style={[s.sub, { color: colors.mutedForeground }]}>
-        We'll notify you when a matching property is uploaded.
+        We'll notify you when a matching property is uploaded. Push delivery requires Push Notifications to be enabled in Settings.
       </Text>
 
       {/* Name */}

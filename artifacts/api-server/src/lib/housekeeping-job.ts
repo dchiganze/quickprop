@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNull } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull } from "drizzle-orm";
 import {
   db,
   listingHousekeepingDeliveriesTable,
@@ -15,6 +15,10 @@ import {
   calculateFreshness,
   DEFAULT_HOUSEKEEPING_SETTINGS,
   HOUSEKEEPING_ACTIVE_STATUSES,
+  makeReminderEventKey,
+  needsPublicationBaseline,
+  normalizeHousekeepingSettings,
+  shouldAutoDraftPublishedListing,
   type HousekeepingSettings,
 } from "./housekeeping";
 import { deliverDueHousekeepingReminders, REMINDER_CHANNELS, type ReminderDeliveryPayload } from "./housekeeping-delivery";
@@ -23,19 +27,30 @@ import { logger } from "./logger";
 
 async function getSettings(): Promise<HousekeepingSettings> {
   const [row] = await db.select().from(listingHousekeepingSettingsTable).limit(1);
-  return row ? {
-    softReminderDays: row.softReminderDays,
-    firstConfirmationDays: row.firstConfirmationDays,
-    recurringConfirmationDays: row.recurringConfirmationDays,
-    updateRequiredOverdueDays: row.updateRequiredOverdueDays,
-    potentiallyStaleOverdueDays: row.potentiallyStaleOverdueDays,
-    staleOverdueDays: row.staleOverdueDays,
-  } : DEFAULT_HOUSEKEEPING_SETTINGS;
+  return normalizeHousekeepingSettings(row ?? DEFAULT_HOUSEKEEPING_SETTINGS);
 }
 
 export async function runHousekeepingCycle() {
   const houseSettings = await getSettings();
   const now = new Date();
+  const legacyNextConfirmationAt = new Date(
+    now.getTime() + houseSettings.firstConfirmationDays * 24 * 60 * 60 * 1000,
+  );
+  await db.update(propertiesTable).set({
+    publishedAt: now,
+    lastAvailabilityConfirmedAt: now,
+    nextConfirmationAt: legacyNextConfirmationAt,
+    freshnessStatus: "fresh",
+    freshnessScore: 100,
+    qualityScore: 100,
+    daysSinceConfirmation: 0,
+    staleSince: null,
+    updatedAt: now,
+  }).where(and(
+    eq(propertiesTable.status, "public"),
+    isNull(propertiesTable.publishedAt),
+    isNull(propertiesTable.lastAvailabilityConfirmedAt),
+  ));
   const properties = await db.select().from(propertiesTable).where(
     inArray(propertiesTable.status, [...HOUSEKEEPING_ACTIVE_STATUSES]),
   );
@@ -53,20 +68,87 @@ export async function runHousekeepingCycle() {
     relationshipsByProperty.set(relationship.propertyId, current);
   }
 
+  const propertyIds = properties.map((property) => property.id);
+  const lifecycleEvents = propertyIds.length
+    ? await db.select({
+        propertyId: listingHousekeepingEventsTable.propertyId,
+        eventType: listingHousekeepingEventsTable.eventType,
+      }).from(listingHousekeepingEventsTable).where(and(
+        inArray(listingHousekeepingEventsTable.propertyId, propertyIds),
+        isNull(listingHousekeepingEventsTable.relationshipId),
+        inArray(listingHousekeepingEventsTable.eventType, ["auto_drafted", "republished"]),
+      )).orderBy(desc(listingHousekeepingEventsTable.createdAt), desc(listingHousekeepingEventsTable.id))
+    : [];
+  const latestLifecycleEventByProperty = new Map<number, string>();
+  for (const event of lifecycleEvents) {
+    if (!latestLifecycleEventByProperty.has(event.propertyId)) {
+      latestLifecycleEventByProperty.set(event.propertyId, event.eventType);
+    }
+  }
+
   let updated = 0;
   let reminders = 0;
-  for (const property of properties) {
+  let autoDrafted = 0;
+  for (const propertyRow of properties) {
+      let property = propertyRow;
+      if (needsPublicationBaseline(
+        property.status,
+        property.publishedAt,
+        property.lastAvailabilityConfirmedAt,
+      )) {
+        const nextConfirmationAt = new Date(
+          now.getTime() + houseSettings.firstConfirmationDays * 24 * 60 * 60 * 1000,
+        );
+        await db.update(propertiesTable).set({
+          publishedAt: now,
+          lastAvailabilityConfirmedAt: now,
+          nextConfirmationAt,
+          freshnessStatus: "fresh",
+          freshnessScore: 100,
+          qualityScore: 100,
+          daysSinceConfirmation: 0,
+          staleSince: null,
+          updatedAt: now,
+        }).where(eq(propertiesTable.id, property.id));
+        property = {
+          ...propertyRow,
+          publishedAt: now,
+          lastAvailabilityConfirmedAt: now,
+          nextConfirmationAt,
+          freshnessStatus: "fresh",
+          freshnessScore: 100,
+          qualityScore: 100,
+          daysSinceConfirmation: 0,
+          staleSince: null,
+          updatedAt: now,
+        };
+      }
     const propertyRelationships = relationshipsByProperty.get(property.id) ?? [];
-    const targets = propertyRelationships.length
-      ? propertyRelationships.map((relationship) => ({ relationship, property }))
-      : [{ relationship: null, property }];
+    // Publication expiry belongs to the listing owner. Other agents keep
+    // independent freshness reminders, but must not extend the owner's live
+    // period or receive duplicate owner reminders.
+    const targets = [
+      { relationship: null, property },
+      ...propertyRelationships
+        .filter((relationship) => relationship.agentId !== property.agentId)
+        .map((relationship) => ({ relationship, property })),
+    ];
     for (const target of targets) {
       const r = target.relationship;
+      const isOwnerListing = !r;
+      const publicationAnchor = property.lastAvailabilityConfirmedAt
+        ?? property.publishedAt
+        ?? property.createdAt;
+      const publicationDueAt = new Date(
+        publicationAnchor.getTime() + houseSettings.recurringConfirmationDays * 24 * 60 * 60 * 1000,
+      );
       const computed = calculateFreshness({
-        createdAt: r?.createdAt ?? property.createdAt,
+        createdAt: r?.createdAt ?? property.publishedAt ?? property.createdAt,
         lastConfirmedAt: r?.lastAvailabilityConfirmation ?? property.lastAvailabilityConfirmedAt,
         lastUpdatedAt: r?.lastUpdate ?? property.updatedAt,
-        nextConfirmationAt: r?.nextConfirmationAt ?? property.nextConfirmationAt,
+        nextConfirmationAt: isOwnerListing
+          ? publicationDueAt
+          : r?.nextConfirmationAt ?? property.nextConfirmationAt,
         availabilityStatus: r?.availabilityStatus ?? property.availabilityStatus,
         photos: property.photos,
         title: property.title,
@@ -88,6 +170,16 @@ export async function runHousekeepingCycle() {
         existingReminder: false,
         hasOpenTask: false,
       });
+      const expiredDraft = isOwnerListing
+        && property.status === "draft"
+        && latestLifecycleEventByProperty.get(property.id) === "auto_drafted";
+      const shouldAutoDraft = isOwnerListing && shouldAutoDraftPublishedListing(
+        property.status,
+        property.availabilityStatus,
+        computed.nextConfirmationAt,
+        now,
+      );
+      let autoDraftedNow = false;
       if (r) {
         await db.update(propertyAgentRelationshipsTable).set({
           freshnessStatus: computed.freshnessStatus,
@@ -98,6 +190,55 @@ export async function runHousekeepingCycle() {
           staleSince: computed.staleSince,
         }).where(eq(propertyAgentRelationshipsTable.id, r.id));
       } else {
+        if (shouldAutoDraft) {
+          autoDraftedNow = await db.transaction(async (tx) => {
+            const [transitioned] = await tx.update(propertiesTable).set({
+              status: "draft",
+              pipelineStage: "draft",
+              freshnessStatus: computed.freshnessStatus,
+              nextConfirmationAt: computed.nextConfirmationAt,
+              daysSinceConfirmation: computed.daysSinceConfirmation,
+              freshnessScore: computed.freshnessScore,
+              qualityScore: computed.qualityScore,
+              staleSince: computed.staleSince,
+              updatedAt: now,
+            }).where(and(
+              eq(propertiesTable.id, property.id),
+              eq(propertiesTable.status, "public"),
+            )).returning({ id: propertiesTable.id });
+            if (!transitioned) return false;
+            await tx.insert(listingHousekeepingEventsTable).values({
+              listingId: property.id,
+              propertyId: property.id,
+              relationshipId: null,
+              agentId: property.agentId,
+              agencyId: property.branchId,
+              eventType: "auto_drafted",
+              previousStatus: property.status,
+              newStatus: "draft",
+              source: "system",
+              metadata: { expiredAt: computed.nextConfirmationAt.toISOString(), runAt: now.toISOString() },
+            });
+            return true;
+          });
+          if (autoDraftedNow) {
+            latestLifecycleEventByProperty.set(property.id, "auto_drafted");
+            autoDrafted++;
+          }
+        }
+        const ownerRelationship = propertyRelationships.find(
+          (relationship) => relationship.agentId === property.agentId,
+        );
+        if (ownerRelationship) {
+          await db.update(propertyAgentRelationshipsTable).set({
+            freshnessStatus: computed.freshnessStatus,
+            nextConfirmationAt: computed.nextConfirmationAt,
+            daysSinceConfirmation: computed.daysSinceConfirmation,
+            freshnessScore: computed.freshnessScore,
+            qualityScore: computed.qualityScore,
+            staleSince: computed.staleSince,
+          }).where(eq(propertyAgentRelationshipsTable.id, ownerRelationship.id));
+        }
         await db.update(propertiesTable).set({
           freshnessStatus: computed.freshnessStatus,
           nextConfirmationAt: computed.nextConfirmationAt,
@@ -122,11 +263,17 @@ export async function runHousekeepingCycle() {
           metadata: { runAt: now.toISOString() },
         });
       }
-      if (computed.reminderKey && agentId) {
+      const reminderEligible = isOwnerListing
+        ? property.status === "public" || expiredDraft || autoDraftedNow
+        : property.status !== "draft";
+      const eventReminderKey = computed.reminderKey
+        ? makeReminderEventKey(computed.reminderKey, computed.nextConfirmationAt)
+        : null;
+      if (computed.reminderKey && eventReminderKey && agentId && reminderEligible) {
         const eventConditions = [
           eq(listingHousekeepingEventsTable.propertyId, property.id),
           eq(listingHousekeepingEventsTable.eventType, "reminder"),
-          eq(listingHousekeepingEventsTable.reminderKey, computed.reminderKey),
+          eq(listingHousekeepingEventsTable.reminderKey, eventReminderKey),
           r ? eq(listingHousekeepingEventsTable.relationshipId, r.id) : isNull(listingHousekeepingEventsTable.relationshipId),
         ];
         const [existingReminder] = await db.select({ id: listingHousekeepingEventsTable.id })
@@ -134,19 +281,27 @@ export async function runHousekeepingCycle() {
         const reminderPlan = planHousekeepingActions({
           previousStatus,
           nextStatus: computed.freshnessStatus,
-          reminderKey: computed.reminderKey,
+          reminderKey: eventReminderKey,
           agentId,
           existingReminder: Boolean(existingReminder),
           hasOpenTask: false,
         });
         if (reminderPlan.reminderEvent) {
-          const label = computed.freshnessStatus === "stale" ? "stale" : computed.freshnessStatus.replace("_", " ");
+          const isPreExpiryReminder = isOwnerListing && computed.reminderKey === "due-soon";
+          const label = autoDraftedNow || expiredDraft ? "moved to drafts"
+            : isPreExpiryReminder ? "confirmation due soon"
+              : computed.freshnessStatus === "stale" ? "stale" : computed.freshnessStatus.replace("_", " ");
           const deliveryPayload: ReminderDeliveryPayload = {
+            propertyId: property.id,
             reference: property.reference,
             title: property.title,
             freshnessStatus: computed.freshnessStatus,
             reminderKey: computed.reminderKey,
-            message: `Confirm availability or update ${property.title} (${property.reference}) before it becomes stale.`,
+            message: isPreExpiryReminder
+              ? `Confirm that ${property.title} (${property.reference}) is still available within ${houseSettings.softReminderDays} days to keep it live for another ${houseSettings.recurringConfirmationDays} days.`
+              : autoDraftedNow || expiredDraft
+                ? `${property.title} (${property.reference}) has reached its ${houseSettings.recurringConfirmationDays}-day confirmation date and is now a draft. Confirm it is available to republish, or archive it. We will remind you every ${houseSettings.softReminderDays} days until you act.`
+                : `Confirm availability or update ${property.title} (${property.reference}) before it becomes stale.`,
           };
           const createdReminder = await db.transaction(async (tx) => {
             // The event is the source record for all channel deliveries. A retry
@@ -164,9 +319,13 @@ export async function runHousekeepingCycle() {
               eventType: "reminder",
               previousStatus,
               newStatus: computed.freshnessStatus,
-              reminderKey: computed.reminderKey,
+              reminderKey: eventReminderKey,
               source: "system",
-              metadata: { runAt: now.toISOString() },
+              metadata: {
+                runAt: now.toISOString(),
+                dueAt: computed.nextConfirmationAt.toISOString(),
+                reminderSlot: computed.reminderKey,
+              },
             }).returning({ id: listingHousekeepingEventsTable.id });
             if (!event) throw new Error("Unable to create housekeeping reminder event");
 
@@ -185,7 +344,7 @@ export async function runHousekeepingCycle() {
             const transactionPlan = planHousekeepingActions({
               previousStatus,
               nextStatus: computed.freshnessStatus,
-              reminderKey: computed.reminderKey,
+              reminderKey: eventReminderKey,
               agentId,
               existingReminder: false,
               hasOpenTask: Boolean(openTask),
@@ -206,11 +365,14 @@ export async function runHousekeepingCycle() {
             const [preferences] = await tx.select().from(listingHousekeepingPreferencesTable)
               .where(eq(listingHousekeepingPreferencesTable.userId, agentId)).limit(1);
             const frequency = preferences?.reminderFrequency ?? "smart";
-            const shouldDeliver = frequency !== "never"
-              && (frequency !== "stale_only" || computed.reminderKey === "overdue-30")
-              && (frequency !== "urgent" || ["overdue-14", "overdue-30"].includes(computed.reminderKey ?? ""));
+            const shouldDeliver = isOwnerListing || (
+              frequency !== "never"
+              && (frequency !== "stale_only" || computed.freshnessStatus === "stale")
+              && (frequency !== "urgent" || ["potentially_stale", "stale"].includes(computed.freshnessStatus))
+            );
             if (shouldDeliver) {
-              const enabledChannels = REMINDER_CHANNELS.filter((channel) => preferences?.[`${channel}Enabled`] ?? true);
+              const channels = isOwnerListing ? ["push", "email"] as const : REMINDER_CHANNELS;
+              const enabledChannels = channels.filter((channel) => preferences?.[`${channel}Enabled`] ?? true);
               if (enabledChannels.length) {
                 await tx.insert(listingHousekeepingDeliveriesTable).values(enabledChannels.map((channel) => ({
                   eventId: event.id,
@@ -241,7 +403,7 @@ export async function runHousekeepingCycle() {
     }
   }
   const deliveries = await deliverDueHousekeepingReminders();
-  return { properties: properties.length, updated, reminders, deliveries, ranAt: now };
+  return { properties: properties.length, updated, reminders, autoDrafted, deliveries, ranAt: now };
 }
 
 export function startHousekeepingScheduler() {

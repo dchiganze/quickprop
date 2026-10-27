@@ -20,6 +20,7 @@ import {
   calculateFreshness,
   DEFAULT_HOUSEKEEPING_SETTINGS,
   HOUSEKEEPING_ACTIVE_STATUSES,
+  normalizeHousekeepingSettings,
   publicFreshnessLabel,
   type FreshnessStatus,
   type HousekeepingSettings,
@@ -33,6 +34,7 @@ type HousekeepingEntry = {
   property: Property;
   relationship: PropertyAgentRelationship | null;
   source: "property" | "relationship";
+  expiredDraft: boolean;
 };
 
 function userIsAgent(user: Awaited<ReturnType<typeof currentUser>>) {
@@ -41,14 +43,7 @@ function userIsAgent(user: Awaited<ReturnType<typeof currentUser>>) {
 
 async function settings(): Promise<HousekeepingSettings> {
   const [row] = await db.select().from(listingHousekeepingSettingsTable).limit(1);
-  return row ? {
-    softReminderDays: row.softReminderDays,
-    firstConfirmationDays: row.firstConfirmationDays,
-    recurringConfirmationDays: row.recurringConfirmationDays,
-    updateRequiredOverdueDays: row.updateRequiredOverdueDays,
-    potentiallyStaleOverdueDays: row.potentiallyStaleOverdueDays,
-    staleOverdueDays: row.staleOverdueDays,
-  } : DEFAULT_HOUSEKEEPING_SETTINGS;
+  return normalizeHousekeepingSettings(row ?? DEFAULT_HOUSEKEEPING_SETTINGS);
 }
 
 async function entriesFor(user: Awaited<ReturnType<typeof currentUser>>, includeInactive = false): Promise<HousekeepingEntry[]> {
@@ -69,14 +64,36 @@ async function entriesFor(user: Awaited<ReturnType<typeof currentUser>>, include
       userIsAgent(user) ? eq(propertyAgentRelationshipsTable.agentId, user!.id) : undefined,
     ),
   );
-  const relationshipPropertyIds = new Set(relationships.map((r) => r.propertyId));
-  const result: HousekeepingEntry[] = relationships.map((relationship) => ({
+  const lifecycleEvents = await db.select({
+    propertyId: listingHousekeepingEventsTable.propertyId,
+    eventType: listingHousekeepingEventsTable.eventType,
+  }).from(listingHousekeepingEventsTable).where(and(
+    inArray(listingHousekeepingEventsTable.propertyId, propertyIds),
+    isNull(listingHousekeepingEventsTable.relationshipId),
+    inArray(listingHousekeepingEventsTable.eventType, ["auto_drafted", "republished"]),
+  )).orderBy(desc(listingHousekeepingEventsTable.createdAt), desc(listingHousekeepingEventsTable.id));
+  const latestLifecycleEventByProperty = new Map<number, string>();
+  for (const event of lifecycleEvents) {
+    if (!latestLifecycleEventByProperty.has(event.propertyId)) {
+      latestLifecycleEventByProperty.set(event.propertyId, event.eventType);
+    }
+  }
+  const propertyById = new Map(properties.map((property) => [property.id, property]));
+  const result: HousekeepingEntry[] = relationships
+    .filter((relationship) => relationship.agentId !== propertyById.get(relationship.propertyId)?.agentId)
+    .map((relationship) => ({
     property: properties.find((p) => p.id === relationship.propertyId)!,
     relationship,
     source: "relationship",
+    expiredDraft: false,
   }));
   for (const property of properties) {
-    if (!relationshipPropertyIds.has(property.id)) result.push({ property, relationship: null, source: "property" });
+    result.push({
+      property,
+      relationship: null,
+      source: "property",
+      expiredDraft: property.status === "draft" && latestLifecycleEventByProperty.get(property.id) === "auto_drafted",
+    });
   }
   return result.filter((entry) => entry.property);
 }
@@ -84,11 +101,17 @@ async function entriesFor(user: Awaited<ReturnType<typeof currentUser>>, include
 function entryPayload(entry: HousekeepingEntry, houseSettings: HousekeepingSettings) {
   const p = entry.property;
   const r = entry.relationship;
+  const confirmationAnchor = r
+    ? r.lastAvailabilityConfirmation ?? r.createdAt
+    : p.lastAvailabilityConfirmedAt ?? p.publishedAt
+      ?? (p.status === "public" ? new Date() : p.createdAt);
   const computed = calculateFreshness({
-    createdAt: r?.createdAt ?? p.createdAt,
+    createdAt: r?.createdAt ?? confirmationAnchor,
     lastConfirmedAt: r?.lastAvailabilityConfirmation ?? p.lastAvailabilityConfirmedAt,
     lastUpdatedAt: r?.lastUpdate ?? p.updatedAt,
-    nextConfirmationAt: r?.nextConfirmationAt ?? p.nextConfirmationAt,
+    nextConfirmationAt: r?.nextConfirmationAt ?? new Date(
+      confirmationAnchor.getTime() + houseSettings.recurringConfirmationDays * 86400000,
+    ),
     availabilityStatus: r?.availabilityStatus ?? p.availabilityStatus,
     photos: p.photos,
     title: p.title,
@@ -130,6 +153,7 @@ function entryPayload(entry: HousekeepingEntry, houseSettings: HousekeepingSetti
     photos: p.photos,
     bedrooms: p.bedrooms,
     bathrooms: p.bathrooms,
+    expiredDraft: entry.expiredDraft,
   };
 }
 
@@ -193,6 +217,24 @@ async function writeConfirmation(entry: HousekeepingEntry, actorId: number, sour
       staleSince: null,
       updatedAt: now,
     }).where(eq(propertiesTable.id, entry.property.id));
+    if (entry.property.agentId) {
+      await db.update(propertyAgentRelationshipsTable).set({
+        lastAvailabilityConfirmation: now,
+        availabilityStatus: "available",
+        freshnessStatus: "fresh",
+        nextConfirmationAt: next,
+        daysSinceConfirmation: 0,
+        freshnessScore: computed.freshnessScore,
+        qualityScore: computed.qualityScore,
+        staleSince: null,
+        lastUpdate: now,
+        updatedAt: now,
+      }).where(and(
+        eq(propertyAgentRelationshipsTable.propertyId, entry.property.id),
+        eq(propertyAgentRelationshipsTable.agentId, entry.property.agentId),
+        eq(propertyAgentRelationshipsTable.relationshipStatus, "active"),
+      ));
+    }
   }
   await db.insert(listingHousekeepingEventsTable).values({
     listingId: entry.relationship?.id ?? entry.property.id,
@@ -209,6 +251,134 @@ async function writeConfirmation(entry: HousekeepingEntry, actorId: number, sour
   await logAudit("listing_confirmed", "listing_housekeeping", entry.relationship?.id ?? entry.property.id,
     `Listing ${entry.property.reference} availability confirmed`, actorId);
   return { confirmedAt: now, nextConfirmationAt: next };
+}
+
+async function republishExpiredListing(entry: HousekeepingEntry, actorId: number, source: string) {
+  if (entry.relationship || !entry.expiredDraft) {
+    throw new Error("Only a listing moved to drafts for expired availability can be republished here.");
+  }
+  if (entry.property.photos.length < 1) {
+    throw new Error("Upload at least one property photo before republishing.");
+  }
+
+  const now = new Date();
+  const houseSettings = await settings();
+  const next = new Date(now.getTime() + houseSettings.recurringConfirmationDays * 86400000);
+  const computed = calculateFreshness({
+    createdAt: entry.property.publishedAt ?? entry.property.createdAt,
+    lastConfirmedAt: now,
+    lastUpdatedAt: now,
+    nextConfirmationAt: next,
+    availabilityStatus: "available",
+    photos: entry.property.photos,
+    title: entry.property.title,
+    description: entry.property.description,
+    price: entry.property.price,
+    suburb: entry.property.suburb,
+    propertyType: entry.property.propertyType,
+    bedrooms: entry.property.bedrooms,
+    bathrooms: entry.property.bathrooms,
+  }, now, houseSettings);
+
+  const [updated] = await db.update(propertiesTable).set({
+    status: "public",
+    pipelineStage: "published",
+    publishedAt: now,
+    lastAvailabilityConfirmedAt: now,
+    availabilityStatus: "available",
+    freshnessStatus: "fresh",
+    nextConfirmationAt: next,
+    daysSinceConfirmation: 0,
+    freshnessScore: computed.freshnessScore,
+    qualityScore: computed.qualityScore,
+    staleSince: null,
+    updatedAt: now,
+  }).where(and(
+    eq(propertiesTable.id, entry.property.id),
+    eq(propertiesTable.status, "draft"),
+  )).returning();
+  if (!updated) throw new Error("This listing is no longer a draft. Refresh and try again.");
+  if (entry.property.agentId) {
+    await db.update(propertyAgentRelationshipsTable).set({
+      lastAvailabilityConfirmation: now,
+      availabilityStatus: "available",
+      freshnessStatus: "fresh",
+      nextConfirmationAt: next,
+      daysSinceConfirmation: 0,
+      freshnessScore: computed.freshnessScore,
+      qualityScore: computed.qualityScore,
+      staleSince: null,
+      lastUpdate: now,
+      updatedAt: now,
+    }).where(and(
+      eq(propertyAgentRelationshipsTable.propertyId, entry.property.id),
+      eq(propertyAgentRelationshipsTable.agentId, entry.property.agentId),
+      eq(propertyAgentRelationshipsTable.relationshipStatus, "active"),
+    ));
+  }
+
+  await db.insert(listingHousekeepingEventsTable).values({
+    listingId: entry.property.id,
+    propertyId: entry.property.id,
+    relationshipId: null,
+    agentId: entry.property.agentId,
+    agencyId: entry.property.branchId,
+    eventType: "republished",
+    previousStatus: "draft",
+    newStatus: "public",
+    source,
+    metadata: { actorId },
+  });
+  await logAudit("listing_republished", "listing_housekeeping", entry.property.id,
+    `Listing ${entry.property.reference} republished after availability confirmation`, actorId);
+  return { confirmedAt: now, nextConfirmationAt: next };
+}
+
+async function archiveListing(entry: HousekeepingEntry, actorId: number, source: string) {
+  const now = new Date();
+  if (entry.relationship) {
+    await db.update(propertyAgentRelationshipsTable).set({
+      relationshipStatus: "archived",
+      availabilityStatus: "withdrawn",
+      freshnessStatus: "inactive",
+      staleSince: null,
+      updatedAt: now,
+    }).where(eq(propertyAgentRelationshipsTable.id, entry.relationship.id));
+  } else {
+    await db.update(propertiesTable).set({
+      status: "archived",
+      pipelineStage: "archived",
+      availabilityStatus: "withdrawn",
+      freshnessStatus: "inactive",
+      nextConfirmationAt: null,
+      staleSince: null,
+      updatedAt: now,
+    }).where(eq(propertiesTable.id, entry.property.id));
+    await db.update(propertyAgentRelationshipsTable).set({
+      relationshipStatus: "archived",
+      availabilityStatus: "withdrawn",
+      freshnessStatus: "inactive",
+      staleSince: null,
+      updatedAt: now,
+    }).where(and(
+      eq(propertyAgentRelationshipsTable.propertyId, entry.property.id),
+      eq(propertyAgentRelationshipsTable.relationshipStatus, "active"),
+    ));
+  }
+  await db.insert(listingHousekeepingEventsTable).values({
+    listingId: entry.relationship?.id ?? entry.property.id,
+    propertyId: entry.property.id,
+    relationshipId: entry.relationship?.id ?? null,
+    agentId: entry.relationship?.agentId ?? entry.property.agentId,
+    agencyId: entry.relationship?.branchId ?? entry.property.branchId,
+    eventType: "archived",
+    previousStatus: entry.property.status,
+    newStatus: "archived",
+    source,
+    metadata: { actorId, preservesBusinessHistory: true },
+  });
+  await logAudit("listing_archived", "listing_housekeeping", entry.relationship?.id ?? entry.property.id,
+    `Listing ${entry.property.reference} archived without deleting its history`, actorId);
 }
 
 async function setAvailability(entry: HousekeepingEntry, availabilityStatus: string, actorId: number, source: string) {
@@ -279,6 +449,10 @@ router.post("/listing-housekeeping/confirm", async (req, res): Promise<void> => 
   const user = await currentUser(req);
   const entry = await findEntry(user, optionalId(req.body?.propertyId), optionalId(req.body?.relationshipId));
   if (!entry) { res.status(404).json({ error: "Listing not found or not assigned to you" }); return; }
+  if (entry.expiredDraft) {
+    res.status(409).json({ error: "This listing has expired. Republish it or archive it instead of confirming it." });
+    return;
+  }
   const result = await writeConfirmation(entry, user!.id, requestSource(req));
   res.json(jsonify({ ok: true, ...result, listing: entryPayload(entry, await settings()) }));
 });
@@ -288,6 +462,10 @@ router.post("/listing-housekeeping/bulk-confirm", async (req, res): Promise<void
   const ids = new Set((Array.isArray(req.body?.relationshipIds) ? req.body.relationshipIds : []).map(Number));
   const propertyIds = new Set((Array.isArray(req.body?.propertyIds) ? req.body.propertyIds : []).map(Number));
   const entries = (await entriesFor(user)).filter((entry) => ids.has(entry.relationship?.id ?? -1) || propertyIds.has(entry.property.id));
+  if (entries.some((entry) => entry.expiredDraft)) {
+    res.status(409).json({ error: "Expired drafts must be republished or archived individually." });
+    return;
+  }
   for (const entry of entries) await writeConfirmation(entry, user!.id, requestSource(req));
   res.json({ ok: true, confirmed: entries.length });
 });
@@ -297,14 +475,28 @@ router.post("/listing-housekeeping/action", async (req, res): Promise<void> => {
   const entry = await findEntry(user, optionalId(req.body?.propertyId), optionalId(req.body?.relationshipId));
   if (!entry) { res.status(404).json({ error: "Listing not found or not assigned to you" }); return; }
   const action = req.body?.action as string;
+  if (action === "republish") {
+    try {
+      await republishExpiredListing(entry, user!.id, requestSource(req));
+    } catch (error) {
+      res.status(400).json({ error: error instanceof Error ? error.message : "Unable to republish listing." });
+      return;
+    }
+  } else if (action === "archive") {
+    await archiveListing(entry, user!.id, requestSource(req));
+  } else if (entry.expiredDraft && (action === "confirm" || action === "update")) {
+    res.status(409).json({ error: "This listing has expired. Republish it or archive it instead of confirming it." });
+    return;
+  } else {
   const state = action === "mark_unavailable" ? "temporarily_unavailable"
     : action === "reactivate" ? "available"
       : action;
-  if (action === "update" || action === "confirm") {
-    await writeConfirmation(entry, user!.id, requestSource(req));
-  } else {
-    try { await setAvailability(entry, state, user!.id, requestSource(req)); }
-    catch { res.status(400).json({ error: "Unsupported housekeeping action" }); return; }
+    if (action === "update" || action === "confirm") {
+      await writeConfirmation(entry, user!.id, requestSource(req));
+    } else {
+      try { await setAvailability(entry, state, user!.id, requestSource(req)); }
+      catch { res.status(400).json({ error: "Unsupported housekeeping action" }); return; }
+    }
   }
   res.json(jsonify({ ok: true, listing: entryPayload(entry, await settings()) }));
 });

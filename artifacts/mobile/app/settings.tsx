@@ -182,12 +182,6 @@ export default function SettingsScreen() {
   const setReminderChannel = (channel: 'whatsappEnabled' | 'pushEnabled' | 'emailEnabled', enabled: boolean) => {
     const next = { ...reminderPreferences, [channel]: enabled };
     void persistReminderPreferences(next);
-    if (channel === 'pushEnabled' && !enabled && apiBaseUrl) {
-      AsyncStorage.getItem('@qp_housekeeping_push_token').then((token) => {
-        if (token) return deactivateListingHousekeepingPushToken({ token, platform: Platform.OS });
-        return undefined;
-      }).catch(() => {});
-    }
   };
 
   return (

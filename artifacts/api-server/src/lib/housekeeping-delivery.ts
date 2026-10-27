@@ -15,6 +15,7 @@ const MAX_ATTEMPTS = 5;
 const RETRY_DELAYS_MS = [5 * 60_000, 30 * 60_000, 2 * 60 * 60_000, 12 * 60 * 60_000];
 
 export type ReminderDeliveryPayload = {
+  propertyId: number;
   reference: string;
   title: string;
   freshnessStatus: string;
@@ -229,7 +230,9 @@ async function sendEmail(
 ): Promise<DeliveryResult> {
   return sendEmailMessage({
     to: email,
-    subject: `Listing reminder: ${payload.reference}`,
+    subject: payload.reminderKey === "due-soon"
+      ? `Confirm listing availability: ${payload.reference}`
+      : `Listing moved to drafts: ${payload.reference}`,
     text: payload.message,
     idempotencyKey: `housekeeping-delivery-${deliveryId}`,
   });
@@ -282,9 +285,17 @@ async function sendPush(
   deliveryId: number,
 ): Promise<DeliveryResult> {
   return sendUserPushNotification(userId, {
-    title: `Listing ${payload.freshnessStatus}: ${payload.reference}`,
+    title: payload.reminderKey === "due-soon"
+      ? `Confirm listing: ${payload.reference}`
+      : payload.reminderKey.startsWith("overdue-")
+        ? `Listing moved to drafts: ${payload.reference}`
+        : `Listing ${payload.freshnessStatus}: ${payload.reference}`,
     body: payload.message,
-    data: { type: "listing_housekeeping", reference: payload.reference },
+    data: {
+      type: "listing_housekeeping",
+      propertyId: payload.propertyId,
+      reference: payload.reference,
+    },
   }, `housekeeping-delivery-${deliveryId}`);
 }
 

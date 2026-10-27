@@ -647,6 +647,20 @@ paths:
               schema:
                 type: array
                 items: { $ref: "#/components/schemas/AgentContact" }
+    post:
+      operationId: createAgentContact
+      tags: [sellers]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AgentContactCreateInput" }
+      responses:
+        "201":
+          description: Standalone seller or landlord contact
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AgentContact" }
   /agent-contacts/{propertyId}/mandates:
     parameters:
       - { name: propertyId, in: path, required: true, schema: { type: integer } }
@@ -1649,6 +1663,65 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/PropertyAlert" }
         "404": { description: Public property not found }
+        "401": { description: Not logged in }
+  /agent/search-alerts:
+    get:
+      operationId: listAgentSearchAlerts
+      tags: [property-alerts]
+      summary: List the signed-in agent's saved search alerts
+      responses:
+        "200":
+          description: Saved search alerts
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/AgentSearchAlert" }
+        "401": { description: Not logged in }
+  /agent/search-alerts/{clientId}:
+    put:
+      operationId: upsertAgentSearchAlert
+      tags: [property-alerts]
+      summary: Upsert an agent search alert using its stable client ID
+      parameters:
+        - { name: clientId, in: path, required: true, schema: { type: string, minLength: 1, maxLength: 80 } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AgentSearchAlertInput" }
+      responses:
+        "200":
+          description: Saved search alert synchronized
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AgentSearchAlert" }
+        "400": { description: Invalid search alert }
+        "401": { description: Not logged in }
+    delete:
+      operationId: deleteAgentSearchAlert
+      tags: [property-alerts]
+      summary: Delete an agent's saved search alert
+      parameters:
+        - { name: clientId, in: path, required: true, schema: { type: string, minLength: 1, maxLength: 80 } }
+      responses:
+        "204": { description: Search alert deleted }
+        "401": { description: Not logged in }
+  /agent/search-alerts/{clientId}/seen:
+    post:
+      operationId: markAgentSearchAlertMatchesSeen
+      tags: [property-alerts]
+      summary: Mark matching listings as seen for an agent search alert
+      parameters:
+        - { name: clientId, in: path, required: true, schema: { type: string, minLength: 1, maxLength: 80 } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AgentSearchAlertSeenInput" }
+      responses:
+        "204": { description: Matching listings marked as seen }
+        "404": { description: Search alert not found }
         "401": { description: Not logged in }
   /public/stats:
     get:
@@ -3259,9 +3332,17 @@ components:
         email: { type: ["string", "null"] }
         postalAddress: { type: ["string", "null"] }
         notes: { type: ["string", "null"] }
+        standalone: { type: boolean }
         properties:
           type: array
           items: { $ref: "#/components/schemas/AgentContactProperty" }
+    AgentContactCreateInput:
+      type: object
+      required: [type, name, phone]
+      properties:
+        type: { type: string, enum: [seller, landlord] }
+        name: { type: string, minLength: 1, maxLength: 120 }
+        phone: { type: string, minLength: 5, maxLength: 40 }
     AgentContactProperty:
       type: object
       required: [id, reference, title, suburb, city, listingType, status, documents]
@@ -4093,12 +4174,12 @@ components:
         propertyId: { type: integer }
     PropertyAlert:
       type: object
-      required: [id, userId, name, transactionType, propertyTypes, cities, suburbs, minPrice, maxPrice, minBedrooms, minBathrooms, requiredAmenities, preferredAmenities, furnishedPreference, parkingPreference, petsPreference, powerPreference, waterPreference, notificationFrequency, notificationChannels, active, sourcePropertyId, matchedCount, notificationsSent, propertiesViewed, createdAt, updatedAt]
+      required: [id, userId, name, transactionType, propertyTypes, cities, suburbs, minPrice, maxPrice, currency, minBedrooms, minBathrooms, requiredAmenities, preferredAmenities, furnishedPreference, parkingPreference, petsPreference, powerPreference, waterPreference, notificationFrequency, notificationChannels, active, sourcePropertyId, matchedCount, notificationsSent, propertiesViewed, createdAt, updatedAt]
       properties:
         id: { type: integer }
         userId: { type: integer }
         name: { type: string }
-        transactionType: { type: string, enum: [sale, rent] }
+        transactionType: { type: string, enum: [sale, rent, any] }
         propertyTypes:
           type: array
           items: { type: string }
@@ -4110,6 +4191,7 @@ components:
           items: { type: string }
         minPrice: { type: ["number", "null"] }
         maxPrice: { type: ["number", "null"] }
+        currency: { type: ["string", "null"] }
         minBedrooms: { type: ["integer", "null"] }
         minBathrooms: { type: ["integer", "null"] }
         requiredAmenities:
@@ -4126,7 +4208,7 @@ components:
         notificationFrequency: { type: string, enum: [immediately, daily, weekly] }
         notificationChannels:
           type: array
-          items: { type: string, enum: [in_app, email, whatsapp] }
+          items: { type: string, enum: [in_app, email, whatsapp, push] }
         active: { type: boolean }
         sourcePropertyId: { type: ["integer", "null"] }
         matchedCount: { type: integer }
@@ -4152,6 +4234,7 @@ components:
           items: { type: string }
         minPrice: { type: ["number", "null"], minimum: 0 }
         maxPrice: { type: ["number", "null"], minimum: 0 }
+        currency: { type: ["string", "null"], maxLength: 12 }
         minBedrooms: { type: ["integer", "null"], minimum: 0, maximum: 20 }
         minBathrooms: { type: ["integer", "null"], minimum: 0, maximum: 20 }
         requiredAmenities:
@@ -4168,7 +4251,7 @@ components:
         notificationFrequency: { type: string, enum: [immediately, daily, weekly] }
         notificationChannels:
           type: array
-          items: { type: string, enum: [in_app, email, whatsapp] }
+          items: { type: string, enum: [in_app, email, whatsapp, push] }
         sourcePropertyId: { type: ["integer", "null"] }
     PropertyAlertUpdate:
       type: object
@@ -4187,6 +4270,7 @@ components:
           items: { type: string }
         minPrice: { type: ["number", "null"], minimum: 0 }
         maxPrice: { type: ["number", "null"], minimum: 0 }
+        currency: { type: ["string", "null"], maxLength: 12 }
         minBedrooms: { type: ["integer", "null"], minimum: 0, maximum: 20 }
         minBathrooms: { type: ["integer", "null"], minimum: 0, maximum: 20 }
         requiredAmenities:
@@ -4203,12 +4287,50 @@ components:
         notificationFrequency: { type: string, enum: [immediately, daily, weekly] }
         notificationChannels:
           type: array
-          items: { type: string, enum: [in_app, email, whatsapp] }
+          items: { type: string, enum: [in_app, email, whatsapp, push] }
     PropertyAlertStatusInput:
       type: object
       required: [active]
       properties:
         active: { type: boolean }
+    AgentSearchAlert:
+      type: object
+      required: [id, name, type, suburb, minBedrooms, maxPrice, currency, features, seenPropertyIds, createdAt]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        type: { type: ["string", "null"] }
+        suburb: { type: ["string", "null"] }
+        minBedrooms: { type: ["integer", "null"] }
+        maxPrice: { type: ["number", "null"] }
+        currency: { type: ["string", "null"] }
+        features:
+          type: array
+          items: { type: string }
+        seenPropertyIds:
+          type: array
+          items: { type: string }
+        createdAt: { type: string }
+    AgentSearchAlertInput:
+      type: object
+      required: [name, type, suburb, minBedrooms, maxPrice, currency, features]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 120 }
+        type: { type: ["string", "null"], enum: [sale, rent, commercial, stand, farm, mine, null] }
+        suburb: { type: ["string", "null"], maxLength: 120 }
+        minBedrooms: { type: ["integer", "null"], minimum: 0, maximum: 20 }
+        maxPrice: { type: ["number", "null"], minimum: 0 }
+        currency: { type: ["string", "null"], maxLength: 12 }
+        features:
+          type: array
+          items: { type: string, maxLength: 120 }
+    AgentSearchAlertSeenInput:
+      type: object
+      required: [propertyIds]
+      properties:
+        propertyIds:
+          type: array
+          items: { type: integer, minimum: 1 }
     MarketplaceStats:
       type: object
       required: [totalListings, forSale, forRent, suburbs]
@@ -4381,7 +4503,7 @@ components:
         weeklyReport: { type: boolean }
     ListingHousekeepingItem:
       type: object
-      required: [id, propertyId, reference, title, suburb, city, status, availabilityStatus, freshnessStatus, freshnessLabel, freshnessScore, qualityScore, daysSinceConfirmation]
+      required: [id, propertyId, reference, title, suburb, city, status, availabilityStatus, freshnessStatus, freshnessLabel, freshnessScore, qualityScore, daysSinceConfirmation, expiredDraft]
       properties:
         id: { type: integer }
         propertyId: { type: integer }
@@ -4409,6 +4531,7 @@ components:
         photos: { type: array, items: { type: string } }
         bedrooms: { type: ["integer", "null"] }
         bathrooms: { type: ["integer", "null"] }
+        expiredDraft: { type: boolean }
     ListingHousekeepingResponse:
       type: object
       required: [summary, listings, thresholds]
@@ -4425,7 +4548,10 @@ components:
       properties:
         propertyId: { type: integer }
         relationshipId: { type: integer }
-        action: { type: string, description: "update | confirm | mark_unavailable | temporarily_unavailable | under_offer | sold | let | withdrawn | reactivate" }
+        action:
+          type: string
+          enum: [update, confirm, mark_unavailable, temporarily_unavailable, under_offer, sold, let, withdrawn, reactivate, republish, archive]
+          description: "Republish is only for a listing auto-drafted after its confirmation deadline. Archive preserves listing history."
     BulkListingHousekeepingInput:
       type: object
       properties:

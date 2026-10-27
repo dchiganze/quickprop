@@ -1,12 +1,31 @@
 import {
+  check,
   pgTable,
   serial,
   text,
   integer,
   timestamp,
   doublePrecision,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { usersTable } from "./users";
+
+export const agentContactsTable = pgTable(
+  "agent_contacts",
+  {
+    id: serial("id").primaryKey(),
+    agentId: integer("agent_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
+    type: text("type").notNull(),
+    name: text("name").notNull(),
+    phone: text("phone").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("agent_contacts_agent_type_phone_unique").on(table.agentId, table.type, table.phone),
+    check("agent_contacts_type_check", sql`${table.type} in ('seller', 'landlord')`),
+  ],
+);
 
 export const sellersTable = pgTable("sellers", {
   id: serial("id").primaryKey(),

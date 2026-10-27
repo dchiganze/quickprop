@@ -8,7 +8,7 @@ import {
   usersTable,
 } from "@workspace/db";
 import { logger } from "./logger";
-import { sendEmailMessage } from "./housekeeping-delivery";
+import { sendEmailMessage, sendUserPushNotification } from "./housekeeping-delivery";
 
 const PUBLIC_PROPERTY_STATUSES = ["public", "under_offer", "coming_soon"];
 const DIGEST_INTERVAL_MS = { daily: 24 * 60 * 60 * 1000, weekly: 7 * 24 * 60 * 60 * 1000 };
@@ -17,12 +17,13 @@ type AlertFrequency = typeof ALERT_FREQUENCIES[number];
 
 export type PropertyAlertInput = {
   name?: string;
-  transactionType: "sale" | "rent";
+  transactionType: "sale" | "rent" | "any";
   propertyTypes: string[];
   cities?: string[];
   suburbs?: string[];
   minPrice?: number | null;
   maxPrice?: number | null;
+  currency?: string | null;
   minBedrooms?: number | null;
   minBathrooms?: number | null;
   requiredAmenities?: string[];
@@ -97,6 +98,7 @@ export function normalizePropertyAlertInput(input: PropertyAlertInput) {
     suburbs: cleanList(input.suburbs),
     minPrice: input.minPrice ?? null,
     maxPrice: input.maxPrice ?? null,
+    currency: input.currency ?? null,
     minBedrooms: input.minBedrooms ?? null,
     minBathrooms: input.minBathrooms ?? null,
     requiredAmenities: cleanList(input.requiredAmenities),
@@ -147,12 +149,13 @@ export async function updatePropertyAlert(userId: number, id: number, input: Pro
 
   const merged: PropertyAlertInput = {
     name: input.name ?? existing.name,
-    transactionType: (input.transactionType ?? existing.transactionType) as "sale" | "rent",
+    transactionType: (input.transactionType ?? existing.transactionType) as "sale" | "rent" | "any",
     propertyTypes: input.propertyTypes ?? existing.propertyTypes,
     cities: input.cities ?? existing.cities,
     suburbs: input.suburbs ?? existing.suburbs,
     minPrice: input.minPrice === undefined ? existing.minPrice : input.minPrice,
     maxPrice: input.maxPrice === undefined ? existing.maxPrice : input.maxPrice,
+    currency: input.currency === undefined ? existing.currency : input.currency,
     minBedrooms: input.minBedrooms === undefined ? existing.minBedrooms : input.minBedrooms,
     minBathrooms: input.minBathrooms === undefined ? existing.minBathrooms : input.minBathrooms,
     requiredAmenities: input.requiredAmenities ?? existing.requiredAmenities,
@@ -198,6 +201,7 @@ export function similarPropertyAlertInput(property: typeof propertiesTable.$infe
     suburbs: [property.suburb],
     minPrice: tolerance ? Math.max(0, property.price - tolerance) : property.price,
     maxPrice: property.price + tolerance || null,
+    currency: property.currency,
     minBedrooms: property.bedrooms ?? null,
     minBathrooms: property.bathrooms ?? null,
     preferredAmenities: (property.features ?? []).slice(0, 5),
@@ -207,14 +211,15 @@ export function similarPropertyAlertInput(property: typeof propertiesTable.$infe
   };
 }
 
-function getMatchScore(alert: typeof propertyAlertsTable.$inferSelect, property: typeof propertiesTable.$inferSelect): number | null {
+export function getMatchScore(alert: typeof propertyAlertsTable.$inferSelect, property: typeof propertiesTable.$inferSelect): number | null {
   if (!PUBLIC_PROPERTY_STATUSES.includes(property.status)) return null;
-  if (alert.transactionType !== property.listingType) return null;
+  if (alert.transactionType !== "any" && alert.transactionType !== property.listingType) return null;
   if (alert.propertyTypes.length && !listIncludes(alert.propertyTypes, property.propertyType)) return null;
   if (alert.cities.length && !listIncludes(alert.cities, property.city)) return null;
   if (alert.suburbs.length && !listIncludes(alert.suburbs, property.suburb)) return null;
   if (alert.minPrice != null && property.price < alert.minPrice) return null;
   if (alert.maxPrice != null && property.price > alert.maxPrice) return null;
+  if (alert.currency && alert.currency !== property.currency) return null;
   if (alert.minBedrooms != null && (property.bedrooms == null || property.bedrooms < alert.minBedrooms)) return null;
   if (alert.minBathrooms != null && (property.bathrooms == null || property.bathrooms < alert.minBathrooms)) return null;
 
@@ -245,7 +250,7 @@ async function sendImmediateMatch(
   notification: typeof propertyAlertNotificationsTable.$inferSelect,
 ) {
   const url = propertyUrl(property);
-  const message = `${property.title} is a ${notification.matchPercentage}% match for “${alert.name}”. ${property.suburb}, ${property.city} · $${property.price.toLocaleString()}.`;
+  const message = `${property.title} is a ${notification.matchPercentage}% match for “${alert.name}”. ${property.suburb}, ${property.city} · ${property.currency} ${property.price.toLocaleString()}.`;
   const channels = alert.notificationChannels;
   if (channels.includes("in_app")) {
     await db.insert(notificationsTable).values({
@@ -263,6 +268,18 @@ async function sendImmediateMatch(
       idempotencyKey: `property-alert-${notification.id}`,
     });
   }
+  if (channels.includes("push")) {
+    await sendUserPushNotification(user.id, {
+      title: "New listing matches your search",
+      body: `${property.title} · ${property.currency} ${property.price.toLocaleString()} · ${property.suburb}`,
+      data: {
+        type: "property_search_alert",
+        propertyId: property.id,
+        alertId: alert.clientId ?? alert.id,
+        url,
+      },
+    }, `property-alert-${notification.id}`);
+  }
   await db.update(propertyAlertNotificationsTable).set({
     notificationStatus: "sent",
     notifiedAt: new Date(),
@@ -274,7 +291,7 @@ export async function matchPropertyToAlerts(propertyId: number): Promise<void> {
   if (!property || !PUBLIC_PROPERTY_STATUSES.includes(property.status)) return;
 
   const alerts = await db.select().from(propertyAlertsTable)
-    .where(and(eq(propertyAlertsTable.active, true), inArray(propertyAlertsTable.transactionType, ["sale", "rent"])));
+    .where(and(eq(propertyAlertsTable.active, true), inArray(propertyAlertsTable.transactionType, ["sale", "rent", "any"])));
   for (const alert of alerts) {
     const score = getMatchScore(alert, property);
     if (score == null) continue;

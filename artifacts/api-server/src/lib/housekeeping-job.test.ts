@@ -144,12 +144,17 @@ test(
           event.newStatus,
           event.reminderKey,
         ]),
-        [
-          ["status_changed", "stale", null],
-          ["reminder", "stale", "overdue-30"],
-        ],
+        [],
       );
       assert.deepEqual(relationshipTwoEvents, []);
+      const [updatedProperty] = await db.select({ status: propertiesTable.status })
+        .from(propertiesTable).where(eq(propertiesTable.id, property.id));
+      assert.equal(updatedProperty?.status, "draft");
+      const ownerEvents = events.filter((event) => event.relationshipId == null);
+      assert.ok(ownerEvents.some((event) => event.eventType === "auto_drafted" && event.newStatus === "draft"));
+      assert.ok(ownerEvents.some((event) => event.eventType === "reminder" && event.reminderKey?.startsWith("overdue-30:")));
+      const autoDraftEvent = events.find((event) => event.eventType === "auto_drafted");
+      assert.equal(autoDraftEvent?.newStatus, "draft");
 
       const relationships = await db.select({
         id: propertyAgentRelationshipsTable.id,

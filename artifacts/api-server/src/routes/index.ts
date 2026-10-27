@@ -22,6 +22,7 @@ import shareRouter from "./share";
 import publicationSyncRouter from "./publication-sync";
 import passkeysRouter from "./passkeys";
 import agentSalesRouter from "./agent-sales";
+import agentSearchAlertsRouter from "./agent-search-alerts";
 
 const router: IRouter = Router();
 
@@ -43,6 +44,7 @@ router.use(shareRouter);
 router.use(publicationSyncRouter);
 // All business routes below require a logged-in user.
 router.use(requireAuth);
+router.use(agentSearchAlertsRouter);
 router.use(agentSalesRouter);
 router.use(agencySettingsRouter);
 router.use(multiAgentRouter);

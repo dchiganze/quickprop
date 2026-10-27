@@ -42,4 +42,5 @@ export interface ListingHousekeepingItem {
   bedrooms?: number | null;
   /** @nullable */
   bathrooms?: number | null;
+  expiredDraft: boolean;
 }

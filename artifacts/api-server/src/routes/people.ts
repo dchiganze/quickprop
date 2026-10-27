@@ -4,6 +4,7 @@ import {
   branchesTable,
   documentsTable,
   db,
+  agentContactsTable,
   propertiesTable,
   sellersTable,
   buyersTable,
@@ -13,6 +14,8 @@ import {
   CreateAgentContactMandateBody,
   CreateAgentContactMandateParams,
   CreateAgentContactMandateResponse,
+  CreateAgentContactBody,
+  CreateAgentContactResponse,
   CreateAgentContactReviewInvitationParams,
   CreateAgentContactReviewInvitationResponse,
   GetAgentContactsQueryParams,
@@ -49,6 +52,10 @@ import { createShareableReviewInvitation } from "../lib/agent-reviews";
 const router: IRouter = Router();
 
 type ContactType = "seller" | "landlord";
+
+function contactPhoneKey(phone: string | null | undefined) {
+  return phone?.replace(/\D/g, "") ?? "";
+}
 
 async function propertyScope(user: NonNullable<Awaited<ReturnType<typeof currentUser>>>) {
   if (user.role === "agent" || user.role === "senior_agent") {
@@ -149,7 +156,82 @@ router.get("/agent-contacts", async (req, res): Promise<void> => {
     });
     contactsById.set(seller.id, contact);
   }
+  const linkedPhoneKeys = new Set(
+    [...contactsById.values()]
+      .map((contact) => contactPhoneKey(contact.phone))
+      .filter(Boolean),
+  );
+  const standaloneContacts = await db.select().from(agentContactsTable).where(and(
+    eq(agentContactsTable.agentId, user.id),
+    eq(agentContactsTable.type, query.data.type),
+  )).orderBy(desc(agentContactsTable.createdAt));
+  for (const contact of standaloneContacts) {
+    if (linkedPhoneKeys.has(contactPhoneKey(contact.phone))) continue;
+    contactsById.set(-contact.id, {
+      id: -contact.id,
+      name: contact.name,
+      idNumber: null,
+      phone: contact.phone,
+      email: null,
+      postalAddress: null,
+      notes: null,
+      standalone: true,
+      properties: [],
+    });
+  }
   res.json(GetAgentContactsResponse.parse(jsonify([...contactsById.values()])));
+});
+
+router.post("/agent-contacts", async (req, res): Promise<void> => {
+  const parsed = CreateAgentContactBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+  const user = await currentUser(req);
+  if (!user) {
+    res.status(401).json({ error: "Not logged in" });
+    return;
+  }
+  const name = parsed.data.name.trim();
+  const phone = parsed.data.phone.trim();
+  if (!name || !phone) {
+    res.status(400).json({ error: "Enter a name and phone number." });
+    return;
+  }
+  const [created] = await db.insert(agentContactsTable).values({
+    agentId: user.id,
+    type: parsed.data.type,
+    name,
+    phone,
+  }).onConflictDoNothing({
+    target: [agentContactsTable.agentId, agentContactsTable.type, agentContactsTable.phone],
+  }).returning();
+  const [contact] = created
+    ? [created]
+    : await db.select().from(agentContactsTable).where(and(
+        eq(agentContactsTable.agentId, user.id),
+        eq(agentContactsTable.type, parsed.data.type),
+        eq(agentContactsTable.phone, phone),
+      )).limit(1);
+  if (!contact) {
+    res.status(500).json({ error: "The contact could not be saved." });
+    return;
+  }
+  if (created) {
+    await logAudit("created", "agent_contact", contact.id, `Added ${parsed.data.type} contact ${contact.name}`, user.id, user.name);
+  }
+  res.status(201).json(CreateAgentContactResponse.parse(jsonify({
+    id: -contact.id,
+    name: contact.name,
+    idNumber: null,
+    phone: contact.phone,
+    email: null,
+    postalAddress: null,
+    notes: null,
+    standalone: true,
+    properties: [],
+  })));
 });
 
 router.post("/agent-contacts/:propertyId/mandates", async (req, res): Promise<void> => {

@@ -13,4 +13,5 @@ export const PropertyAlertNotificationChannelsItem = {
   in_app: 'in_app',
   email: 'email',
   whatsapp: 'whatsapp',
+  push: 'push',
 } as const;

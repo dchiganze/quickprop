@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Appearance, Platform } from 'react-native';
+import { Appearance, Linking, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -45,9 +45,17 @@ function RootLayoutNav() {
   useEffect(() => {
     if (Platform.OS === 'web') return;
     const subscription = Notifications.addNotificationResponseReceivedListener((response) => {
-      const data = response.notification.request.content.data as { type?: string; propertyId?: number | string } | undefined;
+      const data = response.notification.request.content.data as { type?: string; propertyId?: number | string; url?: string } | undefined;
       if (data?.type === 'viewing_reminder') {
         router.push('/viewings');
+        return;
+      }
+      if (data?.type === 'property_search_alert' && typeof data.url === 'string' && data.url.startsWith('https://')) {
+        Linking.openURL(data.url).catch(() => router.push('/(tabs)/matches'));
+        return;
+      }
+      if (data?.type === 'listing_housekeeping') {
+        router.push('/housekeeping');
         return;
       }
       if (data?.propertyId) {

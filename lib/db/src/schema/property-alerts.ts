@@ -18,7 +18,9 @@ export const propertyAlertsTable = pgTable(
   {
     id: serial("id").primaryKey(),
     userId: integer("user_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
+    clientId: text("client_id"),
     name: text("name").notNull(),
+    currency: text("currency"),
     transactionType: text("transaction_type").notNull(),
     propertyTypes: text("property_types").array().notNull().default([]),
     cities: text("cities").array().notNull().default([]),
@@ -41,7 +43,9 @@ export const propertyAlertsTable = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => [],
+  (table) => [
+    uniqueIndex("property_alerts_user_client_unique").on(table.userId, table.clientId),
+  ],
 );
 
 export const propertyAlertNotificationsTable = pgTable(
