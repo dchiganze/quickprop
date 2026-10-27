@@ -71,7 +71,6 @@ export default function DashboardScreen() {
   const newLeads = leads.filter(l => l.stage === 'new').length;
   const recentProperties = [...properties].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()).slice(0, 3);
 
-  const firstName = user?.name.split(' ')[0] ?? 'Agent';
 
   const handleSignOut = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
@@ -117,13 +116,28 @@ export default function DashboardScreen() {
       }
     >
       <View style={styles.brandRow}>
-        <Image
-          source={require('../../assets/images/quickprop-house-logo-green.png')}
-          style={styles.brandMark}
-          resizeMode="contain"
-          accessibilityLabel="QuickProp house logo"
-        />
-        <Text style={[styles.brandTitle, { color: '#1F956B' }]}>QuickProp Agent</Text>
+        <View style={styles.brandIdentity}>
+          <Image
+            source={require('../../assets/images/quickprop-house-logo-green.png')}
+            style={styles.brandMark}
+            resizeMode="contain"
+            accessibilityLabel="QuickProp house logo"
+          />
+          <Text style={[styles.brandTitle, { color: '#1F956B' }]}>QuickProp Agent</Text>
+        </View>
+        <TouchableOpacity
+          style={[styles.notifBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
+          onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}); NavigationFlags.notificationsFromDashboard = true; navigation.getParent()?.navigate('notifications' as never); }}
+          accessibilityRole="button"
+          accessibilityLabel="Notifications"
+        >
+          <Ionicons name="notifications-outline" size={22} color={colors.foreground} />
+          {newLeads + matchInbox.unreadCount > 0 && (
+            <View style={[styles.badge, { backgroundColor: colors.accent }]}>
+              <Text style={styles.badgeText}>{newLeads + matchInbox.unreadCount}</Text>
+            </View>
+          )}
+        </TouchableOpacity>
       </View>
       {refreshing && (
         <View
@@ -141,20 +155,7 @@ export default function DashboardScreen() {
       )}
       {/* Header */}
       <View style={styles.header}>
-        <View>
-          <Text style={[styles.name, { color: colors.foreground }]}>Welcome back, {firstName}</Text>
-        </View>
-        <TouchableOpacity
-          style={[styles.notifBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
-          onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}); NavigationFlags.notificationsFromDashboard = true; navigation.getParent()?.navigate('notifications' as never); }}
-        >
-          <Ionicons name="notifications-outline" size={22} color={colors.foreground} />
-          {newLeads + matchInbox.unreadCount > 0 && (
-            <View style={[styles.badge, { backgroundColor: colors.accent }]}>
-              <Text style={styles.badgeText}>{newLeads + matchInbox.unreadCount}</Text>
-            </View>
-          )}
-        </TouchableOpacity>
+        <Text style={[styles.name, { color: colors.foreground }]}>Hi Agent</Text>
       </View>
 
       {/* Stats */}
@@ -244,10 +245,11 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   refreshIndicatorText: { fontSize: 12, fontWeight: '600' },
-  brandRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 16 },
+  brandRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
+  brandIdentity: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   brandMark: { width: 24, height: 24 },
   brandTitle: { fontSize: 18, lineHeight: 24, fontWeight: '800', letterSpacing: -0.3 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 22 },
+  header: { marginBottom: 22 },
   name: { fontSize: 24, fontWeight: '800', letterSpacing: -0.5 },
   notifBtn: {
     width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center', borderWidth: 1,
