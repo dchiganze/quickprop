@@ -143,10 +143,36 @@ function serverStatus(status: Property['status']): string {
   return status;
 }
 
+export function parsePrivateContactNotes(value?: string | null) {
+  const remaining: string[] = [];
+  let name = '';
+  let phone = '';
+  let email = '';
+
+  for (const line of (value ?? '').split(/\r?\n/).map(item => item.trim()).filter(Boolean)) {
+    const contactField = line.match(/^(seller|landlord)\s*:\s*(.*)$/i);
+    const phoneField = line.match(/^phone\s*:\s*(.*)$/i);
+    const emailField = line.match(/^email\s*:\s*(.*)$/i);
+    if (contactField) {
+      const candidate = contactField[2].trim();
+      if (!/seller details available in quickprop office/i.test(candidate)) name = candidate;
+    } else if (phoneField) {
+      phone = phoneField[1].trim();
+    } else if (emailField) {
+      email = emailField[1].trim();
+    } else {
+      remaining.push(line);
+    }
+  }
+
+  return { name, phone, email, notes: remaining.join('\n') };
+}
+
 function toMobileProperty(property: ApiProperty): Property {
   const type: Property['type'] = property.propertyType === 'commercial' || property.propertyType === 'stand' || property.propertyType === 'farm'
     ? property.propertyType
     : property.listingType === 'rent' ? 'rent' : 'sale';
+  const privateContact = parsePrivateContactNotes(property.privateNotes);
   return {
     id: String(property.id),
     referenceNumber: property.reference,
@@ -178,12 +204,12 @@ function toMobileProperty(property: ApiProperty): Property {
     videoUrl: property.videoUrl ?? undefined,
     collaborationEnabled: property.collaborationEnabled ?? false,
     seller: {
-      name: 'Seller details available in QuickProp Office',
-      phone: '',
-      email: '',
+      name: privateContact.name,
+      phone: privateContact.phone,
+      email: privateContact.email,
       mandateExpiry: property.mandateExpiry ?? '',
       mandateType: property.mandateType === 'open' ? 'open' : 'sole',
-      notes: property.privateNotes ?? '',
+      notes: privateContact.notes,
     },
     agentId: String(property.agentId ?? ''),
     createdAt: property.createdAt ?? now(),
@@ -238,14 +264,12 @@ function toServerProperty(property: Property, userId: string): PropertyInput {
     longitude: property.coordinates?.lng,
     collaborationEnabled: property.collaborationEnabled ?? false,
     agentId: Number(userId),
-      mandateType: property.seller.mandateType === 'open' ? 'open' : 'sole',
+    sellerName: property.seller.name || undefined,
+    sellerPhone: property.seller.phone || undefined,
+    sellerEmail: property.seller.email || undefined,
+    sellerNotes: property.seller.notes || undefined,
+    mandateType: property.seller.mandateType === 'open' ? 'open' : 'sole',
     mandateExpiry: property.seller.mandateExpiry || undefined,
-    privateNotes: [
-      property.seller.name ? `Seller: ${property.seller.name}` : '',
-      property.seller.phone ? `Phone: ${property.seller.phone}` : '',
-      property.seller.email ? `Email: ${property.seller.email}` : '',
-      property.seller.notes,
-    ].filter(Boolean).join('\n'),
   };
 }
 

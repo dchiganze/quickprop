@@ -729,12 +729,12 @@ export default function NewListingScreen() {
 
       case 7: return ( // Seller Details
         <ScrollView showsVerticalScrollIndicator={false}>
-          <Text style={[styles.stepHeading, { color: colors.foreground }]}>Seller Details</Text>
+          <Text style={[styles.stepHeading, { color: colors.foreground }]}>{form.type === 'rent' ? 'Landlord Details' : 'Seller Details'}</Text>
           <View style={[styles.privateNote, { backgroundColor: colors.muted, borderColor: colors.border }]}>
             <Ionicons name="lock-closed-outline" size={14} color={colors.primary} />
             <Text style={[styles.privateNoteText, { color: colors.mutedForeground }]}>This information is private and never visible to the public.</Text>
           </View>
-          <Field label="SELLER NAME *" error={fieldError('seller name')}><TextInput style={[inputStyle, fieldError('seller name') && { borderColor: colors.destructive }]} value={form.sellerName} onChangeText={v => set('sellerName', v)} placeholder="Robert Chikwanda" placeholderTextColor={colors.mutedForeground} /></Field>
+          <Field label={`${form.type === 'rent' ? 'LANDLORD' : 'SELLER'} NAME *`} error={fieldError('seller name')}><TextInput style={[inputStyle, fieldError('seller name') && { borderColor: colors.destructive }]} value={form.sellerName} onChangeText={v => set('sellerName', v)} placeholder="Robert Chikwanda" placeholderTextColor={colors.mutedForeground} /></Field>
           <Field label="PHONE *" error={fieldError('seller phone')}><TextInput style={[inputStyle, fieldError('seller phone') && { borderColor: colors.destructive }]} value={form.sellerPhone} onChangeText={v => set('sellerPhone', v)} placeholder="+263 77 123 4567" placeholderTextColor={colors.mutedForeground} keyboardType="phone-pad" /></Field>
           <Field label="EMAIL *" error={fieldError('seller email')}><TextInput style={[inputStyle, fieldError('seller email') && { borderColor: colors.destructive }]} value={form.sellerEmail} onChangeText={v => set('sellerEmail', v)} placeholder="seller@email.com" placeholderTextColor={colors.mutedForeground} keyboardType="email-address" autoCapitalize="none" /></Field>
           <Field label="MANDATE EXPIRY *" error={fieldError('mandate expiry')}>
@@ -753,7 +753,7 @@ export default function NewListingScreen() {
               ))}
             </View>
           </Field>
-          <Field label="INTERNAL NOTES *" error={fieldError('internal notes')}>
+          <Field label={`${form.type === 'rent' ? 'LANDLORD' : 'SELLER'} NOTES *`} error={fieldError('internal notes')}>
             <TextInput style={[textAreaStyle, { minHeight: 80 }, fieldError('internal notes') && { borderColor: colors.destructive }]} value={form.sellerNotes} onChangeText={v => set('sellerNotes', v)} placeholder="Seller motivation, negotiation notes, access instructions..." placeholderTextColor={colors.mutedForeground} multiline textAlignVertical="top" />
           </Field>
         </ScrollView>

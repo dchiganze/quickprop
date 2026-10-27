@@ -17,10 +17,10 @@ import { PropertyFlyer, PropertyFlyerHandle } from '@/components/PropertyFlyer';
 import { FlyerCustomizer } from '@/components/FlyerCustomizer';
 import { useFlyerSettings } from '@/hooks/useFlyerSettings';
 import { PropertyShareSheet } from '@/components/PropertyShareSheet';
-import { useData } from '@/contexts/DataContext';
+import { parsePrivateContactNotes, useData } from '@/contexts/DataContext';
 import { Property } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
-import { getGetMultiAgentPropertyQueryKey, useGetMultiAgentProperty } from '@workspace/api-client-react';
+import { getGetAgentContactsQueryKey, getGetMultiAgentPropertyQueryKey, useGetAgentContacts, useGetMultiAgentProperty } from '@workspace/api-client-react';
 import { addMyAgencyToProperty } from '@/utils/multiAgent';
 
 function VideoPlayerModal({ uri, onClose }: { uri: string; onClose: () => void }) {
@@ -78,6 +78,44 @@ export default function ListingDetailScreen() {
       queryKey: getGetMultiAgentPropertyQueryKey(remotePropertyId),
     },
   });
+  const contactType = property?.listingType === 'rent' ? 'landlord' : 'seller';
+  const {
+    data: agentContacts = [],
+    isLoading: isContactLoading,
+    isError: isContactError,
+  } = useGetAgentContacts(
+    { type: contactType },
+    {
+      query: {
+        enabled: Boolean(property),
+        queryKey: getGetAgentContactsQueryKey({ type: contactType }),
+      },
+    },
+  );
+  const linkedContact = agentContacts.find(contact =>
+    contact.properties.some(linkedProperty => linkedProperty.id === remotePropertyId),
+  );
+  const linkedContactProperty = linkedContact?.properties.find(
+    linkedProperty => linkedProperty.id === remotePropertyId,
+  );
+  const legacyContact = parsePrivateContactNotes(property?.seller.notes);
+  const fallbackContactName = property?.seller.name && !/seller details available in quickprop office/i.test(property.seller.name)
+    ? property.seller.name
+    : '';
+  const contactName = linkedContact?.name || fallbackContactName || legacyContact.name;
+  const contactPhone = linkedContact?.phone || property?.seller.phone || legacyContact.phone || '';
+  const contactEmail = linkedContact?.email || property?.seller.email || legacyContact.email || '';
+  const contactNotes = linkedContact?.notes || legacyContact.notes;
+  const contactMandateType = linkedContactProperty?.mandateType === 'open' || property?.seller.mandateType === 'open'
+    ? 'open'
+    : 'sole';
+  const contactMandateExpiry = linkedContactProperty?.mandateExpiry || property?.seller.mandateExpiry || '';
+  const contactMandateExpiryDisplay = contactMandateExpiry && !Number.isNaN(Date.parse(contactMandateExpiry))
+    ? new Date(contactMandateExpiry).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+    : contactMandateExpiry;
+  const hasPrivateContactDetails = Boolean(
+    contactName || contactPhone || contactEmail || contactNotes || contactMandateExpiry,
+  );
   const [brochureOpen, setBrochureOpen] = useState(false);
   const [videoPlayerVisible, setVideoPlayerVisible] = useState(false);
   const [shareOptionsOpen, setShareOptionsOpen] = useState(false);
@@ -503,32 +541,62 @@ export default function ListingDetailScreen() {
             </Section>
           )}
 
-          {/* Seller Notes (private) */}
-          <Section title="SELLER DETAILS — PRIVATE">
+          {/* Seller/landlord contact details are only fetched for this agent's contacts. */}
+          <Section title={`${property.listingType === 'rent' ? 'LANDLORD' : 'SELLER'} DETAILS — PRIVATE`}>
             <View style={[styles.sellerCard, { backgroundColor: colors.muted, borderColor: colors.border }]}>
-              <View style={styles.sellerRow}>
-                <Ionicons name="person-outline" size={15} color={colors.primary} />
-                <Text style={[styles.sellerValue, { color: colors.foreground }]}>{property.seller.name}</Text>
-              </View>
-              <View style={styles.sellerRow}>
-                <Ionicons name="call-outline" size={15} color={colors.primary} />
-                <Text style={[styles.sellerValue, { color: colors.foreground }]}>{property.seller.phone}</Text>
-              </View>
-              <View style={styles.sellerRow}>
-                <Ionicons name="mail-outline" size={15} color={colors.primary} />
-                <Text style={[styles.sellerValue, { color: colors.foreground }]}>{property.seller.email}</Text>
-              </View>
-              {property.seller.mandateType === 'sole' && (
+              {isContactLoading && !hasPrivateContactDetails ? (
+                <Text style={[styles.sellerValue, { color: colors.mutedForeground }]}>Loading saved contact details…</Text>
+              ) : hasPrivateContactDetails ? (
+                <>
+                  {!!contactName && (
+                    <View style={styles.sellerRow}>
+                      <Ionicons name="person-outline" size={15} color={colors.primary} />
+                      <Text style={[styles.sellerValue, { color: colors.foreground }]}>{contactName}</Text>
+                    </View>
+                  )}
+                  {!!contactPhone && (
+                    <View style={styles.sellerRow}>
+                      <Ionicons name="call-outline" size={15} color={colors.primary} />
+                      <Text style={[styles.sellerValue, { color: colors.foreground }]}>{contactPhone}</Text>
+                    </View>
+                  )}
+                  {!!contactEmail && (
+                    <View style={styles.sellerRow}>
+                      <Ionicons name="mail-outline" size={15} color={colors.primary} />
+                      <Text style={[styles.sellerValue, { color: colors.foreground }]}>{contactEmail}</Text>
+                    </View>
+                  )}
+                  {!!contactMandateExpiry && (
+                    <View style={styles.sellerRow}>
+                      <Ionicons name="calendar-outline" size={15} color={colors.primary} />
+                      <Text style={[styles.sellerValue, { color: colors.foreground }]}>
+                        {contactMandateType === 'open' ? 'Open mandate' : 'Sole mandate'} • Expires {contactMandateExpiryDisplay}
+                      </Text>
+                    </View>
+                  )}
+                  {!!contactNotes && (
+                    <View style={[styles.notesBox, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                      <Text style={[styles.notesText, { color: colors.foreground }]}>{contactNotes}</Text>
+                    </View>
+                  )}
+                </>
+              ) : (
                 <View style={styles.sellerRow}>
-                  <Ionicons name="calendar-outline" size={15} color={colors.primary} />
-                  <Text style={[styles.sellerValue, { color: colors.foreground }]}>
-                    Sole mandate • Expires {new Date(property.seller.mandateExpiry).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
-                  </Text>
-                </View>
-              )}
-              {!!property.seller.notes && (
-                <View style={[styles.notesBox, { backgroundColor: colors.card, borderColor: colors.border }]}>
-                  <Text style={[styles.notesText, { color: colors.foreground }]}>{property.seller.notes}</Text>
+                  <Ionicons
+                    name={isContactError ? 'cloud-offline-outline' : 'information-circle-outline'}
+                    size={15}
+                    color={colors.mutedForeground}
+                  />
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.sellerValue, { color: colors.mutedForeground }]}>
+                      {isContactError
+                        ? 'Saved contact details could not be loaded. Try again when online.'
+                        : `No ${property.listingType === 'rent' ? 'landlord' : 'seller'} details saved for this listing.`}
+                    </Text>
+                    <TouchableOpacity onPress={() => router.push(`/edit-listing/${property.id}`)}>
+                      <Text style={[styles.sellerValue, { color: colors.primary, marginTop: 6 }]}>Edit listing details</Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
               )}
             </View>
