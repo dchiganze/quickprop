@@ -893,6 +893,9 @@ async function processSession(
               : fallbackBranch;
             if (rowBranch) data.branch = rowBranch.name;
             const confidence = confidenceFor(data, sourceType, extraction.fieldConfidence?.[rowIndex]);
+            // This branch was resolved against our database, not guessed by
+            // image extraction. Do not assign it the low vision default.
+            if (rowBranch) confidence.branch = 100;
             const confidenceValues = Object.values(confidence);
             const confidenceScore = confidenceValues.length ? Math.round(confidenceValues.reduce((sum, value) => sum + value, 0) / confidenceValues.length) : 0;
             const validationIssues = validateData(data, sourceType, confidence);

@@ -754,7 +754,7 @@ test(
     try {
       const [branch] = await db.insert(branchesTable).values({
         name: `Image import test agency ${suffix}`,
-      }).returning({ id: branchesTable.id });
+      }).returning({ id: branchesTable.id, name: branchesTable.name });
       assert.ok(branch);
       fixture.branchIds.push(branch.id);
       const [agent] = await db.insert(usersTable).values({
@@ -800,7 +800,8 @@ test(
         evidence: "Visible title for JPG-1",
         method: "gemini-vision",
       });
-      assert.equal(jpgRecord.validationIssues.length, 0);
+      assert.deepEqual(jpgRecord.validationIssues, []);
+      assert.equal(jpgRecord.fieldConfidence.branch, 100);
 
       const lowConfidenceSessionId = await createImageSession(
         agent.id,
@@ -961,7 +962,7 @@ test(
       assert.equal(afterRetryByReference.get("DEC-B")?.reviewStatus, "rejected");
       assert.equal(afterRetryByReference.get("DEC-C")?.reviewStatus, "approved");
       assert.equal(afterRetryByReference.get("DEC-C")?.id, initialIds.get("DEC-C"));
-      assert.deepEqual(afterRetryByReference.get("DEC-C")?.data, correctedData);
+      assert.deepEqual(afterRetryByReference.get("DEC-C")?.data, { ...correctedData, branch: branch.name });
       assert.equal(afterRetryByReference.get("DEC-D")?.reviewStatus, "published");
       assert.equal(afterRetryByReference.get("DEC-D")?.id, initialIds.get("DEC-D"));
       assert.equal(afterRetryByReference.get("DEC-D")?.data.address, "13 Decision Street");

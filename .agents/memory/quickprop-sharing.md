@@ -104,3 +104,9 @@ Configured branding logos are staff-shared assets, unlike private listing media.
 **Why:** An admin-uploaded logo existed in live Office branding settings, but owner-only media rules prevented other agents from loading it. The separate agency profile had no logo, so checking only that record would also give the wrong diagnosis.
 
 **How to apply:** Verify the actual configured asset and agent access; permit only registered branding assets without opening unrelated private uploads. Derive default flyer accents from the logo, preserve explicit custom colours, and do not let previously saved empty defaults permanently hide newer agency branding.
+
+Native flyer retries must restart the failed image download, not merely clear the readiness flag.
+
+**Why:** A resolved media URL can outlive its signature or a failed native download, and resetting React readiness alone does not make an unchanged native Image reload. A successful media-url API response proves neither download nor decoding succeeded.
+
+**How to apply:** Refresh authorized URLs on native image errors with bounded retries, remount only failed images, and keep successful image readiness aligned with their mounted views. Verify the actual stored image separately from the API response.

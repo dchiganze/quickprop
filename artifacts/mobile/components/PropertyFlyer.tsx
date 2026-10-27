@@ -30,6 +30,7 @@ export const PropertyFlyer = forwardRef<PropertyFlyerHandle, Props>(function Pro
   const logo = settings.logoUrl || undefined;
   // Status per uri: settled once it loaded or failed; same uri never re-waits.
   const [status, setStatus] = useState<Record<string, 'ok' | 'fail'>>({});
+  const [retryGeneration, setRetryGeneration] = useState<Record<string, number>>({});
   const statusRef = useRef(status);
   statusRef.current = status;
   // Failed supporting photos are omitted; the next candidate takes the slot.
@@ -59,14 +60,14 @@ export const PropertyFlyer = forwardRef<PropertyFlyerHandle, Props>(function Pro
     resizeMode: 'cover' | 'contain' = 'cover',
   ) => (
     <ListingImage
-      key={uri}
+      key={`${uri}:${retryGeneration[uri] ?? 0}`}
       uri={uri}
       style={style}
       resizeMode={resizeMode}
       onLoad={() => mark(uri, 'ok')}
       onError={() => mark(uri, 'fail')}
     />
-  ), [mark]);
+  ), [mark, retryGeneration]);
 
   const required = useMemo(() => [main, logo, ...extras].filter(Boolean) as string[], [main, logo, extras]);
   const requiredRef = useRef(required);
@@ -81,6 +82,13 @@ export const PropertyFlyer = forwardRef<PropertyFlyerHandle, Props>(function Pro
         retry.forEach(uri => { delete next[uri]; });
         statusRef.current = next;
         setStatus(next);
+        // Clearing readiness alone does not restart a native Image with the
+        // same source. Remount loaders so a user retry really retries.
+        setRetryGeneration(value => {
+          const next = { ...value };
+          retry.forEach(uri => { next[uri] = (next[uri] ?? 0) + 1; });
+          return next;
+        });
       }
       const deadline = Date.now() + READY_TIMEOUT_MS;
       while (requiredRef.current.some(u => !statusRef.current[u])) {
