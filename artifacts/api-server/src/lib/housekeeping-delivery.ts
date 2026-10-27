@@ -235,10 +235,16 @@ async function sendEmail(
   });
 }
 
-async function sendPush(
+export type UserPushNotification = {
+  title: string;
+  body: string;
+  data?: Record<string, string | number | boolean>;
+};
+
+export async function sendUserPushNotification(
   userId: number,
-  payload: ReminderDeliveryPayload,
-  deliveryId: number,
+  payload: UserPushNotification,
+  idempotencyKey: string,
 ): Promise<DeliveryResult> {
   const tokens = await db.select().from(userPushTokensTable).where(and(
     eq(userPushTokensTable.userId, userId),
@@ -252,11 +258,11 @@ async function sendPush(
       "https://exp.host/--/api/v2/push/send",
       {
         to: token.token,
-        title: `Listing ${payload.freshnessStatus}: ${payload.reference}`,
-        body: payload.message,
-        data: { type: "listing_housekeeping", reference: payload.reference },
+        title: payload.title,
+        body: payload.body,
+        data: payload.data,
       },
-      `housekeeping-delivery-${deliveryId}-${token.id}`,
+      `${idempotencyKey}-${token.id}`,
     );
     const resultData = Array.isArray(result.data) ? result.data[0] : result.data;
     if (resultData && typeof resultData === "object" && "status" in resultData && resultData.status !== "ok") {
@@ -268,6 +274,18 @@ async function sendPush(
     if (result.id ?? result.messageId) ids.push(result.id ?? result.messageId!);
   }
   return { status: "sent", providerMessageId: ids.join(",") || undefined };
+}
+
+async function sendPush(
+  userId: number,
+  payload: ReminderDeliveryPayload,
+  deliveryId: number,
+): Promise<DeliveryResult> {
+  return sendUserPushNotification(userId, {
+    title: `Listing ${payload.freshnessStatus}: ${payload.reference}`,
+    body: payload.message,
+    data: { type: "listing_housekeeping", reference: payload.reference },
+  }, `housekeeping-delivery-${deliveryId}`);
 }
 
 async function sendDelivery(

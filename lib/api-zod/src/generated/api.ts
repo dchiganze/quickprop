@@ -4396,6 +4396,7 @@ export const GetListingHousekeepingPreferencesResponse = zod.object({
   "whatsappEnabled": zod.boolean(),
   "pushEnabled": zod.boolean(),
   "emailEnabled": zod.boolean(),
+  "viewingReminderEnabled": zod.boolean(),
   "reminderFrequency": zod.string()
 })
 
@@ -4408,6 +4409,7 @@ export const UpdateListingHousekeepingPreferencesBody = zod.object({
   "whatsappEnabled": zod.boolean(),
   "pushEnabled": zod.boolean(),
   "emailEnabled": zod.boolean(),
+  "viewingReminderEnabled": zod.boolean(),
   "reminderFrequency": zod.string()
 })
 
@@ -4416,6 +4418,7 @@ export const UpdateListingHousekeepingPreferencesResponse = zod.object({
   "whatsappEnabled": zod.boolean(),
   "pushEnabled": zod.boolean(),
   "emailEnabled": zod.boolean(),
+  "viewingReminderEnabled": zod.boolean(),
   "reminderFrequency": zod.string()
 })
 

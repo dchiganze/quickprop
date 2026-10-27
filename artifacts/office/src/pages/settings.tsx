@@ -19,6 +19,7 @@ const DEFAULT_REMINDER_PREFERENCES = {
   whatsappEnabled: true,
   pushEnabled: true,
   emailEnabled: true,
+  viewingReminderEnabled: true,
   reminderFrequency: 'smart',
 };
 
@@ -58,6 +59,7 @@ export default function Settings() {
         whatsappEnabled: preferencesQuery.data.whatsappEnabled,
         pushEnabled: preferencesQuery.data.pushEnabled,
         emailEnabled: preferencesQuery.data.emailEnabled,
+        viewingReminderEnabled: preferencesQuery.data.viewingReminderEnabled,
         reminderFrequency: preferencesQuery.data.reminderFrequency,
       });
     }
@@ -99,6 +101,7 @@ export default function Settings() {
           whatsappEnabled: next.whatsappEnabled,
           pushEnabled: next.pushEnabled,
           emailEnabled: next.emailEnabled,
+          viewingReminderEnabled: next.viewingReminderEnabled,
           reminderFrequency: next.reminderFrequency,
         });
         setSaved(true);
@@ -404,6 +407,7 @@ export default function Settings() {
                   ['whatsappEnabled', 'WhatsApp', 'Send reminders to your saved mobile number.'],
                   ['pushEnabled', 'Push notifications', 'Show reminders on registered QuickProp devices.'],
                   ['emailEnabled', 'Email', 'Send reminders to your account email address.'],
+                  ['viewingReminderEnabled', 'Viewing day reminders', 'Notify the assigned agent at 7:30 am on the viewing date.'],
                 ] as const).map(([key, label, description]) => (
                   <div className="flex items-center justify-between gap-4" key={key}>
                     <div>
@@ -417,7 +421,7 @@ export default function Settings() {
                         setReminderPreferences((current) => ({ ...current, [key]: checked }));
                       }}
                       disabled={preferencesQuery.isLoading || updatePreferences.isPending}
-                      aria-label={`${label} listing reminders`}
+                      aria-label={`${label} reminders`}
                     />
                   </div>
                 ))}

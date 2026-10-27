@@ -20,6 +20,8 @@ import {
   UpdateCollaborationRequestResponse,
 } from "@workspace/api-zod";
 import { jsonify, parseId } from "../lib/helpers";
+import { logger } from "../lib/logger";
+import { sendUserPushNotification } from "../lib/housekeeping-delivery";
 import { currentUser } from "./auth";
 
 const router: IRouter = Router();
@@ -322,7 +324,7 @@ router.patch("/collaboration/requests/:id", async (req, res): Promise<void> => {
     res.status(409).json({ error: "Only pending collaboration requests can be updated." });
     return;
   }
-  const changed = await db.transaction(async tx => {
+  const transition = await db.transaction(async tx => {
     const [updated] = await tx.update(collaborationMatchRequestsTable)
       .set({ status: parsed.data.status, respondedAt: new Date(), updatedAt: new Date() })
       .where(and(
@@ -330,22 +332,60 @@ router.patch("/collaboration/requests/:id", async (req, res): Promise<void> => {
         eq(collaborationMatchRequestsTable.propertyOwnerId, user.id),
         eq(collaborationMatchRequestsTable.status, "pending"),
       )).returning();
-    if (!updated) return false;
+    if (!updated) return { changed: false, pushNotification: null };
     if (updated.status === "approved") {
       const [property] = await tx.select({ reference: propertiesTable.reference })
         .from(propertiesTable).where(eq(propertiesTable.id, updated.propertyId));
+      const title = "It's a match!";
+      const message = `${user.name} accepted your collaboration request${property ? ` for ${property.reference}` : ""}. Open Matches to view your match and contact each other.`;
       await tx.insert(notificationsTable).values({
         userId: updated.requesterId,
         type: "collaboration_match",
-        title: "It's a match!",
-        message: `${user.name} accepted your collaboration request${property ? ` for ${property.reference}` : ""}. Open Matches to view your match and contact each other.`,
+        title,
+        message,
       });
+      return {
+        changed: true,
+        pushNotification: {
+          recipientId: updated.requesterId,
+          title,
+          message,
+          requestId: updated.id,
+        },
+      };
     }
-    return true;
+    return { changed: true, pushNotification: null };
   });
-  if (!changed) {
+  if (!transition.changed) {
     res.status(409).json({ error: "This request has already been answered. Refresh to see its current status." });
     return;
+  }
+  if (transition.pushNotification) {
+    const notification = transition.pushNotification;
+    void sendUserPushNotification(notification.recipientId, {
+      title: notification.title,
+      body: notification.message,
+      data: {
+        type: "collaboration_match",
+        collaborationRequestId: notification.requestId,
+      },
+    }, `collaboration-match-${notification.requestId}`)
+      .then((result) => {
+        if (result.status === "skipped") {
+          logger.info({
+            requestId: notification.requestId,
+            recipientId: notification.recipientId,
+            reason: result.reason,
+          }, "Collaboration match saved in app without push token");
+        }
+      })
+      .catch((error) => {
+        logger.error({
+          error,
+          requestId: notification.requestId,
+          recipientId: notification.recipientId,
+        }, "Collaboration match push notification failed");
+      });
   }
   const result = await requestWithContacts(id);
   res.json(UpdateCollaborationRequestResponse.parse(jsonify(result)));

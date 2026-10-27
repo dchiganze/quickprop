@@ -35,6 +35,8 @@ export const viewingsTable = pgTable("viewings", {
   agentId: integer("agent_id").references(() => usersTable.id),
   scheduledAt: timestamp("scheduled_at").notNull(),
   status: text("status").notNull().default("scheduled"),
+  reminderSentAt: timestamp("reminder_sent_at"),
+  reminderClaimedAt: timestamp("reminder_claimed_at"),
   outcome: text("outcome"),
   notes: text("notes"),
 });

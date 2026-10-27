@@ -4447,12 +4447,13 @@ components:
         confirmed: { type: integer }
     ListingHousekeepingPreferences:
       type: object
-      required: [whatsappEnabled, pushEnabled, emailEnabled, reminderFrequency]
+      required: [whatsappEnabled, pushEnabled, emailEnabled, viewingReminderEnabled, reminderFrequency]
       properties:
         userId: { type: integer }
         whatsappEnabled: { type: boolean }
         pushEnabled: { type: boolean }
         emailEnabled: { type: boolean }
+        viewingReminderEnabled: { type: boolean }
         reminderFrequency: { type: string }
     ListingHousekeepingPushTokenInput:
       type: object

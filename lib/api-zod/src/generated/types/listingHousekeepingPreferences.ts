@@ -11,5 +11,6 @@ export interface ListingHousekeepingPreferences {
   whatsappEnabled: boolean;
   pushEnabled: boolean;
   emailEnabled: boolean;
+  viewingReminderEnabled: boolean;
   reminderFrequency: string;
 }

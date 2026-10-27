@@ -15,11 +15,11 @@ Collaboration should work like Hinge: an agent requests to collaborate on anothe
 
 **How to apply:** Keep request identity visible to the recipient, gate both phone numbers on mutual acceptance at the API boundary, and do not send decline notifications. Whether a declined status should also be hidden in the Sent list is not yet specified; do not assume that silent notifications alone settles that UI choice.
 
-Match notifications currently mean durable, private in-app inbox notifications, not phone lock-screen push notifications.
+An accepted collaboration match creates a durable, private in-app notification and sends a best-effort Expo push notification to the requesting agent. A declined request must never notify the requester.
 
-**Why:** Reusing QuickProp's existing inbox supports both Office and Expo Go without promising an unconfigured operating-system push channel. Match acceptance and notification creation must succeed together, or retries can create duplicate or misleading notifications.
+**Why:** The user asked for a phone notification when a match happens, while preserving the existing private inbox and silent-decline behavior.
 
-**How to apply:** Keep notifications scoped to their recipient, including read actions, and keep polling restricted to relevant active screens/app sessions. Describe delivery as in-app; physical-device push delivery requires separate implementation and verification.
+**How to apply:** Keep the in-app notification in the same transaction as acceptance, then push only after that transaction commits using an idempotency key. The requester needs an active push token for a lock-screen alert; never include phone numbers in the push.
 
 The default collaboration tab is "Matched" and contains accepted collaborations only. Each match identifies the other agent and their agency, says they can collaborate to close the sale/lease, and offers Call and WhatsApp.
 

@@ -170,6 +170,7 @@ export const listingHousekeepingPreferencesTable = pgTable(
     whatsappEnabled: boolean("whatsapp_enabled").notNull().default(true),
     pushEnabled: boolean("push_enabled").notNull().default(true),
     emailEnabled: boolean("email_enabled").notNull().default(true),
+    viewingReminderEnabled: boolean("viewing_reminder_enabled").notNull().default(true),
     reminderFrequency: text("reminder_frequency").notNull().default("smart"),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },

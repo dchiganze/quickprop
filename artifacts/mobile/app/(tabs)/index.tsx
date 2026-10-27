@@ -101,8 +101,8 @@ export default function DashboardScreen() {
   const QUICK_ACTIONS = [
     { label: 'New Listing', icon: 'add-circle' as const, accent: true, onPress: () => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}); router.push('/new-listing'); } },
     { label: 'Search Inventory', icon: 'search-outline' as const, accent: false, onPress: () => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}); router.push('/(tabs)/listings'); } },
-    { label: 'Share Brochure', icon: 'share-outline' as const, accent: false, onPress: () => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {}); setShareOpen(true); } },
-    { label: 'Upcoming Viewings', icon: 'calendar-outline' as const, accent: true, onPress: () => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}); router.push('/viewings'); } },
+    { label: 'Share Brochure', icon: 'share-outline' as const, accent: true, onPress: () => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {}); setShareOpen(true); } },
+    { label: 'Upcoming Viewings', icon: 'calendar-outline' as const, accent: false, onPress: () => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}); router.push('/viewings'); } },
   ];
 
   return (

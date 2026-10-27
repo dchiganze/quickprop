@@ -200,6 +200,10 @@ router.patch("/viewings/:id", async (req, res): Promise<void> => {
   const { scheduledAt, ...rest } = parsed.data;
   const update: Record<string, unknown> = { ...rest };
   if (scheduledAt) update.scheduledAt = new Date(scheduledAt);
+  if (scheduledAt || parsed.data.status) {
+    update.reminderSentAt = null;
+    update.reminderClaimedAt = null;
+  }
   const ownership = user?.role === "agent" || user?.role === "senior_agent"
     ? and(eq(viewingsTable.id, id), eq(viewingsTable.agentId, user.id))
     : eq(viewingsTable.id, id);

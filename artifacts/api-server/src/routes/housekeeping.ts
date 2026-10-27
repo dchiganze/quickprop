@@ -317,6 +317,7 @@ router.get("/listing-housekeeping/preferences", async (req, res): Promise<void> 
     whatsappEnabled: true,
     pushEnabled: true,
     emailEnabled: true,
+    viewingReminderEnabled: true,
     reminderFrequency: "smart",
   }));
 });
@@ -328,6 +329,7 @@ router.patch("/listing-housekeeping/preferences", async (req, res): Promise<void
     whatsappEnabled: req.body?.whatsappEnabled !== false,
     pushEnabled: req.body?.pushEnabled !== false,
     emailEnabled: req.body?.emailEnabled !== false,
+    viewingReminderEnabled: req.body?.viewingReminderEnabled !== false,
     reminderFrequency: typeof req.body?.reminderFrequency === "string" ? req.body.reminderFrequency : "smart",
     updatedAt: new Date(),
   };

@@ -45,7 +45,11 @@ function RootLayoutNav() {
   useEffect(() => {
     if (Platform.OS === 'web') return;
     const subscription = Notifications.addNotificationResponseReceivedListener((response) => {
-      const data = response.notification.request.content.data as { propertyId?: number | string } | undefined;
+      const data = response.notification.request.content.data as { type?: string; propertyId?: number | string } | undefined;
+      if (data?.type === 'viewing_reminder') {
+        router.push('/viewings');
+        return;
+      }
       if (data?.propertyId) {
         router.push(`/listing/${data.propertyId}` as never);
         return;

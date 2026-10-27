@@ -9,6 +9,7 @@ import { startPropertyAlertScheduler } from "./lib/property-alerts";
 import { ensurePropertySaleColumns } from "./lib/property-schema";
 import { ensurePasskeyTable } from "./routes/passkeys";
 import { ensureAgentPastSalesTable } from "./lib/agent-sales";
+import { ensureViewingReminderSchema, startViewingReminderScheduler } from "./lib/viewing-reminders";
 
 const rawPort = process.env["PORT"];
 
@@ -27,12 +28,14 @@ if (Number.isNaN(port) || port <= 0) {
 async function startServer(): Promise<void> {
   await ensurePropertySaleColumns();
   await ensureAgentPastSalesTable();
+  await ensureViewingReminderSchema();
   await ensurePasskeyTable();
   await ensureDemoAccounts();
 
   const server = app.listen(port, () => {
     logger.info({ port }, "Server listening");
     startHousekeepingScheduler();
+    startViewingReminderScheduler();
     startImportRecoveryWorker();
     startReviewInvitationScheduler();
     startRentalReferenceScheduler();

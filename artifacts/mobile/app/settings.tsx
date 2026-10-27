@@ -85,12 +85,12 @@ export default function SettingsScreen() {
     whatsappEnabled: true,
     pushEnabled: true,
     emailEnabled: true,
+    viewingReminderEnabled: true,
     reminderFrequency: 'smart',
   });
   const [reminderPreferencesLoading, setReminderPreferencesLoading] = useState(false);
   const [newLeadNotif, setNewLeadNotif] = useState(true);
   const [buyerMatchNotif, setBuyerMatchNotif] = useState(true);
-  const [viewingReminder, setViewingReminder] = useState(true);
   const [offerNotif, setOfferNotif] = useState(true);
   const [mandateNotif, setMandateNotif] = useState(true);
   const [biometric, setBiometric] = useState(false);
@@ -126,6 +126,7 @@ export default function SettingsScreen() {
           whatsappEnabled: preferences.whatsappEnabled,
           pushEnabled: preferences.pushEnabled,
           emailEnabled: preferences.emailEnabled,
+          viewingReminderEnabled: preferences.viewingReminderEnabled,
           reminderFrequency: preferences.reminderFrequency,
         });
       })
@@ -208,7 +209,7 @@ export default function SettingsScreen() {
           <ToggleRow icon="notifications-outline" label="Push Notifications" description={pushLoading ? 'Enabling on this device…' : 'Enable alerts from QuickProp Agent'} value={pushEnabled} onChange={(value) => { void setNativePushEnabled(value); }} />
           <ToggleRow icon="person-add-outline" label="New Lead" description="When a buyer enquires on your listing" value={newLeadNotif} onChange={setNewLeadNotif} />
           <ToggleRow icon="locate-outline" label="Buyer Match" description="When a new buyer matches your listing" value={buyerMatchNotif} onChange={setBuyerMatchNotif} />
-          <ToggleRow icon="eye-outline" label="Viewing Reminders" description="30 minutes before a scheduled viewing" value={viewingReminder} onChange={setViewingReminder} />
+          <ToggleRow icon="eye-outline" label="Viewing Reminders" description="At 7:30 am on the day of a scheduled viewing" value={reminderPreferences.viewingReminderEnabled} onChange={(value) => persistReminderPreferences({ ...reminderPreferences, viewingReminderEnabled: value })} />
           <ToggleRow icon="cash-outline" label="Offer Received" description="When a buyer submits an offer" value={offerNotif} onChange={setOfferNotif} />
           <ToggleRow icon="refresh-circle-outline" label="Mandate Expiring" description="7 days before mandate expiry" value={mandateNotif} onChange={setMandateNotif} />
         </View>
