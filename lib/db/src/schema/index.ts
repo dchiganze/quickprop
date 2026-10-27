@@ -11,6 +11,7 @@ export * from "./multi-agent";
 export * from "./imports";
 export * from "./agent-reviews";
 export * from "./rental-profile";
+export * from "./rental-applications";
 export * from "./property-alerts";
 export * from "./agency-settings";
 export * from "./password-reset";

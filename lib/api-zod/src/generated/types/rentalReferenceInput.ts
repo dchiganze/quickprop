@@ -9,8 +9,12 @@ import type { RentalReferenceInputPropertyConditionRating } from './rentalRefere
 import type { RentalReferenceInputRentPaymentRating } from './rentalReferenceInputRentPaymentRating';
 
 export interface RentalReferenceInput {
-  verifiedTenancy: boolean;
-  rentPaymentRating?: RentalReferenceInputRentPaymentRating;
-  propertyConditionRating?: RentalReferenceInputPropertyConditionRating;
-  wouldRentAgain?: boolean;
+  /**
+     * @minLength 1
+     * @maxLength 120
+     */
+  tenancyPeriod: string;
+  rentPaymentRating: RentalReferenceInputRentPaymentRating;
+  propertyConditionRating: RentalReferenceInputPropertyConditionRating;
+  wouldRentAgain: boolean;
 }

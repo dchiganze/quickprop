@@ -730,6 +730,48 @@ export const DeletePropertyParams = zod.object({
 export const DeletePropertyResponse = zod.void()
 
 
+/**
+ * @summary Create a secure application link for a rental listing
+ */
+export const CreateRentalApplicationInviteParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const CreateRentalApplicationInviteResponse = zod.object({
+  "applicationUrl": zod.string(),
+  "expiresAt": zod.string()
+})
+
+
+/**
+ * @summary List rental applications visible to the signed-in agent
+ */
+export const ListRentalApplicationsQueryParams = zod.object({
+  "propertyId": zod.coerce.number().optional()
+})
+
+export const ListRentalApplicationsResponseItem = zod.object({
+  "id": zod.number(),
+  "propertyId": zod.number(),
+  "propertyReference": zod.string(),
+  "propertyTitle": zod.string(),
+  "applicantName": zod.string(),
+  "email": zod.string(),
+  "phone": zod.string(),
+  "moveInDate": zod.string(),
+  "occupants": zod.number(),
+  "employmentStatus": zod.string(),
+  "employerName": zod.string().nullable(),
+  "jobTitle": zod.string().nullable(),
+  "monthlyIncome": zod.number().nullable(),
+  "incomeCurrency": zod.string().nullable(),
+  "applicantNote": zod.string().nullable(),
+  "status": zod.enum(['submitted']),
+  "submittedAt": zod.string()
+})
+export const ListRentalApplicationsResponse = zod.array(ListRentalApplicationsResponseItem)
+
+
 export const MarkPropertySoldParams = zod.object({
   "id": zod.coerce.number()
 })
@@ -3670,6 +3712,7 @@ export const GetRentalProfileResponse = zod.object({
   "id": zod.number(),
   "rentalHistoryId": zod.number(),
   "verifiedTenancy": zod.boolean(),
+  "tenancyPeriod": zod.string().nullable(),
   "rentPaymentRating": zod.string().nullable(),
   "propertyConditionRating": zod.string().nullable(),
   "wouldRentAgain": zod.boolean().nullable(),
@@ -3732,7 +3775,9 @@ export const CreateRentalHistoryBody = zod.object({
   "refereeName": zod.string().optional(),
   "refereeEmail": zod.string().optional(),
   "refereePhone": zod.string().optional(),
-  "agencyId": zod.number().nullish()
+  "agencySourceId": zod.string().optional(),
+  "agencyEmail": zod.string().optional(),
+  "agencyPhone": zod.string().optional()
 })
 
 export const CreateRentalHistoryResponse = zod.object({
@@ -3770,6 +3815,7 @@ export const CreateRentalHistoryResponse = zod.object({
   "id": zod.number(),
   "rentalHistoryId": zod.number(),
   "verifiedTenancy": zod.boolean(),
+  "tenancyPeriod": zod.string().nullable(),
   "rentPaymentRating": zod.string().nullable(),
   "propertyConditionRating": zod.string().nullable(),
   "wouldRentAgain": zod.boolean().nullable(),
@@ -3820,10 +3866,11 @@ export const RequestRentalVerificationBody = zod.object({
   "refereeName": zod.string().optional(),
   "refereeEmail": zod.string().optional(),
   "refereePhone": zod.string().optional(),
-  "agencyId": zod.number().nullish()
+  "deliveryChannel": zod.enum(['email', 'whatsapp']).optional()
 })
 
 export const RequestRentalVerificationResponse = zod.object({
+  "history": zod.object({
   "id": zod.number(),
   "propertyId": zod.number().nullable(),
   "propertyAddress": zod.string(),
@@ -3858,6 +3905,7 @@ export const RequestRentalVerificationResponse = zod.object({
   "id": zod.number(),
   "rentalHistoryId": zod.number(),
   "verifiedTenancy": zod.boolean(),
+  "tenancyPeriod": zod.string().nullable(),
   "rentPaymentRating": zod.string().nullable(),
   "propertyConditionRating": zod.string().nullable(),
   "wouldRentAgain": zod.boolean().nullable(),
@@ -3893,6 +3941,9 @@ export const RequestRentalVerificationResponse = zod.object({
   "createdAt": zod.string(),
   "updatedAt": zod.string()
 }))
+}),
+  "shareUrl": zod.string().nullable(),
+  "deliveryChannel": zod.enum(['email', 'whatsapp'])
 })
 
 
@@ -3925,7 +3976,7 @@ export const DisputeRentalReferenceResponse = zod.object({
 
 
 /**
- * @summary Search registered rental agencies
+ * @summary Search the EAC registered agency directory
  */
 export const searchRentalAgenciesQueryQMin = 2;
 
@@ -3936,19 +3987,81 @@ export const SearchRentalAgenciesQueryParams = zod.object({
 })
 
 export const SearchRentalAgenciesResponseItem = zod.object({
-  "id": zod.number(),
+  "id": zod.string(),
   "name": zod.string(),
-  "tradingName": zod.string().nullish(),
-  "email": zod.string().nullish(),
-  "phone": zod.string().nullish(),
-  "website": zod.string().nullish(),
-  "address": zod.string().nullish(),
-  "verificationStatus": zod.enum(['pending', 'verified', 'rejected']),
-  "status": zod.enum(['active', 'inactive']),
-  "createdAt": zod.string(),
-  "updatedAt": zod.string()
+  "location": zod.string(),
+  "phones": zod.array(zod.string()),
+  "emails": zod.array(zod.string()),
+  "complianceStatus": zod.string()
 })
 export const SearchRentalAgenciesResponse = zod.array(SearchRentalAgenciesResponseItem)
+
+
+/**
+ * @summary Open a secure rental application link
+ */
+export const GetPublicRentalApplicationParams = zod.object({
+  "token": zod.coerce.string()
+})
+
+export const GetPublicRentalApplicationResponse = zod.object({
+  "status": zod.enum(['available']),
+  "propertyTitle": zod.string(),
+  "propertyReference": zod.string(),
+  "propertyAddress": zod.string(),
+  "suburb": zod.string(),
+  "city": zod.string(),
+  "price": zod.number(),
+  "currency": zod.string(),
+  "imageUrl": zod.string().nullable(),
+  "agentName": zod.string(),
+  "expiresAt": zod.string()
+})
+
+
+/**
+ * @summary Submit a rental application
+ */
+export const SubmitPublicRentalApplicationParams = zod.object({
+  "token": zod.coerce.string()
+})
+
+export const submitPublicRentalApplicationBodyFullNameMin = 2;
+export const submitPublicRentalApplicationBodyFullNameMax = 160;
+
+export const submitPublicRentalApplicationBodyPhoneMin = 5;
+export const submitPublicRentalApplicationBodyPhoneMax = 40;
+
+export const submitPublicRentalApplicationBodyOccupantsMax = 20;
+
+export const submitPublicRentalApplicationBodyEmployerNameMax = 160;
+
+export const submitPublicRentalApplicationBodyJobTitleMax = 160;
+
+export const submitPublicRentalApplicationBodyMonthlyIncomeMin = 0;
+
+export const submitPublicRentalApplicationBodyApplicantNoteMax = 1000;
+
+
+
+export const SubmitPublicRentalApplicationBody = zod.object({
+  "fullName": zod.string().min(submitPublicRentalApplicationBodyFullNameMin).max(submitPublicRentalApplicationBodyFullNameMax),
+  "email": zod.string(),
+  "phone": zod.string().min(submitPublicRentalApplicationBodyPhoneMin).max(submitPublicRentalApplicationBodyPhoneMax),
+  "moveInDate": zod.coerce.date(),
+  "occupants": zod.number().min(1).max(submitPublicRentalApplicationBodyOccupantsMax),
+  "employmentStatus": zod.enum(['employed', 'self_employed', 'unemployed', 'student', 'retired', 'other']),
+  "employerName": zod.string().max(submitPublicRentalApplicationBodyEmployerNameMax).nullish(),
+  "jobTitle": zod.string().max(submitPublicRentalApplicationBodyJobTitleMax).nullish(),
+  "monthlyIncome": zod.number().min(submitPublicRentalApplicationBodyMonthlyIncomeMin).nullish(),
+  "incomeCurrency": zod.union([zod.literal('USD'),zod.literal('ZWG'),zod.literal('ZAR'),zod.literal('other'),zod.literal(null)]).nullish(),
+  "applicantNote": zod.string().max(submitPublicRentalApplicationBodyApplicantNoteMax).nullish(),
+  "consent": zod.literal(true)
+})
+
+export const SubmitPublicRentalApplicationResponse = zod.object({
+  "success": zod.boolean()
+})
 
 
 /**
@@ -3979,11 +4092,15 @@ export const SubmitPublicRentalReferenceParams = zod.object({
   "token": zod.coerce.string()
 })
 
+export const submitPublicRentalReferenceBodyTenancyPeriodMax = 120;
+
+
+
 export const SubmitPublicRentalReferenceBody = zod.object({
-  "verifiedTenancy": zod.boolean(),
-  "rentPaymentRating": zod.enum(['always', 'usually', 'sometimes', 'rarely']).optional(),
-  "propertyConditionRating": zod.enum(['excellent', 'good', 'average', 'poor']).optional(),
-  "wouldRentAgain": zod.boolean().optional()
+  "tenancyPeriod": zod.string().min(1).max(submitPublicRentalReferenceBodyTenancyPeriodMax),
+  "rentPaymentRating": zod.enum(['always', 'sometimes', 'never']),
+  "propertyConditionRating": zod.enum(['always', 'sometimes', 'never']),
+  "wouldRentAgain": zod.boolean()
 })
 
 export const SubmitPublicRentalReferenceResponse = zod.object({
@@ -4030,6 +4147,7 @@ export const ListAdminRentalReferencesResponseItem = zod.object({
   "id": zod.number(),
   "rentalHistoryId": zod.number(),
   "verifiedTenancy": zod.boolean(),
+  "tenancyPeriod": zod.string().nullable(),
   "rentPaymentRating": zod.string().nullable(),
   "propertyConditionRating": zod.string().nullable(),
   "wouldRentAgain": zod.boolean().nullable(),

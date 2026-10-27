@@ -43,6 +43,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <Link href="/search?listingType=rent" className="text-sm font-medium text-gray-600 hover:text-primary transition-colors">
               Rent
             </Link>
+            <Link href="/tenants" className="text-sm font-medium text-gray-600 hover:text-primary transition-colors">
+              Tenants
+            </Link>
             <Link href="/agents" className="text-sm font-medium text-gray-600 hover:text-primary transition-colors">
               Agents
             </Link>
@@ -97,6 +100,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
               <DropdownMenuContent align="end" className="w-48">
                 <DropdownMenuItem onClick={() => setLocation("/search")}>Buy</DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setLocation("/search?listingType=rent")}>Rent</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setLocation("/tenants")}>Tenants</DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setLocation("/agents")}>Agents</DropdownMenuItem>
                 <div className="h-px bg-gray-100 my-1 mx-2" />
                 {user ? (

@@ -42,6 +42,7 @@ import {
   QUICKPROP_PUBLIC_ORIGIN,
   QUICKPROP_SHARE_PREVIEW_VERSION,
 } from '@/utils/shareLinks';
+import { PropertyApplications } from '@/components/rental-applications';
 
 const PROPERTY_FEATURES = [
   'Solar', 'Borehole', 'Swimming Pool', 'Electric Fence',
@@ -1167,7 +1168,14 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
               <TabsTrigger value="activity" className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none h-12 px-6">Activity & Price</TabsTrigger>
               <TabsTrigger value="viewings" className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none h-12 px-6">Viewings</TabsTrigger>
               <TabsTrigger value="documents" className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none h-12 px-6">Documents</TabsTrigger>
+              {property.listingType === 'rent' && <TabsTrigger value="applications" className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none h-12 px-6">Applications</TabsTrigger>}
             </TabsList>
+
+            {property.listingType === 'rent' && (
+              <TabsContent value="applications" className="py-6">
+                <PropertyApplications property={property} />
+              </TabsContent>
+            )}
             
             <TabsContent value="overview" className="py-6 space-y-8">
               {multiAgent && multiAgent.offers.length > 0 && (

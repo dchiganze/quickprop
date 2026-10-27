@@ -85,6 +85,7 @@ export const rentalReferencesTable = pgTable(
       .notNull()
       .references(() => rentalHistoryTable.id, { onDelete: "cascade" }),
     verifiedTenancy: boolean("verified_tenancy").notNull(),
+    tenancyPeriod: text("tenancy_period"),
     rentPaymentRating: text("rent_payment_rating"),
     propertyConditionRating: text("property_condition_rating"),
     wouldRentAgain: boolean("would_rent_again"),

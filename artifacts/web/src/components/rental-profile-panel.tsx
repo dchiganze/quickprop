@@ -8,6 +8,7 @@ import {
   useSearchRentalAgencies,
 } from "@workspace/api-client-react";
 import type {
+  EacAgencyOption,
   RentalHistory,
   RentalHistoryInput,
   ReferenceRequestInput,
@@ -51,7 +52,8 @@ type FormState = {
   refereeName: string;
   refereeEmail: string;
   refereePhone: string;
-  agencyId?: number | null;
+  agencyEmail: string;
+  agencyPhone: string;
 };
 
 const initialForm: FormState = {
@@ -65,7 +67,8 @@ const initialForm: FormState = {
   refereeName: "",
   refereeEmail: "",
   refereePhone: "",
-  agencyId: null,
+  agencyEmail: "",
+  agencyPhone: "",
 };
 
 function formatDate(value: string) {
@@ -139,7 +142,11 @@ function ReferenceAnswers({ tenancy }: { tenancy: RentalHistory }) {
         <ShieldCheck className="h-4 w-4" aria-hidden="true" />
         Reference verified
       </div>
-      <dl className="grid gap-3 text-sm sm:grid-cols-3">
+      <dl className="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
+        <div>
+          <dt className="text-emerald-800/70">Tenancy period</dt>
+          <dd className="mt-1 font-semibold text-emerald-950">{reference.tenancyPeriod ?? "Not answered"}</dd>
+        </div>
         <div>
           <dt className="text-emerald-800/70">Rent paid on time</dt>
           <dd className="mt-1 font-semibold capitalize text-emerald-950">{reference.rentPaymentRating ?? "Not answered"}</dd>
@@ -230,6 +237,13 @@ function TenancyCard({ tenancy, onRequest, onDispute }: {
   );
 }
 
+function refereeWhatsAppUrl(phone: string, text: string) {
+  const digits = phone.replace(/\D/g, "");
+  const international = digits.startsWith("0") ? `263${digits.slice(1)}` : digits;
+  const recipient = international.length >= 8 ? international : "";
+  return `https://wa.me/${recipient}?text=${encodeURIComponent(text)}`;
+}
+
 export function RentalProfilePanel() {
   const queryClient = useQueryClient();
   const profileQuery = useGetRentalProfile({ query: { retry: false, queryKey: getGetRentalProfileQueryKey() } });
@@ -241,9 +255,12 @@ export function RentalProfilePanel() {
   const [disputeFor, setDisputeFor] = useState<RentalHistory | null>(null);
   const [form, setForm] = useState<FormState>(initialForm);
   const [agencySearch, setAgencySearch] = useState("");
-  const [selectedAgency, setSelectedAgency] = useState<{ id: number; name: string } | null>(null);
+  const [selectedAgency, setSelectedAgency] = useState<EacAgencyOption | null>(null);
   const [disputeReason, setDisputeReason] = useState("");
   const [message, setMessage] = useState<{ tone: "success" | "error"; text: string } | null>(null);
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const [sharePhone, setSharePhone] = useState<string | null>(null);
+  const [requestChannel, setRequestChannel] = useState<"email" | "whatsapp">("email");
 
   const agencyQuery = useSearchRentalAgencies(
     { q: agencySearch.length >= 2 ? agencySearch : "zz" },
@@ -256,6 +273,10 @@ export function RentalProfilePanel() {
   const submitHistory = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setMessage(null);
+    if (form.refereeType === "private_landlord" && !form.refereeEmail.trim() && !form.refereePhone.trim()) {
+      setMessage({ tone: "error", text: "Add an email address or phone number so you can send the reference request." });
+      return;
+    }
     const payload: RentalHistoryInput = {
       propertyAddress: form.propertyAddress,
       suburb: form.suburb,
@@ -264,10 +285,12 @@ export function RentalProfilePanel() {
       endDate: form.endDate,
       tenancyType: form.tenancyType,
       refereeType: form.refereeType,
-      refereeName: form.refereeName || undefined,
-      refereeEmail: form.refereeEmail || undefined,
-      refereePhone: form.refereePhone || undefined,
-      agencyId: selectedAgency?.id ?? null,
+      refereeName: form.refereeType === "agency" ? selectedAgency?.name : form.refereeName || undefined,
+      refereeEmail: form.refereeType === "private_landlord" ? form.refereeEmail || undefined : undefined,
+      refereePhone: form.refereeType === "private_landlord" ? form.refereePhone || undefined : undefined,
+      agencySourceId: selectedAgency?.id,
+      agencyEmail: form.refereeType === "agency" ? form.agencyEmail || undefined : undefined,
+      agencyPhone: form.refereeType === "agency" ? form.agencyPhone || undefined : undefined,
     };
     createHistory.mutate({ data: payload }, {
       onSuccess: () => {
@@ -275,6 +298,7 @@ export function RentalProfilePanel() {
         setForm(initialForm);
         setSelectedAgency(null);
         setAgencySearch("");
+        setShareUrl(null);
         setMessage({ tone: "success", text: "Previous tenancy added to your rental profile." });
         refreshProfile();
       },
@@ -284,6 +308,8 @@ export function RentalProfilePanel() {
 
   const openRequest = (tenancy: RentalHistory) => {
     setMessage(null);
+    setShareUrl(null);
+    setRequestChannel(tenancy.refereeEmail ? "email" : "whatsapp");
     setRequestFor(tenancy);
   };
 
@@ -295,12 +321,19 @@ export function RentalProfilePanel() {
       refereeName: requestFor.refereeName || undefined,
       refereeEmail: requestFor.refereeEmail || undefined,
       refereePhone: requestFor.refereePhone || undefined,
-      agencyId: requestFor.agencyId,
+      deliveryChannel: requestChannel,
     };
     requestVerification.mutate({ id: requestFor.id, data }, {
-      onSuccess: () => {
+      onSuccess: (result) => {
         setRequestFor(null);
-        setMessage({ tone: "success", text: "Verification request sent securely." });
+        setShareUrl(result.shareUrl);
+        setSharePhone(result.history.refereePhone ?? null);
+        setMessage({
+          tone: requestChannel === "whatsapp" && !result.shareUrl ? "error" : "success",
+          text: requestChannel === "whatsapp"
+            ? result.shareUrl ? "Secure reference link created. Share it with your referee." : "The reference request was created, but QuickProp did not return a share link. Please try again or contact support."
+            : "Verification request sent securely by email.",
+        });
         refreshProfile();
       },
       onError: () => setMessage({ tone: "error", text: "We couldn’t send the request. Please try again." }),
@@ -362,9 +395,9 @@ export function RentalProfilePanel() {
       </div>
 
       {message ? (
-        <div data-testid={`status-rental-profile-${message.tone}`} className={`flex items-center gap-2 rounded-lg px-4 py-3 text-sm ${message.tone === "success" ? "bg-emerald-50 text-emerald-800" : "bg-rose-50 text-rose-800"}`}>
-          {message.tone === "success" ? <Check className="h-4 w-4" aria-hidden="true" /> : <AlertCircle className="h-4 w-4" aria-hidden="true" />}
-          {message.text}
+        <div data-testid={`status-rental-profile-${message.tone}`} className={`rounded-lg px-4 py-3 text-sm ${message.tone === "success" ? "bg-emerald-50 text-emerald-800" : "bg-rose-50 text-rose-800"}`}>
+          <div className="flex items-center gap-2">{message.tone === "success" ? <Check className="h-4 w-4" aria-hidden="true" /> : <AlertCircle className="h-4 w-4" aria-hidden="true" />}{message.text}</div>
+          {shareUrl ? <a data-testid="link-reference-share-url" href={refereeWhatsAppUrl(sharePhone ?? "", shareUrl)} target="_blank" rel="noreferrer" className="mt-2 inline-flex items-center gap-1 font-semibold underline underline-offset-2">Open WhatsApp with secure link <ArrowRight className="h-3.5 w-3.5" /></a> : null}
         </div>
       ) : null}
 
@@ -406,17 +439,21 @@ export function RentalProfilePanel() {
               <div className="space-y-1.5"><Label>Tenancy type <span className="text-primary">*</span></Label><select data-testid="select-tenancy-type" value={form.tenancyType} onChange={(event) => updateForm("tenancyType", event.target.value)} className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"><option value="private_landlord">Private landlord</option><option value="agency">Rental agency</option></select></div>
               <div className="space-y-1.5"><Label>Reference type <span className="text-primary">*</span></Label><select data-testid="select-referee-type" value={form.refereeType} onChange={(event) => updateForm("refereeType", event.target.value)} className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"><option value="private_landlord">Private landlord</option><option value="agency">Rental agency</option></select></div>
             </div>
-            <div className="border-t border-border/60 pt-5"><p className="mb-3 text-sm font-semibold text-foreground">Reference contact <span className="font-normal text-muted-foreground">(optional for now)</span></p><div className="grid gap-4 sm:grid-cols-3"><Field label="Referee name" required={false} value={form.refereeName} placeholder="Name" onChange={(value) => updateForm("refereeName", value)} /><Field label="Email" required={false} type="email" value={form.refereeEmail} placeholder="name@example.com" onChange={(value) => updateForm("refereeEmail", value)} /><Field label="Phone" required={false} value={form.refereePhone} placeholder="+263" onChange={(value) => updateForm("refereePhone", value)} /></div></div>
-            {form.refereeType === "agency" ? <div className="space-y-2"><Label>Find the agency <span className="font-normal text-muted-foreground">(optional)</span></Label><Input data-testid="input-agency-search" value={agencySearch} placeholder="Search registered agencies" onChange={(event) => { setAgencySearch(event.target.value); setSelectedAgency(null); }} />{selectedAgency ? <button type="button" data-testid="button-clear-agency" className="text-left text-sm text-primary" onClick={() => setSelectedAgency(null)}>Selected: {selectedAgency.name} — change</button> : agencyQuery.data && agencyQuery.data.length > 0 ? <div className="max-h-28 overflow-y-auto rounded-md border border-border bg-background">{agencyQuery.data.map((agency) => <button type="button" data-testid={`button-select-agency-${agency.id}`} key={agency.id} onClick={() => { setSelectedAgency({ id: agency.id, name: agency.name }); setAgencySearch(agency.name); }} className="block w-full px-3 py-2 text-left text-sm hover:bg-secondary">{agency.name}</button>)}</div> : null}</div> : null}
-            <DialogFooter><Button data-testid="button-cancel-add-rental-history" type="button" variant="outline" onClick={() => setAddOpen(false)}>Cancel</Button><Button data-testid="button-save-rental-history" type="submit" disabled={createHistory.isPending}>{createHistory.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" /> : null}Save tenancy</Button></DialogFooter>
+            {form.refereeType === "private_landlord" ? <div className="border-t border-border/60 pt-5"><p className="mb-3 text-sm font-semibold text-foreground">Private landlord contact</p><p className="mb-3 text-xs text-muted-foreground">Add at least one contact method so the reference request can be sent.</p><div className="grid gap-4 sm:grid-cols-3"><Field label="Referee name" required={false} value={form.refereeName} placeholder="Name" onChange={(value) => updateForm("refereeName", value)} /><Field label="Email" required={false} type="email" value={form.refereeEmail} placeholder="name@example.com" onChange={(value) => updateForm("refereeEmail", value)} /><Field label="Phone" required={false} value={form.refereePhone} placeholder="+263" onChange={(value) => updateForm("refereePhone", value)} /></div></div> : null}
+            {form.refereeType === "agency" ? <div className="space-y-4 border-t border-border/60 pt-5"><div><Label>Find an agency in the EAC directory</Label><p className="mb-2 mt-1 text-xs text-muted-foreground">Only official directory entries and their listed contacts can be used. <a className="font-semibold text-primary underline" href="https://www.eac.co.zw/approved-agents#registered-agencies" target="_blank" rel="noreferrer">View EAC directory</a>.</p><Input data-testid="input-agency-search" value={agencySearch} placeholder="Search by agency or location" onChange={(event) => { setAgencySearch(event.target.value); setSelectedAgency(null); updateForm("agencyEmail", ""); updateForm("agencyPhone", ""); }} /></div>
+              {agencySearch.length >= 2 && agencyQuery.isLoading ? <div className="h-12 animate-pulse rounded-lg bg-muted" /> : null}
+              {agencySearch.length >= 2 && agencyQuery.isError ? <div className="rounded-lg bg-rose-50 p-3 text-sm text-rose-800"><p>The EAC directory could not be searched.</p><button type="button" data-testid="button-retry-agency-search" onClick={() => agencyQuery.refetch()} className="mt-1 font-semibold underline">Try again</button></div> : null}
+              {selectedAgency ? <div className="rounded-xl border border-primary/20 bg-primary/[.04] p-4"><div className="flex items-start justify-between gap-3"><div><p className="font-semibold">{selectedAgency.name}</p><p className="mt-1 text-xs text-muted-foreground">{selectedAgency.location} · {selectedAgency.complianceStatus}</p></div><button type="button" data-testid="button-clear-agency" className="text-sm font-semibold text-primary underline" onClick={() => { setSelectedAgency(null); updateForm("agencyEmail", ""); updateForm("agencyPhone", ""); }}>Change</button></div><div className="mt-4 grid gap-3 sm:grid-cols-2"><div className="space-y-1.5"><Label htmlFor="agencyEmail">Agency email (optional)</Label><select id="agencyEmail" data-testid="select-agency-email" value={form.agencyEmail} onChange={(event) => updateForm("agencyEmail", event.target.value)} className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"><option value="">No email selected</option>{selectedAgency.emails.map((email) => <option key={email} value={email}>{email}</option>)}</select></div><div className="space-y-1.5"><Label htmlFor="agencyPhone">Agency phone (optional)</Label><select id="agencyPhone" data-testid="select-agency-phone" value={form.agencyPhone} onChange={(event) => updateForm("agencyPhone", event.target.value)} className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"><option value="">No phone selected</option>{selectedAgency.phones.map((phone) => <option key={phone} value={phone}>{phone}</option>)}</select></div></div></div> : agencySearch.length >= 2 && agencyQuery.data && agencyQuery.data.length > 0 ? <div className="max-h-48 overflow-y-auto rounded-xl border border-border bg-background">{agencyQuery.data.map((agency) => <button type="button" data-testid={`button-select-agency-${agency.id}`} key={agency.id} onClick={() => { setSelectedAgency(agency); setAgencySearch(agency.name); updateForm("agencyEmail", ""); updateForm("agencyPhone", ""); }} className="block w-full border-b border-border/60 px-4 py-3 text-left last:border-0 hover:bg-secondary"><span className="block text-sm font-semibold">{agency.name}</span><span className="mt-1 block text-xs text-muted-foreground">{agency.location} · {agency.complianceStatus}</span></button>)}</div> : agencySearch.length >= 2 && !agencyQuery.isLoading ? <p className="rounded-lg bg-secondary/50 p-3 text-sm text-muted-foreground">No official EAC directory matches found.</p> : null}
+            </div> : null}
+            <DialogFooter><Button data-testid="button-cancel-add-rental-history" type="button" variant="outline" onClick={() => setAddOpen(false)}>Cancel</Button><Button data-testid="button-save-rental-history" type="submit" disabled={createHistory.isPending || (form.refereeType === "private_landlord" && !form.refereeEmail.trim() && !form.refereePhone.trim()) || (form.refereeType === "agency" && (!selectedAgency || (!form.agencyEmail && !form.agencyPhone)))}>{createHistory.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" /> : null}Save tenancy</Button></DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
 
       <Dialog open={!!requestFor} onOpenChange={(open) => !open && setRequestFor(null)}>
         <DialogContent>
-          <DialogHeader><DialogTitle className="font-display text-2xl">Request a reference</DialogTitle><DialogDescription>We’ll send {requestFor?.refereeName || "your referee"} a secure link with three short questions. Their answers are only visible after they verify the tenancy.</DialogDescription></DialogHeader>
-          <form data-testid="form-request-rental-verification" onSubmit={submitRequest} className="space-y-5"><div className="rounded-lg bg-secondary/50 p-4 text-sm"><p className="font-medium text-foreground">{requestFor?.propertyAddress}</p><p className="mt-1 text-muted-foreground">{requestFor ? formatDate(requestFor.startDate) : ""} – {requestFor ? formatDate(requestFor.endDate) : ""}</p></div><p className="text-sm text-muted-foreground">We’ll use the referee details saved on this tenancy. You can close this window if you need to edit them first.</p><DialogFooter><Button data-testid="button-cancel-request-verification" type="button" variant="outline" onClick={() => setRequestFor(null)}>Not now</Button><Button data-testid="button-send-request-verification" type="submit" disabled={requestVerification.isPending}>{requestVerification.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" /> : <Mail className="mr-2 h-4 w-4" aria-hidden="true" />}Send secure request</Button></DialogFooter></form>
+          <DialogHeader><DialogTitle className="font-display text-2xl">Request a reference</DialogTitle><DialogDescription>We’ll send {requestFor?.refereeName || "your referee"} a secure link with four questions. Their answers are only visible after they verify the tenancy.</DialogDescription></DialogHeader>
+          <form data-testid="form-request-rental-verification" onSubmit={submitRequest} className="space-y-5"><div className="rounded-lg bg-secondary/50 p-4 text-sm"><p className="font-medium text-foreground">{requestFor?.propertyAddress}</p><p className="mt-1 text-muted-foreground">{requestFor ? formatDate(requestFor.startDate) : ""} – {requestFor ? formatDate(requestFor.endDate) : ""}</p></div><p className="text-sm text-muted-foreground">Send a secure four-question reference link to {requestFor?.refereeName || "your referee"} by email or WhatsApp.</p>{requestFor ? <div className="space-y-2"><Label htmlFor="request-delivery-channel">Send reference request by</Label><select id="request-delivery-channel" data-testid="select-reference-delivery-channel" value={requestChannel} onChange={(event) => setRequestChannel(event.target.value as "email" | "whatsapp")} className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"><option value="email" disabled={!requestFor.refereeEmail}>Email {requestFor.refereeEmail ? `· ${requestFor.refereeEmail}` : "· no email saved"}</option><option value="whatsapp" disabled={!requestFor.refereePhone}>WhatsApp {requestFor.refereePhone ? `· ${requestFor.refereePhone}` : "· no phone saved"}</option></select><p className="text-xs leading-5 text-muted-foreground">Email requests are sent by QuickProp. WhatsApp creates a secure share link for you to send.</p>{!requestFor.refereeEmail && !requestFor.refereePhone ? <p className="text-xs font-medium text-rose-700">No referee contact was saved for this tenancy. A secure request can’t be sent until a contact is available.</p> : null}</div> : null}<DialogFooter><Button data-testid="button-cancel-request-verification" type="button" variant="outline" onClick={() => setRequestFor(null)}>Not now</Button><Button data-testid="button-send-request-verification" type="submit" disabled={requestVerification.isPending || (!requestFor?.refereeEmail && !requestFor?.refereePhone) || (requestChannel === "email" ? !requestFor?.refereeEmail : !requestFor?.refereePhone)}>{requestVerification.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" /> : <Mail className="mr-2 h-4 w-4" aria-hidden="true" />}Send secure request</Button></DialogFooter></form>
         </DialogContent>
       </Dialog>
 

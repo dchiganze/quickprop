@@ -1,10 +1,11 @@
-import { getGetPublicRentalReferenceQueryKey, useGetPublicRentalReference, useSubmitPublicRentalReference } from "@workspace/api-client-react";
-import type { RentalReferenceInput } from "@workspace/api-client-react";
 import { useState } from "react";
 import { useParams } from "wouter";
+import { getGetPublicRentalReferenceQueryKey, useGetPublicRentalReference, useSubmitPublicRentalReference } from "@workspace/api-client-react";
+import type { RentalReferenceInput } from "@workspace/api-client-react";
 import { AlertCircle, CheckCircle2, Clock3, Home, Loader2, LockKeyhole, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 function formatDate(value: string) {
@@ -24,7 +25,7 @@ function errorCode(error: unknown) {
   return undefined;
 }
 
-function LinkState({ kind }: { kind: "expired" | "used" | "invalid" | "error" }) {
+function LinkState({ kind, onRetry }: { kind: "expired" | "used" | "invalid" | "error"; onRetry?: () => void }) {
   const content = {
     expired: { icon: Clock3, title: "This link has expired", body: "For your security, reference links are only active for a limited time. Ask the tenant to send a new request." },
     used: { icon: CheckCircle2, title: "This reference is already complete", body: "This secure link has already been used. No further action is needed." },
@@ -32,12 +33,12 @@ function LinkState({ kind }: { kind: "expired" | "used" | "invalid" | "error" })
     error: { icon: AlertCircle, title: "We couldn’t open this request", body: "Please try again shortly. If the problem continues, ask the tenant to resend the reference request." },
   }[kind];
   const Icon = content.icon;
-  return <main className="flex min-h-[100dvh] items-center justify-center bg-background px-4 py-10"><Card data-testid={`state-reference-${kind}`} className="w-full max-w-md border-border/70 shadow-lg"><CardContent className="flex flex-col items-center p-8 text-center sm:p-10"><div className="mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-secondary text-primary"><Icon className="h-7 w-7" aria-hidden="true" /></div><h1 className="font-display text-3xl text-foreground">{content.title}</h1><p className="mt-3 text-sm leading-6 text-muted-foreground">{content.body}</p></CardContent></Card></main>;
+  return <main className="flex min-h-[100dvh] items-center justify-center bg-background px-4 py-10"><Card data-testid={`state-reference-${kind}`} className="w-full max-w-md border-border/70 shadow-lg"><CardContent className="flex flex-col items-center p-8 text-center sm:p-10"><div className="mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-secondary text-primary"><Icon className="h-7 w-7" aria-hidden="true" /></div><h1 className="font-display text-3xl text-foreground">{content.title}</h1><p className="mt-3 text-sm leading-6 text-muted-foreground">{content.body}</p>{onRetry ? <Button variant="outline" className="mt-5" onClick={onRetry}>Try again</Button> : null}</CardContent></Card></main>;
 }
 
 export default function RentalReference() {
   const { token } = useParams<{ token: string }>();
-  const [genuine, setGenuine] = useState<boolean | null>(null);
+  const [tenancyPeriod, setTenancyPeriod] = useState("");
   const [rentPaymentRating, setRentPaymentRating] = useState<RentalReferenceInput["rentPaymentRating"]>();
   const [propertyConditionRating, setPropertyConditionRating] = useState<RentalReferenceInput["propertyConditionRating"]>();
   const [wouldRentAgain, setWouldRentAgain] = useState<boolean | undefined>();
@@ -48,7 +49,7 @@ export default function RentalReference() {
   if (referenceQuery.isLoading) return <main data-testid="loading-rental-reference" className="flex min-h-[100dvh] items-center justify-center bg-background px-4"><div className="w-full max-w-md space-y-4"><div className="h-8 w-36 animate-pulse rounded bg-muted" /><div className="h-72 animate-pulse rounded-2xl bg-muted" /></div></main>;
   if (referenceQuery.isError) {
     const code = errorCode(referenceQuery.error);
-    return <LinkState kind={code === 410 ? "expired" : code === 409 ? "used" : code === 404 ? "invalid" : "error"} />;
+    return <LinkState kind={code === 410 ? "expired" : code === 409 ? "used" : code === 404 ? "invalid" : "error"} onRetry={!code || (code !== 410 && code !== 409 && code !== 404) ? () => referenceQuery.refetch() : undefined} />;
   }
   if (submitReference.isSuccess) {
     const result = submitReference.data;
@@ -56,15 +57,10 @@ export default function RentalReference() {
   }
   const reference = referenceQuery.data;
   if (!reference) return <LinkState kind="error" />;
-
+  const complete = !!tenancyPeriod.trim() && !!rentPaymentRating && !!propertyConditionRating && wouldRentAgain !== undefined;
   const submit = () => {
-    if (genuine === null) return;
-    const payload: RentalReferenceInput = { verifiedTenancy: genuine };
-    if (genuine) {
-      payload.rentPaymentRating = rentPaymentRating;
-      payload.propertyConditionRating = propertyConditionRating;
-      payload.wouldRentAgain = wouldRentAgain;
-    }
+    if (!complete) return;
+    const payload: RentalReferenceInput = { tenancyPeriod: tenancyPeriod.trim(), rentPaymentRating: rentPaymentRating!, propertyConditionRating: propertyConditionRating!, wouldRentAgain: wouldRentAgain! };
     submitReference.mutate({ token, data: payload });
   };
 
@@ -75,14 +71,28 @@ export default function RentalReference() {
         <Card className="border-border/70 shadow-lg">
           <CardHeader className="border-b border-border/60 bg-primary/[0.035] p-6 sm:p-8"><div className="mb-4 flex h-11 w-11 items-center justify-center rounded-full bg-primary/10 text-primary"><ShieldCheck className="h-5 w-5" aria-hidden="true" /></div><CardTitle className="font-display text-3xl text-foreground sm:text-4xl">A quick rental reference</CardTitle><p className="max-w-xl text-sm leading-6 text-muted-foreground">Please confirm the details below for the tenant. Your response helps them carry a trusted rental history forward.</p></CardHeader>
           <CardContent className="space-y-7 p-6 sm:p-8">
-            <div data-testid="reference-request-details" className="grid gap-5 rounded-xl bg-secondary/45 p-5 sm:grid-cols-2"><div className="sm:col-span-2"><p className="text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground">Tenant</p><p data-testid="text-reference-tenant" className="mt-1 text-lg font-semibold text-foreground">{reference.tenantName}</p></div><div><p className="text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground">Property</p><p data-testid="text-reference-property" className="mt-1 flex items-start gap-1.5 text-sm font-medium text-foreground"><Home className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden="true" />{reference.propertyAddress}, {reference.suburb}, {reference.city}</p></div><div><p className="text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground">Claimed dates</p><p data-testid="text-reference-dates" className="mt-1 text-sm font-medium text-foreground">{formatDate(reference.startDate)} – {formatDate(reference.endDate)}</p></div></div>
-            <fieldset><legend className="text-base font-semibold text-foreground">Was this tenancy genuine?</legend><p className="mt-1 text-sm text-muted-foreground">Your answer is shared with the tenant as part of this reference.</p><div className="mt-4 grid gap-3 sm:grid-cols-2"><button type="button" data-testid="button-reference-yes" aria-pressed={genuine === true} onClick={() => setGenuine(true)} className={`rounded-xl border p-4 text-left transition-colors ${genuine === true ? "border-primary bg-primary/10 ring-2 ring-primary/20" : "border-border hover:bg-secondary/60"}`}><span className="block font-semibold text-foreground">Yes, it was genuine</span><span className="mt-1 block text-sm text-muted-foreground">I recognise this tenancy.</span></button><button type="button" data-testid="button-reference-no" aria-pressed={genuine === false} onClick={() => setGenuine(false)} className={`rounded-xl border p-4 text-left transition-colors ${genuine === false ? "border-primary bg-primary/10 ring-2 ring-primary/20" : "border-border hover:bg-secondary/60"}`}><span className="block font-semibold text-foreground">No, it was not genuine</span><span className="mt-1 block text-sm text-muted-foreground">I cannot confirm these details.</span></button></div></fieldset>
-            {genuine ? <div data-testid="reference-questions" className="space-y-6 border-t border-border/60 pt-6"><fieldset><legend className="text-sm font-semibold text-foreground">How often was rent paid on time?</legend><div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">{(["always", "usually", "sometimes", "rarely"] as const).map((value) => <button type="button" data-testid={`button-rent-rating-${value}`} key={value} onClick={() => setRentPaymentRating(value)} aria-pressed={rentPaymentRating === value} className={`rounded-lg border px-3 py-2.5 text-sm capitalize ${rentPaymentRating === value ? "border-primary bg-primary/10 font-semibold text-primary" : "border-border text-muted-foreground hover:bg-secondary"}`}>{value}</button>)}</div></fieldset><fieldset><legend className="text-sm font-semibold text-foreground">How would you describe the condition of the property when they left?</legend><div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">{(["excellent", "good", "average", "poor"] as const).map((value) => <button type="button" data-testid={`button-condition-rating-${value}`} key={value} onClick={() => setPropertyConditionRating(value)} aria-pressed={propertyConditionRating === value} className={`rounded-lg border px-3 py-2.5 text-sm capitalize ${propertyConditionRating === value ? "border-primary bg-primary/10 font-semibold text-primary" : "border-border text-muted-foreground hover:bg-secondary"}`}>{value}</button>)}</div></fieldset><fieldset><legend className="text-sm font-semibold text-foreground">Would you rent to this tenant again?</legend><div className="mt-3 grid grid-cols-2 gap-2"><button type="button" data-testid="button-rent-again-yes" onClick={() => setWouldRentAgain(true)} aria-pressed={wouldRentAgain === true} className={`rounded-lg border px-3 py-2.5 text-sm ${wouldRentAgain === true ? "border-primary bg-primary/10 font-semibold text-primary" : "border-border text-muted-foreground hover:bg-secondary"}`}>Yes</button><button type="button" data-testid="button-rent-again-no" onClick={() => setWouldRentAgain(false)} aria-pressed={wouldRentAgain === false} className={`rounded-lg border px-3 py-2.5 text-sm ${wouldRentAgain === false ? "border-primary bg-primary/10 font-semibold text-primary" : "border-border text-muted-foreground hover:bg-secondary"}`}>No</button></div></fieldset></div> : null}
+            <div data-testid="reference-request-details" className="grid gap-5 rounded-xl bg-secondary/45 p-5 sm:grid-cols-2"><div className="sm:col-span-2"><p className="text-xs font-semibold uppercase tracking-[.15em] text-muted-foreground">Tenant</p><p data-testid="text-reference-tenant" className="mt-1 text-lg font-semibold text-foreground">{reference.tenantName}</p></div><div><p className="text-xs font-semibold uppercase tracking-[.15em] text-muted-foreground">Property</p><p data-testid="text-reference-property" className="mt-1 flex items-start gap-1.5 text-sm font-medium text-foreground"><Home className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden="true" />{reference.propertyAddress}, {reference.suburb}, {reference.city}</p></div><div><p className="text-xs font-semibold uppercase tracking-[.15em] text-muted-foreground">Claimed dates</p><p data-testid="text-reference-dates" className="mt-1 text-sm font-medium text-foreground">{formatDate(reference.startDate)} – {formatDate(reference.endDate)}</p></div></div>
+            <div data-testid="reference-questions" className="space-y-6">
+              <div className="space-y-2"><Label htmlFor="tenancy-period">What period did the tenant stay at the property?</Label><Input id="tenancy-period" data-testid="input-tenancy-period" maxLength={120} value={tenancyPeriod} onChange={(event) => setTenancyPeriod(event.target.value)} placeholder="For example, March 2022 – January 2024" required /></div>
+              <RatingQuestion label="Did the tenant pay rent on time?" testId="rent-rating" value={rentPaymentRating} onChange={setRentPaymentRating} />
+              <RatingQuestion label="Did the tenant keep the property in a presentable manner?" testId="condition-rating" value={propertyConditionRating} onChange={setPropertyConditionRating} />
+              <fieldset><legend className="text-sm font-semibold text-foreground">Would you lease to the tenant again?</legend><div className="mt-3 grid grid-cols-2 gap-2">{([true, false] as const).map((value) => <button type="button" data-testid={`button-rent-again-${value ? "yes" : "no"}`} key={String(value)} onClick={() => setWouldRentAgain(value)} aria-pressed={wouldRentAgain === value} className={`rounded-lg border px-3 py-2.5 text-sm ${wouldRentAgain === value ? "border-primary bg-primary/10 font-semibold text-primary" : "border-border text-muted-foreground hover:bg-secondary"}`}>{value ? "Yes" : "No"}</button>)}</div></fieldset>
+            </div>
+            <p className="rounded-lg border border-amber-300/70 bg-amber-50 px-4 py-3 text-sm font-semibold leading-6 text-amber-950">This is an official document. Providing fraudulent references is a criminal offence.</p>
             {submitReference.isError ? <p data-testid="error-submit-reference" className="flex items-center gap-2 text-sm text-rose-700"><AlertCircle className="h-4 w-4" aria-hidden="true" />We couldn’t save your response. This link may have expired or already been used.</p> : null}
-            <div className="flex flex-col-reverse gap-3 border-t border-border/60 pt-6 sm:flex-row sm:items-center sm:justify-between"><p className="text-xs leading-5 text-muted-foreground">QuickProp keeps your response private and secure.</p><Button data-testid="button-submit-reference" onClick={submit} disabled={genuine === null || (genuine === true && (!rentPaymentRating || !propertyConditionRating || wouldRentAgain === undefined)) || submitReference.isPending}>{submitReference.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" /> : null}Submit reference</Button></div>
+            <div className="flex flex-col-reverse gap-3 border-t border-border/60 pt-6 sm:flex-row sm:items-center sm:justify-between"><p className="text-xs leading-5 text-muted-foreground">QuickProp keeps your response private and secure.</p><Button data-testid="button-submit-reference" onClick={submit} disabled={!complete || submitReference.isPending}>{submitReference.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" /> : null}Submit reference</Button></div>
           </CardContent>
         </Card>
       </div>
     </main>
   );
+}
+
+function RatingQuestion({ label, testId, value, onChange }: {
+  label: string;
+  testId: string;
+  value: RentalReferenceInput["rentPaymentRating"] | undefined;
+  onChange: (value: "always" | "sometimes" | "never") => void;
+}) {
+  return <fieldset><legend className="text-sm font-semibold text-foreground">{label}</legend><div className="mt-3 grid grid-cols-3 gap-2">{(["always", "sometimes", "never"] as const).map((answer) => <button type="button" data-testid={`button-${testId}-${answer}`} key={answer} onClick={() => onChange(answer)} aria-pressed={value === answer} className={`rounded-lg border px-3 py-2.5 text-sm capitalize ${value === answer ? "border-primary bg-primary/10 font-semibold text-primary" : "border-border text-muted-foreground hover:bg-secondary"}`}>{answer}</button>)}</div></fieldset>;
 }

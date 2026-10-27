@@ -24,6 +24,7 @@ export interface RentalHistoryInput {
   refereeName?: string;
   refereeEmail?: string;
   refereePhone?: string;
-  /** @nullable */
-  agencyId?: number | null;
+  agencySourceId?: string;
+  agencyEmail?: string;
+  agencyPhone?: string;
 }

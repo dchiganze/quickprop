@@ -11,6 +11,8 @@ export interface RentalReference {
   rentalHistoryId: number;
   verifiedTenancy: boolean;
   /** @nullable */
+  tenancyPeriod: string | null;
+  /** @nullable */
   rentPaymentRating: string | null;
   /** @nullable */
   propertyConditionRating: string | null;

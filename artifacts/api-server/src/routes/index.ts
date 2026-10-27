@@ -16,6 +16,7 @@ import housekeepingRouter from "./housekeeping";
 import importsRouter from "./imports";
 import reviewsRouter from "./reviews";
 import rentalProfileRouter from "./rental-profile";
+import rentalApplicationsRouter from "./rental-applications";
 import propertyAlertsRouter from "./property-alerts";
 import agencySettingsRouter from "./agency-settings";
 import shareRouter from "./share";
@@ -35,6 +36,7 @@ router.use(storageRouter);
 // Public routes — no auth required
 router.use(publicRouter);
 router.use(rentalProfileRouter);
+router.use(rentalApplicationsRouter);
 router.use(propertyAlertsRouter);
 router.use(reviewsRouter);
 // Crawler-facing public share pages and generated social preview images.

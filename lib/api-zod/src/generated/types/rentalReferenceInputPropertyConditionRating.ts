@@ -10,8 +10,7 @@ export type RentalReferenceInputPropertyConditionRating = typeof RentalReference
 
 
 export const RentalReferenceInputPropertyConditionRating = {
-  excellent: 'excellent',
-  good: 'good',
-  average: 'average',
-  poor: 'poor',
+  always: 'always',
+  sometimes: 'sometimes',
+  never: 'never',
 } as const;

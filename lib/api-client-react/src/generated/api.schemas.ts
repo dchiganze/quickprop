@@ -60,6 +60,15 @@ export interface RentalAgency {
   updatedAt: string;
 }
 
+export interface EacAgencyOption {
+  id: string;
+  name: string;
+  location: string;
+  phones: string[];
+  emails: string[];
+  complianceStatus: string;
+}
+
 export interface RentalAgencyInput {
   /** @minLength 2 */
   name: string;
@@ -131,8 +140,9 @@ export interface RentalHistoryInput {
   refereeName?: string;
   refereeEmail?: string;
   refereePhone?: string;
-  /** @nullable */
-  agencyId?: number | null;
+  agencySourceId?: string;
+  agencyEmail?: string;
+  agencyPhone?: string;
 }
 
 export type ReferenceRequestInputRefereeType = typeof ReferenceRequestInputRefereeType[keyof typeof ReferenceRequestInputRefereeType];
@@ -143,13 +153,20 @@ export const ReferenceRequestInputRefereeType = {
   agency: 'agency',
 } as const;
 
+export type ReferenceRequestInputDeliveryChannel = typeof ReferenceRequestInputDeliveryChannel[keyof typeof ReferenceRequestInputDeliveryChannel];
+
+
+export const ReferenceRequestInputDeliveryChannel = {
+  email: 'email',
+  whatsapp: 'whatsapp',
+} as const;
+
 export interface ReferenceRequestInput {
   refereeType: ReferenceRequestInputRefereeType;
   refereeName?: string;
   refereeEmail?: string;
   refereePhone?: string;
-  /** @nullable */
-  agencyId?: number | null;
+  deliveryChannel?: ReferenceRequestInputDeliveryChannel;
 }
 
 export type RentalHistoryVerificationStatus = typeof RentalHistoryVerificationStatus[keyof typeof RentalHistoryVerificationStatus];
@@ -166,6 +183,8 @@ export interface RentalReference {
   id: number;
   rentalHistoryId: number;
   verifiedTenancy: boolean;
+  /** @nullable */
+  tenancyPeriod: string | null;
   /** @nullable */
   rentPaymentRating: string | null;
   /** @nullable */
@@ -270,26 +289,43 @@ export type RentalReferenceInputRentPaymentRating = typeof RentalReferenceInputR
 
 export const RentalReferenceInputRentPaymentRating = {
   always: 'always',
-  usually: 'usually',
   sometimes: 'sometimes',
-  rarely: 'rarely',
+  never: 'never',
 } as const;
 
 export type RentalReferenceInputPropertyConditionRating = typeof RentalReferenceInputPropertyConditionRating[keyof typeof RentalReferenceInputPropertyConditionRating];
 
 
 export const RentalReferenceInputPropertyConditionRating = {
-  excellent: 'excellent',
-  good: 'good',
-  average: 'average',
-  poor: 'poor',
+  always: 'always',
+  sometimes: 'sometimes',
+  never: 'never',
 } as const;
 
 export interface RentalReferenceInput {
-  verifiedTenancy: boolean;
-  rentPaymentRating?: RentalReferenceInputRentPaymentRating;
-  propertyConditionRating?: RentalReferenceInputPropertyConditionRating;
-  wouldRentAgain?: boolean;
+  /**
+     * @minLength 1
+     * @maxLength 120
+     */
+  tenancyPeriod: string;
+  rentPaymentRating: RentalReferenceInputRentPaymentRating;
+  propertyConditionRating: RentalReferenceInputPropertyConditionRating;
+  wouldRentAgain: boolean;
+}
+
+export type RentalVerificationRequestResultDeliveryChannel = typeof RentalVerificationRequestResultDeliveryChannel[keyof typeof RentalVerificationRequestResultDeliveryChannel];
+
+
+export const RentalVerificationRequestResultDeliveryChannel = {
+  email: 'email',
+  whatsapp: 'whatsapp',
+} as const;
+
+export interface RentalVerificationRequestResult {
+  history: RentalHistory;
+  /** @nullable */
+  shareUrl: string | null;
+  deliveryChannel: RentalVerificationRequestResultDeliveryChannel;
 }
 
 export type RentalReferenceSubmissionStatus = typeof RentalReferenceSubmissionStatus[keyof typeof RentalReferenceSubmissionStatus];
@@ -333,6 +369,138 @@ export interface PublicRentalReference {
   /** @nullable */
   agencyName: string | null;
   expiresAt: string;
+}
+
+export interface RentalApplicationInvite {
+  applicationUrl: string;
+  expiresAt: string;
+}
+
+export type RentalApplicationInputEmploymentStatus = typeof RentalApplicationInputEmploymentStatus[keyof typeof RentalApplicationInputEmploymentStatus];
+
+
+export const RentalApplicationInputEmploymentStatus = {
+  employed: 'employed',
+  self_employed: 'self_employed',
+  unemployed: 'unemployed',
+  student: 'student',
+  retired: 'retired',
+  other: 'other',
+} as const;
+
+/**
+ * @nullable
+ */
+export type RentalApplicationInputIncomeCurrency = typeof RentalApplicationInputIncomeCurrency[keyof typeof RentalApplicationInputIncomeCurrency] | null;
+
+
+export const RentalApplicationInputIncomeCurrency = {
+  USD: 'USD',
+  ZWG: 'ZWG',
+  ZAR: 'ZAR',
+  other: 'other',
+} as const;
+
+export interface RentalApplicationInput {
+  /**
+     * @minLength 2
+     * @maxLength 160
+     */
+  fullName: string;
+  email: string;
+  /**
+     * @minLength 5
+     * @maxLength 40
+     */
+  phone: string;
+  moveInDate: string;
+  /**
+     * @minimum 1
+     * @maximum 20
+     */
+  occupants: number;
+  employmentStatus: RentalApplicationInputEmploymentStatus;
+  /**
+     * @maxLength 160
+     * @nullable
+     */
+  employerName?: string | null;
+  /**
+     * @maxLength 160
+     * @nullable
+     */
+  jobTitle?: string | null;
+  /**
+     * @minimum 0
+     * @nullable
+     */
+  monthlyIncome?: number | null;
+  /** @nullable */
+  incomeCurrency?: RentalApplicationInputIncomeCurrency;
+  /**
+     * @maxLength 1000
+     * @nullable
+     */
+  applicantNote?: string | null;
+  consent: true;
+}
+
+export type PublicRentalApplicationStatus = typeof PublicRentalApplicationStatus[keyof typeof PublicRentalApplicationStatus];
+
+
+export const PublicRentalApplicationStatus = {
+  available: 'available',
+} as const;
+
+export interface PublicRentalApplication {
+  status: PublicRentalApplicationStatus;
+  propertyTitle: string;
+  propertyReference: string;
+  propertyAddress: string;
+  suburb: string;
+  city: string;
+  price: number;
+  currency: string;
+  /** @nullable */
+  imageUrl: string | null;
+  agentName: string;
+  expiresAt: string;
+}
+
+export type RentalApplicationStatus = typeof RentalApplicationStatus[keyof typeof RentalApplicationStatus];
+
+
+export const RentalApplicationStatus = {
+  submitted: 'submitted',
+} as const;
+
+export interface RentalApplication {
+  id: number;
+  propertyId: number;
+  propertyReference: string;
+  propertyTitle: string;
+  applicantName: string;
+  email: string;
+  phone: string;
+  moveInDate: string;
+  occupants: number;
+  employmentStatus: string;
+  /** @nullable */
+  employerName: string | null;
+  /** @nullable */
+  jobTitle: string | null;
+  /** @nullable */
+  monthlyIncome: number | null;
+  /** @nullable */
+  incomeCurrency: string | null;
+  /** @nullable */
+  applicantNote: string | null;
+  status: RentalApplicationStatus;
+  submittedAt: string;
+}
+
+export interface RentalApplicationReceipt {
+  success: boolean;
 }
 
 export type AdminRentalHistory = RentalHistory & {
@@ -2943,6 +3111,10 @@ agentId?: number;
 q?: string;
 minPrice?: number;
 maxPrice?: number;
+};
+
+export type ListRentalApplicationsParams = {
+propertyId?: number;
 };
 
 export type ListCollaborationDiscoveryParams = {

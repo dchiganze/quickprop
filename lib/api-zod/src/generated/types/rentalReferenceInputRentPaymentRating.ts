@@ -11,7 +11,6 @@ export type RentalReferenceInputRentPaymentRating = typeof RentalReferenceInputR
 
 export const RentalReferenceInputRentPaymentRating = {
   always: 'always',
-  usually: 'usually',
   sometimes: 'sometimes',
-  rarely: 'rarely',
+  never: 'never',
 } as const;

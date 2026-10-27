@@ -57,7 +57,7 @@ function contactPhoneKey(phone: string | null | undefined) {
   return phone?.replace(/\D/g, "") ?? "";
 }
 
-async function propertyScope(user: NonNullable<Awaited<ReturnType<typeof currentUser>>>) {
+export async function propertyScope(user: NonNullable<Awaited<ReturnType<typeof currentUser>>>) {
   if (user.role === "agent" || user.role === "senior_agent") {
     return eq(propertiesTable.agentId, user.id);
   }
@@ -70,7 +70,7 @@ async function propertyScope(user: NonNullable<Awaited<ReturnType<typeof current
   return branchIds.length ? inArray(propertiesTable.branchId, branchIds) : eq(propertiesTable.branchId, user.branchId);
 }
 
-async function getAccessibleProperty(
+export async function getAccessibleProperty(
   user: NonNullable<Awaited<ReturnType<typeof currentUser>>>,
   propertyId: number,
 ) {

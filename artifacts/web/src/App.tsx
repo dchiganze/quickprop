@@ -19,6 +19,8 @@ import Terms from '@/pages/terms';
 import SmsConsent from '@/pages/sms-consent';
 import NotFound from '@/pages/not-found';
 import RentalReference from '@/pages/rental-reference';
+import RentalApplication from '@/pages/rental-application';
+import Tenants from '@/pages/tenants';
 
 const queryClient = new QueryClient();
 
@@ -31,6 +33,8 @@ function Router() {
       <Route path="/agents" component={Agents} />
       <Route path="/review/:token" component={Review} />
       <Route path="/rental-reference/:token" component={RentalReference} />
+      <Route path="/rental-application/:token" component={RentalApplication} />
+      <Route path="/tenants" component={Tenants} />
       <Route path="/agents/:id" component={AgentProfile} />
       <Route path="/login" component={Login} />
       <Route path="/register" component={Register} />

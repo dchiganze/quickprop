@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import {
-  View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, Alert, Linking, Image, Modal, TextInput,
+  View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, Alert, Linking, Image, Modal, TextInput, ActivityIndicator,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { VideoView, useVideoPlayer } from 'expo-video';
@@ -20,7 +20,17 @@ import { PropertyShareSheet } from '@/components/PropertyShareSheet';
 import { parsePrivateContactNotes, useData } from '@/contexts/DataContext';
 import { Property } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
-import { getGetAgentContactsQueryKey, getGetMultiAgentPropertyQueryKey, useGetAgentContacts, useGetMultiAgentProperty } from '@workspace/api-client-react';
+import {
+  getGetAgentContactsQueryKey,
+  getGetMultiAgentPropertyQueryKey,
+  getListRentalApplicationsQueryKey,
+  useCreateRentalApplicationInvite,
+  useGetAgentContacts,
+  useGetMultiAgentProperty,
+  useListRentalApplications,
+} from '@workspace/api-client-react';
+import type { RentalApplicationInvite } from '@workspace/api-client-react';
+import * as Clipboard from 'expo-clipboard';
 import { addMyAgencyToProperty } from '@/utils/multiAgent';
 
 function VideoPlayerModal({ uri, onClose }: { uri: string; onClose: () => void }) {
@@ -122,9 +132,28 @@ export default function ListingDetailScreen() {
   const [shareOptionsOpen, setShareOptionsOpen] = useState(false);
   const [saleModalVisible, setSaleModalVisible] = useState(false);
   const [salePriceInput, setSalePriceInput] = useState('');
+  const [applicationInvite, setApplicationInvite] = useState<RentalApplicationInvite | null>(null);
+  const [applicationInviteVisible, setApplicationInviteVisible] = useState(false);
+  const [expandedApplicationId, setExpandedApplicationId] = useState<number | null>(null);
+  const [inviteCopied, setInviteCopied] = useState(false);
   const shareCardRef = useRef<PropertyFlyerHandle>(null);
   const [flyerOpen, setFlyerOpen] = useState(false);
   const flyer = useFlyerSettings(property, user);
+  const canManageApplications = property?.listingType === 'rent'
+    && property.status === 'published'
+    && Number.isInteger(remotePropertyId)
+    && remotePropertyId > 0;
+  const rentalApplicationsQuery = useListRentalApplications(
+    { propertyId: remotePropertyId },
+    {
+      query: {
+        enabled: Boolean(canManageApplications),
+        queryKey: getListRentalApplicationsQueryKey({ propertyId: remotePropertyId }),
+      },
+    },
+  );
+  const rentalApplications = rentalApplicationsQuery.data ?? [];
+  const createRentalInvite = useCreateRentalApplicationInvite();
 
   const handleAddAgency = async () => {
     if (!multiAgent || !user || !property) return;
@@ -157,6 +186,49 @@ export default function ListingDetailScreen() {
   const handleShare = async () => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setShareOptionsOpen(true);
+  };
+
+  const handleCreateApplicationInvite = async () => {
+    if (!canManageApplications) return;
+    try {
+      const invite = await createRentalInvite.mutateAsync({ id: remotePropertyId });
+      setApplicationInvite(invite);
+      setInviteCopied(false);
+      setApplicationInviteVisible(true);
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch (error: any) {
+      Alert.alert(
+        'Link not created',
+        error?.message ?? 'We could not create an application link. Check your connection and try again.',
+      );
+    }
+  };
+
+  const shareApplicationInvite = async (channel: 'whatsapp' | 'email') => {
+    if (!applicationInvite) return;
+    const message = `Apply for ${property.title} (${property.referenceNumber}): ${applicationInvite.applicationUrl}`;
+    const url = channel === 'whatsapp'
+      ? `https://wa.me/?text=${encodeURIComponent(message)}`
+      : `mailto:?subject=${encodeURIComponent(`Rental application · ${property.referenceNumber}`)}&body=${encodeURIComponent(message)}`;
+    try {
+      await Linking.openURL(url);
+    } catch {
+      Alert.alert(
+        channel === 'whatsapp' ? 'WhatsApp unavailable' : 'Email unavailable',
+        'The sharing app could not be opened. Copy the secure link and share it manually.',
+      );
+    }
+  };
+
+  const copyApplicationInvite = async () => {
+    if (!applicationInvite) return;
+    try {
+      await Clipboard.setStringAsync(applicationInvite.applicationUrl);
+      setInviteCopied(true);
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch {
+      Alert.alert('Could not copy link', 'Please try again or share it using WhatsApp or email.');
+    }
   };
 
   const handleAddMedia = () => {
@@ -542,6 +614,175 @@ export default function ListingDetailScreen() {
             </Section>
           )}
 
+          {canManageApplications && (
+            <Section title="RENTAL APPLICATIONS">
+              <View style={[styles.applicationPanel, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                <View style={styles.applicationIntro}>
+                  <View style={[styles.applicationIcon, { backgroundColor: colors.accent + '18' }]}>
+                    <Ionicons name="shield-checkmark-outline" size={21} color={colors.accent} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.applicationHeading, { color: colors.foreground }]}>A private application link</Text>
+                    <Text style={[styles.applicationSubcopy, { color: colors.mutedForeground }]}>
+                      Share a secure form with renters. Applicant details stay inside your agent account.
+                    </Text>
+                  </View>
+                </View>
+                <TouchableOpacity
+                  style={[styles.createInviteButton, { backgroundColor: colors.primary, opacity: createRentalInvite.isPending ? 0.72 : 1 }]}
+                  onPress={handleCreateApplicationInvite}
+                  disabled={createRentalInvite.isPending}
+                  accessibilityRole="button"
+                  accessibilityLabel="Create a secure rental application link"
+                  testID="create-rental-application-invite"
+                >
+                  {createRentalInvite.isPending
+                    ? <ActivityIndicator size="small" color={colors.primaryForeground} />
+                    : <Ionicons name="link-outline" size={18} color={colors.primaryForeground} />}
+                  <Text style={[styles.createInviteText, { color: colors.primaryForeground }]}>
+                    {createRentalInvite.isPending ? 'Creating secure link…' : 'Create application link'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.applicationsHeadingRow}>
+                <View>
+                  <Text style={[styles.applicationsTitle, { color: colors.foreground }]}>Submitted</Text>
+                  <Text style={[styles.applicationsCaption, { color: colors.mutedForeground }]}>
+                    {rentalApplicationsQuery.isLoading
+                      ? 'Checking for applications'
+                      : `${rentalApplications.length} ${rentalApplications.length === 1 ? 'application' : 'applications'}`}
+                  </Text>
+                </View>
+                <View style={[styles.applicationCount, { backgroundColor: colors.secondary }]}>
+                  <Text style={[styles.applicationCountText, { color: colors.primary }]}>
+                    {rentalApplicationsQuery.isLoading ? '—' : rentalApplications.length}
+                  </Text>
+                </View>
+              </View>
+
+              {rentalApplicationsQuery.isLoading ? (
+                <View style={[styles.applicationLoadingCard, { backgroundColor: colors.muted, borderColor: colors.border }]} accessibilityLabel="Loading applications">
+                  <View style={[styles.skeletonLine, { backgroundColor: colors.border, width: '46%' }]} />
+                  <View style={[styles.skeletonLine, { backgroundColor: colors.border, width: '72%' }]} />
+                </View>
+              ) : rentalApplicationsQuery.isError ? (
+                <View style={[styles.applicationEmptyCard, { backgroundColor: colors.muted, borderColor: colors.border }]}>
+                  <Ionicons name="cloud-offline-outline" size={22} color={colors.mutedForeground} />
+                  <Text style={[styles.applicationEmptyTitle, { color: colors.foreground }]}>Applications could not load</Text>
+                  <Text style={[styles.applicationEmptyCopy, { color: colors.mutedForeground }]}>
+                    Your listing is unchanged. Check your connection and try again.
+                  </Text>
+                  <TouchableOpacity
+                    style={[styles.retryApplicationsButton, { borderColor: colors.border }]}
+                    onPress={() => rentalApplicationsQuery.refetch()}
+                    accessibilityRole="button"
+                    accessibilityLabel="Retry loading applications"
+                  >
+                    <Text style={[styles.retryApplicationsText, { color: colors.primary }]}>Try again</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : rentalApplications.length === 0 ? (
+                <View style={[styles.applicationEmptyCard, { backgroundColor: colors.muted, borderColor: colors.border }]}>
+                  <View style={[styles.emptyApplicationIcon, { backgroundColor: colors.secondary }]}>
+                    <Ionicons name="document-text-outline" size={21} color={colors.primary} />
+                  </View>
+                  <Text style={[styles.applicationEmptyTitle, { color: colors.foreground }]}>No applications yet</Text>
+                  <Text style={[styles.applicationEmptyCopy, { color: colors.mutedForeground }]}>
+                    Create a link above and send it to interested renters. New submissions will appear here.
+                  </Text>
+                </View>
+              ) : (
+                <View style={styles.applicationList}>
+                  {rentalApplications.map(application => {
+                    const expanded = expandedApplicationId === application.id;
+                    const submittedDate = new Date(application.submittedAt);
+                    const submittedLabel = Number.isNaN(submittedDate.getTime())
+                      ? 'Date unavailable'
+                      : submittedDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+                    const moveInDate = new Date(application.moveInDate);
+                    const moveInLabel = Number.isNaN(moveInDate.getTime())
+                      ? application.moveInDate
+                      : moveInDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+                    return (
+                      <View key={application.id} style={[styles.applicationCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                        <View style={styles.applicantRow}>
+                          <View style={[styles.applicantInitial, { backgroundColor: colors.secondary }]}>
+                            <Text style={[styles.applicantInitialText, { color: colors.primary }]}>
+                              {application.applicantName.trim().charAt(0).toUpperCase() || 'A'}
+                            </Text>
+                          </View>
+                          <View style={{ flex: 1 }}>
+                            <Text style={[styles.applicantName, { color: colors.foreground }]} numberOfLines={1}>
+                              {application.applicantName}
+                            </Text>
+                            <Text style={[styles.applicationDate, { color: colors.mutedForeground }]}>Submitted {submittedLabel}</Text>
+                          </View>
+                          <View style={[styles.submittedBadge, { backgroundColor: colors.accent + '18' }]}>
+                            <Text style={[styles.submittedBadgeText, { color: colors.accent }]}>New</Text>
+                          </View>
+                        </View>
+                        <TouchableOpacity
+                          style={[styles.viewApplicantButton, { borderTopColor: colors.border }]}
+                          onPress={() => setExpandedApplicationId(expanded ? null : application.id)}
+                          accessibilityRole="button"
+                          accessibilityLabel={`${expanded ? 'Hide' : 'View'} private details for ${application.applicantName}`}
+                          accessibilityState={{ expanded }}
+                        >
+                          <Ionicons name={expanded ? 'lock-open-outline' : 'lock-closed-outline'} size={14} color={colors.primary} />
+                          <Text style={[styles.viewApplicantText, { color: colors.primary }]}>
+                            {expanded ? 'Hide private details' : 'View private details'}
+                          </Text>
+                          <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={15} color={colors.mutedForeground} />
+                        </TouchableOpacity>
+                        {expanded && (
+                          <View style={[styles.privateApplicantDetails, { borderTopColor: colors.border }]}>
+                            <View style={styles.privateDataRow}>
+                              <Text style={[styles.privateDataLabel, { color: colors.mutedForeground }]}>Email</Text>
+                              <Text style={[styles.privateDataValue, { color: colors.foreground }]} selectable>{application.email}</Text>
+                            </View>
+                            <View style={styles.privateDataRow}>
+                              <Text style={[styles.privateDataLabel, { color: colors.mutedForeground }]}>Phone</Text>
+                              <Text style={[styles.privateDataValue, { color: colors.foreground }]} selectable>{application.phone}</Text>
+                            </View>
+                            <View style={styles.privateDataRow}>
+                              <Text style={[styles.privateDataLabel, { color: colors.mutedForeground }]}>Move-in</Text>
+                              <Text style={[styles.privateDataValue, { color: colors.foreground }]}>{moveInLabel}</Text>
+                            </View>
+                            <View style={styles.privateDataRow}>
+                              <Text style={[styles.privateDataLabel, { color: colors.mutedForeground }]}>Household</Text>
+                              <Text style={[styles.privateDataValue, { color: colors.foreground }]}>{application.occupants} occupants</Text>
+                            </View>
+                            <View style={styles.privateDataRow}>
+                              <Text style={[styles.privateDataLabel, { color: colors.mutedForeground }]}>Work</Text>
+                              <Text style={[styles.privateDataValue, { color: colors.foreground }]}>
+                                {[application.jobTitle, application.employerName].filter(Boolean).join(' · ') || application.employmentStatus.replace(/_/g, ' ')}
+                              </Text>
+                            </View>
+                            {application.monthlyIncome !== null && (
+                              <View style={styles.privateDataRow}>
+                                <Text style={[styles.privateDataLabel, { color: colors.mutedForeground }]}>Monthly income</Text>
+                                <Text style={[styles.privateDataValue, { color: colors.foreground }]}>
+                                  {application.incomeCurrency ?? ''} {application.monthlyIncome.toLocaleString()}
+                                </Text>
+                              </View>
+                            )}
+                            {!!application.applicantNote && (
+                              <View style={[styles.applicantNote, { backgroundColor: colors.muted }]}>
+                                <Text style={[styles.applicantNoteLabel, { color: colors.mutedForeground }]}>RENTER NOTE</Text>
+                                <Text style={[styles.applicantNoteText, { color: colors.foreground }]}>{application.applicantNote}</Text>
+                              </View>
+                            )}
+                          </View>
+                        )}
+                      </View>
+                    );
+                  })}
+                </View>
+              )}
+            </Section>
+          )}
+
           {/* Seller/landlord contact details are only fetched for this agent's contacts. */}
           <Section title={`${property.listingType === 'rent' ? 'LANDLORD' : 'SELLER'} DETAILS — PRIVATE`}>
             <View style={[styles.sellerCard, { backgroundColor: colors.muted, borderColor: colors.border }]}>
@@ -654,6 +895,81 @@ export default function ListingDetailScreen() {
           <Text style={styles.bottomBtnPrimaryText}>Edit</Text>
         </TouchableOpacity>
       </View>
+
+      <Modal
+        visible={applicationInviteVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setApplicationInviteVisible(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={[styles.inviteModal, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <View style={[styles.inviteModalIcon, { backgroundColor: colors.accent + '18' }]}>
+              <Ionicons name="shield-checkmark-outline" size={25} color={colors.accent} />
+            </View>
+            <Text style={[styles.inviteModalTitle, { color: colors.foreground }]}>Application link ready</Text>
+            <Text style={[styles.inviteModalCopy, { color: colors.mutedForeground }]}>
+              This link opens a private application form for {property.referenceNumber}. Share it directly with prospective renters.
+            </Text>
+            {applicationInvite && (
+              <>
+                <View style={[styles.inviteUrlBox, { backgroundColor: colors.muted, borderColor: colors.border }]}>
+                  <Text style={[styles.inviteUrl, { color: colors.foreground }]} selectable numberOfLines={2}>
+                    {applicationInvite.applicationUrl}
+                  </Text>
+                </View>
+                <Text style={[styles.inviteExpiry, { color: colors.mutedForeground }]}>
+                  Expires {Number.isNaN(Date.parse(applicationInvite.expiresAt))
+                    ? applicationInvite.expiresAt
+                    : new Date(applicationInvite.expiresAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                </Text>
+                <View style={styles.inviteShareRow}>
+                  <TouchableOpacity
+                    style={[styles.inviteShareButton, { backgroundColor: colors.primary }]}
+                    onPress={() => shareApplicationInvite('whatsapp')}
+                    accessibilityRole="button"
+                    accessibilityLabel="Share application link with WhatsApp"
+                    testID="share-application-whatsapp"
+                  >
+                    <Ionicons name="chatbubble-ellipses-outline" size={18} color={colors.primaryForeground} />
+                    <Text style={[styles.inviteShareButtonText, { color: colors.primaryForeground }]}>WhatsApp</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.inviteShareButton, { backgroundColor: colors.secondary }]}
+                    onPress={() => shareApplicationInvite('email')}
+                    accessibilityRole="button"
+                    accessibilityLabel="Share application link by email"
+                    testID="share-application-email"
+                  >
+                    <Ionicons name="mail-outline" size={18} color={colors.primary} />
+                    <Text style={[styles.inviteShareButtonText, { color: colors.primary }]}>Email</Text>
+                  </TouchableOpacity>
+                </View>
+                <TouchableOpacity
+                  style={[styles.copyInviteButton, { borderColor: colors.border }]}
+                  onPress={copyApplicationInvite}
+                  accessibilityRole="button"
+                  accessibilityLabel={inviteCopied ? 'Application link copied' : 'Copy application link'}
+                  testID="copy-rental-application-link"
+                >
+                  <Ionicons name={inviteCopied ? 'checkmark-circle-outline' : 'copy-outline'} size={17} color={inviteCopied ? colors.accent : colors.primary} />
+                  <Text style={[styles.copyInviteText, { color: inviteCopied ? colors.accent : colors.primary }]}>
+                    {inviteCopied ? 'Link copied' : 'Copy secure link'}
+                  </Text>
+                </TouchableOpacity>
+              </>
+            )}
+            <TouchableOpacity
+              style={styles.inviteDoneButton}
+              onPress={() => setApplicationInviteVisible(false)}
+              accessibilityRole="button"
+              accessibilityLabel="Close application link"
+            >
+              <Text style={[styles.inviteDoneText, { color: colors.mutedForeground }]}>Done</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       <Modal
         visible={saleModalVisible}
@@ -778,6 +1094,44 @@ const styles = StyleSheet.create({
   sellerValue: { fontSize: 14, fontWeight: '500', flex: 1 },
   notesBox: { marginTop: 4, padding: 10, borderRadius: 10, borderWidth: 1 },
   notesText: { fontSize: 13, lineHeight: 20 },
+  applicationPanel: { borderRadius: 16, borderWidth: 1, padding: 14, marginBottom: 20, gap: 14 },
+  applicationIntro: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  applicationIcon: { width: 42, height: 42, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
+  applicationHeading: { fontSize: 14, fontWeight: '800', marginBottom: 3 },
+  applicationSubcopy: { fontSize: 12, lineHeight: 17 },
+  createInviteButton: { minHeight: 46, borderRadius: 12, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 9 },
+  createInviteText: { fontSize: 13, fontWeight: '800' },
+  applicationsHeadingRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 11 },
+  applicationsTitle: { fontSize: 16, fontWeight: '800' },
+  applicationsCaption: { fontSize: 12, marginTop: 3 },
+  applicationCount: { minWidth: 34, height: 34, borderRadius: 12, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8 },
+  applicationCountText: { fontSize: 13, fontWeight: '800' },
+  applicationLoadingCard: { padding: 15, gap: 12, borderRadius: 14, borderWidth: 1 },
+  skeletonLine: { height: 10, borderRadius: 5, opacity: 0.72 },
+  applicationEmptyCard: { alignItems: 'center', paddingHorizontal: 18, paddingVertical: 20, borderRadius: 15, borderWidth: 1, gap: 7 },
+  emptyApplicationIcon: { width: 42, height: 42, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginBottom: 2 },
+  applicationEmptyTitle: { fontSize: 14, fontWeight: '800', textAlign: 'center' },
+  applicationEmptyCopy: { fontSize: 12, lineHeight: 18, textAlign: 'center' },
+  retryApplicationsButton: { marginTop: 5, paddingHorizontal: 16, paddingVertical: 8, borderWidth: 1, borderRadius: 10 },
+  retryApplicationsText: { fontSize: 12, fontWeight: '800' },
+  applicationList: { gap: 10 },
+  applicationCard: { borderRadius: 14, borderWidth: 1, overflow: 'hidden' },
+  applicantRow: { flexDirection: 'row', alignItems: 'center', gap: 11, padding: 13 },
+  applicantInitial: { width: 39, height: 39, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
+  applicantInitialText: { fontSize: 16, fontWeight: '800' },
+  applicantName: { fontSize: 14, fontWeight: '800' },
+  applicationDate: { fontSize: 11, marginTop: 3 },
+  submittedBadge: { paddingHorizontal: 9, paddingVertical: 5, borderRadius: 20 },
+  submittedBadgeText: { fontSize: 10, fontWeight: '800' },
+  viewApplicantButton: { minHeight: 42, borderTopWidth: 1, flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 14 },
+  viewApplicantText: { flex: 1, fontSize: 12, fontWeight: '700' },
+  privateApplicantDetails: { borderTopWidth: 1, padding: 14, gap: 10 },
+  privateDataRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
+  privateDataLabel: { width: 92, fontSize: 11, fontWeight: '600', paddingTop: 1 },
+  privateDataValue: { flex: 1, fontSize: 12, lineHeight: 17, fontWeight: '600' },
+  applicantNote: { padding: 11, borderRadius: 10, gap: 5, marginTop: 2 },
+  applicantNoteLabel: { fontSize: 9, fontWeight: '800', letterSpacing: 0.7 },
+  applicantNoteText: { fontSize: 12, lineHeight: 18 },
   infoGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   infoItem: { flex: 1, minWidth: '45%', borderRadius: 12, padding: 12, gap: 4 },
   infoLabel: { fontSize: 11, fontWeight: '600' },
@@ -791,6 +1145,20 @@ const styles = StyleSheet.create({
   bottomBtnPrimary: { flex: 1.5, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, borderRadius: 12, paddingVertical: 11 },
   bottomBtnPrimaryText: { color: '#FFF', fontSize: 13, fontWeight: '700' },
   modalBackdrop: { flex: 1, backgroundColor: '#00000088', alignItems: 'center', justifyContent: 'center', padding: 24 },
+  inviteModal: { width: '100%', maxWidth: 440, borderRadius: 22, borderWidth: 1, padding: 21, gap: 12 },
+  inviteModalIcon: { width: 48, height: 48, borderRadius: 16, alignItems: 'center', justifyContent: 'center', marginBottom: 1 },
+  inviteModalTitle: { fontSize: 21, fontWeight: '900', letterSpacing: -0.3 },
+  inviteModalCopy: { fontSize: 13, lineHeight: 19 },
+  inviteUrlBox: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 11, marginTop: 2 },
+  inviteUrl: { fontSize: 12, lineHeight: 18, fontWeight: '600' },
+  inviteExpiry: { fontSize: 11, marginTop: -5 },
+  inviteShareRow: { flexDirection: 'row', gap: 9, marginTop: 4 },
+  inviteShareButton: { flex: 1, minHeight: 46, borderRadius: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 },
+  inviteShareButtonText: { fontSize: 12, fontWeight: '800' },
+  copyInviteButton: { minHeight: 43, borderWidth: 1, borderRadius: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  copyInviteText: { fontSize: 12, fontWeight: '800' },
+  inviteDoneButton: { minHeight: 36, alignItems: 'center', justifyContent: 'center', marginTop: 1 },
+  inviteDoneText: { fontSize: 13, fontWeight: '700' },
   saleModal: { width: '100%', maxWidth: 440, borderRadius: 20, borderWidth: 1, padding: 20, gap: 12 },
   saleModalTitle: { fontSize: 20, fontWeight: '800' },
   saleModalCopy: { fontSize: 14, lineHeight: 21 },

@@ -23,6 +23,10 @@ function publicReferenceUrl(token: string): string {
   return `${PUBLIC_APP_URL.replace(/\/$/, "")}/rental-reference/${token}`;
 }
 
+export function publicRentalApplicationUrl(token: string): string {
+  return `${PUBLIC_APP_URL.replace(/\/$/, "")}/rental-application/${token}`;
+}
+
 function escapeHtml(value: string): string {
   return value.replace(/[&<>"']/g, (character) => ({
     "&": "&amp;",
@@ -52,6 +56,7 @@ function serializeReference(reference: typeof rentalReferencesTable.$inferSelect
     id: reference.id,
     rentalHistoryId: reference.rentalHistoryId,
     verifiedTenancy: reference.verifiedTenancy,
+    tenancyPeriod: reference.tenancyPeriod,
     rentPaymentRating: reference.rentPaymentRating,
     propertyConditionRating: reference.propertyConditionRating,
     wouldRentAgain: reference.wouldRentAgain,
@@ -191,15 +196,19 @@ function referenceEmail(input: {
     `${input.tenantName} has asked QuickProp to verify a previous tenancy at ${input.history.propertyAddress}, ${input.history.suburb}, ${input.history.city}.`,
     `Claimed rental period: ${input.history.startDate} to ${input.history.endDate}.`,
     "",
-    "Please confirm the tenancy and answer three short questions:",
+    "Please answer these four short questions:",
+    "1. What period did the tenant stay at the property?",
+    "2. Did the tenant pay rent on time? (Always, sometimes, or never.)",
+    "3. Did the tenant keep the property in a presentable manner? (Always, sometimes, or never.)",
+    "4. Would you lease to the tenant again?",
     link,
     "",
     "This secure, one-time link expires in 14 days.",
-    "If you did not manage this tenancy, select No on the form.",
+    "This is an official document. Providing fraudulent references is a criminal offence.",
     "",
     "QuickProp",
   ].join("\n");
-  const html = `<p>${escapeHtml(greeting)}</p><p><strong>${escapeHtml(input.tenantName)}</strong> has asked QuickProp to verify a previous tenancy at <strong>${escapeHtml(input.history.propertyAddress)}</strong>, ${escapeHtml(input.history.suburb)}, ${escapeHtml(input.history.city)}.</p><p>Claimed rental period: ${escapeHtml(input.history.startDate)} to ${escapeHtml(input.history.endDate)}.</p><p><a href="${link}">Verify this rental reference</a></p><p>This secure, one-time link expires in 14 days. If you did not manage this tenancy, select No on the form.</p><p>QuickProp</p>`;
+  const html = `<p>${escapeHtml(greeting)}</p><p><strong>${escapeHtml(input.tenantName)}</strong> has asked QuickProp to verify a previous tenancy at <strong>${escapeHtml(input.history.propertyAddress)}</strong>, ${escapeHtml(input.history.suburb)}, ${escapeHtml(input.history.city)}.</p><p>Claimed rental period: ${escapeHtml(input.history.startDate)} to ${escapeHtml(input.history.endDate)}.</p><ol><li>What period did the tenant stay at the property?</li><li>Did the tenant pay rent on time? (Always, sometimes, or never.)</li><li>Did the tenant keep the property in a presentable manner? (Always, sometimes, or never.)</li><li>Would you lease to the tenant again?</li></ol><p><a href="${link}">Verify this rental reference</a></p><p>This secure, one-time link expires in 14 days.</p><p><strong>This is an official document. Providing fraudulent references is a criminal offence.</strong></p><p>QuickProp</p>`;
   return { subject, text, html, link };
 }
 
@@ -211,6 +220,7 @@ export async function createReferenceRequest(input: {
   refereeEmail?: string | null;
   refereePhone?: string | null;
   agency?: typeof agenciesTable.$inferSelect | null;
+  deliveryChannel?: "email" | "whatsapp";
 }) {
   const token = createRentalReferenceToken();
   const now = new Date();
@@ -239,7 +249,8 @@ export async function createReferenceRequest(input: {
   });
 
   let delivery: DeliveryResult = { status: "skipped", reason: "no_email_address" };
-  if (request.recipientEmail) {
+  const deliveryChannel = input.deliveryChannel ?? (request.recipientEmail ? "email" : "whatsapp");
+  if (request.recipientEmail && deliveryChannel === "email") {
     const email = referenceEmail({
       tenantName: input.tenantName,
       history: { ...input.history, refereeName: input.refereeName ?? null },
@@ -257,24 +268,29 @@ export async function createReferenceRequest(input: {
     });
   }
 
+  const emailSent = delivery.status === "sent";
   await db.update(referenceRequestsTable).set({
-    status: request.recipientEmail ? "sent" : "pending",
-    sentAt: request.recipientEmail ? now : null,
+    status: emailSent ? "sent" : "pending",
+    sentAt: emailSent ? now : null,
     providerMessageId: delivery.providerMessageId ?? null,
     lastError: delivery.status === "skipped" ? delivery.reason ?? null : null,
     updatedAt: new Date(),
   }).where(eq(referenceRequestsTable.id, request.id));
   await notifyTenant(
     input.history.tenantUserId,
-    "Reference request sent",
-    input.refereeName
-      ? `We've contacted ${input.refereeName} to verify your ${input.history.suburb} tenancy.`
-      : "Your rental reference request has been created and is awaiting a referee contact.",
+    deliveryChannel === "email" && emailSent ? "Reference request sent" : "Reference request ready to share",
+    deliveryChannel === "email" && emailSent
+      ? `We've emailed ${input.refereeName ?? "your referee"} to verify your ${input.history.suburb} tenancy.`
+      : `Your reference link for ${input.refereeName ?? "your referee"} is ready to share.`,
   );
-  if (!input.agency && input.refereeType === "agency") {
+  if (!input.agency && input.refereeType === "agency" && !input.refereeName) {
     await notifyAdmins("Agency verification requested", `A renter requested an agency reference for ${input.history.propertyAddress}.`);
   }
-  return getRentalHistoryView(input.history.id);
+  return {
+    history: await getRentalHistoryView(input.history.id),
+    shareUrl: publicReferenceUrl(token),
+    deliveryChannel,
+  };
 }
 
 export async function resendReferenceRequest(requestId: number) {
@@ -345,7 +361,7 @@ export function referenceIsUnavailable(request: typeof referenceRequestsTable.$i
 
 export async function submitReference(input: {
   token: string;
-  verifiedTenancy: boolean;
+  tenancyPeriod: string;
   rentPaymentRating?: string;
   propertyConditionRating?: string;
   wouldRentAgain?: boolean;
@@ -358,22 +374,26 @@ export async function submitReference(input: {
   };
 
   const now = new Date();
+  const periodAnswer = input.tenancyPeriod.trim().toLowerCase();
+  const verifiedTenancy = !/^(no|none|n\/a|not applicable)\b/.test(periodAnswer)
+    && !/\b(no tenancy|no record|never stayed|did not rent|not rented|not a tenant)\b/.test(periodAnswer);
   const result = await db.transaction(async (tx) => {
     const [request] = await tx.select().from(referenceRequestsTable)
       .where(eq(referenceRequestsTable.id, row.request.id)).limit(1);
     if (!request || referenceIsUnavailable(request, now)) return null;
     const [reference] = await tx.insert(rentalReferencesTable).values({
       rentalHistoryId: row.history.id,
-      verifiedTenancy: input.verifiedTenancy,
-      rentPaymentRating: input.verifiedTenancy ? input.rentPaymentRating ?? null : null,
-      propertyConditionRating: input.verifiedTenancy ? input.propertyConditionRating ?? null : null,
-      wouldRentAgain: input.verifiedTenancy ? input.wouldRentAgain ?? null : null,
+      verifiedTenancy,
+      tenancyPeriod: input.tenancyPeriod.trim(),
+      rentPaymentRating: verifiedTenancy ? input.rentPaymentRating ?? null : null,
+      propertyConditionRating: verifiedTenancy ? input.propertyConditionRating ?? null : null,
+      wouldRentAgain: verifiedTenancy ? input.wouldRentAgain ?? null : null,
       submittedBy: input.submittedBy ?? row.request.recipientEmail ?? row.agency?.name ?? null,
       submittedAt: now,
       disputeStatus: "none",
     }).onConflictDoNothing({ target: rentalReferencesTable.rentalHistoryId }).returning();
     if (!reference) return null;
-    const status = input.verifiedTenancy ? "verified" : "not_verified";
+    const status = verifiedTenancy ? "verified" : "not_verified";
     await tx.update(referenceRequestsTable).set({
       status,
       completedAt: now,
@@ -381,7 +401,7 @@ export async function submitReference(input: {
     }).where(eq(referenceRequestsTable.id, row.request.id));
     await tx.update(rentalHistoryTable).set({
       verificationStatus: status,
-      verifiedAt: input.verifiedTenancy ? now : null,
+      verifiedAt: verifiedTenancy ? now : null,
       updatedAt: now,
     }).where(eq(rentalHistoryTable.id, row.history.id));
     return { reference, status };

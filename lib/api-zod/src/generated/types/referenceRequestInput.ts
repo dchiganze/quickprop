@@ -5,6 +5,7 @@
  * QuickProp Office API
  * OpenAPI spec version: 0.1.0
  */
+import type { ReferenceRequestInputDeliveryChannel } from './referenceRequestInputDeliveryChannel';
 import type { ReferenceRequestInputRefereeType } from './referenceRequestInputRefereeType';
 
 export interface ReferenceRequestInput {
@@ -12,6 +13,5 @@ export interface ReferenceRequestInput {
   refereeName?: string;
   refereeEmail?: string;
   refereePhone?: string;
-  /** @nullable */
-  agencyId?: number | null;
+  deliveryChannel?: ReferenceRequestInputDeliveryChannel;
 }

@@ -1,5 +1,5 @@
-import { and, desc, eq, ilike, or } from "drizzle-orm";
-import { Router, type IRouter, type Request } from "express";
+import { and, desc, eq, or } from "drizzle-orm";
+import { Router, type IRouter } from "express";
 import {
   agenciesTable,
   db,
@@ -41,6 +41,8 @@ import {
   UpdateRentalDisputeResponse,
 } from "@workspace/api-zod";
 import { getPublicReviewSummary } from "../lib/agent-reviews";
+import { getEacAgency, searchEacAgencies } from "../lib/eac-agencies";
+import { currentBuyer } from "../lib/public-auth";
 import {
   createReferenceRequest,
   getReferenceRequestByToken,
@@ -54,15 +56,7 @@ import {
 import { requireAuth, requireRole } from "./auth";
 
 const router: IRouter = Router();
-const BUYER_COOKIE = "qp_buyer";
 const TERMINAL_REQUEST_STATUSES = ["completed", "not_verified", "expired"];
-
-async function currentBuyer(req: Request) {
-  const id = Number.parseInt(req.cookies?.[BUYER_COOKIE] ?? "", 10);
-  if (!id) return null;
-  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, id)).limit(1);
-  return user?.role === "buyer" && user.status === "active" ? user : null;
-}
 
 function parseId(raw: string | string[] | undefined) {
   const value = Array.isArray(raw) ? raw[0] : raw;
@@ -98,15 +92,27 @@ router.post("/public/rental-history", async (req, res): Promise<void> => {
     res.status(400).json({ error: "End date must be after the start date" });
     return;
   }
-  if (parsed.data.refereeType === "agency" && parsed.data.agencyId) {
-    const [agency] = await db.select().from(agenciesTable).where(and(
-      eq(agenciesTable.id, parsed.data.agencyId),
-      eq(agenciesTable.status, "active"),
-    )).limit(1);
-    if (!agency) {
-      res.status(400).json({ error: "Selected agency is not available" });
-      return;
-    }
+  const selectedAgency = parsed.data.refereeType === "agency" && parsed.data.agencySourceId
+    ? getEacAgency(parsed.data.agencySourceId)
+    : null;
+  if (parsed.data.refereeType === "agency" && !selectedAgency) {
+    res.status(400).json({ error: "Select an agency from the EAC registered-agency directory" });
+    return;
+  }
+  const selectedAgencyEmail = parsed.data.agencyEmail?.trim().toLowerCase() || null;
+  const selectedAgencyPhone = parsed.data.agencyPhone?.trim() || null;
+  if (selectedAgency && (
+    (selectedAgencyEmail && !selectedAgency.emails.some((email) => email.toLowerCase() === selectedAgencyEmail))
+    || (selectedAgencyPhone && !selectedAgency.phones.includes(selectedAgencyPhone))
+    || (!selectedAgencyEmail && !selectedAgencyPhone)
+  )) {
+    res.status(400).json({ error: "Choose an email address or phone number listed for this EAC agency" });
+    return;
+  }
+  if (parsed.data.refereeType === "private_landlord"
+    && (!parsed.data.refereeName?.trim() || (!parsed.data.refereeEmail?.trim() && !parsed.data.refereePhone?.trim()))) {
+    res.status(400).json({ error: "Provide the landlord's name and an email address or phone number" });
+    return;
   }
   const [history] = await db.insert(rentalHistoryTable).values({
     tenantUserId: user.id,
@@ -118,10 +124,10 @@ router.post("/public/rental-history", async (req, res): Promise<void> => {
     endDate: normalizeDate(parsed.data.endDate),
     tenancyType: parsed.data.tenancyType,
     refereeType: parsed.data.refereeType,
-    refereeName: parsed.data.refereeName?.trim() || null,
-    refereeEmail: parsed.data.refereeEmail?.trim().toLowerCase() || null,
-    refereePhone: parsed.data.refereePhone?.trim() || null,
-    agencyId: parsed.data.agencyId ?? null,
+    refereeName: selectedAgency?.name ?? parsed.data.refereeName?.trim() ?? null,
+    refereeEmail: selectedAgency ? selectedAgencyEmail : parsed.data.refereeEmail?.trim().toLowerCase() ?? null,
+    refereePhone: selectedAgency ? selectedAgencyPhone : parsed.data.refereePhone?.trim() ?? null,
+    agencyId: null,
     verificationStatus: "self_reported",
   }).returning();
   if (!history) {
@@ -158,29 +164,31 @@ router.post("/public/rental-history/:id/request-verification", async (req, res):
     res.status(409).json({ error: "A reference request already exists for this tenancy" });
     return;
   }
-  let agency: typeof agenciesTable.$inferSelect | null = null;
-  let refereeEmail = parsed.data.refereeEmail?.trim().toLowerCase() || history.refereeEmail;
-  let refereePhone = parsed.data.refereePhone?.trim() || history.refereePhone;
-  let refereeName = parsed.data.refereeName?.trim() || history.refereeName;
-  if (parsed.data.refereeType === "agency") {
-    if (!parsed.data.agencyId) {
-      res.status(400).json({ error: "Select a registered agency before requesting verification" });
-      return;
-    }
-    [agency] = await db.select().from(agenciesTable).where(and(
-      eq(agenciesTable.id, parsed.data.agencyId),
-      eq(agenciesTable.verificationStatus, "verified"),
-      eq(agenciesTable.status, "active"),
-    )).limit(1);
-    if (!agency) {
-      res.status(400).json({ error: "Select a verified QuickProp agency" });
-      return;
-    }
-    refereeName = agency.name;
-    refereeEmail = agency.email;
-    refereePhone = agency.phone;
-  } else if (!refereeName || (!refereeEmail && !refereePhone)) {
+  if (parsed.data.refereeType !== history.refereeType) {
+    res.status(400).json({ error: "The selected referee type does not match this tenancy" });
+    return;
+  }
+  const agency = null;
+  const refereeEmail = parsed.data.refereeType === "private_landlord"
+    ? parsed.data.refereeEmail?.trim().toLowerCase() || history.refereeEmail
+    : history.refereeEmail;
+  const refereePhone = parsed.data.refereeType === "private_landlord"
+    ? parsed.data.refereePhone?.trim() || history.refereePhone
+    : history.refereePhone;
+  const refereeName = parsed.data.refereeType === "private_landlord"
+    ? parsed.data.refereeName?.trim() || history.refereeName
+    : history.refereeName;
+  if (!refereeName || (!refereeEmail && !refereePhone)) {
     res.status(400).json({ error: "Provide the landlord's name and an email or phone number" });
+    return;
+  }
+  const deliveryChannel = parsed.data.deliveryChannel ?? (refereeEmail ? "email" : "whatsapp");
+  if (deliveryChannel === "email" && !refereeEmail) {
+    res.status(400).json({ error: "This referee has no email address; choose WhatsApp instead" });
+    return;
+  }
+  if (deliveryChannel === "whatsapp" && !refereePhone) {
+    res.status(400).json({ error: "This referee has no phone number; choose email instead" });
     return;
   }
   const result = await createReferenceRequest({
@@ -191,6 +199,7 @@ router.post("/public/rental-history/:id/request-verification", async (req, res):
     refereeEmail,
     refereePhone,
     agency,
+    deliveryChannel,
   });
   res.json(RequestRentalVerificationResponse.parse(result));
 });
@@ -258,17 +267,7 @@ router.get("/public/agencies/search", async (req, res): Promise<void> => {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
-  const term = `%${parsed.data.q.trim()}%`;
-  const agencies = await db.select().from(agenciesTable).where(and(
-    eq(agenciesTable.status, "active"),
-    eq(agenciesTable.verificationStatus, "verified"),
-    or(ilike(agenciesTable.name, term), ilike(agenciesTable.tradingName, term)),
-  )).orderBy(agenciesTable.name).limit(10);
-  res.json(SearchRentalAgenciesResponse.parse(agencies.map((agency) => ({
-    ...agency,
-    createdAt: agency.createdAt.toISOString(),
-    updatedAt: agency.updatedAt.toISOString(),
-  }))));
+  res.json(SearchRentalAgenciesResponse.parse(searchEacAgencies(parsed.data.q)));
 });
 
 router.get("/public/rental-references/:token", async (req, res): Promise<void> => {
@@ -295,7 +294,7 @@ router.get("/public/rental-references/:token", async (req, res): Promise<void> =
     startDate: row.history.startDate,
     endDate: row.history.endDate,
     refereeName: row.history.refereeName,
-    agencyName: row.agency?.name ?? null,
+    agencyName: row.agency?.name ?? (row.request.recipientType === "agency" ? row.history.refereeName : null),
     expiresAt: row.request.expiresAt.toISOString(),
   }));
 });
@@ -308,10 +307,6 @@ router.post("/public/rental-references/:token", async (req, res): Promise<void> 
     res.status(400).json({ error });
     return;
   }
-  if (parsed.data.verifiedTenancy && (!parsed.data.rentPaymentRating || !parsed.data.propertyConditionRating || parsed.data.wouldRentAgain === undefined)) {
-    res.status(400).json({ error: "Answer all three reference questions" });
-    return;
-  }
   const row = await getReferenceRequestByToken(params.data.token);
   if (!row) {
     res.status(404).json({ error: "Reference not found" });
@@ -319,7 +314,7 @@ router.post("/public/rental-references/:token", async (req, res): Promise<void> 
   }
   const result = await submitReference({
     token: params.data.token,
-    verifiedTenancy: parsed.data.verifiedTenancy,
+    tenancyPeriod: parsed.data.tenancyPeriod,
     rentPaymentRating: parsed.data.rentPaymentRating,
     propertyConditionRating: parsed.data.propertyConditionRating,
     wouldRentAgain: parsed.data.wouldRentAgain,
