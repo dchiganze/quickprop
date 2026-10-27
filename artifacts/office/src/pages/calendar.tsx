@@ -25,8 +25,8 @@ export default function CalendarPage() {
   return (
     <div className="p-4 sm:p-8 max-w-[1200px] mx-auto space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Viewings Calendar</h1>
-        <p className="text-muted-foreground mt-1">Schedule and manage property viewings.</p>
+        <h1 className="text-3xl font-bold tracking-tight">Upcoming Viewings</h1>
+        <p className="text-muted-foreground mt-1">Review and manage your scheduled property appointments.</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[minmax(20rem,1fr)_minmax(0,2fr)] gap-8">

@@ -142,7 +142,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
               <div className="px-3 text-xs font-semibold tracking-wider text-sidebar-foreground/40 uppercase mb-2">Properties</div>
               <NavItem href="/inventory" icon={Database} label="Inventory" exact />
               <NavItem href="/imports" icon={UploadCloud} label="Bulk Imports" />
-              <NavItem href="/calendar" icon={Calendar} label="Viewings" />
+              <NavItem href="/calendar" icon={Calendar} label="Upcoming Viewings" />
             </div>
 
             <div className="space-y-1">

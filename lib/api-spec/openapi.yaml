@@ -630,6 +630,55 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Seller" }
+  /agent-contacts:
+    get:
+      operationId: getAgentContacts
+      tags: [sellers]
+      parameters:
+        - name: type
+          in: query
+          required: true
+          schema: { type: string, enum: [seller, landlord] }
+      responses:
+        "200":
+          description: Seller or landlord contacts linked to the signed-in user's property records
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/AgentContact" }
+  /agent-contacts/{propertyId}/mandates:
+    parameters:
+      - { name: propertyId, in: path, required: true, schema: { type: integer } }
+    post:
+      operationId: createAgentContactMandate
+      tags: [sellers]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AgentContactMandateInput" }
+      responses:
+        "201":
+          description: Mandate document stored against the property
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Document" }
+        "404": { description: Property not found or not accessible }
+  /agent-contacts/{propertyId}/review-invitation:
+    parameters:
+      - { name: propertyId, in: path, required: true, schema: { type: integer } }
+    post:
+      operationId: createAgentContactReviewInvitation
+      tags: [reviews]
+      responses:
+        "200":
+          description: Shareable public review link for a completed mandate
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AgentContactReviewInvitation" }
+        "400": { description: Review is only available after the mandate closes }
+        "404": { description: Property not found or not accessible }
   /sellers/{id}:
     get:
       operationId: getSeller
@@ -3199,6 +3248,56 @@ components:
         email: { type: string }
         postalAddress: { type: string }
         notes: { type: string }
+    AgentContact:
+      type: object
+      required: [id, name, properties]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        idNumber: { type: ["string", "null"] }
+        phone: { type: ["string", "null"] }
+        email: { type: ["string", "null"] }
+        postalAddress: { type: ["string", "null"] }
+        notes: { type: ["string", "null"] }
+        properties:
+          type: array
+          items: { $ref: "#/components/schemas/AgentContactProperty" }
+    AgentContactProperty:
+      type: object
+      required: [id, reference, title, suburb, city, listingType, status, documents]
+      properties:
+        id: { type: integer }
+        reference: { type: string }
+        title: { type: string }
+        address: { type: ["string", "null"] }
+        suburb: { type: string }
+        city: { type: string }
+        price: { type: number }
+        currency: { type: string }
+        listingType: { type: string }
+        status: { type: string }
+        availabilityStatus: { type: ["string", "null"] }
+        mandateType: { type: ["string", "null"] }
+        mandateExpiry: { type: ["string", "null"] }
+        documents:
+          type: array
+          items: { $ref: "#/components/schemas/Document" }
+    AgentContactMandateInput:
+      type: object
+      required: [name, objectPath, sizeKb]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 200 }
+        objectPath: { type: string, minLength: 1, maxLength: 500 }
+        sizeKb: { type: integer, minimum: 1, maximum: 25600 }
+    AgentContactReviewInvitation:
+      type: object
+      required: [url, recipientName, phone, propertyReference, propertyTitle]
+      properties:
+        url: { type: string }
+        recipientName: { type: string }
+        phone: { type: ["string", "null"] }
+        propertyReference: { type: string }
+        propertyTitle: { type: string }
     Buyer:
       type: object
       required: [id, name]

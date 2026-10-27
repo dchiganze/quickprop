@@ -53,6 +53,9 @@ import type {
   AgencyRelationshipInput,
   AgencySettings,
   AgencySettingsInput,
+  AgentContact,
+  AgentContactMandateInput,
+  AgentContactReviewInvitation,
   AgentPastSaleInput,
   AgentReviewInput,
   AgentReviewResult,
@@ -89,6 +92,7 @@ import type {
   DuplicateReviewAction,
   EnquiryInput,
   EnquiryResult,
+  GetAgentContactsParams,
   GetPasskeyAuthenticationOptions200,
   GetPasskeyRegistrationOptions200,
   GetStoredMediaUrlParams,
@@ -2815,6 +2819,215 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
         TContext
       > => {
       return useMutation(getCreateSellerMutationOptions(options));
+    }
+
+export const getGetAgentContactsUrl = (params: GetAgentContactsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/agent-contacts?${stringifiedParams}` : `/api/agent-contacts`
+}
+
+export const getAgentContacts = async (params: GetAgentContactsParams, options?: RequestInit): Promise<AgentContact[]> => {
+
+  return customFetch<AgentContact[]>(getGetAgentContactsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAgentContactsQueryKey = (params?: GetAgentContactsParams,) => {
+    return [
+    `/api/agent-contacts`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetAgentContactsQueryOptions = <TData = Awaited<ReturnType<typeof getAgentContacts>>, TError = ErrorType<unknown>>(params: GetAgentContactsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAgentContacts>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAgentContactsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAgentContacts>>> = ({ signal }) => getAgentContacts(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAgentContacts>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAgentContactsQueryResult = NonNullable<Awaited<ReturnType<typeof getAgentContacts>>>
+export type GetAgentContactsQueryError = ErrorType<unknown>
+
+
+
+export function useGetAgentContacts<TData = Awaited<ReturnType<typeof getAgentContacts>>, TError = ErrorType<unknown>>(
+ params: GetAgentContactsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAgentContacts>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAgentContactsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateAgentContactMandateUrl = (propertyId: number,) => {
+
+
+
+
+  return `/api/agent-contacts/${propertyId}/mandates`
+}
+
+export const createAgentContactMandate = async (propertyId: number,
+    agentContactMandateInput: AgentContactMandateInput, options?: RequestInit): Promise<Document> => {
+
+  return customFetch<Document>(getCreateAgentContactMandateUrl(propertyId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(agentContactMandateInput)
+  }
+);}
+
+
+
+
+
+export const getCreateAgentContactMandateMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAgentContactMandate>>, TError,{propertyId: number;data: BodyType<AgentContactMandateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createAgentContactMandate>>, TError,{propertyId: number;data: BodyType<AgentContactMandateInput>}, TContext> => {
+
+const mutationKey = ['createAgentContactMandate'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createAgentContactMandate>>, {propertyId: number;data: BodyType<AgentContactMandateInput>}> = (props) => {
+          const {propertyId,data} = props ?? {};
+
+          return  createAgentContactMandate(propertyId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateAgentContactMandateMutationResult = NonNullable<Awaited<ReturnType<typeof createAgentContactMandate>>>
+    export type CreateAgentContactMandateMutationBody = BodyType<AgentContactMandateInput>
+    export type CreateAgentContactMandateMutationError = ErrorType<void>
+
+    export const useCreateAgentContactMandate = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAgentContactMandate>>, TError,{propertyId: number;data: BodyType<AgentContactMandateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createAgentContactMandate>>,
+        TError,
+        {propertyId: number;data: BodyType<AgentContactMandateInput>},
+        TContext
+      > => {
+      return useMutation(getCreateAgentContactMandateMutationOptions(options));
+    }
+
+export const getCreateAgentContactReviewInvitationUrl = (propertyId: number,) => {
+
+
+
+
+  return `/api/agent-contacts/${propertyId}/review-invitation`
+}
+
+export const createAgentContactReviewInvitation = async (propertyId: number, options?: RequestInit): Promise<AgentContactReviewInvitation> => {
+
+  return customFetch<AgentContactReviewInvitation>(getCreateAgentContactReviewInvitationUrl(propertyId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getCreateAgentContactReviewInvitationMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAgentContactReviewInvitation>>, TError,{propertyId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createAgentContactReviewInvitation>>, TError,{propertyId: number}, TContext> => {
+
+const mutationKey = ['createAgentContactReviewInvitation'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createAgentContactReviewInvitation>>, {propertyId: number}> = (props) => {
+          const {propertyId} = props ?? {};
+
+          return  createAgentContactReviewInvitation(propertyId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateAgentContactReviewInvitationMutationResult = NonNullable<Awaited<ReturnType<typeof createAgentContactReviewInvitation>>>
+
+    export type CreateAgentContactReviewInvitationMutationError = ErrorType<void>
+
+    export const useCreateAgentContactReviewInvitation = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAgentContactReviewInvitation>>, TError,{propertyId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createAgentContactReviewInvitation>>,
+        TError,
+        {propertyId: number},
+        TContext
+      > => {
+      return useMutation(getCreateAgentContactReviewInvitationMutationOptions(options));
     }
 
 export const getGetSellerUrl = (id: number,) => {

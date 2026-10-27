@@ -14,6 +14,7 @@ import { StatCard } from '@/components/StatCard';
 import { PropertyCard } from '@/components/PropertyCard';
 import { QuickShareSheet } from '@/components/QuickShareSheet';
 import { useMatchNotifications } from '@/hooks/useMatchNotifications';
+import { useGetAgentContacts } from '@workspace/api-client-react';
 
 export default function DashboardScreen() {
   const colors = useColors();
@@ -21,6 +22,8 @@ export default function DashboardScreen() {
   const navigation = useNavigation();
   const { user, logout } = useAuth();
   const { properties, leads, tasks, syncNow } = useData();
+  const { data: sellers } = useGetAgentContacts({ type: 'seller' });
+  const { data: landlords } = useGetAgentContacts({ type: 'landlord' });
   const matchInbox = useMatchNotifications();
   const [shareOpen, setShareOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -69,13 +72,6 @@ export default function DashboardScreen() {
   const activeLeads = leads.filter(l => !['completed', 'lost'].includes(l.stage)).length;
   const newLeads = leads.filter(l => l.stage === 'new').length;
   const todayStr = new Date().toDateString();
-  const pendingTasks = tasks.filter(t => !t.completed);
-  const viewingsToday = pendingTasks.filter(t => t.type === 'viewing' && new Date(t.dueDate).toDateString() === todayStr).length;
-  const now = new Date();
-  const endOfToday = new Date(now);
-  endOfToday.setHours(23, 59, 59, 999);
-  const dueTasks = pendingTasks.filter(t => new Date(t.dueDate) <= endOfToday);
-  const overdueTasks = dueTasks.filter(t => new Date(t.dueDate) < now).length;
   const todayTasks = tasks.filter(t => !t.completed && new Date(t.dueDate).toDateString() === todayStr);
   const recentProperties = [...properties].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()).slice(0, 3);
 
@@ -105,8 +101,8 @@ export default function DashboardScreen() {
   const QUICK_ACTIONS = [
     { label: 'New Listing', icon: 'add-circle' as const, accent: true, onPress: () => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}); router.push('/new-listing'); } },
     { label: 'Search Inventory', icon: 'search-outline' as const, accent: false, onPress: () => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}); router.push('/(tabs)/listings'); } },
-    { label: 'Share Brochure', icon: 'share-outline' as const, accent: true, onPress: () => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {}); setShareOpen(true); } },
-    { label: 'Generate Brochure', icon: 'document-text-outline' as const, accent: false, onPress: () => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}); router.push('/brochure'); } },
+    { label: 'Share Brochure', icon: 'share-outline' as const, accent: false, onPress: () => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {}); setShareOpen(true); } },
+    { label: 'Upcoming Viewings', icon: 'calendar-outline' as const, accent: true, onPress: () => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}); router.push('/viewings'); } },
   ];
 
   return (
@@ -171,19 +167,13 @@ export default function DashboardScreen() {
         <StatCard label="Active Leads" value={activeLeads} icon="people-outline" color="#8B5CF6" subtitle={newLeads > 0 ? `${newLeads} new` : undefined} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}); router.push('/(tabs)/leads'); }} />
       </View>
       <View style={[styles.statsRow, { marginTop: 10 }]}>
-        <StatCard label="Viewings Today" value={viewingsToday} icon="eye-outline" color={colors.accent} onPress={() => {
+        <StatCard label="Sellers" value={sellers?.length ?? 0} icon="briefcase-outline" color={colors.accent} onPress={() => {
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-          NavigationFlags.tasksFilter = 'viewing';
-          NavigationFlags.tasksDateScope = 'today';
-          NavigationFlags.tasksTitle = 'Viewings Today';
-          router.navigate({ pathname: '/(tabs)/tasks', params: { filter: 'viewing', dateScope: 'today', title: 'Viewings Today', _t: String(Date.now()) } });
+          router.push('/contacts/seller');
         }} />
-        <StatCard label="Tasks Due" value={dueTasks.length} icon="time-outline" color={overdueTasks > 0 ? colors.destructive : colors.mutedForeground} subtitle={overdueTasks > 0 ? `${overdueTasks} overdue` : 'On track'} onPress={() => {
+        <StatCard label="Landlords" value={landlords?.length ?? 0} icon="home-outline" color={colors.mutedForeground} onPress={() => {
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-          NavigationFlags.tasksFilter = 'due';
-          NavigationFlags.tasksDateScope = null;
-          NavigationFlags.tasksTitle = 'Tasks Due';
-          router.navigate({ pathname: '/(tabs)/tasks', params: { filter: 'due', title: 'Tasks Due', _t: String(Date.now()) } });
+          router.push('/contacts/landlord');
         }} />
       </View>
 

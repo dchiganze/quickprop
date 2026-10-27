@@ -50,6 +50,57 @@ export function reviewInvitationUrl(token: string): string {
   return safeReviewLink(token);
 }
 
+export async function createShareableReviewInvitation(input: {
+  agentId: number;
+  propertyId: number;
+  recipientName?: string | null;
+  recipientEmail?: string | null;
+  outcome: ReviewOutcome;
+}) {
+  const token = createReviewToken();
+  const mandateKey = `property:${input.propertyId}:agent:${input.agentId}`;
+  const expiresAt = new Date(Date.now() + REVIEW_INVITATION_TTL_MS);
+  const now = new Date();
+  const [created] = await db.insert(agentReviewInvitationsTable).values({
+    mandateKey,
+    agentId: input.agentId,
+    propertyId: input.propertyId,
+    recipientEmail: input.recipientEmail?.trim().toLowerCase() || null,
+    recipientName: input.recipientName?.trim() || null,
+    outcome: input.outcome,
+    tokenHash: hashReviewToken(token),
+    status: "sent",
+    expiresAt,
+    sentAt: now,
+    nextAttemptAt: expiresAt,
+  }).onConflictDoNothing({ target: agentReviewInvitationsTable.mandateKey }).returning();
+  if (created) return { kind: "created" as const, url: reviewInvitationUrl(token) };
+
+  const [existing] = await db.select().from(agentReviewInvitationsTable)
+    .where(eq(agentReviewInvitationsTable.mandateKey, mandateKey)).limit(1);
+  if (!existing || existing.status === "submitted") return { kind: "submitted" as const };
+
+  const [rotated] = await db.update(agentReviewInvitationsTable).set({
+    recipientEmail: input.recipientEmail?.trim().toLowerCase() || null,
+    recipientName: input.recipientName?.trim() || null,
+    outcome: input.outcome,
+    tokenHash: hashReviewToken(token),
+    status: "sent",
+    attempts: 0,
+    reminderNumber: 0,
+    expiresAt,
+    sentAt: now,
+    nextAttemptAt: expiresAt,
+    lastError: null,
+    updatedAt: now,
+  }).where(and(
+    eq(agentReviewInvitationsTable.id, existing.id),
+    sql`${agentReviewInvitationsTable.status} <> 'submitted'`,
+  )).returning();
+  if (!rotated) return { kind: "submitted" as const };
+  return { kind: "created" as const, url: reviewInvitationUrl(token) };
+}
+
 type InvitationInput = {
   agentId: number;
   propertyId: number;

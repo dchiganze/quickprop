@@ -1,9 +1,10 @@
 import React from 'react';
 import { Link } from 'wouter';
-import { useListProperties } from '@workspace/api-client-react';
+import { useGetAgentContacts, useListProperties } from '@workspace/api-client-react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { AgentContactDirectory } from '@/components/agent-contact-directory';
 import { ArrowRight, Banknote, Building2, CheckCircle2, ClipboardCheck, Home, ShieldCheck } from 'lucide-react';
 
 const activeStatuses = new Set(['public', 'under_offer', 'coming_soon']);
@@ -14,6 +15,7 @@ function formatRent(price: number, currency: string) {
 
 export default function Landlords() {
   const { data: rentals, isLoading } = useListProperties({ listingType: 'rent' });
+  const { data: landlords, isLoading: landlordsLoading, isError: landlordsError, refetch: refetchLandlords } = useGetAgentContacts({ type: 'landlord' });
   const activeRentals = rentals?.filter((property) => activeStatuses.has(property.status)) ?? [];
   const publishedCount = activeRentals.filter((property) => property.status === 'public').length;
   const viewingReadyCount = activeRentals.filter((property) => (property.photos?.length ?? 0) > 0 && (property.proposedViewingTimes?.length ?? 0) > 0).length;
@@ -55,6 +57,22 @@ export default function Landlords() {
           <InfoCard icon={ShieldCheck} title="Keep records private" body="Store landlord contact details and internal notes in Office while only publishing the information prospective tenants need." />
           <InfoCard icon={CheckCircle2} title="Confirm every handover" body="Use viewing notes, tenant screening, and rental references to keep a clear record from first enquiry to signed lease." />
         </div>
+      </section>
+
+      <section>
+        <div className="mb-4">
+          <h2 className="text-xl font-semibold">Landlord contacts</h2>
+          <p className="mt-1 text-sm text-muted-foreground">Contact details, stored mandates, and review requests for your rental listings.</p>
+        </div>
+        {landlordsLoading ? (
+          <div className="grid gap-4 md:grid-cols-2">{[1, 2].map((item) => <Skeleton key={item} className="h-48 w-full rounded-xl" />)}</div>
+        ) : landlordsError ? (
+          <Card><CardContent className="py-8 text-center text-sm text-muted-foreground">
+            Could not load landlord contacts. <button className="font-semibold text-primary" onClick={() => refetchLandlords()}>Try again</button>
+          </CardContent></Card>
+        ) : (
+          <AgentContactDirectory contacts={landlords ?? []} kind="landlord" />
+        )}
       </section>
 
       <section>

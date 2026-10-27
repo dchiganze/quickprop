@@ -76,6 +76,7 @@ function RootLayoutNav() {
         />
         <Stack.Screen name="lead/[id]" />
         <Stack.Screen name="notifications" />
+        <Stack.Screen name="viewings" />
         <Stack.Screen name="housekeeping" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
         <Stack.Screen name="settings" />
         <Stack.Screen name="brochure" />

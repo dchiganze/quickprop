@@ -863,6 +863,87 @@ export interface SellerUpdate {
   notes?: string;
 }
 
+export interface Document {
+  id: number;
+  name: string;
+  /** mandate | title_deed | id | contract | photo | video | inspection | valuation | other */
+  category: string;
+  /** @nullable */
+  propertyId?: number | null;
+  /** @nullable */
+  url?: string | null;
+  /** @nullable */
+  sizeKb?: number | null;
+  version?: number;
+  /** @nullable */
+  uploadedBy?: string | null;
+  createdAt: string;
+}
+
+export interface AgentContactProperty {
+  id: number;
+  reference: string;
+  title: string;
+  /** @nullable */
+  address?: string | null;
+  suburb: string;
+  city: string;
+  price?: number;
+  currency?: string;
+  listingType: string;
+  status: string;
+  /** @nullable */
+  availabilityStatus?: string | null;
+  /** @nullable */
+  mandateType?: string | null;
+  /** @nullable */
+  mandateExpiry?: string | null;
+  documents: Document[];
+}
+
+export interface AgentContact {
+  id: number;
+  name: string;
+  /** @nullable */
+  idNumber?: string | null;
+  /** @nullable */
+  phone?: string | null;
+  /** @nullable */
+  email?: string | null;
+  /** @nullable */
+  postalAddress?: string | null;
+  /** @nullable */
+  notes?: string | null;
+  properties: AgentContactProperty[];
+}
+
+export interface AgentContactMandateInput {
+  /**
+     * @minLength 1
+     * @maxLength 200
+     */
+  name: string;
+  /**
+     * @minLength 1
+     * @maxLength 500
+     */
+  objectPath: string;
+  /**
+     * @minimum 1
+     * @maximum 25600
+     */
+  sizeKb: number;
+}
+
+export interface AgentContactReviewInvitation {
+  url: string;
+  recipientName: string;
+  /** @nullable */
+  phone: string | null;
+  propertyReference: string;
+  propertyTitle: string;
+}
+
 export interface Buyer {
   id: number;
   name: string;
@@ -1125,23 +1206,6 @@ export interface ViewingUpdate {
   outcome?: string;
   notes?: string;
   agentId?: number;
-}
-
-export interface Document {
-  id: number;
-  name: string;
-  /** mandate | title_deed | id | contract | photo | video | inspection | valuation | other */
-  category: string;
-  /** @nullable */
-  propertyId?: number | null;
-  /** @nullable */
-  url?: string | null;
-  /** @nullable */
-  sizeKb?: number | null;
-  version?: number;
-  /** @nullable */
-  uploadedBy?: string | null;
-  createdAt: string;
 }
 
 export interface DocumentInput {
@@ -2791,6 +2855,18 @@ export const ListCollaborationRequestsStatus = {
 export type ListSellersParams = {
 q?: string;
 };
+
+export type GetAgentContactsParams = {
+type: GetAgentContactsType;
+};
+
+export type GetAgentContactsType = typeof GetAgentContactsType[keyof typeof GetAgentContactsType];
+
+
+export const GetAgentContactsType = {
+  seller: 'seller',
+  landlord: 'landlord',
+} as const;
 
 export type ListBuyersParams = {
 q?: string;

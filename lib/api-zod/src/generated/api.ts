@@ -1324,6 +1324,92 @@ export const CreateSellerResponse = zod.object({
 })
 
 
+export const GetAgentContactsQueryParams = zod.object({
+  "type": zod.enum(['seller', 'landlord'])
+})
+
+export const GetAgentContactsResponseItem = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "idNumber": zod.string().nullish(),
+  "phone": zod.string().nullish(),
+  "email": zod.string().nullish(),
+  "postalAddress": zod.string().nullish(),
+  "notes": zod.string().nullish(),
+  "properties": zod.array(zod.object({
+  "id": zod.number(),
+  "reference": zod.string(),
+  "title": zod.string(),
+  "address": zod.string().nullish(),
+  "suburb": zod.string(),
+  "city": zod.string(),
+  "price": zod.number().optional(),
+  "currency": zod.string().optional(),
+  "listingType": zod.string(),
+  "status": zod.string(),
+  "availabilityStatus": zod.string().nullish(),
+  "mandateType": zod.string().nullish(),
+  "mandateExpiry": zod.string().nullish(),
+  "documents": zod.array(zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "category": zod.string().describe('mandate | title_deed | id | contract | photo | video | inspection | valuation | other'),
+  "propertyId": zod.number().nullish(),
+  "url": zod.string().nullish(),
+  "sizeKb": zod.number().nullish(),
+  "version": zod.number().optional(),
+  "uploadedBy": zod.string().nullish(),
+  "createdAt": zod.string()
+}))
+}))
+})
+export const GetAgentContactsResponse = zod.array(GetAgentContactsResponseItem)
+
+
+export const CreateAgentContactMandateParams = zod.object({
+  "propertyId": zod.coerce.number()
+})
+
+export const createAgentContactMandateBodyNameMax = 200;
+
+export const createAgentContactMandateBodyObjectPathMax = 500;
+
+export const createAgentContactMandateBodySizeKbMax = 25600;
+
+
+
+export const CreateAgentContactMandateBody = zod.object({
+  "name": zod.string().min(1).max(createAgentContactMandateBodyNameMax),
+  "objectPath": zod.string().min(1).max(createAgentContactMandateBodyObjectPathMax),
+  "sizeKb": zod.number().min(1).max(createAgentContactMandateBodySizeKbMax)
+})
+
+export const CreateAgentContactMandateResponse = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "category": zod.string().describe('mandate | title_deed | id | contract | photo | video | inspection | valuation | other'),
+  "propertyId": zod.number().nullish(),
+  "url": zod.string().nullish(),
+  "sizeKb": zod.number().nullish(),
+  "version": zod.number().optional(),
+  "uploadedBy": zod.string().nullish(),
+  "createdAt": zod.string()
+})
+
+
+export const CreateAgentContactReviewInvitationParams = zod.object({
+  "propertyId": zod.coerce.number()
+})
+
+export const CreateAgentContactReviewInvitationResponse = zod.object({
+  "url": zod.string(),
+  "recipientName": zod.string(),
+  "phone": zod.string().nullable(),
+  "propertyReference": zod.string(),
+  "propertyTitle": zod.string()
+})
+
+
 export const GetSellerParams = zod.object({
   "id": zod.coerce.number()
 })

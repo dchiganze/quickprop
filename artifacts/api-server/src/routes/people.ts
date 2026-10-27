@@ -1,13 +1,22 @@
 import { Router, type IRouter } from "express";
-import { eq, ilike, or, desc } from "drizzle-orm";
+import { and, eq, ilike, inArray, or, desc } from "drizzle-orm";
 import {
+  branchesTable,
+  documentsTable,
   db,
+  propertiesTable,
   sellersTable,
   buyersTable,
   buyerRequestsTable,
-  propertiesTable,
 } from "@workspace/db";
 import {
+  CreateAgentContactMandateBody,
+  CreateAgentContactMandateParams,
+  CreateAgentContactMandateResponse,
+  CreateAgentContactReviewInvitationParams,
+  CreateAgentContactReviewInvitationResponse,
+  GetAgentContactsQueryParams,
+  GetAgentContactsResponse,
   ListSellersQueryParams,
   ListSellersResponse,
   CreateSellerBody,
@@ -31,11 +40,201 @@ import {
   UpdateBuyerRequestResponse,
   GetBuyerRequestMatchesResponse,
 } from "@workspace/api-zod";
+import type { AgentContact } from "@workspace/api-zod";
 import { parseId, logAudit, jsonify } from "../lib/helpers";
 import { matchProperties } from "../lib/matching";
 import { currentUser } from "./auth";
+import { createShareableReviewInvitation } from "../lib/agent-reviews";
 
 const router: IRouter = Router();
+
+type ContactType = "seller" | "landlord";
+
+async function propertyScope(user: NonNullable<Awaited<ReturnType<typeof currentUser>>>) {
+  if (user.role === "agent" || user.role === "senior_agent") {
+    return eq(propertiesTable.agentId, user.id);
+  }
+  if (!user.branchId) return eq(propertiesTable.agentId, user.id);
+  const [branch] = await db.select().from(branchesTable).where(eq(branchesTable.id, user.branchId)).limit(1);
+  if (!branch?.agencyId) return eq(propertiesTable.branchId, user.branchId);
+  const branches = await db.select({ id: branchesTable.id })
+    .from(branchesTable).where(eq(branchesTable.agencyId, branch.agencyId));
+  const branchIds = branches.map((entry) => entry.id);
+  return branchIds.length ? inArray(propertiesTable.branchId, branchIds) : eq(propertiesTable.branchId, user.branchId);
+}
+
+async function getAccessibleProperty(
+  user: NonNullable<Awaited<ReturnType<typeof currentUser>>>,
+  propertyId: number,
+) {
+  const scope = await propertyScope(user);
+  const [property] = await db.select().from(propertiesTable).where(and(
+    eq(propertiesTable.id, propertyId),
+    scope,
+  )).limit(1);
+  return property ?? null;
+}
+
+router.get("/agent-contacts", async (req, res): Promise<void> => {
+  const query = GetAgentContactsQueryParams.safeParse(req.query);
+  if (!query.success) {
+    res.status(400).json({ error: query.error.message });
+    return;
+  }
+  const user = await currentUser(req);
+  if (!user) {
+    res.status(401).json({ error: "Not logged in" });
+    return;
+  }
+  const scope = await propertyScope(user);
+  const listingType = query.data.type === "landlord" ? "rent" : "sale";
+  const linkedRecords = await db.select({
+    seller: sellersTable,
+    property: propertiesTable,
+  }).from(propertiesTable)
+    .innerJoin(sellersTable, eq(sellersTable.id, propertiesTable.sellerId))
+    .where(and(eq(propertiesTable.listingType, listingType), scope))
+    .orderBy(desc(propertiesTable.updatedAt));
+  const propertyIds = linkedRecords.map(({ property }) => property.id);
+  const documents = propertyIds.length
+    ? await db.select().from(documentsTable).where(and(
+        inArray(documentsTable.propertyId, propertyIds),
+        eq(documentsTable.category, "mandate"),
+      )).orderBy(desc(documentsTable.createdAt))
+    : [];
+  const docsByProperty = new Map<number, typeof documents>();
+  for (const document of documents) {
+    if (document.propertyId == null) continue;
+    const current = docsByProperty.get(document.propertyId) ?? [];
+    current.push(document);
+    docsByProperty.set(document.propertyId, current);
+  }
+  const contactsById = new Map<number, AgentContact>();
+  for (const { seller, property } of linkedRecords) {
+    const contact = contactsById.get(seller.id) ?? {
+      id: seller.id,
+      name: seller.name,
+      idNumber: seller.idNumber,
+      phone: seller.phone,
+      email: seller.email,
+      postalAddress: seller.postalAddress,
+      notes: seller.notes,
+      properties: [],
+    };
+    contact.properties.push({
+      id: property.id,
+      reference: property.reference,
+      title: property.title,
+      address: property.address,
+      suburb: property.suburb,
+      city: property.city,
+      price: property.price,
+      currency: property.currency,
+      listingType: property.listingType,
+      status: property.status,
+      availabilityStatus: property.availabilityStatus,
+      mandateType: property.mandateType,
+      mandateExpiry: property.mandateExpiry,
+      documents: (docsByProperty.get(property.id) ?? []).map((document) => ({
+        id: document.id,
+        name: document.name,
+        category: document.category,
+        propertyId: document.propertyId,
+        url: document.url,
+        sizeKb: document.sizeKb,
+        version: document.version,
+        uploadedBy: document.uploadedBy,
+        createdAt: document.createdAt.toISOString(),
+      })),
+    });
+    contactsById.set(seller.id, contact);
+  }
+  res.json(GetAgentContactsResponse.parse(jsonify([...contactsById.values()])));
+});
+
+router.post("/agent-contacts/:propertyId/mandates", async (req, res): Promise<void> => {
+  const params = CreateAgentContactMandateParams.safeParse(req.params);
+  const body = CreateAgentContactMandateBody.safeParse(req.body);
+  if (!params.success || !body.success) {
+    res.status(400).json({ error: params.success ? body.error?.message ?? "Invalid mandate document" : params.error.message });
+    return;
+  }
+  const user = await currentUser(req);
+  if (!user) {
+    res.status(401).json({ error: "Not logged in" });
+    return;
+  }
+  const property = await getAccessibleProperty(user, params.data.propertyId);
+  if (!property?.sellerId) {
+    res.status(404).json({ error: "Contact property not found" });
+    return;
+  }
+  const expectedPrefix = `/objects/uploads/${user.id}/`;
+  if (!body.data.objectPath.startsWith(expectedPrefix) ||
+      !/^\/objects\/uploads\/\d+\/[a-f0-9-]+\.[a-z0-9]{1,8}$/i.test(body.data.objectPath)) {
+    res.status(400).json({ error: "The mandate must be uploaded to your private account storage first." });
+    return;
+  }
+  const [document] = await db.insert(documentsTable).values({
+    name: body.data.name.trim(),
+    category: "mandate",
+    propertyId: property.id,
+    url: body.data.objectPath,
+    sizeKb: body.data.sizeKb,
+    uploadedBy: user.name,
+  }).returning();
+  res.status(201).json(CreateAgentContactMandateResponse.parse(jsonify(document)));
+});
+
+router.post("/agent-contacts/:propertyId/review-invitation", async (req, res): Promise<void> => {
+  const params = CreateAgentContactReviewInvitationParams.safeParse(req.params);
+  if (!params.success) {
+    res.status(400).json({ error: params.error.message });
+    return;
+  }
+  const user = await currentUser(req);
+  if (!user) {
+    res.status(401).json({ error: "Not logged in" });
+    return;
+  }
+  const property = await getAccessibleProperty(user, params.data.propertyId);
+  if (!property?.sellerId) {
+    res.status(404).json({ error: "Contact property not found" });
+    return;
+  }
+  const outcome = property.listingType === "rent"
+    ? property.status === "rented" || property.availabilityStatus === "let" ? "rented"
+      : ["withdrawn", "archived"].includes(property.status) || property.availabilityStatus === "withdrawn" ? "withdrawn" : null
+    : property.status === "sold" || property.availabilityStatus === "sold" ? "sold"
+      : ["withdrawn", "archived"].includes(property.status) || property.availabilityStatus === "withdrawn" ? "withdrawn" : null;
+  if (!outcome) {
+    res.status(400).json({ error: "Reviews can be requested after a sale, lease, or mandate closure." });
+    return;
+  }
+  const [seller] = await db.select().from(sellersTable).where(eq(sellersTable.id, property.sellerId)).limit(1);
+  if (!seller) {
+    res.status(404).json({ error: "Contact details not found" });
+    return;
+  }
+  const invitation = await createShareableReviewInvitation({
+    agentId: property.agentId ?? user.id,
+    propertyId: property.id,
+    recipientName: seller.name,
+    recipientEmail: seller.email,
+    outcome,
+  });
+  if (invitation.kind === "submitted") {
+    res.status(409).json({ error: "A review has already been submitted for this mandate." });
+    return;
+  }
+  res.json(CreateAgentContactReviewInvitationResponse.parse({
+    url: invitation.url,
+    recipientName: seller.name,
+    phone: seller.phone,
+    propertyReference: property.reference,
+    propertyTitle: property.title,
+  }));
+});
 
 // Sellers
 router.get("/sellers", async (req, res): Promise<void> => {

@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { Router, type IRouter, type Request } from "express";
 import { and, eq, inArray, like, or, sql } from "drizzle-orm";
-import { agencySettingsTable, businessAgenciesTable, db, propertiesTable } from "@workspace/db";
+import { agencySettingsTable, branchesTable, businessAgenciesTable, db, documentsTable, propertiesTable } from "@workspace/db";
 import { currentUser } from "./auth";
 
 const router: IRouter = Router();
@@ -63,6 +63,28 @@ async function canReadStoredMedia(req: Request, objectName: string): Promise<boo
   const user = await currentUser(req);
   if (!user) return false;
   if (objectName.startsWith(`uploads/${user.id}/`)) return true;
+  const objectPath = `/objects/${objectName}`;
+  const [mandate] = await db.select({ propertyId: propertiesTable.id, agentId: propertiesTable.agentId, branchId: propertiesTable.branchId })
+    .from(documentsTable)
+    .innerJoin(propertiesTable, eq(propertiesTable.id, documentsTable.propertyId))
+    .where(and(eq(documentsTable.url, objectPath), eq(documentsTable.category, "mandate")))
+    .limit(1);
+  if (mandate) {
+    if (user.role === "agent" || user.role === "senior_agent") {
+      if (mandate.agentId === user.id) return true;
+    } else if (user.branchId) {
+      const [branch] = await db.select({ agencyId: branchesTable.agencyId })
+        .from(branchesTable).where(eq(branchesTable.id, user.branchId)).limit(1);
+      if (branch?.agencyId) {
+        const [matchingBranch] = await db.select({ id: branchesTable.id })
+          .from(branchesTable).where(and(
+            eq(branchesTable.id, mandate.branchId ?? -1),
+            eq(branchesTable.agencyId, branch.agencyId),
+          )).limit(1);
+        if (matchingBranch) return true;
+      } else if (mandate.branchId === user.branchId) return true;
+    }
+  }
   // A configured brand logo is shared with signed-in staff, even if an admin
   // uploaded it. This does not grant access to unrelated private uploads.
   const suffix = `%/objects/${objectName}`;
