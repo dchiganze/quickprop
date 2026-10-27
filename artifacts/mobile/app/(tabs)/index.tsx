@@ -117,15 +117,13 @@ export default function DashboardScreen() {
       }
     >
       <View style={styles.brandRow}>
-        <View style={[styles.brandMarkFrame, { backgroundColor: colors.primary }]}>
-          <Image
-            source={require('../../assets/images/quickprop-house-mark-white.png')}
-            style={styles.brandMark}
-            resizeMode="contain"
-            accessibilityLabel="QuickProp house logo"
-          />
-        </View>
-        <Text style={[styles.brandTitle, { color: colors.foreground }]}>QuickProp Agent</Text>
+        <Image
+          source={require('../../assets/images/quickprop-house-logo-green.png')}
+          style={styles.brandMark}
+          resizeMode="contain"
+          accessibilityLabel="QuickProp house logo"
+        />
+        <Text style={[styles.brandTitle, { color: '#1F956B' }]}>QuickProp Agent</Text>
       </View>
       {refreshing && (
         <View
@@ -247,8 +245,7 @@ const styles = StyleSheet.create({
   },
   refreshIndicatorText: { fontSize: 12, fontWeight: '600' },
   brandRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 16 },
-  brandMarkFrame: { width: 28, height: 28, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
-  brandMark: { width: 22, height: 22 },
+  brandMark: { width: 24, height: 24 },
   brandTitle: { fontSize: 18, lineHeight: 24, fontWeight: '800', letterSpacing: -0.3 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 22 },
   name: { fontSize: 24, fontWeight: '800', letterSpacing: -0.5 },
