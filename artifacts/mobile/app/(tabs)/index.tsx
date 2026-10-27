@@ -26,6 +26,7 @@ export default function DashboardScreen() {
   const matchInbox = useMatchNotifications();
   const [refreshing, setRefreshing] = useState(false);
   const refreshRotation = useRef(new Animated.Value(0)).current;
+  const agentFirstName = user?.name.trim().split(/\s+/)[0] || 'Agent';
 
   useEffect(() => {
     if (!refreshing) {
@@ -166,7 +167,7 @@ export default function DashboardScreen() {
       )}
       {/* Header */}
       <View style={styles.header}>
-        <Text style={[styles.name, { color: colors.foreground }]}>Hi Agent</Text>
+        <Text style={[styles.name, { color: colors.foreground }]}>Hi {agentFirstName}</Text>
       </View>
 
       {/* Stats */}
