@@ -70,7 +70,8 @@ export default function ListingDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { properties, updateProperty } = useData();
   const property = properties.find(p => p.id === id);
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
+  const remoteAgentId = user?.id && /^\d+$/.test(user.id) ? user.id : null;
   const remotePropertyId = Number(id);
   const { data: multiAgent } = useGetMultiAgentProperty(remotePropertyId, {
     query: {
@@ -87,8 +88,8 @@ export default function ListingDetailScreen() {
     { type: contactType },
     {
       query: {
-        enabled: Boolean(property),
-        queryKey: getGetAgentContactsQueryKey({ type: contactType }),
+        enabled: Boolean(property) && !authLoading && remoteAgentId !== null,
+        queryKey: [...getGetAgentContactsQueryKey({ type: contactType }), remoteAgentId ?? 'unauthenticated'],
       },
     },
   );

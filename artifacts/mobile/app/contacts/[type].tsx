@@ -25,7 +25,7 @@ import {
 } from '@workspace/api-client-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useColors } from '@/hooks/useColors';
-import { apiBaseUrl, getStoredAccessToken } from '@/contexts/AuthContext';
+import { apiBaseUrl, getStoredAccessToken, useAuth } from '@/contexts/AuthContext';
 import { KeyboardAwareScrollViewCompat } from '@/components/KeyboardAwareScrollViewCompat';
 
 type ContactKind = 'seller' | 'landlord';
@@ -83,8 +83,18 @@ export default function ContactRecordsScreen() {
   const params = useLocalSearchParams<{ type?: string }>();
   const kind: ContactKind = params.type === 'landlord' ? 'landlord' : 'seller';
   const title = kind === 'seller' ? 'Sellers' : 'Landlords';
+  const { user, loading: authLoading } = useAuth();
+  const remoteAgentId = user?.id && /^\d+$/.test(user.id) ? user.id : null;
   const queryClient = useQueryClient();
-  const { data: contacts, isLoading, isError, refetch } = useGetAgentContacts({ type: kind });
+  const { data: contacts, isLoading, isError, refetch } = useGetAgentContacts(
+    { type: kind },
+    {
+      query: {
+        enabled: !authLoading && remoteAgentId !== null,
+        queryKey: [...getGetAgentContactsQueryKey({ type: kind }), remoteAgentId ?? 'unauthenticated'],
+      },
+    },
+  );
   const createContact = useCreateAgentContact();
   const requestReview = useCreateAgentContactReviewInvitation();
   const [busyPropertyId, setBusyPropertyId] = useState<number | null>(null);

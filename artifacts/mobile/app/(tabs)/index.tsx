@@ -13,16 +13,34 @@ import { useData } from '@/contexts/DataContext';
 import { StatCard } from '@/components/StatCard';
 import { PropertyCard } from '@/components/PropertyCard';
 import { useMatchNotifications } from '@/hooks/useMatchNotifications';
-import { useGetAgentContacts } from '@workspace/api-client-react';
+import { getGetAgentContactsQueryKey, useGetAgentContacts } from '@workspace/api-client-react';
 
 export default function DashboardScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
-  const { user, logout } = useAuth();
+  const { user, loading: authLoading, logout } = useAuth();
   const { properties, leads, syncNow } = useData();
-  const { data: sellers } = useGetAgentContacts({ type: 'seller' });
-  const { data: landlords } = useGetAgentContacts({ type: 'landlord' });
+  const remoteAgentId = user?.id && /^\d+$/.test(user.id) ? user.id : null;
+  const agentContactsEnabled = !authLoading && remoteAgentId !== null;
+  const { data: sellers } = useGetAgentContacts(
+    { type: 'seller' },
+    {
+      query: {
+        enabled: agentContactsEnabled,
+        queryKey: [...getGetAgentContactsQueryKey({ type: 'seller' }), remoteAgentId ?? 'unauthenticated'],
+      },
+    },
+  );
+  const { data: landlords } = useGetAgentContacts(
+    { type: 'landlord' },
+    {
+      query: {
+        enabled: agentContactsEnabled,
+        queryKey: [...getGetAgentContactsQueryKey({ type: 'landlord' }), remoteAgentId ?? 'unauthenticated'],
+      },
+    },
+  );
   const matchInbox = useMatchNotifications();
   const [refreshing, setRefreshing] = useState(false);
   const refreshRotation = useRef(new Animated.Value(0)).current;
