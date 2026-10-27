@@ -40,6 +40,7 @@ export default function TabLayout() {
             paddingBottom: insets.bottom,
             height: 56 + insets.bottom,
           },
+          tabBarItemStyle: { flex: 1 },
           tabBarBackground: () =>
             isIOS ? (
               <BlurView
@@ -88,10 +89,7 @@ export default function TabLayout() {
         />
         <Tabs.Screen
           name="profile"
-          options={{
-            title: 'Profile',
-            tabBarIcon: ({ color }) => <Feather name="user" size={22} color={color} />,
-          }}
+          options={{ href: null }}
         />
         <Tabs.Screen name="leads" options={{ href: null }} />
         <Tabs.Screen name="tasks" options={{ href: null }} />

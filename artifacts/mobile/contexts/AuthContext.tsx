@@ -32,6 +32,7 @@ const MOCK_USER: User = {
 const DEMO_EMAIL = 'demo@quickprop.co.zw';
 const DEMO_PASSWORD = 'demo1234';
 const AUTH_KEY = '@quickprop_user';
+const PROFILE_PHOTO_KEY_PREFIX = '@qp_profile_photo_';
 const AUTH_TOKEN_KEY = 'quickprop_access_token';
 const LEGACY_AUTH_TOKEN_KEY = '@quickprop_access_token';
 const ACCOUNT_DATA_KEYS = [
@@ -138,6 +139,15 @@ function toMobileUser(apiUser: ApiUser): User {
   };
 }
 
+function profilePhotoKey(userId: string): string {
+  return `${PROFILE_PHOTO_KEY_PREFIX}${userId}`;
+}
+
+async function withLocalProfilePhoto(user: User): Promise<User> {
+  const photo = await AsyncStorage.getItem(profilePhotoKey(user.id));
+  return photo ? { ...user, photo } : user;
+}
+
 async function clearLocalAccountData(): Promise<void> {
   clearDataContextMemory();
   await Promise.all([
@@ -208,7 +218,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         });
         if (!response.ok) throw new Error('Session is no longer valid');
         const remoteUser = await response.json() as ApiUser;
-        const restoredUser = toMobileUser(remoteUser);
+        const restoredUser = await withLocalProfilePhoto(toMobileUser(remoteUser));
         await AsyncStorage.setItem(AUTH_KEY, JSON.stringify(restoredUser));
         setUser(restoredUser);
       } catch {
@@ -235,7 +245,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (!response.ok || !result?.accessToken) {
           return { success: false, error: result?.error ?? 'Invalid credentials.' };
         }
-        const loggedInUser = toMobileUser(result);
+        const loggedInUser = await withLocalProfilePhoto(toMobileUser(result));
         const currentStoredIdentity = storedUserIdentity(await AsyncStorage.getItem(AUTH_KEY));
         const nextIdentity = `${loggedInUser.id}:${loggedInUser.email.toLowerCase()}`;
         if (currentStoredIdentity && currentStoredIdentity !== nextIdentity) {
@@ -304,7 +314,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!response.ok || !result?.accessToken) {
         return { success: false, error: result?.error ?? 'That code could not be verified.' };
       }
-      const loggedInUser = toMobileUser(result);
+      const loggedInUser = await withLocalProfilePhoto(toMobileUser(result));
       const currentStoredIdentity = storedUserIdentity(await AsyncStorage.getItem(AUTH_KEY));
       const nextIdentity = `${loggedInUser.id}:${loggedInUser.email.toLowerCase()}`;
       if (currentStoredIdentity && currentStoredIdentity !== nextIdentity) await clearLocalAccountData();
@@ -334,7 +344,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
       const result = await response.json().catch(() => null) as (LoginResult & { error?: string }) | null;
       if (!response.ok || !result?.accessToken) return { success: false, error: result?.error ?? 'Passkey sign-in failed.' };
-      const loggedInUser = toMobileUser(result);
+      const loggedInUser = await withLocalProfilePhoto(toMobileUser(result));
       const currentStoredIdentity = storedUserIdentity(await AsyncStorage.getItem(AUTH_KEY));
       if (currentStoredIdentity && currentStoredIdentity !== `${loggedInUser.id}:${loggedInUser.email.toLowerCase()}`) await clearLocalAccountData();
       await Promise.all([AsyncStorage.setItem(AUTH_KEY, JSON.stringify(loggedInUser)), storeToken(result.accessToken)]);
@@ -419,6 +429,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const updateUser = async (updates: Partial<User>) => {
     if (!user) return;
+    if (updates.photo !== undefined) {
+      await AsyncStorage.setItem(profilePhotoKey(user.id), updates.photo);
+    }
     const updated = { ...user, ...updates };
     await AsyncStorage.setItem(AUTH_KEY, JSON.stringify(updated));
     setUser(updated);

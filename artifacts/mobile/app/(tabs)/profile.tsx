@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-  View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, Alert,
+  View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, Alert, Image,
   Modal, TextInput, Switch, Linking, Pressable, Appearance, ActivityIndicator, KeyboardAvoidingView,
 } from 'react-native';
 import { ShareHubSheet } from '@/components/ShareHubSheet';
@@ -8,6 +8,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
+import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system/legacy';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useColors } from '@/hooks/useColors';
 import { useAuth } from '@/contexts/AuthContext';
@@ -184,6 +186,7 @@ export default function ProfileScreen() {
   const [editName, setEditName] = useState('');
   const [editEmail, setEditEmail] = useState('');
   const [savingPersonal, setSavingPersonal] = useState(false);
+  const [savingPhoto, setSavingPhoto] = useState(false);
 
   // Edit phone
   const [editPhoneOpen, setEditPhoneOpen] = useState(false);
@@ -197,6 +200,52 @@ export default function ProfileScreen() {
   // Toggles
   const [biometric, setBiometric] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
+
+  const handleProfilePhoto = async () => {
+    if (savingPhoto) return;
+    setSavingPhoto(true);
+    try {
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) {
+        if (Platform.OS !== 'web' && !permission.canAskAgain) {
+          Alert.alert('Photo access is off', 'Enable photo library access in Settings to choose a profile photo.', [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Open Settings', onPress: () => { void Linking.openSettings().catch(() => {}); } },
+          ]);
+        } else {
+          Alert.alert('Photo access required', 'Allow QuickProp to access your photo library to choose a profile photo.');
+        }
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+      if (result.canceled || !result.assets[0]) return;
+
+      const asset = result.assets[0];
+      let photoUri = asset.uri;
+      if (Platform.OS !== 'web' && FileSystem.documentDirectory) {
+        const extension = asset.fileName?.split('.').pop()?.replace(/[^a-z0-9]/gi, '') || 'jpg';
+        const destination = `${FileSystem.documentDirectory}profile-photo-${user?.id ?? 'agent'}-${Date.now()}.${extension}`;
+        await FileSystem.copyAsync({ from: asset.uri, to: destination });
+        photoUri = destination;
+      }
+
+      await updateUser({ photo: photoUri });
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+    } catch (error) {
+      Alert.alert(
+        'Photo not updated',
+        error instanceof Error ? error.message : 'Could not save the selected photo. Please try again.',
+      );
+    } finally {
+      setSavingPhoto(false);
+    }
+  };
 
   useEffect(() => {
     AsyncStorage.multiGet([BIOMETRIC_KEY, DARK_MODE_KEY]).then(pairs => {
@@ -327,12 +376,32 @@ export default function ProfileScreen() {
       <View style={styles.headerPad}>
         <View style={[styles.agentCard, { backgroundColor: colors.primary }]}>
           <View style={styles.avatarWrap}>
-            <View style={[styles.avatar, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
-              <Ionicons name="person" size={40} color="#FFF" />
-            </View>
+            <TouchableOpacity
+              style={[styles.avatar, { backgroundColor: 'rgba(255,255,255,0.2)' }]}
+              onPress={handleProfilePhoto}
+              disabled={savingPhoto}
+              accessibilityRole="button"
+              accessibilityLabel={user?.photo ? 'Change profile photo' : 'Add profile photo'}
+              testID="profile-photo-picker"
+            >
+              {user?.photo
+                ? <Image source={{ uri: user.photo }} style={styles.avatarImage} resizeMode="cover" />
+                : <Ionicons name="person" size={40} color="#FFF" />}
+            </TouchableOpacity>
             <View style={[styles.verifiedBadge, { backgroundColor: colors.accent }]}>
               <Ionicons name="checkmark" size={12} color="#FFF" />
             </View>
+            <TouchableOpacity
+              style={[styles.photoEditBadge, { backgroundColor: colors.card, borderColor: colors.primary }]}
+              onPress={handleProfilePhoto}
+              disabled={savingPhoto}
+              accessibilityRole="button"
+              accessibilityLabel="Upload profile photo"
+            >
+              {savingPhoto
+                ? <ActivityIndicator size="small" color={colors.primary} />
+                : <Ionicons name="camera-outline" size={13} color={colors.primary} />}
+            </TouchableOpacity>
           </View>
           <Text style={styles.agentName}>{user?.name}</Text>
           <Text style={styles.agentAgency}>{user?.agency}</Text>
@@ -535,8 +604,10 @@ const styles = StyleSheet.create({
     ...Platform.select({ ios: { shadowColor: '#1A3C6E', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 12 }, android: { elevation: 6 } }),
   },
   avatarWrap: { position: 'relative', marginBottom: 8 },
-  avatar: { width: 80, height: 80, borderRadius: 40, alignItems: 'center', justifyContent: 'center' },
-  verifiedBadge: { position: 'absolute', bottom: 0, right: 0, width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#1A3C6E' },
+  avatar: { width: 80, height: 80, borderRadius: 40, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  avatarImage: { width: '100%', height: '100%' },
+  verifiedBadge: { position: 'absolute', top: 0, right: 0, width: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#1A3C6E' },
+  photoEditBadge: { position: 'absolute', bottom: 0, right: 0, width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center', borderWidth: 2 },
   agentName: { color: '#FFF', fontSize: 22, fontWeight: '800', letterSpacing: -0.3 },
   agentAgency: { color: 'rgba(255,255,255,0.85)', fontSize: 14, fontWeight: '600' },
   agentBranch: { color: 'rgba(255,255,255,0.6)', fontSize: 13 },

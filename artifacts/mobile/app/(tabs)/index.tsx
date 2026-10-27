@@ -116,6 +116,17 @@ export default function DashboardScreen() {
       }
     >
       <View style={styles.brandRow}>
+        <TouchableOpacity
+          style={styles.headerProfileBtn}
+          onPress={() => router.push('/(tabs)/profile')}
+          accessibilityRole="button"
+          accessibilityLabel="Open profile"
+          testID="dashboard-profile-button"
+        >
+          {user?.photo
+            ? <Image source={{ uri: user.photo }} style={[styles.headerAvatar, { borderColor: colors.border }]} />
+            : <Ionicons name="person-circle-outline" size={28} color={colors.primary} />}
+        </TouchableOpacity>
         <View style={styles.brandIdentity}>
           <Image
             source={require('../../assets/images/quickprop-house-logo-green.png')}
@@ -209,9 +220,19 @@ export default function DashboardScreen() {
           <Text style={[styles.seeAll, { color: colors.primary }]}>See all</Text>
         </TouchableOpacity>
       </View>
-      {recentProperties.map(p => (
-        <PropertyCard key={p.id} property={p} onPress={() => router.push(`/listing/${p.id}`)} />
-      ))}
+      {recentProperties.length > 0
+        ? recentProperties.map(p => (
+            <PropertyCard key={p.id} property={p} onPress={() => router.push(`/listing/${p.id}`)} />
+          ))
+        : (
+          <View style={[styles.recentEmpty, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <Ionicons name="home-outline" size={20} color={colors.mutedForeground} />
+            <Text style={[styles.recentEmptyText, { color: colors.mutedForeground }]}>No recent listings to show.</Text>
+            <TouchableOpacity onPress={() => router.push('/new-listing')} accessibilityRole="button" accessibilityLabel="Create a listing">
+              <Text style={[styles.recentEmptyAction, { color: colors.primary }]}>Add listing</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
       {/* Sign Out */}
       <TouchableOpacity
@@ -245,8 +266,10 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   refreshIndicatorText: { fontSize: 12, fontWeight: '600' },
-  brandRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-  brandIdentity: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  brandRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
+  headerProfileBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  headerAvatar: { width: 36, height: 36, borderRadius: 18, borderWidth: 1 },
+  brandIdentity: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
   brandMark: { width: 24, height: 24 },
   brandTitle: { fontSize: 18, lineHeight: 24, fontWeight: '800', letterSpacing: -0.3 },
   header: { marginBottom: 22 },
@@ -263,6 +286,9 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 17, fontWeight: '700', marginBottom: 12, letterSpacing: -0.3 },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, marginTop: 22 },
   seeAll: { fontSize: 14, fontWeight: '600' },
+  recentEmpty: { minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 14, borderRadius: 14, borderWidth: 1, marginBottom: 12 },
+  recentEmptyText: { flex: 1, fontSize: 12, fontWeight: '500' },
+  recentEmptyAction: { fontSize: 12, fontWeight: '700' },
   statsRow: { flexDirection: 'row', gap: 10 },
 
   // 2×2 Quick Actions grid
