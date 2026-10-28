@@ -41,7 +41,7 @@ export const agentReviewInvitationsTable = pgTable(
     uniqueIndex("agent_review_invitations_token_hash_unique").on(table.tokenHash),
     check(
       "agent_review_invitations_outcome_check",
-      sql`${table.outcome} in ('sold', 'rented', 'withdrawn', 'archived')`,
+      sql`${table.outcome} in ('sold', 'rented', 'withdrawn', 'archived', 'ongoing')`,
     ),
   ],
 );

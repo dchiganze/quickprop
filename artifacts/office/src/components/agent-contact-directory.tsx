@@ -84,18 +84,29 @@ export function AgentContactDirectory({ contacts, kind }: { contacts: AgentConta
     }
   };
 
-  const shareReview = async (property: AgentContactProperty) => {
+  const shareReview = async (
+    property: AgentContactProperty,
+    channel: 'whatsapp' | 'email',
+    recipientEmail?: string | null,
+  ) => {
     const popup = window.open('about:blank', '_blank');
     setBusyPropertyId(property.id);
     try {
       const invitation = await requestReview.mutateAsync({ propertyId: property.id });
-      const message = `Hi ${invitation.recipientName}, I’d appreciate it if you could leave a review about working with me on ${invitation.propertyReference} through QuickProp: ${invitation.url}`;
-      const phone = invitation.phone?.replace(/\D/g, '').replace(/^00/, '');
-      const whatsAppUrl = phone
-        ? `https://wa.me/${phone}?text=${encodeURIComponent(message)}`
-        : `https://wa.me/?text=${encodeURIComponent(message)}`;
-      if (popup) popup.location.href = whatsAppUrl;
-      else window.location.assign(whatsAppUrl);
+      const message = `Hi ${invitation.recipientName}, I’d appreciate it if you could leave a review about working with me on ${invitation.propertyTitle} (${invitation.propertyReference}) through QuickProp: ${invitation.url}`;
+      let destination: string;
+      if (channel === 'email') {
+        if (!recipientEmail) throw new Error('Add an email address to this contact first.');
+        const subject = `QuickProp review request — ${invitation.propertyReference}`;
+        destination = `mailto:${encodeURIComponent(recipientEmail)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(message)}`;
+      } else {
+        const phone = invitation.phone?.replace(/\D/g, '').replace(/^00/, '');
+        destination = phone
+          ? `https://wa.me/${phone}?text=${encodeURIComponent(message)}`
+          : `https://wa.me/?text=${encodeURIComponent(message)}`;
+      }
+      if (popup) popup.location.href = destination;
+      else window.location.assign(destination);
     } catch (error) {
       popup?.close();
       toast({
@@ -176,12 +187,17 @@ export function AgentContactDirectory({ contacts, kind }: { contacts: AgentConta
                         {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ScanLine className="mr-2 h-4 w-4" />}
                         Scan / store mandate
                       </Button>
-                      <Button size="sm" disabled={busy || !closedMandate(property)} onClick={() => void shareReview(property)} title={!closedMandate(property) ? 'Available after a sale, lease, or mandate closure' : undefined}>
+                      <Button size="sm" disabled={busy} onClick={() => void shareReview(property, 'whatsapp', contact.email)}>
                         {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Star className="mr-2 h-4 w-4" />}
-                        Request review by WhatsApp
+                        Request review via WhatsApp
+                      </Button>
+                      <Button size="sm" variant="outline" disabled={busy || !contact.email} onClick={() => void shareReview(property, 'email', contact.email)} title={!contact.email ? 'Add an email address to this contact first' : undefined}>
+                        {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Mail className="mr-2 h-4 w-4" />}
+                        Request review by email
                       </Button>
                     </div>
-                    {!closedMandate(property) && <p className="mt-2 text-xs text-muted-foreground">Review requests are available after the sale, lease, or mandate closes.</p>}
+                    {!contact.email && <p className="mt-2 text-xs text-muted-foreground">Add an email address to this contact to enable email requests.</p>}
+                    {!closedMandate(property) && <p className="mt-2 text-xs text-muted-foreground">You can request a review now. QuickProp will still send its automatic request after the mandate closes.</p>}
                   </div>
                 );
               })}

@@ -147,16 +147,27 @@ export default function ContactRecordsScreen() {
     }
   };
 
-  const openReviewRequest = async (propertyId: number) => {
+  const openReviewRequest = async (
+    propertyId: number,
+    channel: 'whatsapp' | 'email',
+    recipientEmail?: string | null,
+  ) => {
     try {
       setBusyPropertyId(propertyId);
       const invitation = await requestReview.mutateAsync({ propertyId });
-      const text = `Hi ${invitation.recipientName}, I’d appreciate it if you could leave a review about working with me on ${invitation.propertyReference} through QuickProp: ${invitation.url}`;
-      const phone = invitation.phone?.replace(/\D/g, '').replace(/^00/, '');
-      if (phone) {
-        await Linking.openURL(`https://wa.me/${phone}?text=${encodeURIComponent(text)}`);
+      const text = `Hi ${invitation.recipientName}, I’d appreciate it if you could leave a review about working with me on ${invitation.propertyTitle} (${invitation.propertyReference}) through QuickProp: ${invitation.url}`;
+      if (channel === 'email') {
+        if (!recipientEmail) throw new Error('Add an email address to this contact first.');
+        const subject = `QuickProp review request — ${invitation.propertyReference}`;
+        const body = `${text}\n\n${invitation.propertyTitle}`;
+        await Linking.openURL(`mailto:${encodeURIComponent(recipientEmail)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
       } else {
-        await Share.share({ message: text, url: invitation.url });
+        const phone = invitation.phone?.replace(/\D/g, '').replace(/^00/, '');
+        if (phone) {
+          await Linking.openURL(`https://wa.me/${phone}?text=${encodeURIComponent(text)}`);
+        } else {
+          await Share.share({ message: text, url: invitation.url });
+        }
       }
     } catch (error) {
       Alert.alert('Could not create review link', error instanceof Error ? error.message : 'Please try again.');
@@ -316,7 +327,7 @@ function ContactCard({
   colors: ReturnType<typeof useColors>;
   busyPropertyId: number | null;
   onCaptureMandate: (propertyId: number) => void;
-  onRequestReview: (propertyId: number) => void;
+  onRequestReview: (propertyId: number, channel: 'whatsapp' | 'email', recipientEmail?: string | null) => void;
   onOpenMandate: (objectPath?: string | null) => void;
 }) {
   return (
@@ -363,15 +374,26 @@ function ContactCard({
               {busy ? <ActivityIndicator size="small" color={colors.primary} /> : <Ionicons name="scan-outline" size={17} color={colors.primary} />}
               <Text style={[styles.actionText, { color: colors.primary }]}>{busy ? 'Saving…' : 'Scan and store mandate'}</Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              disabled={!closed || busy}
-              style={[styles.actionButton, { backgroundColor: colors.primary, opacity: !closed || busy ? 0.45 : 1 }]}
-              onPress={() => onRequestReview(property.id)}
-            >
-              {busy ? <ActivityIndicator size="small" color="#FFF" /> : <Ionicons name="star-outline" size={17} color="#FFF" />}
-              <Text style={[styles.actionText, { color: '#FFF' }]}>{busy ? 'Preparing…' : 'Request a review'}</Text>
-            </TouchableOpacity>
-            {!closed && <Text style={[styles.reviewHint, { color: colors.mutedForeground }]}>Available after the sale, lease, or mandate closes.</Text>}
+            <View style={styles.reviewActions}>
+              <TouchableOpacity
+                disabled={busy}
+                style={[styles.actionButton, styles.reviewAction, { backgroundColor: colors.primary, opacity: busy ? 0.55 : 1 }]}
+                onPress={() => onRequestReview(property.id, 'whatsapp', contact.phone)}
+              >
+                {busy ? <ActivityIndicator size="small" color="#FFF" /> : <Ionicons name="logo-whatsapp" size={17} color="#FFF" />}
+                <Text style={[styles.actionText, { color: '#FFF' }]}>WhatsApp</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                disabled={busy || !contact.email}
+                style={[styles.actionButton, styles.reviewAction, { backgroundColor: colors.secondary, opacity: busy || !contact.email ? 0.45 : 1 }]}
+                onPress={() => onRequestReview(property.id, 'email', contact.email)}
+              >
+                {busy ? <ActivityIndicator size="small" color={colors.primary} /> : <Ionicons name="mail-outline" size={17} color={colors.primary} />}
+                <Text style={[styles.actionText, { color: colors.primary }]}>Email</Text>
+              </TouchableOpacity>
+            </View>
+            {!contact.email ? <Text style={[styles.reviewHint, { color: colors.mutedForeground }]}>Add an email address to this contact to enable email requests.</Text> : null}
+            {!closed ? <Text style={[styles.reviewHint, { color: colors.mutedForeground }]}>You can request a review now. QuickProp will still send its automatic request after the mandate closes.</Text> : null}
           </View>
         );
       })}
@@ -410,6 +432,8 @@ const styles = StyleSheet.create({
   status: { fontSize: 10, fontWeight: '700', textTransform: 'uppercase' },
   docRow: { flexDirection: 'row', alignItems: 'center', gap: 7, paddingVertical: 4 },
   actionButton: { minHeight: 42, borderRadius: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingHorizontal: 12 },
+  reviewActions: { flexDirection: 'row', gap: 8 },
+  reviewAction: { flex: 1 },
   actionText: { fontSize: 13, fontWeight: '700' },
   reviewHint: { fontSize: 11, textAlign: 'center' },
   privacy: { fontSize: 11, lineHeight: 16, textAlign: 'center', marginTop: 2 },

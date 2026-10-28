@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, lt, lte, or, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, lt, lte, or, sql } from "drizzle-orm";
 import {
   agentReviewInvitationsTable,
   agentReviewsTable,
@@ -19,9 +19,10 @@ const MAX_REMINDER_NUMBER = 2;
 const MAX_ATTEMPTS = 5;
 const RETRY_DELAYS_MS = [5 * 60_000, 30 * 60_000, 2 * 60 * 60_000, 12 * 60 * 60_000];
 const TERMINAL_OUTCOMES = ["sold", "rented", "withdrawn", "archived"] as const;
+const REVIEW_OUTCOMES = [...TERMINAL_OUTCOMES, "ongoing"] as const;
 const PUBLIC_APP_URL = process.env.PUBLIC_APP_URL?.trim() || "https://quickprop.co.zw";
 
-export type ReviewOutcome = typeof TERMINAL_OUTCOMES[number];
+export type ReviewOutcome = typeof REVIEW_OUTCOMES[number];
 
 export function nextReviewDeliveryAt(from: Date, reminderNumber: number): Date {
   const delay = reminderNumber === 0 ? REVIEW_INITIAL_DELAY_MS : REVIEW_REMINDER_INTERVAL_MS;
@@ -38,8 +39,8 @@ function outcomeLabel(outcome: ReviewOutcome): string {
   return outcome;
 }
 
-function isTerminalOutcome(value: string): value is ReviewOutcome {
-  return TERMINAL_OUTCOMES.includes(value as ReviewOutcome);
+function isTerminalOutcome(value: string): value is typeof TERMINAL_OUTCOMES[number] {
+  return TERMINAL_OUTCOMES.includes(value as typeof TERMINAL_OUTCOMES[number]);
 }
 
 export function reviewTokenHash(token: string): string {
@@ -58,7 +59,7 @@ export async function createShareableReviewInvitation(input: {
   outcome: ReviewOutcome;
 }) {
   const token = createReviewToken();
-  const mandateKey = `property:${input.propertyId}:agent:${input.agentId}`;
+  const mandateKey = `manual:property:${input.propertyId}:agent:${input.agentId}`;
   const expiresAt = new Date(Date.now() + REVIEW_INVITATION_TTL_MS);
   const now = new Date();
   const [created] = await db.insert(agentReviewInvitationsTable).values({
@@ -144,6 +145,15 @@ export async function queuePrimaryReviewInvitation(propertyId: number, outcomeVa
   if (!isTerminalOutcome(outcomeValue)) return null;
   const [property] = await db.select().from(propertiesTable).where(eq(propertiesTable.id, propertyId)).limit(1);
   if (!property?.agentId) return null;
+  const [existingReview] = await db.select({ id: agentReviewsTable.id })
+    .from(agentReviewsTable)
+    .where(and(
+      eq(agentReviewsTable.agentId, property.agentId),
+      eq(agentReviewsTable.propertyId, property.id),
+      isNull(agentReviewsTable.relationshipId),
+    ))
+    .limit(1);
+  if (existingReview) return null;
   const seller = property.sellerId
     ? (await db.select().from(sellersTable).where(eq(sellersTable.id, property.sellerId)).limit(1))[0]
     : null;
@@ -214,6 +224,19 @@ export async function createReviewFromToken(
       return { kind: "expired" as const };
     }
 
+    const matchingReview = invitation.relationshipId == null
+      ? isNull(agentReviewsTable.relationshipId)
+      : eq(agentReviewsTable.relationshipId, invitation.relationshipId);
+    const [existingReview] = await tx.select({ id: agentReviewsTable.id })
+      .from(agentReviewsTable)
+      .where(and(
+        eq(agentReviewsTable.agentId, invitation.agentId),
+        eq(agentReviewsTable.propertyId, invitation.propertyId),
+        matchingReview,
+      ))
+      .limit(1);
+    if (existingReview) return { kind: "used" as const };
+
     const [review] = await tx.insert(agentReviewsTable).values({
       invitationId: invitation.id,
       agentId: invitation.agentId,
@@ -268,7 +291,9 @@ function reviewEmail(invitation: typeof agentReviewInvitationsTable.$inferSelect
   const isReminder = invitation.reminderNumber > 0;
   const opening = isReminder
     ? `Just a quick reminder that we'd value a short review of your experience with ${agentName}.`
-    : `Now that the ${label} mandate has closed, we'd value a short review of your experience.`;
+    : invitation.outcome === "ongoing"
+      ? `We'd value a short review of your experience with ${agentName} so far.`
+      : `Now that the ${label} mandate has closed, we'd value a short review of your experience.`;
   const text = [
     `Hi${invitation.recipientName ? ` ${invitation.recipientName}` : ""},`,
     "",

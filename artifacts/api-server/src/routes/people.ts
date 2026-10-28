@@ -287,15 +287,12 @@ router.post("/agent-contacts/:propertyId/review-invitation", async (req, res): P
     res.status(404).json({ error: "Contact property not found" });
     return;
   }
-  const outcome = property.listingType === "rent"
+  const completedOutcome = property.listingType === "rent"
     ? property.status === "rented" || property.availabilityStatus === "let" ? "rented"
       : ["withdrawn", "archived"].includes(property.status) || property.availabilityStatus === "withdrawn" ? "withdrawn" : null
     : property.status === "sold" || property.availabilityStatus === "sold" ? "sold"
       : ["withdrawn", "archived"].includes(property.status) || property.availabilityStatus === "withdrawn" ? "withdrawn" : null;
-  if (!outcome) {
-    res.status(400).json({ error: "Reviews can be requested after a sale, lease, or mandate closure." });
-    return;
-  }
+  const outcome = completedOutcome ?? "ongoing";
   const [seller] = await db.select().from(sellersTable).where(eq(sellersTable.id, property.sellerId)).limit(1);
   if (!seller) {
     res.status(404).json({ error: "Contact details not found" });
