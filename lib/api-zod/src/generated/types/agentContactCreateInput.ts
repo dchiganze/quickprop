@@ -19,4 +19,6 @@ export interface AgentContactCreateInput {
      * @maxLength 40
      */
   phone: string;
+  /** @nullable */
+  email?: string | null;
 }

@@ -19,6 +19,7 @@ export const agentContactsTable = pgTable(
     type: text("type").notNull(),
     name: text("name").notNull(),
     phone: text("phone").notNull(),
+    email: text("email"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [

@@ -1106,6 +1106,18 @@ export interface AgentContactCreateInput {
      * @maxLength 40
      */
   phone: string;
+  /** @nullable */
+  email?: string | null;
+}
+
+export interface AgentContactUpdateInput {
+  /**
+     * @minLength 5
+     * @maxLength 40
+     */
+  phone: string;
+  /** @nullable */
+  email: string | null;
 }
 
 export interface AgentContactMandateInput {

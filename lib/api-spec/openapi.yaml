@@ -674,7 +674,7 @@ paths:
           schema: { type: string, enum: [seller, landlord] }
       responses:
         "200":
-          description: Seller or landlord contacts linked to the signed-in user's property records
+          description: Seller or landlord contacts linked to the signed-in user's property records plus standalone contacts
           content:
             application/json:
               schema:
@@ -694,6 +694,24 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/AgentContact" }
+  /agent-contacts/{contactId}:
+    parameters:
+      - { name: contactId, in: path, required: true, schema: { type: integer, minimum: 1 } }
+    patch:
+      operationId: updateAgentContact
+      tags: [sellers]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AgentContactUpdateInput" }
+      responses:
+        "200":
+          description: Updated standalone seller or landlord contact
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AgentContact" }
+        "404": { description: Contact not found or not accessible }
   /agent-contacts/{propertyId}/mandates:
     parameters:
       - { name: propertyId, in: path, required: true, schema: { type: integer } }
@@ -720,12 +738,13 @@ paths:
       tags: [reviews]
       responses:
         "200":
-          description: Shareable public review link for a completed mandate
+          description: Shareable public review link for an active or completed mandate
           content:
             application/json:
               schema: { $ref: "#/components/schemas/AgentContactReviewInvitation" }
-        "400": { description: Review is only available after the mandate closes }
+        "409": { description: A review has already been submitted for this mandate }
         "404": { description: Property not found or not accessible }
+        "500": { description: Could not create the review link }
   /sellers/{id}:
     get:
       operationId: getSeller
@@ -3498,6 +3517,13 @@ components:
         type: { type: string, enum: [seller, landlord] }
         name: { type: string, minLength: 1, maxLength: 120 }
         phone: { type: string, minLength: 5, maxLength: 40 }
+        email: { type: ["string", "null"] }
+    AgentContactUpdateInput:
+      type: object
+      required: [phone, email]
+      properties:
+        phone: { type: string, minLength: 5, maxLength: 40 }
+        email: { type: ["string", "null"] }
     AgentContactProperty:
       type: object
       required: [id, reference, title, suburb, city, listingType, status, documents]

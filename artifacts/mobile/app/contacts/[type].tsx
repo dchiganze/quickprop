@@ -18,10 +18,14 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   AgentContact,
+  getGetPropertyQueryKey,
   getGetAgentContactsQueryKey,
+  getListPropertiesQueryKey,
   useCreateAgentContact,
   useCreateAgentContactReviewInvitation,
   useGetAgentContacts,
+  useUpdateAgentContact,
+  useUpdateProperty,
 } from '@workspace/api-client-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useColors } from '@/hooks/useColors';
@@ -97,10 +101,13 @@ export default function ContactRecordsScreen() {
   );
   const createContact = useCreateAgentContact();
   const requestReview = useCreateAgentContactReviewInvitation();
+  const updateAgentContact = useUpdateAgentContact();
+  const updateProperty = useUpdateProperty();
   const [busyPropertyId, setBusyPropertyId] = useState<number | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [contactName, setContactName] = useState('');
   const [contactPhone, setContactPhone] = useState('');
+  const [contactEmail, setContactEmail] = useState('');
   const [createError, setCreateError] = useState('');
   const [savingContact, setSavingContact] = useState(false);
   const [emailRequestPropertyId, setEmailRequestPropertyId] = useState<number | null>(null);
@@ -110,17 +117,27 @@ export default function ContactRecordsScreen() {
   const saveStandaloneContact = async () => {
     const name = contactName.trim();
     const phone = contactPhone.trim();
+    const email = contactEmail.trim();
     if (!name || !phone) {
       setCreateError('Enter a name and phone number.');
+      return;
+    }
+    if (phone.replace(/\D/g, '').length < 7) {
+      setCreateError('Enter a complete phone number.');
+      return;
+    }
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setCreateError('Enter a valid email address.');
       return;
     }
     setSavingContact(true);
     setCreateError('');
     try {
-      await createContact.mutateAsync({ data: { type: kind, name, phone } });
+      await createContact.mutateAsync({ data: { type: kind, name, phone, email: email || undefined } });
       await queryClient.invalidateQueries({ queryKey: getGetAgentContactsQueryKey({ type: kind }) });
       setContactName('');
       setContactPhone('');
+      setContactEmail('');
       setCreateOpen(false);
       Alert.alert('Contact added', `${name} is now listed under ${title.toLowerCase()}.`);
     } catch (error) {
@@ -128,6 +145,44 @@ export default function ContactRecordsScreen() {
     } finally {
       setSavingContact(false);
     }
+  };
+
+  const saveContactDetails = async (contact: AgentContact, phone: string, email: string) => {
+    const property = contact.properties[0];
+    const trimmedPhone = phone.trim();
+    const trimmedEmail = email.trim();
+    const phoneDigits = trimmedPhone.replace(/\D/g, '').length;
+    if ((contact.standalone && phoneDigits < 7) || (phoneDigits > 0 && phoneDigits < 7)) {
+      throw new Error('Enter a complete phone number or leave it blank.');
+    }
+    if (trimmedEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+      throw new Error('Enter a valid email address or leave it blank.');
+    }
+    if (contact.standalone) {
+      await updateAgentContact.mutateAsync({
+        contactId: Math.abs(contact.id),
+        data: { phone: trimmedPhone, email: trimmedEmail || null },
+      });
+    } else if (property) {
+      await updateProperty.mutateAsync({
+        id: property.id,
+        data: {
+          sellerName: contact.name,
+          sellerPhone: trimmedPhone,
+          sellerEmail: trimmedEmail,
+        },
+      });
+    } else {
+      throw new Error('This contact is not linked to a property.');
+    }
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: getGetAgentContactsQueryKey({ type: 'seller' }) }),
+      queryClient.invalidateQueries({ queryKey: getGetAgentContactsQueryKey({ type: 'landlord' }) }),
+      ...(property ? [
+        queryClient.invalidateQueries({ queryKey: getGetPropertyQueryKey(property.id) }),
+        queryClient.invalidateQueries({ queryKey: getListPropertiesQueryKey() }),
+      ] : []),
+    ]);
   };
 
   const captureMandate = async (propertyId: number) => {
@@ -172,7 +227,11 @@ export default function ContactRecordsScreen() {
       } else {
         const phone = invitation.phone?.replace(/\D/g, '').replace(/^00/, '');
         if (phone) {
-          await Linking.openURL(`https://wa.me/${phone}?text=${encodeURIComponent(text)}`);
+          try {
+            await Linking.openURL(`https://wa.me/${phone}?text=${encodeURIComponent(text)}`);
+          } catch {
+            await Share.share({ message: text, url: invitation.url });
+          }
         } else {
           await Share.share({ message: text, url: invitation.url });
         }
@@ -266,6 +325,7 @@ export default function ContactRecordsScreen() {
             onCaptureMandate={captureMandate}
             onRequestReview={openReviewRequest}
             onOpenMandate={openMandate}
+            onSaveContactDetails={saveContactDetails}
           />
         ))
       )}
@@ -316,6 +376,18 @@ export default function ContactRecordsScreen() {
               keyboardType="phone-pad"
               returnKeyType="done"
               accessibilityLabel={`${title} contact phone number`}
+            />
+            <Text style={[styles.inputLabel, { color: colors.mutedForeground }]}>EMAIL (OPTIONAL)</Text>
+            <TextInput
+              style={[styles.input, { backgroundColor: colors.input, borderColor: colors.border, color: colors.foreground }]}
+              value={contactEmail}
+              onChangeText={setContactEmail}
+              placeholder="name@example.com"
+              placeholderTextColor={colors.mutedForeground}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
+              accessibilityLabel={`${title} contact email address`}
             />
             {!!createError && <Text style={[styles.errorText, { color: colors.destructive }]}>{createError}</Text>}
             <TouchableOpacity
@@ -392,6 +464,7 @@ function ContactCard({
   onCaptureMandate,
   onRequestReview,
   onOpenMandate,
+  onSaveContactDetails,
 }: {
   contact: AgentContact;
   kind: ContactKind;
@@ -400,7 +473,26 @@ function ContactCard({
   onCaptureMandate: (propertyId: number) => void;
   onRequestReview: (propertyId: number, channel: 'whatsapp' | 'email', recipientEmail?: string | null) => void;
   onOpenMandate: (objectPath?: string | null) => void;
+  onSaveContactDetails: (contact: AgentContact, phone: string, email: string) => Promise<void>;
 }) {
+  const [editingDetails, setEditingDetails] = useState(false);
+  const [phoneDraft, setPhoneDraft] = useState(contact.phone ?? '');
+  const [emailDraft, setEmailDraft] = useState(contact.email ?? '');
+  const [savingDetails, setSavingDetails] = useState(false);
+
+  const saveDetails = async () => {
+    setSavingDetails(true);
+    try {
+      await onSaveContactDetails(contact, phoneDraft, emailDraft);
+      setEditingDetails(false);
+      Alert.alert('Contact updated', 'The phone number and email have been saved.');
+    } catch (error) {
+      Alert.alert('Could not save contact', error instanceof Error ? error.message : 'Please try again.');
+    } finally {
+      setSavingDetails(false);
+    }
+  };
+
   return (
     <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
       <View style={styles.nameRow}>
@@ -414,6 +506,60 @@ function ContactCard({
       {!!contact.phone && <TouchableOpacity style={styles.contactLine} onPress={() => Linking.openURL(`tel:${contact.phone}`)}><Ionicons name="call-outline" size={16} color={colors.primary} /><Text style={[styles.detail, { color: colors.foreground }]}>{contact.phone}</Text></TouchableOpacity>}
       {!!contact.email && <View style={styles.contactLine}><Ionicons name="mail-outline" size={16} color={colors.primary} /><Text style={[styles.detail, { color: colors.foreground }]}>{contact.email}</Text></View>}
       {!!contact.postalAddress && <View style={styles.contactLine}><Ionicons name="location-outline" size={16} color={colors.primary} /><Text style={[styles.detail, { color: colors.foreground }]}>{contact.postalAddress}</Text></View>}
+      {(contact.standalone || contact.properties.length > 0) ? (
+        editingDetails ? (
+          <View style={styles.contactEditor}>
+            <TextInput
+              style={[styles.input, { backgroundColor: colors.input, borderColor: colors.border, color: colors.foreground }]}
+              value={phoneDraft}
+              onChangeText={setPhoneDraft}
+              placeholder="Phone number"
+              placeholderTextColor={colors.mutedForeground}
+              keyboardType="phone-pad"
+              accessibilityLabel="Seller or landlord phone number"
+            />
+            <TextInput
+              style={[styles.input, { backgroundColor: colors.input, borderColor: colors.border, color: colors.foreground }]}
+              value={emailDraft}
+              onChangeText={setEmailDraft}
+              placeholder="Email address"
+              placeholderTextColor={colors.mutedForeground}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
+              accessibilityLabel="Seller or landlord email address"
+            />
+            <View style={styles.reviewActions}>
+              <TouchableOpacity
+                disabled={savingDetails}
+                onPress={() => void saveDetails()}
+                style={[styles.actionButton, styles.reviewAction, { backgroundColor: colors.primary, opacity: savingDetails ? 0.6 : 1 }]}
+              >
+                {savingDetails ? <ActivityIndicator size="small" color="#FFF" /> : null}
+                <Text style={[styles.actionText, { color: '#FFF' }]}>Save details</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                disabled={savingDetails}
+                onPress={() => setEditingDetails(false)}
+                style={[styles.actionButton, styles.reviewAction, { backgroundColor: colors.secondary }]}
+              >
+                <Text style={[styles.actionText, { color: colors.primary }]}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        ) : (
+          <TouchableOpacity
+            onPress={() => {
+              setPhoneDraft(contact.phone ?? '');
+              setEmailDraft(contact.email ?? '');
+              setEditingDetails(true);
+            }}
+            accessibilityRole="button"
+          >
+            <Text style={[styles.reviewHint, { color: colors.primary, textAlign: 'left' }]}>Edit phone and email</Text>
+          </TouchableOpacity>
+        )
+      ) : null}
       {!!contact.notes && <Text style={[styles.notes, { color: colors.mutedForeground }]}>{contact.notes}</Text>}
 
       {contact.properties.length > 0 ? <View style={[styles.divider, { backgroundColor: colors.border }]} /> : null}
@@ -517,6 +663,7 @@ const styles = StyleSheet.create({
   modalSubtitle: { fontSize: 13, marginTop: 4 },
   inputLabel: { fontSize: 11, fontWeight: '700', letterSpacing: 0.7, marginTop: 4 },
   input: { minHeight: 50, borderWidth: 1, borderRadius: 13, paddingHorizontal: 14, fontSize: 15 },
+  contactEditor: { gap: 8, borderWidth: 1, borderColor: '#DCE3E8', borderRadius: 14, padding: 10 },
   errorText: { fontSize: 13, lineHeight: 18 },
   saveButton: { minHeight: 50, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginTop: 6 },
   saveButtonText: { fontSize: 15, fontWeight: '700' },

@@ -57,6 +57,7 @@ import type {
   AgentContactCreateInput,
   AgentContactMandateInput,
   AgentContactReviewInvitation,
+  AgentContactUpdateInput,
   AgentPastSaleInput,
   AgentReviewInput,
   AgentReviewResult,
@@ -3129,6 +3130,72 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
         TContext
       > => {
       return useMutation(getCreateAgentContactMutationOptions(options));
+    }
+
+export const getUpdateAgentContactUrl = (contactId: number,) => {
+
+
+
+
+  return `/api/agent-contacts/${contactId}`
+}
+
+export const updateAgentContact = async (contactId: number,
+    agentContactUpdateInput: AgentContactUpdateInput, options?: RequestInit): Promise<AgentContact> => {
+
+  return customFetch<AgentContact>(getUpdateAgentContactUrl(contactId),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(agentContactUpdateInput)
+  }
+);}
+
+
+
+
+
+export const getUpdateAgentContactMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAgentContact>>, TError,{contactId: number;data: BodyType<AgentContactUpdateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateAgentContact>>, TError,{contactId: number;data: BodyType<AgentContactUpdateInput>}, TContext> => {
+
+const mutationKey = ['updateAgentContact'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateAgentContact>>, {contactId: number;data: BodyType<AgentContactUpdateInput>}> = (props) => {
+          const {contactId,data} = props ?? {};
+
+          return  updateAgentContact(contactId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateAgentContactMutationResult = NonNullable<Awaited<ReturnType<typeof updateAgentContact>>>
+    export type UpdateAgentContactMutationBody = BodyType<AgentContactUpdateInput>
+    export type UpdateAgentContactMutationError = ErrorType<void>
+
+    export const useUpdateAgentContact = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAgentContact>>, TError,{contactId: number;data: BodyType<AgentContactUpdateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateAgentContact>>,
+        TError,
+        {contactId: number;data: BodyType<AgentContactUpdateInput>},
+        TContext
+      > => {
+      return useMutation(getUpdateAgentContactMutationOptions(options));
     }
 
 export const getCreateAgentContactMandateUrl = (propertyId: number,) => {

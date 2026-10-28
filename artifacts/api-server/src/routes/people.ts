@@ -18,6 +18,9 @@ import {
   CreateAgentContactResponse,
   CreateAgentContactReviewInvitationParams,
   CreateAgentContactReviewInvitationResponse,
+  UpdateAgentContactParams,
+  UpdateAgentContactBody,
+  UpdateAgentContactResponse,
   GetAgentContactsQueryParams,
   GetAgentContactsResponse,
   ListSellersQueryParams,
@@ -175,7 +178,7 @@ router.get("/agent-contacts", async (req, res): Promise<void> => {
       name: contact.name,
       idNumber: null,
       phone: contact.phone,
-      email: null,
+      email: contact.email,
       postalAddress: null,
       notes: null,
       standalone: true,
@@ -198,8 +201,13 @@ router.post("/agent-contacts", async (req, res): Promise<void> => {
   }
   const name = parsed.data.name.trim();
   const phone = parsed.data.phone.trim();
+  const email = parsed.data.email?.trim() || null;
   if (!name || !phone) {
     res.status(400).json({ error: "Enter a name and phone number." });
+    return;
+  }
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    res.status(400).json({ error: "Enter a valid email address." });
     return;
   }
   const [created] = await db.insert(agentContactsTable).values({
@@ -207,6 +215,7 @@ router.post("/agent-contacts", async (req, res): Promise<void> => {
     type: parsed.data.type,
     name,
     phone,
+    email,
   }).onConflictDoNothing({
     target: [agentContactsTable.agentId, agentContactsTable.type, agentContactsTable.phone],
   }).returning();
@@ -229,7 +238,66 @@ router.post("/agent-contacts", async (req, res): Promise<void> => {
     name: contact.name,
     idNumber: null,
     phone: contact.phone,
-    email: null,
+    email: contact.email,
+    postalAddress: null,
+    notes: null,
+    standalone: true,
+    properties: [],
+  })));
+});
+
+router.patch("/agent-contacts/:contactId", async (req, res): Promise<void> => {
+  const params = UpdateAgentContactParams.safeParse(req.params);
+  const body = UpdateAgentContactBody.safeParse(req.body);
+  if (!params.success || !body.success) {
+    res.status(400).json({ error: params.success ? body.error?.message ?? "Invalid contact details." : params.error.message });
+    return;
+  }
+  const user = await currentUser(req);
+  if (!user) {
+    res.status(401).json({ error: "Not logged in" });
+    return;
+  }
+  const [existing] = await db.select().from(agentContactsTable).where(and(
+    eq(agentContactsTable.id, params.data.contactId),
+    eq(agentContactsTable.agentId, user.id),
+  )).limit(1);
+  if (!existing) {
+    res.status(404).json({ error: "Contact not found" });
+    return;
+  }
+  const phone = body.data.phone.trim();
+  const email = body.data.email?.trim() || null;
+  if (phone.replace(/\D/g, "").length < 7) {
+    res.status(400).json({ error: "Enter a complete phone number." });
+    return;
+  }
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    res.status(400).json({ error: "Enter a valid email address." });
+    return;
+  }
+  const [duplicate] = await db.select({ id: agentContactsTable.id }).from(agentContactsTable).where(and(
+    eq(agentContactsTable.agentId, user.id),
+    eq(agentContactsTable.type, existing.type),
+    eq(agentContactsTable.phone, phone),
+    sql`${agentContactsTable.id} <> ${existing.id}`,
+  )).limit(1);
+  if (duplicate) {
+    res.status(409).json({ error: "Another contact already uses this phone number." });
+    return;
+  }
+  const [updated] = await db.update(agentContactsTable).set({ phone, email })
+    .where(and(
+      eq(agentContactsTable.id, existing.id),
+      eq(agentContactsTable.agentId, user.id),
+    )).returning();
+  await logAudit("edited", "agent_contact", updated.id, `Updated ${existing.type} contact details for ${updated.name}`, user.id, user.name);
+  res.json(UpdateAgentContactResponse.parse(jsonify({
+    id: -updated.id,
+    name: updated.name,
+    idNumber: null,
+    phone: updated.phone,
+    email: updated.email,
     postalAddress: null,
     notes: null,
     standalone: true,
@@ -298,13 +366,20 @@ router.post("/agent-contacts/:propertyId/review-invitation", async (req, res): P
     res.status(404).json({ error: "Contact details not found" });
     return;
   }
-  const invitation = await createShareableReviewInvitation({
-    agentId: property.agentId ?? user.id,
-    propertyId: property.id,
-    recipientName: seller.name,
-    recipientEmail: seller.email,
-    outcome,
-  });
+  let invitation: Awaited<ReturnType<typeof createShareableReviewInvitation>>;
+  try {
+    invitation = await createShareableReviewInvitation({
+      agentId: property.agentId ?? user.id,
+      propertyId: property.id,
+      recipientName: seller.name,
+      recipientEmail: seller.email,
+      outcome,
+    });
+  } catch (error) {
+    req.log.error({ err: error, propertyId: property.id }, "Could not create agent review invitation");
+    res.status(500).json({ error: "Could not create the review link. Please try again." });
+    return;
+  }
   if (invitation.kind === "submitted") {
     res.status(409).json({ error: "A review has already been submitted for this mandate." });
     return;

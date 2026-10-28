@@ -6,9 +6,12 @@ import {
   getGetAgentContactsQueryKey,
   useCreateAgentContactMandate,
   useCreateAgentContactReviewInvitation,
+  useUpdateAgentContact,
+  useUpdateProperty,
 } from '@workspace/api-client-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { ExternalLink, FileText, Loader2, Mail, MapPin, Phone, ScanLine, Star } from 'lucide-react';
 
@@ -27,6 +30,11 @@ export function AgentContactDirectory({ contacts, kind }: { contacts: AgentConta
   const { toast } = useToast();
   const saveMandate = useCreateAgentContactMandate();
   const requestReview = useCreateAgentContactReviewInvitation();
+  const updateAgentContact = useUpdateAgentContact();
+  const updateProperty = useUpdateProperty();
+  const [editingContactId, setEditingContactId] = useState<number | null>(null);
+  const [contactPhoneDraft, setContactPhoneDraft] = useState('');
+  const [contactEmailDraft, setContactEmailDraft] = useState('');
 
   const chooseMandate = (propertyId: number) => {
     selectedPropertyRef.current = propertyId;
@@ -90,8 +98,8 @@ export function AgentContactDirectory({ contacts, kind }: { contacts: AgentConta
     recipientEmail?: string | null,
   ) => {
     let email = recipientEmail?.trim() || null;
-    if (channel === 'email' && !email) {
-      const enteredEmail = window.prompt('Enter the seller or landlord email address:');
+    if (channel === 'email') {
+      const enteredEmail = window.prompt('Email address to use for this review request:', email ?? '');
       if (enteredEmail === null) return;
       email = enteredEmail.trim();
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -132,6 +140,52 @@ export function AgentContactDirectory({ contacts, kind }: { contacts: AgentConta
     }
   };
 
+  const saveContactDetails = async (contact: AgentContact) => {
+    const property = contact.properties[0];
+    const phone = contactPhoneDraft.trim();
+    const email = contactEmailDraft.trim();
+    const phoneDigits = phone.replace(/\D/g, '').length;
+    if ((contact.standalone && phoneDigits < 7) || (phoneDigits > 0 && phoneDigits < 7)) {
+      toast({ title: 'Check the phone number', description: 'Enter a complete phone number or leave it blank.', variant: 'destructive' });
+      return;
+    }
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      toast({ title: 'Check the email address', description: 'Enter a valid email address or leave it blank.', variant: 'destructive' });
+      return;
+    }
+    try {
+      if (contact.standalone) {
+        await updateAgentContact.mutateAsync({
+          contactId: Math.abs(contact.id),
+          data: { phone, email: email || null },
+        });
+      } else if (property) {
+        await updateProperty.mutateAsync({
+          id: property.id,
+          data: {
+            sellerName: contact.name,
+            sellerPhone: phone,
+            sellerEmail: email,
+          },
+        });
+      } else {
+        throw new Error('This contact is not linked to a property.');
+      }
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: getGetAgentContactsQueryKey({ type: 'seller' }) }),
+        queryClient.invalidateQueries({ queryKey: getGetAgentContactsQueryKey({ type: 'landlord' }) }),
+      ]);
+      setEditingContactId(null);
+      toast({ title: 'Contact details saved' });
+    } catch (error) {
+      toast({
+        title: 'Could not save contact details',
+        description: error instanceof Error ? error.message : 'Please try again.',
+        variant: 'destructive',
+      });
+    }
+  };
+
   return (
     <div className="space-y-4">
       <input
@@ -169,6 +223,40 @@ export function AgentContactDirectory({ contacts, kind }: { contacts: AgentConta
               {contact.email && <a className="flex items-center gap-2 break-all hover:text-primary" href={`mailto:${contact.email}`}><Mail className="h-4 w-4" />{contact.email}</a>}
               {contact.postalAddress && <p className="flex items-start gap-2 sm:col-span-2"><MapPin className="mt-0.5 h-4 w-4 shrink-0" />{contact.postalAddress}</p>}
             </div>
+            {(contact.standalone || contact.properties.length > 0) && (
+              editingContactId === contact.id ? (
+                <div className="grid gap-3 rounded-lg border bg-muted/20 p-3 sm:grid-cols-2">
+                  <label className="grid gap-1 text-xs font-medium text-muted-foreground">
+                    Phone
+                    <Input type="tel" value={contactPhoneDraft} onChange={(event) => setContactPhoneDraft(event.target.value)} placeholder="+263 77 123 4567" />
+                  </label>
+                  <label className="grid gap-1 text-xs font-medium text-muted-foreground">
+                    Email
+                    <Input type="email" value={contactEmailDraft} onChange={(event) => setContactEmailDraft(event.target.value)} placeholder="seller@email.com" />
+                  </label>
+                  <div className="flex gap-2 sm:col-span-2">
+                    <Button size="sm" disabled={updateProperty.isPending || updateAgentContact.isPending} onClick={() => void saveContactDetails(contact)}>
+                      {(updateProperty.isPending || updateAgentContact.isPending) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      Save details
+                    </Button>
+                    <Button size="sm" variant="outline" disabled={updateProperty.isPending || updateAgentContact.isPending} onClick={() => setEditingContactId(null)}>Cancel</Button>
+                  </div>
+                </div>
+              ) : (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-auto w-fit px-0 py-1 text-muted-foreground"
+                  onClick={() => {
+                    setContactPhoneDraft(contact.phone ?? '');
+                    setContactEmailDraft(contact.email ?? '');
+                    setEditingContactId(contact.id);
+                  }}
+                >
+                  Edit phone and email
+                </Button>
+              )
+            )}
             {contact.notes && <p className="whitespace-pre-wrap text-sm text-muted-foreground">{contact.notes}</p>}
 
             {contact.properties.length > 0 && <div className="space-y-3 border-t pt-4">

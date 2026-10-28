@@ -55,6 +55,7 @@ export * from './agentContactCreateInputType';
 export * from './agentContactMandateInput';
 export * from './agentContactProperty';
 export * from './agentContactReviewInvitation';
+export * from './agentContactUpdateInput';
 export * from './agentPastSaleInput';
 export * from './agentPastSaleInputCurrency';
 export * from './agentReviewInput';

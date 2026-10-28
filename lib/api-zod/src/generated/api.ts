@@ -1419,10 +1419,66 @@ export const createAgentContactBodyPhoneMax = 40;
 export const CreateAgentContactBody = zod.object({
   "type": zod.enum(['seller', 'landlord']),
   "name": zod.string().min(1).max(createAgentContactBodyNameMax),
-  "phone": zod.string().min(createAgentContactBodyPhoneMin).max(createAgentContactBodyPhoneMax)
+  "phone": zod.string().min(createAgentContactBodyPhoneMin).max(createAgentContactBodyPhoneMax),
+  "email": zod.string().nullish()
 })
 
 export const CreateAgentContactResponse = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "idNumber": zod.string().nullish(),
+  "phone": zod.string().nullish(),
+  "email": zod.string().nullish(),
+  "postalAddress": zod.string().nullish(),
+  "notes": zod.string().nullish(),
+  "standalone": zod.boolean().optional(),
+  "properties": zod.array(zod.object({
+  "id": zod.number(),
+  "reference": zod.string(),
+  "title": zod.string(),
+  "address": zod.string().nullish(),
+  "suburb": zod.string(),
+  "city": zod.string(),
+  "price": zod.number().optional(),
+  "currency": zod.string().optional(),
+  "listingType": zod.string(),
+  "status": zod.string(),
+  "availabilityStatus": zod.string().nullish(),
+  "mandateType": zod.string().nullish(),
+  "mandateExpiry": zod.string().nullish(),
+  "documents": zod.array(zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "category": zod.string().describe('mandate | title_deed | id | contract | photo | video | inspection | valuation | other'),
+  "propertyId": zod.number().nullish(),
+  "url": zod.string().nullish(),
+  "sizeKb": zod.number().nullish(),
+  "version": zod.number().optional(),
+  "uploadedBy": zod.string().nullish(),
+  "createdAt": zod.string()
+}))
+}))
+})
+
+
+
+
+
+export const UpdateAgentContactParams = zod.object({
+  "contactId": zod.coerce.number().min(1)
+})
+
+export const updateAgentContactBodyPhoneMin = 5;
+export const updateAgentContactBodyPhoneMax = 40;
+
+
+
+export const UpdateAgentContactBody = zod.object({
+  "phone": zod.string().min(updateAgentContactBodyPhoneMin).max(updateAgentContactBodyPhoneMax),
+  "email": zod.string().nullable()
+})
+
+export const UpdateAgentContactResponse = zod.object({
   "id": zod.number(),
   "name": zod.string(),
   "idNumber": zod.string().nullish(),
