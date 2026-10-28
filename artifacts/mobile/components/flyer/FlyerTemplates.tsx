@@ -24,13 +24,13 @@ export interface TemplateProps {
   ) => React.ReactNode;
 }
 
-function Brand({ s, logoOk, pic, size = 34, color, align = 'flex-start' }: {
+function Brand({ s, logoOk, pic, size = 102, color, align = 'flex-start' }: {
   s: FlyerSettings; logoOk: boolean; pic: TemplateProps['pic']; size?: number; color: string; align?: 'flex-start' | 'center';
 }) {
   return (
-    <View style={{ alignItems: align, maxWidth: 150 }}>
+    <View style={{ alignItems: align, maxWidth: 150, width: 150 }}>
       {logoOk && !!s.logoUrl
-        ? pic(s.logoUrl, { width: size * 2.6, height: size }, 'contain')
+        ? pic(s.logoUrl, { width: Math.min(size * 2.6, 150), height: size }, 'contain')
         : null}
       {!!s.agencyName && (!logoOk || !s.logoUrl) && (
         <Text style={{ color, fontWeight: '900', fontSize: 14, letterSpacing: 0.5 }} numberOfLines={2}>
@@ -63,8 +63,8 @@ function ContactLine({ s, color }: { s: FlyerSettings; color: string }) {
   if (!s.contactName && !s.contactPhone) return null;
   return (
     <View>
-      {!!s.contactName && <Text style={{ color, fontSize: 8, fontWeight: '800', letterSpacing: 1 }} numberOfLines={1}>CONTACT {s.contactName.toUpperCase()}</Text>}
-      {!!s.contactPhone && <Text style={{ color, fontSize: 21, fontWeight: '900' }} numberOfLines={1} adjustsFontSizeToFit>{s.contactPhone}</Text>}
+       {!!s.contactName && <Text style={{ color, fontSize: 6, fontWeight: '800', letterSpacing: 1 }} numberOfLines={1}>CONTACT {s.contactName.toUpperCase()}</Text>}
+       {!!s.contactPhone && <Text style={{ color, fontSize: 15.75, fontWeight: '900' }} numberOfLines={1} adjustsFontSizeToFit>{s.contactPhone}</Text>}
     </View>
   );
 }
@@ -81,13 +81,13 @@ export function EditorialTemplate(p: TemplateProps) {
   return (
     <View style={[st.root, { backgroundColor: '#FFFFFF' }]}>
       <View style={{ height: 150 }}>
-        <View style={{ position: 'absolute', right: 0, top: 0, width: 230, height: 150, overflow: 'hidden', backgroundColor: '#E5E7EB' }}>
+        <View style={{ position: 'absolute', right: 0, top: 0, width: 200, height: 150, overflow: 'hidden', backgroundColor: '#E5E7EB' }}>
           <MainPhoto p={p} />
         </View>
-        <View style={{ position: 'absolute', left: 0, top: 0, width: 150, height: 150, justifyContent: 'center', paddingLeft: 14 }}>
+        <View style={{ position: 'absolute', left: 0, top: 0, width: 160, height: 150, justifyContent: 'center', paddingLeft: 5 }}>
           <Brand s={s} logoOk={p.logoOk} pic={p.pic} color={c} />
         </View>
-        <View style={{ position: 'absolute', right: 0, bottom: 0, width: 230, height: 5, backgroundColor: c }} />
+        <View style={{ position: 'absolute', right: 0, bottom: 0, width: 200, height: 5, backgroundColor: c }} />
       </View>
       <View style={{ paddingHorizontal: 14, paddingTop: 6 }}>
         <Text style={{ fontSize: 22, fontWeight: '900', color: '#111827', letterSpacing: -0.5 }} numberOfLines={1} adjustsFontSizeToFit>
@@ -121,8 +121,8 @@ export function EditorialTemplate(p: TemplateProps) {
       </View>
       <View style={[st.footer, { backgroundColor: c }]}>
         <View style={{ flex: 1 }}>
-          <Text style={{ color: on, fontSize: 6.5, opacity: 0.85 }} numberOfLines={1}>{flyerStats(property).map(x => `${x.value} ${x.label}`).join('  |  ')}</Text>
-          <Text style={{ color: on, fontSize: 6.5, opacity: 0.85, marginTop: 1 }} numberOfLines={1}>{p.shareUrl.replace(/^https?:\/\//i, '')}</Text>
+           <Text style={{ color: on, fontSize: 13, opacity: 0.85 }} numberOfLines={1}>{flyerStats(property).map(x => `${x.value} ${x.label}`).join('  |  ')}</Text>
+           <Text style={{ color: on, fontSize: 13, opacity: 0.85, marginTop: 1 }} numberOfLines={1}>{p.shareUrl.replace(/^https?:\/\//i, '')}</Text>
         </View>
         <ContactLine s={s} color={on} />
       </View>
@@ -141,7 +141,7 @@ export function ShowcaseTemplate(p: TemplateProps) {
       <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(8,12,24,0.18)' }]} />
       <View style={{ position: 'absolute', top: 14, left: 14, right: 14, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
         <View style={{ backgroundColor: 'rgba(255,255,255,0.92)', borderRadius: 6, paddingHorizontal: 9, paddingVertical: 6 }}>
-          <Brand s={s} logoOk={p.logoOk} pic={p.pic} color={c} size={26} />
+          <Brand s={s} logoOk={p.logoOk} pic={p.pic} color={c} size={78} />
         </View>
         {!!price && <View style={{ backgroundColor: c, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 6 }}><Text style={{ color: readableOn(c), fontWeight: '900', fontSize: 15 }}>{price}</Text></View>}
       </View>
@@ -177,7 +177,7 @@ export function MinimalTemplate(p: TemplateProps) {
   return (
     <View style={[st.root, { backgroundColor: '#F7F4EE', padding: 18 }]}>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-        <Brand s={s} logoOk={p.logoOk} pic={p.pic} color="#1F2937" size={24} />
+        <Brand s={s} logoOk={p.logoOk} pic={p.pic} color="#1F2937" size={72} />
         <Text style={{ fontSize: 7, letterSpacing: 2, color: '#6B7280' }}>{property.listingType === 'rent' || property.type === 'rent' ? 'TO RENT' : 'FOR SALE'}</Text>
       </View>
       <View style={{ height: 190, overflow: 'hidden', backgroundColor: '#E5E7EB' }}><MainPhoto p={p} /></View>
