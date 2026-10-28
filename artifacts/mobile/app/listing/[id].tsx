@@ -11,13 +11,13 @@ import { router, useLocalSearchParams } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useColors } from '@/hooks/useColors';
 import { propertyShareLinks } from '@/utils/shareLinks';
+import { sharePropertyGeneric } from '@/utils/whatsapp';
 import { getPrimaryListingPhoto } from '@/utils/listingPhoto';
 import { ListingImage } from '@/components/ListingImage';
 import { KeyboardAwareScrollViewCompat } from '@/components/KeyboardAwareScrollViewCompat';
 import { PropertyFlyer, PropertyFlyerHandle } from '@/components/PropertyFlyer';
 import { FlyerCustomizer } from '@/components/FlyerCustomizer';
 import { useFlyerSettings } from '@/hooks/useFlyerSettings';
-import { PropertyShareSheet } from '@/components/PropertyShareSheet';
 import { parsePrivateContactNotes, useData } from '@/contexts/DataContext';
 import { Property } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
@@ -130,7 +130,7 @@ export default function ListingDetailScreen() {
   );
   const [brochureOpen, setBrochureOpen] = useState(false);
   const [videoPlayerVisible, setVideoPlayerVisible] = useState(false);
-  const [shareOptionsOpen, setShareOptionsOpen] = useState(false);
+  const [sharingProperty, setSharingProperty] = useState(false);
   const [saleModalVisible, setSaleModalVisible] = useState(false);
   const [salePriceInput, setSalePriceInput] = useState('');
   const [conveyancerNameInput, setConveyancerNameInput] = useState('');
@@ -195,8 +195,37 @@ export default function ListingDetailScreen() {
   }
 
   const handleShare = async () => {
+    if (sharingProperty) return;
+    if (flyer.loading) {
+      Alert.alert('Preparing flyer', 'Please wait while your saved flyer and agency branding load.');
+      return;
+    }
+
+    setSharingProperty(true);
+    try {
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      await sharePropertyGeneric(
+        property,
+        () => shareCardRef.current?.capture()
+          ?? Promise.reject(new Error('Unable to prepare the property image.')),
+      );
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message.toLowerCase() : '';
+      if (!message.includes('cancel') && !message.includes('dismiss')) {
+        Alert.alert(
+          'Could not share property',
+          error instanceof Error ? error.message : 'Please try again or choose another sharing option.',
+        );
+      }
+    } finally {
+      setSharingProperty(false);
+    }
+  };
+
+  const handleCustomizeFlyer = async () => {
+    if (flyer.loading) return;
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setShareOptionsOpen(true);
+    setFlyerOpen(true);
   };
 
   const handleCreateApplicationInvite = async () => {
@@ -410,8 +439,26 @@ export default function ListingDetailScreen() {
           <TouchableOpacity
             style={[styles.iconBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
             onPress={handleShare}
+            disabled={sharingProperty}
+            accessibilityRole="button"
+            accessibilityLabel="Share property"
+            testID="share-property"
           >
-            <Ionicons name="share-outline" size={20} color={colors.foreground} />
+            {sharingProperty
+              ? <ActivityIndicator size="small" color={colors.foreground} />
+              : <Ionicons name="share-outline" size={20} color={colors.foreground} />}
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.iconBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
+            onPress={handleCustomizeFlyer}
+            disabled={flyer.loading}
+            accessibilityRole="button"
+            accessibilityLabel="Preview and customise flyer"
+            testID="preview-customise-flyer"
+          >
+            {flyer.loading
+              ? <ActivityIndicator size="small" color={colors.foreground} />
+              : <Ionicons name="image-outline" size={20} color={colors.foreground} />}
           </TouchableOpacity>
           <TouchableOpacity style={[styles.iconBtn, { backgroundColor: colors.primary }]} onPress={() => router.push(`/edit-listing/${property.id}`)}>
             <Ionicons name="create-outline" size={20} color="#FFF" />
@@ -907,8 +954,14 @@ export default function ListingDetailScreen() {
         <TouchableOpacity
           style={[styles.bottomBtn, { backgroundColor: colors.secondary }]}
           onPress={handleShare}
+          disabled={sharingProperty}
+          accessibilityRole="button"
+          accessibilityLabel="Share property"
+          testID="share-property-bottom"
         >
-          <Ionicons name="share-outline" size={18} color={colors.primary} />
+          {sharingProperty
+            ? <ActivityIndicator size="small" color={colors.primary} />
+            : <Ionicons name="share-outline" size={18} color={colors.primary} />}
           <Text style={[styles.bottomBtnText, { color: colors.primary }]}>Share</Text>
         </TouchableOpacity>
         <TouchableOpacity style={[styles.bottomBtn, { backgroundColor: colors.secondary }]} onPress={async () => {
@@ -1098,17 +1151,6 @@ export default function ListingDetailScreen() {
         visible={brochureOpen}
         onClose={() => setBrochureOpen(false)}
         property={property}
-      />
-      <PropertyShareSheet
-        visible={shareOptionsOpen}
-        onClose={() => setShareOptionsOpen(false)}
-        property={property}
-        flyerLoading={flyer.loading}
-        onCustomizeFlyer={() => setFlyerOpen(true)}
-        captureCard={() => shareCardRef.current?.capture()
-          ?? Promise.reject(new Error('Unable to prepare the property image.'))}
-        captureSocialCard={() => shareCardRef.current?.capture()
-          ?? Promise.reject(new Error('Unable to prepare the property flyer.'))}
       />
     </View>
   );
