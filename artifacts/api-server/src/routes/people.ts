@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { and, eq, ilike, inArray, or, desc } from "drizzle-orm";
+import { and, eq, ilike, inArray, or, desc, sql } from "drizzle-orm";
 import {
   branchesTable,
   documentsTable,
@@ -61,6 +61,9 @@ export async function propertyScope(user: NonNullable<Awaited<ReturnType<typeof 
   if (user.role === "agent" || user.role === "senior_agent") {
     return eq(propertiesTable.agentId, user.id);
   }
+  // A branchless Office admin can already see the full office inventory through
+  // GET /properties; keep linked seller/landlord contacts in the same scope.
+  if (user.role === "admin" && !user.branchId) return sql`true`;
   if (!user.branchId) return eq(propertiesTable.agentId, user.id);
   const [branch] = await db.select().from(branchesTable).where(eq(branchesTable.id, user.branchId)).limit(1);
   if (!branch?.agencyId) return eq(propertiesTable.branchId, user.branchId);
