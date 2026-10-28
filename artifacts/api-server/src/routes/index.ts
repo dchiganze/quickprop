@@ -24,6 +24,7 @@ import publicationSyncRouter from "./publication-sync";
 import passkeysRouter from "./passkeys";
 import agentSalesRouter from "./agent-sales";
 import agentSearchAlertsRouter from "./agent-search-alerts";
+import saleConfirmationsRouter from "./sale-confirmations";
 
 const router: IRouter = Router();
 
@@ -39,6 +40,7 @@ router.use(rentalProfileRouter);
 router.use(rentalApplicationsRouter);
 router.use(propertyAlertsRouter);
 router.use(reviewsRouter);
+router.use(saleConfirmationsRouter);
 // Crawler-facing public share pages and generated social preview images.
 router.use(shareRouter);
 // Signed server-to-server publication requests from the development Office

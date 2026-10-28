@@ -17,3 +17,4 @@ export * from "./agency-settings";
 export * from "./password-reset";
 export * from "./passkeys";
 export * from "./agent-past-sales";
+export * from "./property-sale-confirmations";

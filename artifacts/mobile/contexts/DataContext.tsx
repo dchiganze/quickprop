@@ -9,12 +9,13 @@ import {
   createProperty, createTask, createViewing, deleteAgentSearchAlert, deleteProperty as deleteRemoteProperty,
   deleteTask as deleteRemoteTask, deleteViewing as deleteRemoteViewing,
   listAgentSearchAlerts, listProperties, listTasks, listViewings,
-  markAgentSearchAlertMatchesSeen, upsertAgentSearchAlert,
+  markAgentSearchAlertMatchesSeen, markPropertySold as markRemotePropertySold, upsertAgentSearchAlert,
   updateProperty as updateRemoteProperty,
   updateTask as updateRemoteTask, updateViewing as updateRemoteViewing,
   type AgentSearchAlert as ApiAgentSearchAlert,
   type AgentSearchAlertInput,
   type Property as ApiProperty, type PropertyInput, type PropertyUpdate,
+  type MarkPropertySoldInput, type PropertySaleConfirmationRequestResult,
   type Task as ApiTask, type TaskInput, type TaskUpdate,
   type Viewing as ApiViewing, type ViewingInput, type ViewingUpdate,
 } from '@workspace/api-client-react';
@@ -44,6 +45,7 @@ interface DataContextType {
   syncNow: () => Promise<void>;
   addProperty: (p: Omit<Property, 'id' | 'createdAt' | 'updatedAt'>) => Promise<Property>;
   updateProperty: (id: string, updates: Partial<Property>) => Promise<void>;
+  recordPropertySale: (id: string, input: MarkPropertySoldInput) => Promise<PropertySaleConfirmationRequestResult>;
   deleteProperty: (id: string) => Promise<void>;
   addLead: (l: Omit<Lead, 'id' | 'createdAt'>) => Promise<Lead>;
   updateLead: (id: string, updates: Partial<Lead>) => Promise<void>;
@@ -1032,6 +1034,24 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const recordPropertySale = async (id: string, input: MarkPropertySoldInput) => {
+    if (!remoteEnabled(user?.id) || !isServerId(id)) {
+      throw new Error('Sync this listing to QuickProp before recording a sale.');
+    }
+    if (isOffline) throw new Error('Connect to the internet to request conveyancer confirmation.');
+    await syncNow();
+    if (pendingSyncRef.current.some(operation => operation.kind === 'property-update' && operation.localId === id)) {
+      throw new Error('This listing has unsynced changes. Sync it and try recording the sale again.');
+    }
+    const result = await markRemotePropertySold(Number(id), input);
+    const remote = toMobileProperty(result.property);
+    propertiesRef.current = propertiesRef.current.map(property => property.id === id ? remote : property);
+    propertiesVersionRef.current += 1;
+    setProperties(propertiesRef.current);
+    await save(PROPS_KEY, propertiesRef);
+    return result;
+  };
+
   const deleteProperty = async (id: string) => {
     const updated = propertiesRef.current.filter(p => p.id !== id);
     propertiesRef.current = updated;
@@ -1211,7 +1231,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       alertMatches, unseenMatchCount, isLoading,
       cloudSyncEnabled, cloudSyncState, lastSyncedAt, lastSyncError,
       pendingSyncCount: pendingSyncRef.current.length, syncNow,
-      addProperty, updateProperty, deleteProperty,
+      addProperty, updateProperty, recordPropertySale, deleteProperty,
       addLead, updateLead, addTask, updateTask, deleteTask,
       addViewing, updateViewing, deleteViewing,
       addAlert, deleteAlert, dismissAlertMatches,

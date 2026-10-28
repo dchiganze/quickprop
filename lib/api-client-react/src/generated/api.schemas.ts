@@ -892,7 +892,72 @@ export interface PropertyUpdate {
 
 export interface MarkPropertySoldInput {
   /** @exclusiveMinimum 0 */
-  salePrice: number;
+  salePrice?: number;
+  soldAt?: string;
+  /**
+     * @minLength 1
+     * @maxLength 160
+     */
+  conveyancerName: string;
+  /**
+     * @maxLength 254
+     * @pattern ^[^\s@]+@[^\s@]+\.[^\s@]+$
+     */
+  conveyancerEmail?: string;
+  /**
+     * @minLength 7
+     * @maxLength 40
+     */
+  conveyancerPhone?: string;
+}
+
+export interface PropertySaleConfirmationRequestResult {
+  property: Property;
+  /** @minLength 1 */
+  confirmationUrl: string;
+  expiresAt: string;
+}
+
+export type PublicSaleConfirmationStatus = typeof PublicSaleConfirmationStatus[keyof typeof PublicSaleConfirmationStatus];
+
+
+export const PublicSaleConfirmationStatus = {
+  pending: 'pending',
+  confirmed: 'confirmed',
+} as const;
+
+export interface PublicSaleConfirmation {
+  status: PublicSaleConfirmationStatus;
+  propertyReference: string;
+  propertyTitle: string;
+  agentName: string;
+  currency: string;
+  /** @nullable */
+  salePrice: number | null;
+  expiresAt: string;
+  /** @nullable */
+  confirmedAt?: string | null;
+}
+
+export interface PublicSaleConfirmationInput {
+  /**
+     * @minLength 64
+     * @maxLength 64
+     */
+  token: string;
+}
+
+export type PublicSaleConfirmationResultStatus = typeof PublicSaleConfirmationResultStatus[keyof typeof PublicSaleConfirmationResultStatus];
+
+
+export const PublicSaleConfirmationResultStatus = {
+  confirmed: 'confirmed',
+  already_confirmed: 'already_confirmed',
+} as const;
+
+export interface PublicSaleConfirmationResult {
+  status: PublicSaleConfirmationResultStatus;
+  confirmedAt: string;
 }
 
 export interface CollaborationRequestInput {
@@ -3127,6 +3192,14 @@ maxPrice?: number;
 
 export type ListRentalApplicationsParams = {
 propertyId?: number;
+};
+
+export type GetPublicSaleConfirmationParams = {
+/**
+ * @minLength 64
+ * @maxLength 64
+ */
+token: string;
 };
 
 export type ListCollaborationDiscoveryParams = {

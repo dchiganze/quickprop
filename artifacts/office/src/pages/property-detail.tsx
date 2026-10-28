@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'wouter';
 import { 
-  useGetProperty, useUpdateProperty, useGetPropertyPriceHistory, 
+  useGetProperty, getGetPropertyQueryKey, useUpdateProperty, useMarkPropertySold, useGetPropertyPriceHistory, 
   useGetPropertyActivity, useGetSeller, getGetSellerQueryKey, useListViewings, useListDocuments,
   useGenerateBrochure, useShareProperty 
   , useGetMultiAgentProperty, useUpdatePropertyHealth, useGetAdminAgencySettings
@@ -25,6 +25,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Calendar as DateCalendar } from '@/components/ui/calendar';
 import { useToast } from '@/hooks/use-toast';
+import { useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import {
   buildPropertyShareCaption,
@@ -158,6 +159,7 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
   const propertyId = parseInt(params.id, 10);
   const [, navigate] = useLocation();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const { data: property, isLoading } = useGetProperty(propertyId);
   const { data: activity } = useGetPropertyActivity(propertyId);
@@ -171,6 +173,7 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
   const { data: seller } = useGetSeller(sellerId || 0, { query: { enabled: !!sellerId, queryKey: getGetSellerQueryKey(sellerId || 0) }});
 
   const updateProperty = useUpdateProperty();
+  const markPropertySold = useMarkPropertySold();
   const generateBrochure = useGenerateBrochure();
   const shareProperty = useShareProperty();
   const updateHealth = useUpdatePropertyHealth();
@@ -178,6 +181,15 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
   const [saleDialogOpen, setSaleDialogOpen] = useState(false);
   const [salePrice, setSalePrice] = useState('');
   const [saleDate, setSaleDate] = useState('');
+  const [conveyancerName, setConveyancerName] = useState('');
+  const [conveyancerEmail, setConveyancerEmail] = useState('');
+  const [conveyancerPhone, setConveyancerPhone] = useState('');
+  const [saleConfirmation, setSaleConfirmation] = useState<{
+    confirmationUrl: string;
+    conveyancerEmail: string;
+    conveyancerPhone: string;
+    conveyancerName: string;
+  } | null>(null);
   const [editOpen, setEditOpen] = useState(false);
   const [viewingPickerOpen, setViewingPickerOpen] = useState(false);
   const [activeViewingSlot, setActiveViewingSlot] = useState<number | null>(null);
@@ -284,6 +296,10 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
     if (nextStatus === 'sold') {
       setSalePrice(property.salePrice == null ? '' : String(property.salePrice));
       setSaleDate(property.soldAt ? property.soldAt.slice(0, 10) : '');
+      setConveyancerName('');
+      setConveyancerEmail('');
+      setConveyancerPhone('');
+      setSaleConfirmation(null);
       setSaleDialogOpen(true);
       return;
     }
@@ -310,20 +326,36 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
       toast({ title: 'Invalid sale price', description: 'Enter a positive final sale price or leave it blank.', variant: 'destructive' });
       return;
     }
-    updateProperty.mutate({
+    if (!conveyancerName.trim()) {
+      toast({ title: 'Conveyancer name required', description: 'Enter the conveyancer’s name to request sale confirmation.', variant: 'destructive' });
+      return;
+    }
+    if (!conveyancerEmail.trim() && !conveyancerPhone.trim()) {
+      toast({ title: 'Contact details required', description: 'Enter the conveyancer’s email address or WhatsApp number.', variant: 'destructive' });
+      return;
+    }
+    markPropertySold.mutate({
       id: propertyId,
       data: {
-        availabilityStatus: 'sold',
         ...(parsedSalePrice == null ? {} : { salePrice: parsedSalePrice }),
         ...(saleDate ? { soldAt: new Date(`${saleDate}T00:00:00`).toISOString() } : {}),
+        conveyancerName: conveyancerName.trim(),
+        ...(conveyancerEmail.trim() ? { conveyancerEmail: conveyancerEmail.trim() } : {}),
+        ...(conveyancerPhone.trim() ? { conveyancerPhone: conveyancerPhone.trim() } : {}),
       },
     }, {
-      onSuccess: () => {
-        setSaleDialogOpen(false);
+      onSuccess: (result) => {
         setSellingStatus('sold');
+        queryClient.invalidateQueries({ queryKey: getGetPropertyQueryKey(propertyId) });
+        setSaleConfirmation({
+          confirmationUrl: result.confirmationUrl,
+          conveyancerEmail: conveyancerEmail.trim(),
+          conveyancerPhone: conveyancerPhone.trim(),
+          conveyancerName: conveyancerName.trim(),
+        });
         toast({
-          title: 'Selling status updated',
-          description: 'Property marked as Sold. Adding the sale price and date enhances your selling history on the marketplace.',
+          title: 'Sale recorded — confirmation pending',
+          description: 'The property will appear in your public sales history after the conveyancer confirms it.',
         });
       },
       onError: (error) => {
@@ -712,37 +744,84 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
       <Dialog open={saleDialogOpen} onOpenChange={setSaleDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Mark property as sold</DialogTitle>
+            <DialogTitle>{saleConfirmation ? 'Conveyancer confirmation pending' : 'Mark property as sold'}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              Sale price and date are optional. Adding them enhances your selling history on the QuickProp marketplace.
-            </p>
-            <div className="space-y-2">
-              <label htmlFor="sale-price" className="text-sm font-medium">Final sale price ({property.currency})</label>
-              <Input
-                id="sale-price"
-                inputMode="decimal"
-                value={salePrice}
-                onChange={(event) => setSalePrice(event.target.value)}
-                placeholder="Enter sale price"
-                autoFocus
-              />
+          {saleConfirmation ? (
+            <div className="space-y-4">
+              <p className="text-sm leading-6 text-muted-foreground">
+                The sale is recorded, but it will not appear on your public agent profile until {saleConfirmation.conveyancerName} confirms it.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {saleConfirmation.conveyancerEmail && (
+                  <Button
+                    onClick={() => {
+                      const subject = `Please confirm completed sale — ${property.reference}`;
+                      const body = `Hello ${saleConfirmation.conveyancerName},\n\nPlease confirm the completed sale of ${property.title} (${property.reference}) for ${property.currency} ${salePrice || 'the agreed price'}.\n\nConfirm securely here: ${saleConfirmation.confirmationUrl}\n\nThank you.`;
+                      window.location.href = `mailto:${encodeURIComponent(saleConfirmation.conveyancerEmail)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+                    }}
+                    data-testid="button-share-sale-confirmation-email"
+                  >
+                    <Mail className="mr-2 h-4 w-4" /> Open email draft
+                  </Button>
+                )}
+                {saleConfirmation.conveyancerPhone && (
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      const phone = saleConfirmation.conveyancerPhone.replace(/\D/g, '');
+                      const text = `Hello ${saleConfirmation.conveyancerName}, please confirm the completed sale of ${property.title} (${property.reference}) using this secure link: ${saleConfirmation.confirmationUrl}`;
+                      window.open(`https://wa.me/${phone}?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer');
+                    }}
+                    data-testid="button-share-sale-confirmation-whatsapp"
+                  >
+                    <MessageCircle className="mr-2 h-4 w-4" /> Open WhatsApp
+                  </Button>
+                )}
+              </div>
+              <p className="break-all rounded-md bg-muted p-3 text-xs text-muted-foreground">{saleConfirmation.confirmationUrl}</p>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setSaleDialogOpen(false)}>Done</Button>
+              </DialogFooter>
             </div>
-            <div className="space-y-2">
-              <label htmlFor="sale-date" className="text-sm font-medium">Sale date (optional)</label>
-              <Input
-                id="sale-date"
-                type="date"
-                value={saleDate}
-                onChange={(event) => setSaleDate(event.target.value)}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setSaleDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleConfirmSale} disabled={updateProperty.isPending}>Save sold status</Button>
-          </DialogFooter>
+          ) : (
+            <>
+              <div className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  The sale will appear on your public profile only after the conveyancer confirms it using a secure link.
+                </p>
+                <div className="space-y-2">
+                  <label htmlFor="sale-price" className="text-sm font-medium">Final sale price ({property.currency}, optional)</label>
+                  <Input id="sale-price" inputMode="decimal" value={salePrice} onChange={(event) => setSalePrice(event.target.value)} placeholder="Enter sale price" autoFocus />
+                </div>
+                <div className="space-y-2">
+                  <label htmlFor="sale-date" className="text-sm font-medium">Sale date (optional)</label>
+                  <Input id="sale-date" type="date" value={saleDate} onChange={(event) => setSaleDate(event.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <label htmlFor="sale-conveyancer-name" className="text-sm font-medium">Conveyancer name</label>
+                  <Input id="sale-conveyancer-name" value={conveyancerName} onChange={(event) => setConveyancerName(event.target.value)} placeholder="Name of conveyancer" />
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <label htmlFor="sale-conveyancer-email" className="text-sm font-medium">Email</label>
+                    <Input id="sale-conveyancer-email" type="email" value={conveyancerEmail} onChange={(event) => setConveyancerEmail(event.target.value)} placeholder="name@example.com" />
+                  </div>
+                  <div className="space-y-2">
+                    <label htmlFor="sale-conveyancer-phone" className="text-sm font-medium">WhatsApp number</label>
+                    <Input id="sale-conveyancer-phone" type="tel" value={conveyancerPhone} onChange={(event) => setConveyancerPhone(event.target.value)} placeholder="+263…" />
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground">Enter at least one contact method. QuickProp opens a message draft; the agent sends it.</p>
+                {markPropertySold.isError && <p role="alert" className="text-sm text-destructive">{markPropertySold.error.message}</p>}
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setSaleDialogOpen(false)}>Cancel</Button>
+                <Button onClick={handleConfirmSale} disabled={markPropertySold.isPending}>
+                  {markPropertySold.isPending ? 'Saving…' : 'Save sold status'}
+                </Button>
+              </DialogFooter>
+            </>
+          )}
         </DialogContent>
       </Dialog>
       <Dialog open={viewingPickerOpen} onOpenChange={setViewingPickerOpen}>

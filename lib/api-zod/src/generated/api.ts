@@ -778,13 +778,30 @@ export const MarkPropertySoldParams = zod.object({
 
 export const markPropertySoldBodySalePriceExclusiveMin = 0;
 
+export const markPropertySoldBodyConveyancerNameMax = 160;
+
+export const markPropertySoldBodyConveyancerEmailMax = 254;
+
+
+export const markPropertySoldBodyConveyancerEmailRegExp = new RegExp('^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$');
+export const markPropertySoldBodyConveyancerPhoneMin = 7;
+export const markPropertySoldBodyConveyancerPhoneMax = 40;
+
 
 
 export const MarkPropertySoldBody = zod.object({
-  "salePrice": zod.number().gt(markPropertySoldBodySalePriceExclusiveMin)
+  "salePrice": zod.number().gt(markPropertySoldBodySalePriceExclusiveMin).optional(),
+  "soldAt": zod.coerce.date().optional(),
+  "conveyancerName": zod.string().min(1).max(markPropertySoldBodyConveyancerNameMax),
+  "conveyancerEmail": zod.string().max(markPropertySoldBodyConveyancerEmailMax).regex(markPropertySoldBodyConveyancerEmailRegExp).optional(),
+  "conveyancerPhone": zod.string().min(markPropertySoldBodyConveyancerPhoneMin).max(markPropertySoldBodyConveyancerPhoneMax).optional()
 })
 
+
+
+
 export const MarkPropertySoldResponse = zod.object({
+  "property": zod.object({
   "id": zod.number(),
   "reference": zod.string(),
   "title": zod.string(),
@@ -846,6 +863,45 @@ export const MarkPropertySoldResponse = zod.object({
   "lastReminderSentAt": zod.string().nullish(),
   "reminderCount": zod.number().optional(),
   "staleSince": zod.string().nullish()
+}),
+  "confirmationUrl": zod.string().min(1),
+  "expiresAt": zod.coerce.date()
+})
+
+
+export const getPublicSaleConfirmationQueryTokenMin = 64;
+export const getPublicSaleConfirmationQueryTokenMax = 64;
+
+
+
+export const GetPublicSaleConfirmationQueryParams = zod.object({
+  "token": zod.coerce.string().min(getPublicSaleConfirmationQueryTokenMin).max(getPublicSaleConfirmationQueryTokenMax)
+})
+
+export const GetPublicSaleConfirmationResponse = zod.object({
+  "status": zod.enum(['pending', 'confirmed']),
+  "propertyReference": zod.string(),
+  "propertyTitle": zod.string(),
+  "agentName": zod.string(),
+  "currency": zod.string(),
+  "salePrice": zod.number().nullable(),
+  "expiresAt": zod.coerce.date(),
+  "confirmedAt": zod.coerce.date().nullish()
+})
+
+
+export const confirmPublicSaleBodyTokenMin = 64;
+export const confirmPublicSaleBodyTokenMax = 64;
+
+
+
+export const ConfirmPublicSaleBody = zod.object({
+  "token": zod.string().min(confirmPublicSaleBodyTokenMin).max(confirmPublicSaleBodyTokenMax)
+})
+
+export const ConfirmPublicSaleResponse = zod.object({
+  "status": zod.enum(['confirmed', 'already_confirmed']),
+  "confirmedAt": zod.coerce.date()
 })
 
 

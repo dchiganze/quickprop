@@ -489,12 +489,44 @@ paths:
             schema: { $ref: "#/components/schemas/MarkPropertySoldInput" }
       responses:
         "200":
-          description: Property marked as sold
+          description: Property marked as sold and awaiting conveyancer confirmation
           content:
             application/json:
-              schema: { $ref: "#/components/schemas/Property" }
-        "400": { description: Sale price is missing or invalid }
+              schema: { $ref: "#/components/schemas/PropertySaleConfirmationRequestResult" }
+        "400": { description: Invalid sale or conveyancer details }
         "404": { description: Not found }
+        "409": { description: Only sale listings can be marked as sold }
+  /public/sale-confirmation:
+    get:
+      operationId: getPublicSaleConfirmation
+      tags: [public]
+      parameters:
+        - { name: token, in: query, required: true, schema: { type: string, minLength: 64, maxLength: 64 } }
+      responses:
+        "200":
+          description: Sale awaiting conveyancer confirmation
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PublicSaleConfirmation" }
+        "404": { description: Confirmation link not found }
+        "410": { description: Confirmation link expired or already used }
+    post:
+      operationId: confirmPublicSale
+      tags: [public]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PublicSaleConfirmationInput" }
+      responses:
+        "200":
+          description: Conveyancer confirmation recorded
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PublicSaleConfirmationResult" }
+        "400": { description: Invalid confirmation link }
+        "404": { description: Confirmation link not found }
+        "410": { description: Confirmation link expired }
   /properties/{id}/price-history:
     get:
       operationId: getPropertyPriceHistory
@@ -3383,9 +3415,43 @@ components:
         collaborationEnabled: { type: boolean }
     MarkPropertySoldInput:
       type: object
-      required: [salePrice]
+      required: [conveyancerName]
       properties:
         salePrice: { type: number, exclusiveMinimum: 0 }
+        soldAt: { type: string, format: date-time }
+        conveyancerName: { type: string, minLength: 1, maxLength: 160 }
+        conveyancerEmail: { type: string, maxLength: 254, pattern: '^[^\s@]+@[^\s@]+\.[^\s@]+$' }
+        conveyancerPhone: { type: string, minLength: 7, maxLength: 40 }
+    PropertySaleConfirmationRequestResult:
+      type: object
+      required: [property, confirmationUrl, expiresAt]
+      properties:
+        property: { $ref: "#/components/schemas/Property" }
+        confirmationUrl: { type: string, minLength: 1 }
+        expiresAt: { type: string, format: date-time }
+    PublicSaleConfirmation:
+      type: object
+      required: [status, propertyReference, propertyTitle, agentName, currency, salePrice, expiresAt]
+      properties:
+        status: { type: string, enum: [pending, confirmed] }
+        propertyReference: { type: string }
+        propertyTitle: { type: string }
+        agentName: { type: string }
+        currency: { type: string }
+        salePrice: { type: ["number", "null"] }
+        expiresAt: { type: string, format: date-time }
+        confirmedAt: { type: ["string", "null"], format: date-time }
+    PublicSaleConfirmationInput:
+      type: object
+      required: [token]
+      properties:
+        token: { type: string, minLength: 64, maxLength: 64 }
+    PublicSaleConfirmationResult:
+      type: object
+      required: [status, confirmedAt]
+      properties:
+        status: { type: string, enum: [confirmed, already_confirmed] }
+        confirmedAt: { type: string, format: date-time }
     CollaborationRequestInput:
       type: object
       required: [propertyId]

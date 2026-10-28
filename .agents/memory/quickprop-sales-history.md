@@ -8,3 +8,9 @@ Agents can enter sales completed before joining QuickProp through Office, and ad
 **Why:** The user wants agents' complete past-sales track records and median prices on the marketplace, including business that was never listed through QuickProp. Turning historical entries into inventory would misrepresent active portfolios and operational activity.
 
 **How to apply:** Keep historical records separate from operational properties, while combining them with completed QuickProp listing sales for the public track record. Use actual sale prices, never asking prices, for medians; keep currencies separate without invented exchange rates. Agency branding comes from the agent's assigned branch's agency, not a global fallback that could misattribute an agent.
+
+New QuickProp sales must remain out of public agent sales history until the conveyancer confirms them through the secure confirmation link. Existing sold listings without a verification record are grandfathered into the track record.
+
+**Why:** The user requires conveyancer confirmation before an agent-reported sale appears publicly, while preserving sales already shown on existing profiles.
+
+**How to apply:** Route all new sold-status changes through the confirmation flow, keep pending sales private, and preserve legacy and separately entered historical sales.

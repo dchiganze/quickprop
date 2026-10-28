@@ -7,6 +7,7 @@ import { startReviewInvitationScheduler } from "./lib/agent-reviews";
 import { startRentalReferenceScheduler } from "./lib/rental-references";
 import { startPropertyAlertScheduler } from "./lib/property-alerts";
 import { ensurePropertySaleColumns } from "./lib/property-schema";
+import { ensurePropertySaleConfirmationSchema } from "./lib/property-sale-confirmations";
 import { ensurePasskeyTable } from "./routes/passkeys";
 import { ensureAgentPastSalesTable } from "./lib/agent-sales";
 import { ensureViewingReminderSchema, startViewingReminderScheduler } from "./lib/viewing-reminders";
@@ -27,6 +28,7 @@ if (Number.isNaN(port) || port <= 0) {
 
 async function startServer(): Promise<void> {
   await ensurePropertySaleColumns();
+  await ensurePropertySaleConfirmationSchema();
   await ensureAgentPastSalesTable();
   await ensureViewingReminderSchema();
   await ensurePasskeyTable();

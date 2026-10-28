@@ -15,6 +15,7 @@ import {
   leadsTable,
   collaborationMatchRequestsTable,
   propertyDuplicateReviewsTable,
+  propertySaleConfirmationsTable,
 } from "@workspace/db";
 import {
   ListPropertiesQueryParams,
@@ -25,6 +26,7 @@ import {
   UpdatePropertyBody,
   UpdatePropertyResponse,
   MarkPropertySoldBody,
+  MarkPropertySoldResponse,
   GetPropertyPriceHistoryResponse,
   GetPropertyActivityResponse,
   GetPipelineResponse,
@@ -41,6 +43,12 @@ import { matchPropertyToAlerts } from "../lib/property-alerts";
 import { logger } from "../lib/logger";
 import { isPublicProperty, syncPropertyToProduction } from "../lib/publication-sync";
 import { hasListingPhotos, needsPublicationPhoto } from "../lib/property-drafts";
+import {
+  createPropertySaleConfirmationToken,
+  hashPropertySaleConfirmationToken,
+  PROPERTY_SALE_CONFIRMATION_TTL_MS,
+  publicPropertySaleConfirmationUrl,
+} from "../lib/property-sale-confirmations";
 
 const router: IRouter = Router();
 
@@ -106,6 +114,10 @@ router.post("/properties", async (req, res): Promise<void> => {
   const parsed = CreatePropertyBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+  if (parsed.data.status === "sold") {
+    res.status(400).json({ error: "A new property cannot be created as sold. Use the Mark as sold flow to request conveyancer confirmation." });
     return;
   }
   if (!hasListingPhotos(parsed.data.photos)) {
@@ -264,6 +276,10 @@ router.patch("/properties/:id", async (req, res): Promise<void> => {
   }
   const requestedSellingStatus = parsed.data.availabilityStatus
     ?? (["under_offer", "sold", "withdrawn"].includes(parsed.data.status ?? "") ? parsed.data.status : undefined);
+  if (requestedSellingStatus === "sold") {
+    res.status(409).json({ error: "Use the Mark as sold flow to request conveyancer confirmation." });
+    return;
+  }
   const {
     sellerName,
     sellerPhone,
@@ -398,28 +414,86 @@ router.post("/properties/:id/mark-sold", async (req, res): Promise<void> => {
     return;
   }
   const user = await currentUser(req);
+  if (!user) {
+    res.status(401).json({ error: "Not logged in." });
+    return;
+  }
+  const conveyancerEmail = parsed.data.conveyancerEmail?.trim().toLowerCase() || null;
+  const conveyancerPhone = parsed.data.conveyancerPhone?.trim() || null;
+  if (!conveyancerEmail && !conveyancerPhone) {
+    res.status(400).json({ error: "Add an email address or phone number for the conveyancer." });
+    return;
+  }
   const ownership = user?.role === "agent" || user?.role === "senior_agent"
     ? and(eq(propertiesTable.id, id), eq(propertiesTable.agentId, user.id))
     : eq(propertiesTable.id, id);
-  const [row] = await db.update(propertiesTable).set({
-    status: "sold",
-    pipelineStage: "sold",
-    availabilityStatus: "sold",
-    freshnessStatus: "inactive",
-    nextConfirmationAt: null,
-    salePrice: parsed.data.salePrice,
-    soldAt: new Date(),
-    soldBy: user?.id ?? null,
-    updatedAt: new Date(),
-  }).where(ownership).returning();
-  if (!row) {
+  if (parsed.data.salePrice != null && (!Number.isFinite(parsed.data.salePrice) || parsed.data.salePrice <= 0)) {
+    res.status(400).json({ error: "Sale price must be positive when provided." });
+    return;
+  }
+  const now = new Date();
+  const token = createPropertySaleConfirmationToken();
+  const expiresAt = new Date(now.getTime() + PROPERTY_SALE_CONFIRMATION_TTL_MS);
+  const result = await db.transaction(async (tx) => {
+    const [existing] = await tx.select().from(propertiesTable).where(ownership).for("update").limit(1);
+    if (!existing) return null;
+    if (existing.listingType !== "sale") return "not_sale" as const;
+    const [row] = await tx.update(propertiesTable).set({
+      status: "sold",
+      pipelineStage: "sold",
+      availabilityStatus: "sold",
+      freshnessStatus: "inactive",
+      nextConfirmationAt: null,
+      salePrice: parsed.data.salePrice ?? existing.salePrice,
+      soldAt: parsed.data.soldAt ?? now,
+      soldBy: user.id,
+      updatedAt: now,
+    }).where(eq(propertiesTable.id, id)).returning();
+    const [confirmation] = await tx.insert(propertySaleConfirmationsTable).values({
+      propertyId: id,
+      requestedBy: user.id,
+      tokenHash: hashPropertySaleConfirmationToken(token),
+      conveyancerName: parsed.data.conveyancerName.trim(),
+      conveyancerEmail,
+      conveyancerPhone,
+      status: "pending",
+      expiresAt,
+      confirmedAt: null,
+      createdAt: now,
+      updatedAt: now,
+    }).onConflictDoUpdate({
+      target: propertySaleConfirmationsTable.propertyId,
+      set: {
+        requestedBy: user.id,
+        tokenHash: hashPropertySaleConfirmationToken(token),
+        conveyancerName: parsed.data.conveyancerName.trim(),
+        conveyancerEmail,
+        conveyancerPhone,
+        status: "pending",
+        expiresAt,
+        confirmedAt: null,
+        updatedAt: now,
+      },
+    }).returning();
+    return { row, confirmation };
+  });
+  if (!result) {
     res.status(404).json({ error: "Property not found" });
     return;
   }
-  await logActivity("status_change", `${row.reference} marked as sold for ${row.currency} ${row.salePrice?.toLocaleString()}`, "property", id, user?.name);
-  await logAudit("edited", "property", id, `Marked ${row.reference} as sold`, user?.id, user?.name);
+  if (result === "not_sale") {
+    res.status(409).json({ error: "Only sale listings can be marked as sold." });
+    return;
+  }
+  const { row, confirmation } = result;
+  await logActivity("status_change", `${row.reference} marked as sold, awaiting conveyancer confirmation`, "property", id, user.name);
+  await logAudit("edited", "property", id, `Marked ${row.reference} as sold; conveyancer confirmation requested`, user.id, user.name);
   await queuePrimaryReviewInvitation(id, "sold");
-  res.json(GetPropertyResponse.parse(jsonify(row)));
+  res.json(MarkPropertySoldResponse.parse({
+    property: jsonify(row),
+    confirmationUrl: publicPropertySaleConfirmationUrl(token),
+    expiresAt: confirmation.expiresAt.toISOString(),
+  }));
 });
 
 router.delete("/properties/:id", async (req, res): Promise<void> => {

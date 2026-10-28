@@ -8,5 +8,21 @@
 
 export interface MarkPropertySoldInput {
   /** @exclusiveMinimum 0 */
-  salePrice: number;
+  salePrice?: number;
+  soldAt?: Date;
+  /**
+     * @minLength 1
+     * @maxLength 160
+     */
+  conveyancerName: string;
+  /**
+     * @maxLength 254
+     * @pattern ^[^\s@]+@[^\s@]+\.[^\s@]+$
+     */
+  conveyancerEmail?: string;
+  /**
+     * @minLength 7
+     * @maxLength 40
+     */
+  conveyancerPhone?: string;
 }

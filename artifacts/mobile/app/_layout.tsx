@@ -3,6 +3,7 @@ import { Appearance, Linking, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { router, Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
@@ -124,17 +125,19 @@ function RootLayout() {
 
   return (
     <SafeAreaProvider>
-      <ErrorBoundary>
-        <QueryClientProvider client={queryClient}>
-          <ConnectivityProvider>
-            <AuthProvider>
-              <DataProvider>
-                <RootLayoutNav />
-              </DataProvider>
-            </AuthProvider>
-          </ConnectivityProvider>
-        </QueryClientProvider>
-      </ErrorBoundary>
+      <KeyboardProvider>
+        <ErrorBoundary>
+          <QueryClientProvider client={queryClient}>
+            <ConnectivityProvider>
+              <AuthProvider>
+                <DataProvider>
+                  <RootLayoutNav />
+                </DataProvider>
+              </AuthProvider>
+            </ConnectivityProvider>
+          </QueryClientProvider>
+        </ErrorBoundary>
+      </KeyboardProvider>
     </SafeAreaProvider>
   );
 }

@@ -1,5 +1,5 @@
-import { and, eq, or, desc } from "drizzle-orm";
-import { db, pool, agentPastSalesTable, branchesTable, businessAgenciesTable, propertiesTable } from "@workspace/db";
+import { and, desc, eq, isNull, or } from "drizzle-orm";
+import { db, pool, agentPastSalesTable, branchesTable, businessAgenciesTable, propertiesTable, propertySaleConfirmationsTable } from "@workspace/db";
 import { medianSalePrices } from "./agent-sales-summary";
 
 /** Additive, restart-safe provisioning for existing installations. */
@@ -36,10 +36,13 @@ export async function getAgentSalesHistory(agentId: number) {
       id: propertiesTable.id, reference: propertiesTable.reference, title: propertiesTable.title,
       suburb: propertiesTable.suburb, city: propertiesTable.city, currency: propertiesTable.currency,
       salePrice: propertiesTable.salePrice, soldAt: propertiesTable.soldAt,
-    }).from(propertiesTable).where(and(
-      eq(propertiesTable.agentId, agentId),
-      or(eq(propertiesTable.availabilityStatus, "sold"), eq(propertiesTable.status, "sold")),
-    )),
+    }).from(propertiesTable)
+      .leftJoin(propertySaleConfirmationsTable, eq(propertySaleConfirmationsTable.propertyId, propertiesTable.id))
+      .where(and(
+        eq(propertiesTable.agentId, agentId),
+        or(eq(propertiesTable.availabilityStatus, "sold"), eq(propertiesTable.status, "sold")),
+        or(isNull(propertySaleConfirmationsTable.id), eq(propertySaleConfirmationsTable.status, "confirmed")),
+      )),
   ]);
   const sales = [
     ...past.map(({ id, title, suburb, city, currency, salePrice, soldAt }) => ({

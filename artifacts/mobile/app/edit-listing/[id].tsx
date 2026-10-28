@@ -207,7 +207,12 @@ export default function EditListingScreen() {
           {/* Status */}
           <Text style={[styles.sectionHeading, { color: colors.mutedForeground }]}>STATUS</Text>
           <View style={styles.chipRow}>
-            {STATUSES.map(s => (
+            {status === 'sold' && (
+              <View style={[styles.statusChip, { backgroundColor: colors.muted, borderColor: colors.border }]}>
+                <Text style={[styles.statusChipText, { color: colors.mutedForeground }]}>Sold · confirmed through sale flow</Text>
+              </View>
+            )}
+            {STATUSES.filter(s => s !== 'sold').map(s => (
               <TouchableOpacity
                 key={s}
                 style={[styles.statusChip, { backgroundColor: status === s ? STATUS_COLORS[s] : colors.secondary, borderColor: status === s ? STATUS_COLORS[s] : colors.border }]}

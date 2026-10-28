@@ -101,6 +101,7 @@ import type {
   GetAgentContactsParams,
   GetPasskeyAuthenticationOptions200,
   GetPasskeyRegistrationOptions200,
+  GetPublicSaleConfirmationParams,
   GetStoredMediaUrlParams,
   HealthStatus,
   HealthUpdateInput,
@@ -162,6 +163,7 @@ import type {
   PropertyInput,
   PropertyMatch,
   PropertyModerationInput,
+  PropertySaleConfirmationRequestResult,
   PropertyUpdate,
   PublicAgent,
   PublicAgentProfile,
@@ -172,6 +174,9 @@ import type {
   PublicRentalApplication,
   PublicRentalReference,
   PublicReviewInvitation,
+  PublicSaleConfirmation,
+  PublicSaleConfirmationInput,
+  PublicSaleConfirmationResult,
   PublicSellingHistory,
   PublishImportInput,
   PublishImportResult,
@@ -2146,9 +2151,9 @@ export const getMarkPropertySoldUrl = (id: number,) => {
 }
 
 export const markPropertySold = async (id: number,
-    markPropertySoldInput: MarkPropertySoldInput, options?: RequestInit): Promise<Property> => {
+    markPropertySoldInput: MarkPropertySoldInput, options?: RequestInit): Promise<PropertySaleConfirmationRequestResult> => {
 
-  return customFetch<Property>(getMarkPropertySoldUrl(id),
+  return customFetch<PropertySaleConfirmationRequestResult>(getMarkPropertySoldUrl(id),
   {
     ...options,
     method: 'POST',
@@ -2201,6 +2206,149 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
         TContext
       > => {
       return useMutation(getMarkPropertySoldMutationOptions(options));
+    }
+
+export const getGetPublicSaleConfirmationUrl = (params: GetPublicSaleConfirmationParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/public/sale-confirmation?${stringifiedParams}` : `/api/public/sale-confirmation`
+}
+
+export const getPublicSaleConfirmation = async (params: GetPublicSaleConfirmationParams, options?: RequestInit): Promise<PublicSaleConfirmation> => {
+
+  return customFetch<PublicSaleConfirmation>(getGetPublicSaleConfirmationUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPublicSaleConfirmationQueryKey = (params?: GetPublicSaleConfirmationParams,) => {
+    return [
+    `/api/public/sale-confirmation`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetPublicSaleConfirmationQueryOptions = <TData = Awaited<ReturnType<typeof getPublicSaleConfirmation>>, TError = ErrorType<void>>(params: GetPublicSaleConfirmationParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPublicSaleConfirmation>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPublicSaleConfirmationQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPublicSaleConfirmation>>> = ({ signal }) => getPublicSaleConfirmation(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPublicSaleConfirmation>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetPublicSaleConfirmationQueryResult = NonNullable<Awaited<ReturnType<typeof getPublicSaleConfirmation>>>
+export type GetPublicSaleConfirmationQueryError = ErrorType<void>
+
+
+
+export function useGetPublicSaleConfirmation<TData = Awaited<ReturnType<typeof getPublicSaleConfirmation>>, TError = ErrorType<void>>(
+ params: GetPublicSaleConfirmationParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPublicSaleConfirmation>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetPublicSaleConfirmationQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getConfirmPublicSaleUrl = () => {
+
+
+
+
+  return `/api/public/sale-confirmation`
+}
+
+export const confirmPublicSale = async (publicSaleConfirmationInput: PublicSaleConfirmationInput, options?: RequestInit): Promise<PublicSaleConfirmationResult> => {
+
+  return customFetch<PublicSaleConfirmationResult>(getConfirmPublicSaleUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(publicSaleConfirmationInput)
+  }
+);}
+
+
+
+
+
+export const getConfirmPublicSaleMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof confirmPublicSale>>, TError,{data: BodyType<PublicSaleConfirmationInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof confirmPublicSale>>, TError,{data: BodyType<PublicSaleConfirmationInput>}, TContext> => {
+
+const mutationKey = ['confirmPublicSale'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof confirmPublicSale>>, {data: BodyType<PublicSaleConfirmationInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  confirmPublicSale(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ConfirmPublicSaleMutationResult = NonNullable<Awaited<ReturnType<typeof confirmPublicSale>>>
+    export type ConfirmPublicSaleMutationBody = BodyType<PublicSaleConfirmationInput>
+    export type ConfirmPublicSaleMutationError = ErrorType<void>
+
+    export const useConfirmPublicSale = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof confirmPublicSale>>, TError,{data: BodyType<PublicSaleConfirmationInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof confirmPublicSale>>,
+        TError,
+        {data: BodyType<PublicSaleConfirmationInput>},
+        TContext
+      > => {
+      return useMutation(getConfirmPublicSaleMutationOptions(options));
     }
 
 export const getGetPropertyPriceHistoryUrl = (id: number,) => {

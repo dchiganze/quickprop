@@ -167,6 +167,10 @@ router.post("/properties/:id/health", async (req, res): Promise<void> => {
     res.status(400).json({ error: action.error.message });
     return;
   }
+  if (action.data.action === "sold") {
+    res.status(409).json({ error: "Use the Mark as sold flow to request conveyancer confirmation." });
+    return;
+  }
   const user = await currentUser(req);
   const property = await getCanonicalProperty(id);
   if (!property) {
@@ -174,8 +178,7 @@ router.post("/properties/:id/health", async (req, res): Promise<void> => {
     return;
   }
   const now = new Date();
-  const status = action.data.action === "sold" ? "sold"
-    : action.data.action === "let" ? "rented"
+  const status = action.data.action === "let" ? "rented"
       : action.data.action === "withdraw" ? "withdrawn" : property.status;
   await db.update(propertiesTable).set({
     status,

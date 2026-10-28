@@ -5,15 +5,22 @@ import express from "express";
 import { eq, inArray } from "drizzle-orm";
 import {
   db, pool, usersTable, branchesTable, businessAgenciesTable, propertiesTable,
-  agentPastSalesTable, auditLogTable, type User,
+  agentPastSalesTable, propertySaleConfirmationsTable, auditLogTable, type User,
 } from "@workspace/db";
 import salesRouter from "../routes/agent-sales";
+import saleConfirmationsRouter from "../routes/sale-confirmations";
 import { CreateAgentPastSaleResponse, GetAgentPastSalesResponse } from "@workspace/api-zod";
 import { ensureAgentPastSalesTable, getAgentAgency, getAgentSalesHistory } from "./agent-sales";
+import {
+  createPropertySaleConfirmationToken,
+  ensurePropertySaleConfirmationSchema,
+  hashPropertySaleConfirmationToken,
+} from "./property-sale-confirmations";
 
-test("past sales persist, enforce ownership, merge completed listings and recalculate medians", async () => {
+test("sales history enforces ownership and only exposes conveyancer-confirmed listing sales", async () => {
   assert.notEqual(process.env.REPLIT_DEPLOYMENT, "1", "Never run this fixture test in production");
   await ensureAgentPastSalesTable();
+  await ensurePropertySaleConfirmationSchema();
   const token = crypto.randomUUID();
   const userIds: number[] = [];
   const branchIds: number[] = [];
@@ -23,6 +30,7 @@ test("past sales persist, enforce ownership, merge completed listings and recalc
   app.use(express.json());
   app.use((_req, res, next) => { res.locals.user = actor; next(); });
   app.use(salesRouter);
+  app.use(saleConfirmationsRouter);
   const server = app.listen(0, "127.0.0.1");
   await once(server, "listening");
   const address = server.address();
@@ -77,13 +85,36 @@ test("past sales persist, enforce ownership, merge completed listings and recalc
       salePrice: 400000, soldAt: new Date("2024-03-01"), currency: "USD",
       status: "sold", availabilityStatus: "sold", agentId: agent.id,
     });
+    const confirmationToken = createPropertySaleConfirmationToken();
+    const [pendingProperty] = await db.insert(propertiesTable).values({
+      reference: `TEST-PENDING-SALE-${token}`, title: "Awaiting conveyancer",
+      suburb: "Highlands", city: "Harare", price: 200000, propertyType: "house",
+      salePrice: 190000, soldAt: new Date("2024-03-02"), currency: "USD",
+      status: "sold", availabilityStatus: "sold", agentId: agent.id,
+    }).returning();
+    await db.insert(propertySaleConfirmationsTable).values({
+      propertyId: pendingProperty.id,
+      requestedBy: agent.id,
+      tokenHash: hashPropertySaleConfirmationToken(confirmationToken),
+      conveyancerName: "Test Conveyancer",
+      conveyancerEmail: "conveyancer@example.invalid",
+      status: "pending",
+      expiresAt: new Date(Date.now() + 60_000),
+    });
     const combined = await getAgentSalesHistory(agent.id);
     assert.equal(combined.sales.length, 2);
     assert.deepEqual(combined.medians, [{ currency: "USD", medianPrice: 300000, saleCount: 2 }]);
+    const confirmationPage = await request(`/public/sale-confirmation?token=${confirmationToken}`);
+    assert.equal(confirmationPage.status, 200);
+    assert.equal((await confirmationPage.json() as { status: string }).status, "pending");
+    const confirmed = await request("/public/sale-confirmation/confirm", "POST", { token: confirmationToken });
+    assert.equal(confirmed.status, 200);
+    assert.equal((await confirmed.json() as { status: string }).status, "confirmed");
+    assert.equal((await getAgentSalesHistory(agent.id)).sales.length, 3, "Only confirmed listings appear in public sales history");
     assert.deepEqual(await getAgentAgency(branch.id), { agencyId: agency.id, agencyName: agency.name });
     assert.equal(await getAgentAgency(null), null, "Never invent an agency when none is assigned");
     assert.equal((await request(`${path}/${sale.id}`, "DELETE")).status, 204);
-    assert.deepEqual((await getAgentSalesHistory(agent.id)).medians, [{ currency: "USD", medianPrice: 400000, saleCount: 1 }]);
+    assert.deepEqual((await getAgentSalesHistory(agent.id)).medians, [{ currency: "USD", medianPrice: 295000, saleCount: 2 }]);
   } finally {
     await new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
     if (userIds.length) {

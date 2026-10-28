@@ -13,6 +13,7 @@ import { useColors } from '@/hooks/useColors';
 import { propertyShareLinks } from '@/utils/shareLinks';
 import { getPrimaryListingPhoto } from '@/utils/listingPhoto';
 import { ListingImage } from '@/components/ListingImage';
+import { KeyboardAwareScrollViewCompat } from '@/components/KeyboardAwareScrollViewCompat';
 import { PropertyFlyer, PropertyFlyerHandle } from '@/components/PropertyFlyer';
 import { FlyerCustomizer } from '@/components/FlyerCustomizer';
 import { useFlyerSettings } from '@/hooks/useFlyerSettings';
@@ -78,7 +79,7 @@ export default function ListingDetailScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { properties, updateProperty } = useData();
+  const { properties, updateProperty, recordPropertySale } = useData();
   const property = properties.find(p => p.id === id);
   const { user, loading: authLoading } = useAuth();
   const remoteAgentId = user?.id && /^\d+$/.test(user.id) ? user.id : null;
@@ -132,6 +133,16 @@ export default function ListingDetailScreen() {
   const [shareOptionsOpen, setShareOptionsOpen] = useState(false);
   const [saleModalVisible, setSaleModalVisible] = useState(false);
   const [salePriceInput, setSalePriceInput] = useState('');
+  const [conveyancerNameInput, setConveyancerNameInput] = useState('');
+  const [conveyancerEmailInput, setConveyancerEmailInput] = useState('');
+  const [conveyancerPhoneInput, setConveyancerPhoneInput] = useState('');
+  const [saleSubmitting, setSaleSubmitting] = useState(false);
+  const [saleConfirmation, setSaleConfirmation] = useState<{
+    confirmationUrl: string;
+    conveyancerName: string;
+    conveyancerEmail: string;
+    conveyancerPhone: string;
+  } | null>(null);
   const [applicationInvite, setApplicationInvite] = useState<RentalApplicationInvite | null>(null);
   const [applicationInviteVisible, setApplicationInviteVisible] = useState(false);
   const [expandedApplicationId, setExpandedApplicationId] = useState<number | null>(null);
@@ -313,6 +324,10 @@ export default function ListingDetailScreen() {
         style: 'destructive',
         onPress: async () => {
           setSalePriceInput('');
+          setConveyancerNameInput('');
+          setConveyancerEmailInput('');
+          setConveyancerPhoneInput('');
+          setSaleConfirmation(null);
           setSaleModalVisible(true);
         },
       },
@@ -325,16 +340,35 @@ export default function ListingDetailScreen() {
       Alert.alert('Sale price required', 'Enter the positive price the property sold for.');
       return;
     }
-    await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    await updateProperty(property.id, {
-      status: 'sold',
-      salePrice,
-      soldAt: new Date().toISOString(),
-      availabilityStatus: 'sold',
-      freshnessStatus: 'inactive',
-    });
-    setSaleModalVisible(false);
-    router.back();
+    if (!conveyancerNameInput.trim()) {
+      Alert.alert('Conveyancer name required', 'Enter the conveyancer’s name to request sale confirmation.');
+      return;
+    }
+    if (!conveyancerEmailInput.trim() && !conveyancerPhoneInput.trim()) {
+      Alert.alert('Contact details required', 'Enter the conveyancer’s email address or WhatsApp number.');
+      return;
+    }
+    setSaleSubmitting(true);
+    try {
+      const result = await recordPropertySale(property.id, {
+        salePrice,
+        soldAt: new Date().toISOString(),
+        conveyancerName: conveyancerNameInput.trim(),
+        ...(conveyancerEmailInput.trim() ? { conveyancerEmail: conveyancerEmailInput.trim() } : {}),
+        ...(conveyancerPhoneInput.trim() ? { conveyancerPhone: conveyancerPhoneInput.trim() } : {}),
+      });
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setSaleConfirmation({
+        confirmationUrl: result.confirmationUrl,
+        conveyancerName: conveyancerNameInput.trim(),
+        conveyancerEmail: conveyancerEmailInput.trim(),
+        conveyancerPhone: conveyancerPhoneInput.trim(),
+      });
+    } catch (error) {
+      Alert.alert('Could not record sale', error instanceof Error ? error.message : 'Try again when you are online.');
+    } finally {
+      setSaleSubmitting(false);
+    }
   };
 
   const price = property.price >= 1000000
@@ -979,34 +1013,83 @@ export default function ListingDetailScreen() {
       >
         <View style={styles.modalBackdrop}>
           <View style={[styles.saleModal, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <Text style={[styles.saleModalTitle, { color: colors.foreground }]}>Record completed sale</Text>
-            <Text style={[styles.saleModalCopy, { color: colors.mutedForeground }]}>
-              The original asking price remains {property.currency} {property.price.toLocaleString()}. Enter the final sale price to keep the transaction history accurate.
-            </Text>
-            <Text style={[styles.saleModalLabel, { color: colors.mutedForeground }]}>FINAL SALE PRICE ({property.currency})</Text>
-            <TextInput
-              autoFocus
-              value={salePriceInput}
-              onChangeText={setSalePriceInput}
-              keyboardType="numeric"
-              placeholder="Enter sale price"
-              placeholderTextColor={colors.mutedForeground}
-              style={[styles.salePriceInput, { color: colors.foreground, backgroundColor: colors.input, borderColor: colors.border }]}
-            />
-            <View style={styles.saleModalActions}>
-              <TouchableOpacity
-                style={[styles.saleModalButton, { borderColor: colors.border }]}
-                onPress={() => setSaleModalVisible(false)}
-              >
-                <Text style={[styles.saleModalButtonText, { color: colors.foreground }]}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.saleModalButton, { backgroundColor: colors.primary, borderColor: colors.primary }]}
-                onPress={handleConfirmSale}
-              >
-                <Text style={[styles.saleModalButtonText, { color: '#FFF' }]}>Record Sale</Text>
-              </TouchableOpacity>
-            </View>
+            <KeyboardAwareScrollViewCompat style={{ width: '100%' }} contentContainerStyle={{ gap: 12 }} bottomOffset={24}>
+            {saleConfirmation ? (
+              <>
+                <Text style={[styles.saleModalTitle, { color: colors.foreground }]}>Conveyancer confirmation pending</Text>
+                <Text style={[styles.saleModalCopy, { color: colors.mutedForeground }]}>
+                  The sale is recorded, but it will appear on your public agent profile only after {saleConfirmation.conveyancerName} confirms it.
+                </Text>
+                {saleConfirmation.conveyancerEmail ? (
+                  <TouchableOpacity
+                    style={[styles.saleModalButton, { backgroundColor: colors.primary, borderColor: colors.primary }]}
+                    onPress={() => {
+                      const subject = `Please confirm completed sale — ${property.referenceNumber}`;
+                      const body = `Hello ${saleConfirmation.conveyancerName},\n\nPlease confirm the completed sale of ${property.title} (${property.referenceNumber}) for ${property.currency} ${salePriceInput}.\n\nConfirm securely here: ${saleConfirmation.confirmationUrl}\n\nThank you.`;
+                      void Linking.openURL(`mailto:${encodeURIComponent(saleConfirmation.conveyancerEmail)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
+                    }}
+                    accessibilityRole="button"
+                    accessibilityLabel="Open email draft with sale confirmation link"
+                    testID="share-sale-confirmation-email"
+                  >
+                    <Text style={[styles.saleModalButtonText, { color: '#FFF' }]}>Open email draft</Text>
+                  </TouchableOpacity>
+                ) : null}
+                {saleConfirmation.conveyancerPhone ? (
+                  <TouchableOpacity
+                    style={[styles.saleModalButton, { borderColor: colors.border }]}
+                    onPress={() => {
+                      const phone = saleConfirmation.conveyancerPhone.replace(/\D/g, '');
+                      const text = `Hello ${saleConfirmation.conveyancerName}, please confirm the completed sale of ${property.title} (${property.referenceNumber}) using this secure link: ${saleConfirmation.confirmationUrl}`;
+                      void Linking.openURL(`https://wa.me/${phone}?text=${encodeURIComponent(text)}`);
+                    }}
+                    accessibilityRole="button"
+                    accessibilityLabel="Open WhatsApp with sale confirmation link"
+                    testID="share-sale-confirmation-whatsapp"
+                  >
+                    <Text style={[styles.saleModalButtonText, { color: colors.foreground }]}>Open WhatsApp</Text>
+                  </TouchableOpacity>
+                ) : null}
+                <Text selectable style={[styles.saleModalCopy, { color: colors.mutedForeground }]}>{saleConfirmation.confirmationUrl}</Text>
+                <TouchableOpacity style={styles.saleDoneButton} onPress={() => { setSaleModalVisible(false); router.back(); }}>
+                  <Text style={[styles.saleModalButtonText, { color: colors.mutedForeground }]}>Done</Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <>
+                <Text style={[styles.saleModalTitle, { color: colors.foreground }]}>Record completed sale</Text>
+                <Text style={[styles.saleModalCopy, { color: colors.mutedForeground }]}>
+                  The original asking price remains {property.currency} {property.price.toLocaleString()}. A conveyancer must confirm the sale before it appears on your profile.
+                </Text>
+                <Text style={[styles.saleModalLabel, { color: colors.mutedForeground }]}>FINAL SALE PRICE ({property.currency})</Text>
+                <TextInput
+                  autoFocus
+                  value={salePriceInput}
+                  onChangeText={setSalePriceInput}
+                  keyboardType="numeric"
+                  placeholder="Enter sale price"
+                  placeholderTextColor={colors.mutedForeground}
+                  style={[styles.salePriceInput, { color: colors.foreground, backgroundColor: colors.input, borderColor: colors.border }]}
+                  accessibilityLabel="Final sale price"
+                />
+                <Text style={[styles.saleModalLabel, { color: colors.mutedForeground }]}>CONVEYANCER NAME</Text>
+                <TextInput value={conveyancerNameInput} onChangeText={setConveyancerNameInput} placeholder="Name of conveyancer" placeholderTextColor={colors.mutedForeground} style={[styles.salePriceInput, { color: colors.foreground, backgroundColor: colors.input, borderColor: colors.border }]} accessibilityLabel="Conveyancer name" />
+                <Text style={[styles.saleModalLabel, { color: colors.mutedForeground }]}>CONVEYANCER EMAIL</Text>
+                <TextInput value={conveyancerEmailInput} onChangeText={setConveyancerEmailInput} keyboardType="email-address" autoCapitalize="none" placeholder="name@example.com" placeholderTextColor={colors.mutedForeground} style={[styles.salePriceInput, { color: colors.foreground, backgroundColor: colors.input, borderColor: colors.border }]} accessibilityLabel="Conveyancer email" />
+                <Text style={[styles.saleModalLabel, { color: colors.mutedForeground }]}>WHATSAPP NUMBER</Text>
+                <TextInput value={conveyancerPhoneInput} onChangeText={setConveyancerPhoneInput} keyboardType="phone-pad" placeholder="+263…" placeholderTextColor={colors.mutedForeground} style={[styles.salePriceInput, { color: colors.foreground, backgroundColor: colors.input, borderColor: colors.border }]} accessibilityLabel="Conveyancer WhatsApp number" />
+                <Text style={[styles.saleModalCopy, { color: colors.mutedForeground }]}>Enter at least an email address or WhatsApp number. QuickProp opens a draft for you to send.</Text>
+                <View style={styles.saleModalActions}>
+                  <TouchableOpacity style={[styles.saleModalButton, { borderColor: colors.border }]} onPress={() => setSaleModalVisible(false)}>
+                    <Text style={[styles.saleModalButtonText, { color: colors.foreground }]}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={[styles.saleModalButton, { backgroundColor: colors.primary, borderColor: colors.primary, opacity: saleSubmitting ? 0.7 : 1 }]} onPress={handleConfirmSale} disabled={saleSubmitting} testID="record-sale">
+                    {saleSubmitting ? <ActivityIndicator size="small" color="#FFF" /> : <Text style={[styles.saleModalButtonText, { color: '#FFF' }]}>Record Sale</Text>}
+                  </TouchableOpacity>
+                </View>
+              </>
+            )}
+            </KeyboardAwareScrollViewCompat>
           </View>
         </View>
       </Modal>
@@ -1159,7 +1242,7 @@ const styles = StyleSheet.create({
   copyInviteText: { fontSize: 12, fontWeight: '800' },
   inviteDoneButton: { minHeight: 36, alignItems: 'center', justifyContent: 'center', marginTop: 1 },
   inviteDoneText: { fontSize: 13, fontWeight: '700' },
-  saleModal: { width: '100%', maxWidth: 440, borderRadius: 20, borderWidth: 1, padding: 20, gap: 12 },
+  saleModal: { width: '100%', maxWidth: 440, maxHeight: '90%', borderRadius: 20, borderWidth: 1, padding: 20 },
   saleModalTitle: { fontSize: 20, fontWeight: '800' },
   saleModalCopy: { fontSize: 14, lineHeight: 21 },
   saleModalLabel: { fontSize: 11, fontWeight: '700', letterSpacing: 0.5, marginTop: 4 },
@@ -1167,4 +1250,5 @@ const styles = StyleSheet.create({
   saleModalActions: { flexDirection: 'row', gap: 10, marginTop: 4 },
   saleModalButton: { flex: 1, borderWidth: 1, borderRadius: 12, alignItems: 'center', paddingVertical: 12 },
   saleModalButtonText: { fontSize: 14, fontWeight: '700' },
+  saleDoneButton: { alignItems: 'center', justifyContent: 'center', minHeight: 40 },
 });
