@@ -89,6 +89,20 @@ export function AgentContactDirectory({ contacts, kind }: { contacts: AgentConta
     channel: 'whatsapp' | 'email',
     recipientEmail?: string | null,
   ) => {
+    let email = recipientEmail?.trim() || null;
+    if (channel === 'email' && !email) {
+      const enteredEmail = window.prompt('Enter the seller or landlord email address:');
+      if (enteredEmail === null) return;
+      email = enteredEmail.trim();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        toast({
+          title: 'Enter a valid email address',
+          description: 'The review request was not opened.',
+          variant: 'destructive',
+        });
+        return;
+      }
+    }
     const popup = window.open('about:blank', '_blank');
     setBusyPropertyId(property.id);
     try {
@@ -96,9 +110,8 @@ export function AgentContactDirectory({ contacts, kind }: { contacts: AgentConta
       const message = `Hi ${invitation.recipientName}, I’d appreciate it if you could leave a review about working with me on ${invitation.propertyTitle} (${invitation.propertyReference}) through QuickProp: ${invitation.url}`;
       let destination: string;
       if (channel === 'email') {
-        if (!recipientEmail) throw new Error('Add an email address to this contact first.');
         const subject = `QuickProp review request — ${invitation.propertyReference}`;
-        destination = `mailto:${encodeURIComponent(recipientEmail)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(message)}`;
+        destination = `mailto:${encodeURIComponent(email!)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(message)}`;
       } else {
         const phone = invitation.phone?.replace(/\D/g, '').replace(/^00/, '');
         destination = phone
@@ -191,12 +204,12 @@ export function AgentContactDirectory({ contacts, kind }: { contacts: AgentConta
                         {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Star className="mr-2 h-4 w-4" />}
                         Request review via WhatsApp
                       </Button>
-                      <Button size="sm" variant="outline" disabled={busy || !contact.email} onClick={() => void shareReview(property, 'email', contact.email)} title={!contact.email ? 'Add an email address to this contact first' : undefined}>
+                      <Button size="sm" variant="outline" disabled={busy} onClick={() => void shareReview(property, 'email', contact.email)}>
                         {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Mail className="mr-2 h-4 w-4" />}
                         Request review by email
                       </Button>
                     </div>
-                    {!contact.email && <p className="mt-2 text-xs text-muted-foreground">Add an email address to this contact to enable email requests.</p>}
+                    {!contact.email && <p className="mt-2 text-xs text-muted-foreground">No email is saved for this contact. You can enter one when requesting a review.</p>}
                     {!closedMandate(property) && <p className="mt-2 text-xs text-muted-foreground">You can request a review now. QuickProp will still send its automatic request after the mandate closes.</p>}
                   </div>
                 );

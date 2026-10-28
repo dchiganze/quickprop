@@ -103,6 +103,9 @@ export default function ContactRecordsScreen() {
   const [contactPhone, setContactPhone] = useState('');
   const [createError, setCreateError] = useState('');
   const [savingContact, setSavingContact] = useState(false);
+  const [emailRequestPropertyId, setEmailRequestPropertyId] = useState<number | null>(null);
+  const [emailRequestAddress, setEmailRequestAddress] = useState('');
+  const [emailRequestError, setEmailRequestError] = useState('');
 
   const saveStandaloneContact = async () => {
     const name = contactName.trim();
@@ -152,15 +155,20 @@ export default function ContactRecordsScreen() {
     channel: 'whatsapp' | 'email',
     recipientEmail?: string | null,
   ) => {
+    if (channel === 'email' && !recipientEmail?.trim()) {
+      setEmailRequestAddress('');
+      setEmailRequestError('');
+      setEmailRequestPropertyId(propertyId);
+      return;
+    }
     try {
       setBusyPropertyId(propertyId);
       const invitation = await requestReview.mutateAsync({ propertyId });
       const text = `Hi ${invitation.recipientName}, I’d appreciate it if you could leave a review about working with me on ${invitation.propertyTitle} (${invitation.propertyReference}) through QuickProp: ${invitation.url}`;
       if (channel === 'email') {
-        if (!recipientEmail) throw new Error('Add an email address to this contact first.');
         const subject = `QuickProp review request — ${invitation.propertyReference}`;
         const body = `${text}\n\n${invitation.propertyTitle}`;
-        await Linking.openURL(`mailto:${encodeURIComponent(recipientEmail)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
+        await Linking.openURL(`mailto:${encodeURIComponent(recipientEmail!)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
       } else {
         const phone = invitation.phone?.replace(/\D/g, '').replace(/^00/, '');
         if (phone) {
@@ -174,6 +182,18 @@ export default function ContactRecordsScreen() {
     } finally {
       setBusyPropertyId(null);
     }
+  };
+
+  const submitEmailReview = () => {
+    const propertyId = emailRequestPropertyId;
+    const email = emailRequestAddress.trim();
+    if (!propertyId) return;
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setEmailRequestError('Enter a valid email address.');
+      return;
+    }
+    setEmailRequestPropertyId(null);
+    void openReviewRequest(propertyId, 'email', email);
   };
 
   const openMandate = async (objectPath?: string | null) => {
@@ -309,6 +329,57 @@ export default function ContactRecordsScreen() {
         </KeyboardAwareScrollViewCompat>
       </View>
     </Modal>
+    <Modal
+      visible={emailRequestPropertyId !== null}
+      transparent
+      animationType="fade"
+      statusBarTranslucent
+      onRequestClose={() => setEmailRequestPropertyId(null)}
+    >
+      <View style={[styles.modalBackdrop, { backgroundColor: colors.overlay }]}>
+        <KeyboardAwareScrollViewCompat
+          style={styles.modalScroll}
+          contentContainerStyle={[styles.modalScrollContent, { paddingTop: insets.top + 18, paddingBottom: insets.bottom + 24 }]}
+          bottomOffset={24}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={[styles.modalCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <View style={styles.modalHeader}>
+              <View style={styles.flex}>
+                <Text style={[styles.modalTitle, { color: colors.foreground }]}>Email review request</Text>
+                <Text style={[styles.modalSubtitle, { color: colors.mutedForeground }]}>Enter the seller or landlord’s email address.</Text>
+              </View>
+              <TouchableOpacity onPress={() => setEmailRequestPropertyId(null)} accessibilityLabel="Close">
+                <Ionicons name="close" size={22} color={colors.mutedForeground} />
+              </TouchableOpacity>
+            </View>
+            <TextInput
+              style={[styles.input, { backgroundColor: colors.input, borderColor: colors.border, color: colors.foreground }]}
+              value={emailRequestAddress}
+              onChangeText={(value) => {
+                setEmailRequestAddress(value);
+                setEmailRequestError('');
+              }}
+              placeholder="name@example.com"
+              placeholderTextColor={colors.mutedForeground}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
+              autoComplete="email"
+              returnKeyType="done"
+              accessibilityLabel="Review request recipient email"
+            />
+            {!!emailRequestError && <Text style={[styles.errorText, { color: colors.destructive }]}>{emailRequestError}</Text>}
+            <TouchableOpacity
+              onPress={submitEmailReview}
+              style={[styles.saveButton, { backgroundColor: colors.primary }]}
+            >
+              <Text style={[styles.saveButtonText, { color: colors.primaryForeground }]}>Continue to email</Text>
+            </TouchableOpacity>
+          </View>
+        </KeyboardAwareScrollViewCompat>
+      </View>
+    </Modal>
     </>
   );
 }
@@ -384,15 +455,15 @@ function ContactCard({
                 <Text style={[styles.actionText, { color: '#FFF' }]}>WhatsApp</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                disabled={busy || !contact.email}
-                style={[styles.actionButton, styles.reviewAction, { backgroundColor: colors.secondary, opacity: busy || !contact.email ? 0.45 : 1 }]}
+                disabled={busy}
+                style={[styles.actionButton, styles.reviewAction, { backgroundColor: colors.secondary, opacity: busy ? 0.45 : 1 }]}
                 onPress={() => onRequestReview(property.id, 'email', contact.email)}
               >
                 {busy ? <ActivityIndicator size="small" color={colors.primary} /> : <Ionicons name="mail-outline" size={17} color={colors.primary} />}
                 <Text style={[styles.actionText, { color: colors.primary }]}>Email</Text>
               </TouchableOpacity>
             </View>
-            {!contact.email ? <Text style={[styles.reviewHint, { color: colors.mutedForeground }]}>Add an email address to this contact to enable email requests.</Text> : null}
+            {!contact.email ? <Text style={[styles.reviewHint, { color: colors.mutedForeground }]}>No email is saved for this contact. You can enter one when requesting a review.</Text> : null}
             {!closed ? <Text style={[styles.reviewHint, { color: colors.mutedForeground }]}>You can request a review now. QuickProp will still send its automatic request after the mandate closes.</Text> : null}
           </View>
         );
