@@ -10,6 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import {
   useListProperties,
   useGetCurrentUser,
+  useGetAdminAgencySettings,
   Property,
   getListPropertiesQueryKey,
 } from '@workspace/api-client-react';
@@ -27,6 +28,7 @@ import {
   QUICKPROP_PUBLIC_ORIGIN,
   QUICKPROP_SHARE_PREVIEW_VERSION,
 } from '@/utils/shareLinks';
+import { getAgencyBrandColors } from '@/utils/agencyBrandColors';
 
 type CatalogMode = 'company' | 'agent';
 
@@ -88,6 +90,8 @@ export function QuickShareDialog() {
   const { toast } = useToast();
 
   const { data: user } = useGetCurrentUser();
+  const { data: agencySettings } = useGetAdminAgencySettings();
+  const agencyColors = getAgencyBrandColors(agencySettings);
   const { data: allProps } = useListProperties(undefined, {
     query: { enabled: open, queryKey: getListPropertiesQueryKey() },
   });
@@ -120,7 +124,7 @@ export function QuickShareDialog() {
   const shareToWhatsApp = useCallback(async () => {
     const text = buildWhatsAppText(publicProps, mode, user?.name, catalogUrl);
     const cardText = buildCatalogueShareCaption(publicProps, mode, user?.name, catalogUrl);
-    const blob = await createCatalogueShareCard(publicProps, mode, user?.name);
+    const blob = await createCatalogueShareCard(publicProps, mode, user?.name, agencyColors.primaryColor, agencyColors.secondaryColor);
     const result = await shareCardWithCaption(
       blob,
       cardText || text,
@@ -133,7 +137,7 @@ export function QuickShareDialog() {
         ? 'The brochure image and caption were sent to the share sheet.'
         : 'The brochure image was downloaded and the caption was opened in WhatsApp.',
     });
-  }, [publicProps, mode, user?.name, catalogUrl, catalogPreviewUrl, toast]);
+  }, [publicProps, mode, user?.name, catalogUrl, catalogPreviewUrl, toast, agencyColors.primaryColor, agencyColors.secondaryColor]);
 
   const shareToFacebook = useCallback(async () => {
     const shareWindow = openShareWindow();

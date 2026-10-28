@@ -1,17 +1,19 @@
 import React from 'react';
 import { useGetProperty, useGetCurrentUser, useGetAdminAgencySettings } from '@workspace/api-client-react';
 import { Bed, Bath, Car, Square, Building2, MapPin, Phone, Mail, Printer, ArrowLeft } from 'lucide-react';
+import { getAgencyBrandColors } from '@/utils/agencyBrandColors';
 
 export default function PropertyBrochure({ params }: { params: { id: string } }) {
   const propertyId = parseInt(params.id, 10);
   const { data: property, isLoading } = useGetProperty(propertyId);
   const { data: user } = useGetCurrentUser();
   const { data: agencySettings } = useGetAdminAgencySettings();
+  const agencyColors = getAgencyBrandColors(agencySettings);
 
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white">
-        <div className="w-8 h-8 rounded-full border-4 border-emerald-600 border-t-transparent animate-spin" />
+        <div className="w-8 h-8 rounded-full border-4 border-t-transparent animate-spin" style={{ borderColor: `${agencyColors.primaryColor} transparent transparent transparent` }} />
       </div>
     );
   }
@@ -46,12 +48,12 @@ export default function PropertyBrochure({ params }: { params: { id: string } })
   ].filter(Boolean) as { icon: React.ReactNode; value: string | number; label: string }[];
 
   const statusLabel: Record<string, { text: string; bg: string }> = {
-    public: { text: 'For Sale', bg: 'bg-emerald-600' },
+    public: { text: 'For Sale', bg: '' },
     under_offer: { text: 'Under Offer', bg: 'bg-amber-500' },
     coming_soon: { text: 'Coming Soon', bg: 'bg-blue-600' },
     sold: { text: 'Sold', bg: 'bg-red-600' },
   };
-  const statusInfo = statusLabel[property.status] ?? { text: property.listingType === 'rent' ? 'To Rent' : 'For Sale', bg: 'bg-emerald-600' };
+  const statusInfo = statusLabel[property.status] ?? { text: property.listingType === 'rent' ? 'To Rent' : 'For Sale', bg: '' };
 
   return (
     <>
@@ -81,7 +83,8 @@ export default function PropertyBrochure({ params }: { params: { id: string } })
           <span className="text-sm text-gray-500">Print or save as PDF using your browser's print dialog</span>
           <button
             onClick={() => window.print()}
-            className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 text-white text-sm font-medium rounded-lg transition-colors"
+            style={{ backgroundColor: agencyColors.primaryColor }}
           >
             <Printer className="w-4 h-4" />
             Print / Save PDF
@@ -96,9 +99,9 @@ export default function PropertyBrochure({ params }: { params: { id: string } })
           style={{ width: '210mm', minHeight: '297mm' }}
         >
           {/* ── HEADER BAND ── */}
-          <div className="flex items-center justify-between px-10 py-5 border-b-4 border-emerald-600">
+          <div className="flex items-center justify-between px-10 py-5 border-b-4" style={{ borderColor: agencyColors.primaryColor }}>
             <div className="flex items-center gap-3">
-              <div className="w-[84px] h-[84px] rounded-md bg-emerald-600 flex items-center justify-center overflow-hidden">
+              <div className="w-[84px] h-[84px] rounded-md bg-white flex items-center justify-center overflow-hidden">
                 {agencyLogo ? (
                   <img src={agencyLogo} alt={`${agencyName} logo`} className="w-full h-full object-contain bg-white p-1" />
                 ) : (
@@ -148,7 +151,7 @@ export default function PropertyBrochure({ params }: { params: { id: string } })
                     {property.address ? `${property.address}, ` : ''}{property.suburb}, {property.city}
                   </div>
                 </div>
-                <span className={`${statusInfo.bg} text-white text-xs font-bold uppercase tracking-wider px-3 py-1.5 rounded-md`}>
+                <span className={`${statusInfo.bg} text-white text-xs font-bold uppercase tracking-wider px-3 py-1.5 rounded-md`} style={{ backgroundColor: statusInfo.bg ? undefined : agencyColors.primaryColor }}>
                   {property.listingType === 'rent' ? 'To Rent' : statusInfo.text}
                 </span>
               </div>
@@ -165,7 +168,7 @@ export default function PropertyBrochure({ params }: { params: { id: string } })
             <div className="flex items-center gap-8 flex-wrap">
               {specs.map((spec, i) => (
                 <div key={i} className="flex items-center gap-2">
-                  <div className="text-emerald-600">{spec.icon}</div>
+                  <div style={{ color: agencyColors.primaryColor }}>{spec.icon}</div>
                   <div>
                     <div className="text-lg font-bold text-gray-900 leading-tight">{spec.value}</div>
                     <div className="text-xs text-gray-500 uppercase tracking-wide font-medium">{spec.label}</div>
@@ -180,7 +183,7 @@ export default function PropertyBrochure({ params }: { params: { id: string } })
             {/* Description */}
             <div className="col-span-2 space-y-6">
               <div>
-                <h2 className="text-sm font-bold uppercase tracking-widest text-emerald-700 mb-3">Description</h2>
+                <h2 className="text-sm font-bold uppercase tracking-widest mb-3" style={{ color: agencyColors.primaryColor }}>Description</h2>
                 <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-wrap">
                   {property.description || 'Contact us for full property details.'}
                 </p>
@@ -188,11 +191,11 @@ export default function PropertyBrochure({ params }: { params: { id: string } })
 
               {property.features && property.features.length > 0 && (
                 <div>
-                  <h2 className="text-sm font-bold uppercase tracking-widest text-emerald-700 mb-3">Features & Amenities</h2>
+                  <h2 className="text-sm font-bold uppercase tracking-widest mb-3" style={{ color: agencyColors.primaryColor }}>Features & Amenities</h2>
                   <div className="grid grid-cols-2 gap-x-6 gap-y-1.5">
                     {property.features.map((f, i) => (
                       <div key={i} className="flex items-center gap-2 text-sm text-gray-700">
-                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+                        <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: agencyColors.primaryColor }} />
                         {f}
                       </div>
                     ))}
@@ -205,19 +208,19 @@ export default function PropertyBrochure({ params }: { params: { id: string } })
             <div className="col-span-1 space-y-4">
               {/* Agent card */}
               <div className="rounded-xl border border-gray-200 overflow-hidden">
-                <div className="bg-emerald-600 px-4 py-3">
+                <div className="px-4 py-3" style={{ backgroundColor: agencyColors.primaryColor }}>
                   <div className="text-white text-xs font-bold uppercase tracking-widest">Your Agent</div>
                 </div>
                 <div className="p-4 space-y-2">
                   <div className="font-semibold text-gray-900 text-sm">{user?.name ?? 'QuickProp Agent'}</div>
                   {user?.email && (
                     <div className="flex items-center gap-2 text-xs text-gray-600">
-                      <Mail className="w-3.5 h-3.5 text-emerald-600" />
+                      <Mail className="w-3.5 h-3.5" style={{ color: agencyColors.primaryColor }} />
                       {user.email}
                     </div>
                   )}
                   <div className="flex items-center gap-2 text-xs text-gray-600">
-                    <Phone className="w-3.5 h-3.5 text-emerald-600" />
+                    <Phone className="w-3.5 h-3.5" style={{ color: agencyColors.primaryColor }} />
                     +263 77 000 0000
                   </div>
                 </div>
@@ -259,13 +262,14 @@ export default function PropertyBrochure({ params }: { params: { id: string } })
               </div>
 
               {/* QR / CTA */}
-              <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-center">
-                <div className="text-xs text-emerald-700 font-semibold mb-1">View online</div>
+              <div className="rounded-xl border p-4 text-center" style={{ borderColor: `${agencyColors.primaryColor}55`, backgroundColor: `${agencyColors.primaryColor}12` }}>
+                <div className="text-xs font-semibold mb-1" style={{ color: agencyColors.primaryColor }}>View online</div>
                 <a
                   href={publicPropertyUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-xs text-emerald-600 break-all underline underline-offset-2 hover:text-emerald-800"
+                  className="text-xs break-all underline underline-offset-2"
+                  style={{ color: agencyColors.primaryColor }}
                 >
                   {publicPropertyUrl.replace(/^https?:\/\//, '')}
                 </a>

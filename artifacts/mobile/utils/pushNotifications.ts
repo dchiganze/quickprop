@@ -1,10 +1,13 @@
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
-import * as Notifications from 'expo-notifications';
+import { supportsNativePush } from '@/utils/notificationSupport';
 
 export const PUSH_TOKEN_STORAGE_KEY = '@qp_housekeeping_push_token';
 
-if (Platform.OS !== 'web') {
+export async function registerForPushNotificationsAsync(): Promise<string | null> {
+  if (!supportsNativePush || Platform.OS === 'web' || !Constants.isDevice) return null;
+
+  const Notifications = await import('expo-notifications');
   Notifications.setNotificationHandler({
     handleNotification: async () => ({
       shouldShowBanner: true,
@@ -13,10 +16,6 @@ if (Platform.OS !== 'web') {
       shouldSetBadge: true,
     }),
   });
-}
-
-export async function registerForPushNotificationsAsync(): Promise<string | null> {
-  if (Platform.OS === 'web' || !Constants.isDevice) return null;
 
   if (Platform.OS === 'android') {
     await Notifications.setNotificationChannelAsync('default', {

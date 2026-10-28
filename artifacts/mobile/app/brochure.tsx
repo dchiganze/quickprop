@@ -17,7 +17,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
 import { Property } from '@/types';
 import { catalogueBrochureHtml, BrochureAgent } from '@/utils/brochureHtml';
-import { getListUsersQueryKey, useListUsers } from '@workspace/api-client-react';
+import { getListUsersQueryKey, useGetAdminAgencySettings, useListUsers } from '@workspace/api-client-react';
 
 type BrochureMode = 'my' | 'company' | 'custom';
 type ListingFilter = 'sale' | 'rent';
@@ -128,6 +128,7 @@ export default function BrochureSetupScreen() {
   const { data: directoryUsers = [], refetch: refetchDirectoryUsers } = useListUsers({
     query: { enabled: true, queryKey: getListUsersQueryKey() },
   });
+  const { data: agencySettings } = useGetAdminAgencySettings();
   const [mode, setMode] = useState<BrochureMode>('my');
   const [activeStep, setActiveStep] = useState<SetupStep>('personnel');
   const [listingFilters, setListingFilters] = useState<Set<ListingFilter>>(new Set(['sale', 'rent']));
@@ -223,7 +224,7 @@ export default function BrochureSetupScreen() {
         });
       }
       const Print: typeof import('expo-print') = await import('expo-print');
-      const html = catalogueBrochureHtml(filteredProperties, user, mode, agents);
+      const html = catalogueBrochureHtml(filteredProperties, user, mode, agents, agencySettings);
       if (action === 'print') {
         await Print.printAsync({ html });
       } else {

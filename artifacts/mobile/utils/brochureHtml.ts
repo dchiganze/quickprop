@@ -1,5 +1,8 @@
 import { Property, User } from '@/types';
 import { catalogueShareLinks, propertyShareLinks } from '@/utils/shareLinks';
+import { resolveAgencyBrandColors } from '@/utils/propertyFlyer';
+
+type AgencyBranding = { primaryColor?: string | null; logoColors?: string[] | null };
 
 export type BrochureAgent = {
   id: string | number;
@@ -26,11 +29,11 @@ function fmtDate(): string {
   return new Date().toLocaleDateString('en-ZW', { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
-function statusLabel(p: Property): { text: string; color: string } {
+function statusLabel(p: Property, accent: string): { text: string; color: string } {
   if (p.status === 'sold') return { text: 'Sold', color: '#dc2626' };
   if (p.status === 'rented') return { text: 'Rented', color: '#7c3aed' };
-  if (isRental(p)) return { text: 'To Rent', color: '#2563eb' };
-  return { text: 'For Sale', color: '#059669' };
+  if (isRental(p)) return { text: 'To Rent', color: accent };
+  return { text: 'For Sale', color: accent };
 }
 
 const LOGO_SVG = `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="22" height="22" stroke="white" stroke-width="2"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/><path d="M9 21V12h6v9"/></svg>`;
@@ -46,8 +49,9 @@ const BASE_STYLES = `
 
 // ─── Single Property Brochure ────────────────────────────────────────────────
 
-export function singlePropertyBrochureHtml(property: Property, agent: User | null): string {
-  const st = statusLabel(property);
+export function singlePropertyBrochureHtml(property: Property, agent: User | null, agency?: AgencyBranding | null): string {
+  const { primaryColor: accent } = resolveAgencyBrandColors(agency);
+  const st = statusLabel(property, accent);
   const price = fmtPrice(property);
   const coverImg = property.photos?.[0];
   const propertyLinks = propertyShareLinks(property);
@@ -77,9 +81,9 @@ export function singlePropertyBrochureHtml(property: Property, agent: User | nul
 <style>
 ${BASE_STYLES}
 .page { background: white; max-width: 210mm; min-height: 297mm; margin: 0 auto; box-shadow: 0 4px 24px rgba(0,0,0,.12); }
-.header { display: flex; align-items: center; justify-content: space-between; padding: 20px 36px; border-bottom: 4px solid #059669; }
+.header { display: flex; align-items: center; justify-content: space-between; padding: 20px 36px; border-bottom: 4px solid ${accent}; }
 .brand { display: flex; align-items: center; gap: 12px; }
-.brand-icon { width: 40px; height: 40px; border-radius: 10px; background: #059669; display: flex; align-items: center; justify-content: center; }
+.brand-icon { width: 40px; height: 40px; border-radius: 10px; background: ${accent}; display: flex; align-items: center; justify-content: center; }
 .brand-name { font-size: 18px; font-weight: 700; color: #111827; }
 .brand-sub { font-size: 11px; color: #6b7280; }
 .header-right { text-align: right; }
@@ -107,16 +111,16 @@ ${BASE_STYLES}
 .body-side { width: 180px; flex-shrink: 0; display: flex; flex-direction: column; gap: 12px; }
 
 .section { margin-bottom: 20px; }
-.section-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: #059669; margin-bottom: 10px; }
+.section-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: ${accent}; margin-bottom: 10px; }
 .description { font-size: 12px; color: #374151; line-height: 1.7; white-space: pre-wrap; }
 
 .features-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 20px; }
 .feature-item { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #374151; }
-.feature-dot { width: 6px; height: 6px; border-radius: 50%; background: #059669; flex-shrink: 0; }
+.feature-dot { width: 6px; height: 6px; border-radius: 50%; background: ${accent}; flex-shrink: 0; }
 
 .card { border: 1px solid #e5e7eb; border-radius: 10px; overflow: hidden; }
 .card-head { padding: 10px 14px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
-.card-head-green { background: #059669; color: white; }
+.card-head-green { background: ${accent}; color: white; }
 .card-head-gray { background: #f9fafb; color: #374151; border-bottom: 1px solid #e5e7eb; }
 .card-body { padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
 .agent-name { font-size: 13px; font-weight: 600; color: #111827; }
@@ -125,9 +129,9 @@ ${BASE_STYLES}
 .info-label { color: #6b7280; }
 .info-val { font-weight: 600; color: #111827; text-align: right; }
 
-.cta-card { border: 1px solid #a7f3d0; border-radius: 10px; background: #f0fdf4; padding: 14px; text-align: center; }
-.cta-label { font-size: 11px; font-weight: 600; color: #065f46; margin-bottom: 4px; }
-.cta-url { font-size: 10px; color: #059669; word-break: break-all; }
+.cta-card { border: 1px solid ${accent}55; border-radius: 10px; background: ${accent}12; padding: 14px; text-align: center; }
+.cta-label { font-size: 11px; font-weight: 600; color: ${accent}; margin-bottom: 4px; }
+.cta-url { font-size: 10px; color: ${accent}; word-break: break-all; }
 
 .footer { margin-top: auto; padding: 14px 36px; background: #111827; display: flex; align-items: center; justify-content: space-between; }
 .footer-left { font-size: 12px; font-weight: 600; color: white; }
@@ -222,8 +226,8 @@ ${BASE_STYLES}
 
 // ─── Catalogue ───────────────────────────────────────────────────────────────
 
-function propertyCardHtml(p: Property, agents: BrochureAgent[], fallbackAgent: BrochureAgent | null): string {
-  const st = statusLabel(p);
+function propertyCardHtml(p: Property, agents: BrochureAgent[], fallbackAgent: BrochureAgent | null, accent: string): string {
+  const st = statusLabel(p, accent);
   const price = fmtPrice(p);
   const coverImg = p.photos?.[0];
   const agent = agents.find(candidate => String(candidate.id) === String(p.agentId)) ??
@@ -269,7 +273,9 @@ export function catalogueBrochureHtml(
   agent: User | null,
   mode: 'my' | 'company' | 'custom',
   agents: BrochureAgent[] = [],
+  agency?: AgencyBranding | null,
 ): string {
+  const { primaryColor: accent, secondaryColor: accentSecondary } = resolveAgencyBrandColors(agency);
   const titleLine = mode === 'my'
     ? `${agent?.name ?? 'Agent'}'s Property Brochure`
     : mode === 'custom'
@@ -288,7 +294,7 @@ export function catalogueBrochureHtml(
       <span class="section-count">${props.length} ${props.length === 1 ? 'property' : 'properties'}</span>
     </div>
     <div class="props-list">
-       ${props.map(property => propertyCardHtml(property, agents, agent)).join('')}
+       ${props.map(property => propertyCardHtml(property, agents, agent, accent)).join('')}
     </div>`;
 
   return `<!DOCTYPE html>
@@ -300,10 +306,10 @@ export function catalogueBrochureHtml(
 ${BASE_STYLES}
 .page { background: white; max-width: 210mm; margin: 0 auto; padding-bottom: 40px; box-shadow: 0 4px 24px rgba(0,0,0,.12); }
 
-.cover { padding: 32px 36px 28px; border-bottom: 4px solid #059669; }
+.cover { padding: 32px 36px 28px; border-bottom: 4px solid ${accent}; }
 .cover-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
 .brand { display: flex; align-items: center; gap: 12px; }
-.brand-icon { width: 44px; height: 44px; border-radius: 12px; background: #059669; display: flex; align-items: center; justify-content: center; }
+.brand-icon { width: 44px; height: 44px; border-radius: 12px; background: ${accent}; display: flex; align-items: center; justify-content: center; }
 .brand-name { font-size: 20px; font-weight: 700; color: #111827; }
 .brand-sub { font-size: 11px; color: #6b7280; }
 .cover-label { font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px; color: #9ca3af; font-weight: 600; text-align: right; }
@@ -325,12 +331,12 @@ ${BASE_STYLES}
 .prop-info { flex: 1; padding: 14px 16px; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
 .prop-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
 .prop-addr { font-size: 13px; font-weight: 600; color: #111827; line-height: 1.3; }
-.prop-price { font-size: 15px; font-weight: 700; color: #059669; white-space: nowrap; flex-shrink: 0; }
+.prop-price { font-size: 15px; font-weight: 700; color: ${accent}; white-space: nowrap; flex-shrink: 0; }
 .prop-specs { font-size: 11px; color: #6b7280; }
 .prop-desc { font-size: 11px; color: #4b5563; line-height: 1.55; }
 .prop-ref { font-size: 10px; color: #9ca3af; font-weight: 600; font-family: monospace; margin-top: 2px; }
 .prop-agent { margin-top: 4px; padding-top: 6px; border-top: 1px solid #f3f4f6; font-size: 10px; color: #4b5563; line-height: 1.45; }
-.prop-agent-label { display: block; margin-bottom: 2px; color: #059669; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .7px; }
+.prop-agent-label { display: block; margin-bottom: 2px; color: ${accent}; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .7px; }
 .prop-agent-contact { display: inline-block; margin-right: 10px; }
 
 .footer { margin: 28px 36px 0; padding-top: 16px; border-top: 1px solid #e5e7eb; display: flex; justify-content: space-between; font-size: 10px; color: #9ca3af; }
@@ -365,7 +371,7 @@ ${BASE_STYLES}
   <div class="body">
     ${properties.length === 0
       ? `<div class="empty">No published listings to show in this brochure.</div>`
-      : sectionHtml('For Sale', '#059669', forSale) + sectionHtml('To Rent', '#2563eb', forRent)
+      : sectionHtml('For Sale', accent, forSale) + sectionHtml('To Rent', accentSecondary, forRent)
     }
   </div>
 

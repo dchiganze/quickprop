@@ -18,7 +18,7 @@ interface Props {
   shareUrl?: string;
 }
 
-const SWATCHES = ['#1A3C6E', '#0F766E', '#9F1239', '#B45309', '#4C1D95', '#111827'];
+const SWATCHES = ['#1A3C6E', '#9F1239', '#B45309', '#4C1D95', '#111827'];
 
 export function FlyerCustomizer({ visible, onClose, property, settings, onChange, onReset, shareUrl }: Props) {
   const c = useColors();

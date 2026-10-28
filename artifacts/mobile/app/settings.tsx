@@ -8,8 +8,8 @@ import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useColors } from '@/hooks/useColors';
 import { useAuth, apiBaseUrl } from '@/contexts/AuthContext';
+import { supportsNativePush } from '@/utils/notificationSupport';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as Notifications from 'expo-notifications';
 import {
   deactivateListingHousekeepingPushToken,
   getListingHousekeepingPreferences,
@@ -27,9 +27,10 @@ interface ToggleRowProps {
   description?: string;
   value: boolean;
   onChange: (v: boolean) => void;
+  disabled?: boolean;
 }
 
-function ToggleRow({ icon, label, description, value, onChange }: ToggleRowProps) {
+function ToggleRow({ icon, label, description, value, onChange, disabled = false }: ToggleRowProps) {
   const colors = useColors();
   return (
     <View style={[tStyles.row, { borderBottomColor: colors.border }]}>
@@ -41,6 +42,7 @@ function ToggleRow({ icon, label, description, value, onChange }: ToggleRowProps
         {description && <Text style={[tStyles.desc, { color: colors.mutedForeground }]}>{description}</Text>}
       </View>
       <Switch
+        disabled={disabled}
         value={value}
         onValueChange={v => { Haptics.selectionAsync(); onChange(v); }}
         trackColor={{ false: '#CBD5E0', true: '#10B981' }}
@@ -99,8 +101,8 @@ export default function SettingsScreen() {
   const [offlineMode, setOfflineMode] = useState(true);
 
   useEffect(() => {
-    if (Platform.OS === 'web') return;
-    Notifications.getPermissionsAsync()
+    if (!supportsNativePush || Platform.OS === 'web') return;
+    import('expo-notifications').then((Notifications) => Notifications.getPermissionsAsync())
       .then((permissions) => setPushEnabled(permissions.granted))
       .catch(() => setPushEnabled(false));
   }, []);
@@ -138,6 +140,10 @@ export default function SettingsScreen() {
       setPushEnabled(enabled);
       return;
     }
+    if (!supportsNativePush) {
+      Alert.alert('Push notifications unavailable', 'Enable push notifications in the installed QuickProp Agent app. Expo Go does not include this native notification module.');
+      return;
+    }
 
     if (!enabled) {
       setPushEnabled(false);
@@ -153,6 +159,7 @@ export default function SettingsScreen() {
       const token = await registerForPushNotificationsAsync();
       if (!token) {
         setPushEnabled(false);
+        const Notifications = await import('expo-notifications');
         const permissions = await Notifications.getPermissionsAsync();
         if (permissions.status === 'denied' && !permissions.canAskAgain) {
           Alert.alert(
@@ -200,7 +207,7 @@ export default function SettingsScreen() {
       >
         <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>NOTIFICATIONS</Text>
         <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <ToggleRow icon="notifications-outline" label="Push Notifications" description={pushLoading ? 'Enabling on this device…' : 'Enable alerts from QuickProp Agent'} value={pushEnabled} onChange={(value) => { void setNativePushEnabled(value); }} />
+          <ToggleRow icon="notifications-outline" label="Push Notifications" description={supportsNativePush ? (pushLoading ? 'Enabling on this device…' : 'Enable alerts from QuickProp Agent') : 'Available in the installed app, not Expo Go'} value={pushEnabled} disabled={!supportsNativePush} onChange={(value) => { void setNativePushEnabled(value); }} />
           <ToggleRow icon="person-add-outline" label="New Lead" description="When a buyer enquires on your listing" value={newLeadNotif} onChange={setNewLeadNotif} />
           <ToggleRow icon="locate-outline" label="Buyer Match" description="When a new buyer matches your listing" value={buyerMatchNotif} onChange={setBuyerMatchNotif} />
           <ToggleRow icon="eye-outline" label="Viewing Reminders" description="At 7:30 am on the day of a scheduled viewing" value={reminderPreferences.viewingReminderEnabled} onChange={(value) => persistReminderPreferences({ ...reminderPreferences, viewingReminderEnabled: value })} />

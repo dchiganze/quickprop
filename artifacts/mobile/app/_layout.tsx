@@ -14,9 +14,8 @@ import { SplashScreenView } from '@/components/SplashScreenView';
 import * as Sentry from '@sentry/react-native';
 import { setAuthTokenGetter, setBaseUrl } from '@workspace/api-client-react';
 import { apiOrigin, getStoredAccessToken } from '@/contexts/AuthContext';
-import * as Notifications from 'expo-notifications';
+import { supportsNativePush } from '@/utils/notificationSupport';
 import { NavigationFlags } from '@/utils/navigationFlags';
-import '@/utils/pushNotifications';
 
 import appJson from '../app.json';
 
@@ -43,29 +42,37 @@ function RootLayoutNav() {
   const colors = useColors();
 
   useEffect(() => {
-    if (Platform.OS === 'web') return;
-    const subscription = Notifications.addNotificationResponseReceivedListener((response) => {
-      const data = response.notification.request.content.data as { type?: string; propertyId?: number | string; url?: string } | undefined;
-      if (data?.type === 'viewing_reminder') {
-        router.push('/viewings');
-        return;
-      }
-      if (data?.type === 'property_search_alert' && typeof data.url === 'string' && data.url.startsWith('https://')) {
-        Linking.openURL(data.url).catch(() => router.push('/(tabs)/matches'));
-        return;
-      }
-      if (data?.type === 'listing_housekeeping') {
-        router.push('/housekeeping');
-        return;
-      }
-      if (data?.propertyId) {
-        router.push(`/listing/${data.propertyId}` as never);
-        return;
-      }
-      NavigationFlags.notificationsFromDashboard = true;
-      router.push('/notifications');
-    });
-    return () => subscription.remove();
+    if (!supportsNativePush || Platform.OS === 'web') return;
+    let cancelled = false;
+    let subscription: { remove: () => void } | undefined;
+    import('expo-notifications').then((Notifications) => {
+      if (cancelled) return;
+      subscription = Notifications.addNotificationResponseReceivedListener((response) => {
+        const data = response.notification.request.content.data as { type?: string; propertyId?: number | string; url?: string } | undefined;
+        if (data?.type === 'viewing_reminder') {
+          router.push('/viewings');
+          return;
+        }
+        if (data?.type === 'property_search_alert' && typeof data.url === 'string' && data.url.startsWith('https://')) {
+          Linking.openURL(data.url).catch(() => router.push('/(tabs)/matches'));
+          return;
+        }
+        if (data?.type === 'listing_housekeeping') {
+          router.push('/housekeeping');
+          return;
+        }
+        if (data?.propertyId) {
+          router.push(`/listing/${data.propertyId}` as never);
+          return;
+        }
+        NavigationFlags.notificationsFromDashboard = true;
+        router.push('/notifications');
+      });
+    }).catch(() => {});
+    return () => {
+      cancelled = true;
+      subscription?.remove();
+    };
   }, []);
 
   if (loading) {

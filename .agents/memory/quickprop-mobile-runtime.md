@@ -104,3 +104,9 @@ Keep file watching enabled for persistent Expo phone previews; reserve CI mode f
 **Why:** CI mode disabled reloads and left Metro serving stale modules. An older Metro process also continued occupying the assigned port while the managed workflow was failed, so a successful health check alone did not prove that the current preview was running.
 
 **How to apply:** Verify managed-workflow state and port ownership together, not just an HTTP status. If a previous Metro process blocks the assigned port, verify its command and working directory before stopping only that process; then restart the existing managed workflow. Preserve the injected port and managed login, keep the listener externally reachable, and use the Expo preview domain in advertised native URLs.
+
+Do not statically import `expo-notifications` in code that runs in Expo Go when the bundled native container may not include the installed SDK patch's notification modules.
+
+**Why:** Expo Go on Android reported a missing `ExpoTopicSubscriptionModule` at app startup even though Expo Doctor passed. The newer JavaScript package expected a native module absent from that Go binary; a top-level import caused the whole app to fail before routes loaded.
+
+**How to apply:** Detect `ExecutionEnvironment.StoreClient` before loading notification modules and use a dynamic import only in native installed builds. Push registration is unavailable in Expo Go; verify push behavior in an installed build.

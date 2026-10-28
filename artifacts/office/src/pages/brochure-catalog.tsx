@@ -18,6 +18,7 @@ import {
   useListProperties,
   useListUsers,
 } from '@workspace/api-client-react';
+import { getAgencyBrandColors } from '@/utils/agencyBrandColors';
 
 const PUBLIC_STATUSES = ['public', 'under_offer', 'coming_soon'];
 const STATUS_LABELS: Record<string, string> = {
@@ -158,11 +159,12 @@ export default function BrochureCatalog() {
   const pagesCount = properties.length > 0 ? properties.length + 1 : 2;
   const tagline = agencySettings?.tagline?.trim() ?? '';
   const aboutText = agencySettings?.aboutText?.trim() ?? '';
+  const agencyColors = getAgencyBrandColors(agencySettings);
 
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white">
-        <div className="w-8 h-8 rounded-full border-4 border-emerald-600 border-t-transparent animate-spin" />
+        <div className="w-8 h-8 rounded-full border-4 border-t-transparent animate-spin" style={{ borderColor: `${agencyColors.primaryColor} transparent transparent transparent` }} />
       </div>
     );
   }
@@ -173,8 +175,8 @@ export default function BrochureCatalog() {
         :root {
           --brochure-ink: #102a2a;
           --brochure-ink-soft: #35504e;
-          --brochure-primary: #0f766e;
-          --brochure-primary-bright: #10b981;
+          --brochure-primary: ${agencyColors.primaryColor};
+          --brochure-primary-bright: ${agencyColors.secondaryColor};
           --brochure-paper: #ffffff;
           --brochure-paper-warm: #ffffff;
           --brochure-line: #dce8e4;
@@ -729,7 +731,8 @@ export default function BrochureCatalog() {
           <span className="text-sm text-gray-500">{properties.length} properties · One property per page</span>
           <button
             onClick={() => window.print()}
-            className="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-700"
+            className="flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors"
+            style={{ backgroundColor: agencyColors.primaryColor }}
           >
             <Printer className="w-4 h-4" />
             Print / Save PDF

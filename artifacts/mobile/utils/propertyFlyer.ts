@@ -24,6 +24,20 @@ export const FLYER_TEMPLATES: Array<{ id: FlyerTemplate; label: string; hint: st
 ];
 
 export const FALLBACK_FLYER_COLOR = '#1A3C6E';
+const QUICKPROP_DEFAULT_GREEN = '#10B981';
+
+export function resolveAgencyBrandColors(agency?: {
+  primaryColor?: string | null;
+  logoColors?: string[] | null;
+} | null): { primaryColor: string; secondaryColor: string } {
+  const logoColors = agency?.logoColors?.filter(isHexColor).map(color => color.toUpperCase()) ?? [];
+  const configured = agency?.primaryColor && isHexColor(agency.primaryColor)
+    ? agency.primaryColor.toUpperCase()
+    : undefined;
+  const primaryColor = logoColors[0]
+    ?? (configured && configured !== QUICKPROP_DEFAULT_GREEN ? configured : FALLBACK_FLYER_COLOR);
+  return { primaryColor, secondaryColor: logoColors[1] ?? primaryColor };
+}
 
 export function isHexColor(value: string): boolean {
   return /^#([0-9a-f]{6})$/i.test(value.trim());
@@ -53,13 +67,13 @@ export function buildDefaultFlyerSettings(
   agency?: { agencyName?: string; logoUrl?: string | null; primaryColor?: string; tagline?: string; logoColors?: string[] } | null,
 ): FlyerSettings {
   const logoColors = agency?.logoColors?.filter(isHexColor) ?? [];
-  const agencyPrimaryColor = agency?.primaryColor && isHexColor(agency.primaryColor)
-    ? agency.primaryColor : FALLBACK_FLYER_COLOR;
+  const { primaryColor } = resolveAgencyBrandColors(agency);
+  const agencyPrimaryColor = primaryColor;
   return {
     template: 'editorial',
     agencyName: agency?.agencyName?.trim() || user?.agency?.trim() || '',
     logoUrl: agency?.logoUrl?.trim() || '',
-    primaryColor: logoColors[0] ?? agencyPrimaryColor,
+    primaryColor,
     headline: defaultHeadline(property),
     contactName: user?.name?.trim() || '',
     contactPhone: user?.phone?.trim() || '',
@@ -76,6 +90,7 @@ export function mergeFlyerSettings(base: FlyerSettings, saved: unknown): FlyerSe
   const s = saved as Record<string, unknown>;
   const str = (k: 'agencyName' | 'logoUrl' | 'primaryColor' | 'headline' | 'contactName' | 'contactPhone' | 'tagline'): string =>
     typeof s[k] === 'string' ? s[k] as string : base[k];
+  const savedColor = typeof s.primaryColor === 'string' ? s.primaryColor : '';
   const template = (['editorial', 'showcase', 'minimal'] as const).find(t => t === s.template) ?? base.template;
   const logoSource = s.logoSource === 'none' ? 'none'
     : s.logoSource === 'custom' || (s.logoSource !== 'agency' && typeof s.logoUrl === 'string' && s.logoUrl && s.logoUrl !== base.logoUrl)
@@ -84,6 +99,7 @@ export function mergeFlyerSettings(base: FlyerSettings, saved: unknown): FlyerSe
   // must not mask branding that was configured or fixed afterwards.
   const accentSource = s.accentSource === 'custom' ? 'custom'
     : s.accentSource === 'logo' || !s.primaryColor || s.primaryColor === base.agencyPrimaryColor
+      || (s.accentSource !== 'custom' && savedColor.toUpperCase() === QUICKPROP_DEFAULT_GREEN)
       ? 'logo' : 'custom';
   return {
     template,

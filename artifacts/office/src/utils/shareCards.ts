@@ -3,7 +3,7 @@ import type { Property } from '@workspace/api-client-react';
 const CANVAS_WIDTH = 1080;
 const CANVAS_HEIGHT = 1350;
 const PHOTO_HEIGHT = 984;
-const GREEN = '#10B981';
+const DEFAULT_ACCENT = '#1A3C6E';
 const NAVY = '#0B1929';
 const MUTED = '#64748B';
 const BORDER = '#E2E8F0';
@@ -88,10 +88,10 @@ function drawCoverImage(
   ctx.drawImage(image, sourceX, sourceY, sourceWidth, sourceHeight, x, y, width, height);
 }
 
-function drawPlaceholder(ctx: CanvasRenderingContext2D, text: string) {
+function drawPlaceholder(ctx: CanvasRenderingContext2D, text: string, accent: string) {
   ctx.fillStyle = '#F1F5F9';
   ctx.fillRect(0, 0, CANVAS_WIDTH, PHOTO_HEIGHT);
-  ctx.fillStyle = GREEN;
+  ctx.fillStyle = accent;
   ctx.font = '800 72px Arial';
   ctx.textAlign = 'center';
   ctx.fillText('QuickProp', CANVAS_WIDTH / 2, PHOTO_HEIGHT / 2 - 12);
@@ -108,10 +108,11 @@ function drawPhotoPlaceholder(
   width: number,
   height: number,
   text: string,
+  accent: string,
 ) {
   ctx.fillStyle = '#F1F5F9';
   ctx.fillRect(x, y, width, height);
-  ctx.fillStyle = GREEN;
+  ctx.fillStyle = accent;
   ctx.font = '800 42px Arial';
   ctx.textAlign = 'center';
   ctx.fillText('QuickProp', x + width / 2, y + height / 2 - 8);
@@ -128,16 +129,17 @@ async function drawPhotoTile(
   y: number,
   width: number,
   height: number,
+  accent: string,
 ) {
   if (!source) {
-    drawPhotoPlaceholder(ctx, x, y, width, height, 'Photo unavailable');
+    drawPhotoPlaceholder(ctx, x, y, width, height, 'Photo unavailable', accent);
     return;
   }
 
   try {
     drawCoverImage(ctx, await loadImage(source), x, y, width, height);
   } catch {
-    drawPhotoPlaceholder(ctx, x, y, width, height, 'Photo unavailable');
+    drawPhotoPlaceholder(ctx, x, y, width, height, 'Photo unavailable', accent);
   }
 }
 
@@ -246,7 +248,7 @@ export function buildCatalogueShareCaption(
   return lines.join('\n');
 }
 
-export async function createPropertyShareCard(property: Property): Promise<Blob> {
+export async function createPropertyShareCard(property: Property, accentColor = DEFAULT_ACCENT): Promise<Blob> {
   const canvas = makeCanvas();
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('Could not prepare the share image.');
@@ -258,11 +260,11 @@ export async function createPropertyShareCard(property: Property): Promise<Blob>
   const topPhotoHeight = Math.round((PHOTO_HEIGHT - 8) * 0.67);
   const lowerPhotoHeight = PHOTO_HEIGHT - topPhotoHeight - 8;
   const lowerPhotoWidth = (CANVAS_WIDTH - 8) / 2;
-  await drawPhotoTile(ctx, photoSources[0], 0, 0, CANVAS_WIDTH, topPhotoHeight);
-  await drawPhotoTile(ctx, photoSources[1] ?? photoSources[0], 0, topPhotoHeight + 8, lowerPhotoWidth, lowerPhotoHeight);
-  await drawPhotoTile(ctx, photoSources[2] ?? photoSources[1] ?? photoSources[0], lowerPhotoWidth + 8, topPhotoHeight + 8, lowerPhotoWidth, lowerPhotoHeight);
+  await drawPhotoTile(ctx, photoSources[0], 0, 0, CANVAS_WIDTH, topPhotoHeight, accentColor);
+  await drawPhotoTile(ctx, photoSources[1] ?? photoSources[0], 0, topPhotoHeight + 8, lowerPhotoWidth, lowerPhotoHeight, accentColor);
+  await drawPhotoTile(ctx, photoSources[2] ?? photoSources[1] ?? photoSources[0], lowerPhotoWidth + 8, topPhotoHeight + 8, lowerPhotoWidth, lowerPhotoHeight, accentColor);
 
-  ctx.fillStyle = GREEN;
+  ctx.fillStyle = accentColor;
   ctx.fillRect(0, PHOTO_HEIGHT, CANVAS_WIDTH, 8);
   ctx.fillStyle = '#FFFFFF';
   ctx.fillRect(0, PHOTO_HEIGHT + 8, CANVAS_WIDTH, CANVAS_HEIGHT - PHOTO_HEIGHT - 8);
@@ -271,7 +273,7 @@ export async function createPropertyShareCard(property: Property): Promise<Blob>
   const contentWidth = CANVAS_WIDTH - x * 2;
   let y = PHOTO_HEIGHT + 58;
   ctx.textAlign = 'left';
-  ctx.fillStyle = GREEN;
+  ctx.fillStyle = accentColor;
   ctx.font = '800 28px Arial';
   ctx.fillText(listingTypeLabel(property.listingType).toUpperCase(), x, y);
   ctx.fillStyle = MUTED;
@@ -317,7 +319,7 @@ export async function createPropertyShareCard(property: Property): Promise<Blob>
   ctx.moveTo(x, CANVAS_HEIGHT - 112);
   ctx.lineTo(CANVAS_WIDTH - x, CANVAS_HEIGHT - 112);
   ctx.stroke();
-  ctx.fillStyle = GREEN;
+  ctx.fillStyle = accentColor;
   ctx.font = '800 20px Arial';
   ctx.fillText('SEE FULL DETAILS ON QUICKPROP', x, CANVAS_HEIGHT - 68);
   ctx.fillStyle = MUTED;
@@ -332,6 +334,8 @@ export async function createCatalogueShareCard(
   properties: Property[],
   mode: 'company' | 'agent',
   agentName: string | undefined,
+  accentColor = DEFAULT_ACCENT,
+  accentColorSecondary = accentColor,
 ): Promise<Blob> {
   const canvas = makeCanvas();
   const ctx = canvas.getContext('2d');
@@ -339,12 +343,12 @@ export async function createCatalogueShareCard(
 
   ctx.fillStyle = '#FFFFFF';
   ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-  ctx.fillStyle = GREEN;
+  ctx.fillStyle = accentColor;
   ctx.fillRect(0, 0, CANVAS_WIDTH, 18);
 
   const x = 64;
   const contentWidth = CANVAS_WIDTH - x * 2;
-  ctx.fillStyle = GREEN;
+  ctx.fillStyle = accentColor;
   ctx.font = '800 28px Arial';
   ctx.fillText('QUICKPROP', x, 92);
   ctx.fillStyle = NAVY;
@@ -368,10 +372,10 @@ export async function createCatalogueShareCard(
   ctx.fillStyle = MUTED;
   ctx.font = '600 23px Arial';
   ctx.fillText(properties.length === 1 ? 'property' : 'properties', x + 28, y + 96);
-  ctx.fillStyle = GREEN;
+  ctx.fillStyle = accentColor;
   ctx.font = '700 24px Arial';
   ctx.fillText(`${forSale.length} for sale`, x + 300, y + 58);
-  ctx.fillStyle = '#3B82F6';
+  ctx.fillStyle = accentColorSecondary;
   ctx.fillText(`${forRent.length} to rent`, x + 300, y + 96);
 
   y += 190;
@@ -387,7 +391,7 @@ export async function createCatalogueShareCard(
     ctx.font = '700 25px Arial';
     const name = `${property.bedrooms ? `${property.bedrooms}-bed ` : ''}${property.propertyType} · ${property.suburb}`;
     ctx.fillText(name.slice(0, 48), x, y);
-    ctx.fillStyle = GREEN;
+    ctx.fillStyle = accentColor;
     ctx.font = '700 23px Arial';
     ctx.textAlign = 'right';
     ctx.fillText(formatPrice(property), CANVAS_WIDTH - x, y);
@@ -401,7 +405,7 @@ export async function createCatalogueShareCard(
   ctx.moveTo(x, CANVAS_HEIGHT - 142);
   ctx.lineTo(CANVAS_WIDTH - x, CANVAS_HEIGHT - 142);
   ctx.stroke();
-  ctx.fillStyle = GREEN;
+  ctx.fillStyle = accentColor;
   ctx.font = '800 21px Arial';
   ctx.fillText('SEE FULL DETAILS ON QUICKPROP', x, CANVAS_HEIGHT - 92);
   ctx.fillStyle = MUTED;

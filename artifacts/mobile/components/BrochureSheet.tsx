@@ -16,6 +16,7 @@ import { Property } from '@/types';
 import { singlePropertyBrochureHtml, catalogueBrochureHtml } from '@/utils/brochureHtml';
 import { buildPropertyShareMessage } from '@/utils/shareContent';
 import { openWhatsAppMessage } from '@/utils/whatsapp';
+import { useGetAdminAgencySettings } from '@workspace/api-client-react';
 
 type CatalogMode = 'my' | 'company';
 
@@ -30,6 +31,7 @@ interface PropertyBrochureSheetProps {
 export function PropertyBrochureSheet({ visible, onClose, property }: PropertyBrochureSheetProps) {
   const colors = useColors();
   const { user } = useAuth();
+  const { data: agencySettings } = useGetAdminAgencySettings();
   const [loading, setLoading] = useState(false);
 
   const handleShareAsText = () => {
@@ -55,7 +57,7 @@ export function PropertyBrochureSheet({ visible, onClose, property }: PropertyBr
     setLoading(true);
     try {
       const Print: PrintModule = await import('expo-print');
-      const html = singlePropertyBrochureHtml(property, user);
+      const html = singlePropertyBrochureHtml(property, user, agencySettings);
       await Print.printAsync({ html });
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : 'Could not generate brochure. Please try again.';
@@ -74,7 +76,7 @@ export function PropertyBrochureSheet({ visible, onClose, property }: PropertyBr
     try {
       const Print: PrintModule = await import('expo-print');
       const Sharing: SharingModule = await import('expo-sharing');
-      const html = singlePropertyBrochureHtml(property, user);
+      const html = singlePropertyBrochureHtml(property, user, agencySettings);
       const { uri } = await Print.printToFileAsync({ html });
       if (!(await Sharing.isAvailableAsync())) {
         throw new Error('PDF sharing is not available on this device.');
@@ -158,6 +160,7 @@ export function CatalogueBrochureSheet({ visible, onClose }: CatalogueBrochureSh
   const colors = useColors();
   const { user } = useAuth();
   const { properties } = useData();
+  const { data: agencySettings } = useGetAdminAgencySettings();
   const [mode, setMode] = useState<CatalogMode>('my');
   const [loading, setLoading] = useState(false);
 
@@ -170,7 +173,7 @@ export function CatalogueBrochureSheet({ visible, onClose }: CatalogueBrochureSh
     setLoading(true);
     try {
       const Print: PrintModule = await import('expo-print');
-      const html = catalogueBrochureHtml(activeProps, user, mode);
+      const html = catalogueBrochureHtml(activeProps, user, mode, [], agencySettings);
       if (action === 'print') {
         await Print.printAsync({ html });
       } else {

@@ -4,7 +4,7 @@ import {
   useGetProperty, useUpdateProperty, useGetPropertyPriceHistory, 
   useGetPropertyActivity, useGetSeller, getGetSellerQueryKey, useListViewings, useListDocuments,
   useGenerateBrochure, useShareProperty 
-  , useGetMultiAgentProperty, useUpdatePropertyHealth
+  , useGetMultiAgentProperty, useUpdatePropertyHealth, useGetAdminAgencySettings
 } from '@workspace/api-client-react';
 import { 
   ArrowLeft, MapPin, Bed, Bath, Car, Square, Building2, Calendar, 
@@ -43,6 +43,7 @@ import {
   QUICKPROP_SHARE_PREVIEW_VERSION,
 } from '@/utils/shareLinks';
 import { PropertyApplications } from '@/components/rental-applications';
+import { getAgencyBrandColors } from '@/utils/agencyBrandColors';
 
 const PROPERTY_FEATURES = [
   'Solar', 'Borehole', 'Swimming Pool', 'Electric Fence',
@@ -164,6 +165,8 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
   const { data: viewings } = useListViewings({ propertyId });
   const { data: documents } = useListDocuments({ propertyId });
   const { data: multiAgent } = useGetMultiAgentProperty(propertyId);
+  const { data: agencySettings } = useGetAdminAgencySettings();
+  const agencyColors = getAgencyBrandColors(agencySettings);
   const sellerId = property?.sellerId;
   const { data: seller } = useGetSeller(sellerId || 0, { query: { enabled: !!sellerId, queryKey: getGetSellerQueryKey(sellerId || 0) }});
 
@@ -531,7 +534,7 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
 
         try {
           if (channel === 'whatsapp') {
-            const card = await createPropertyShareCard(property);
+            const card = await createPropertyShareCard(property, agencyColors.primaryColor);
             const result = await shareCardWithCaption(
               card,
               shareMessage,
