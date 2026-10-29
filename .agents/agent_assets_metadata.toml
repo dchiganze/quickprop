@@ -323,3 +323,17 @@ mtime_ms = 1792852586662
 storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:cf900b3f-04ce-456b-888c-760ecb412036/76314354-f838-4b43-a2a9-c64c9261d5b8/f27155a4-0146-41db-bdc9-0f9f0d6ef80c"
 storage_version_token = "1792852645091351"
 content_type = "image/png"
+
+[[outputs]]
+id = "QOeluYuN4Ctd9Duk9Cdu1"
+uri = "file://artifacts/mobile/assets/images/splash.png"
+type = "image"
+title = "QuickProp Agent iOS Splash"
+description = "High-resolution 1024 × 1024 PNG installed as the mobile app's configured splash image."
+logical_id = "fcc58d30-34d2-42b6-a09e-7d92572b80f0"
+content_hash = "sha256:b2faf0f78921fe335af63942ee77713963ca5efcaf5f6d084ddf16dfcc33e5c3"
+size = 721399
+mtime_ms = 1793270150248
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:cf900b3f-04ce-456b-888c-760ecb412036/fcc58d30-34d2-42b6-a09e-7d92572b80f0/45f1815a-36b2-4d99-b565-6abe35ebfb76"
+storage_version_token = "1793270163073728"
+content_type = "image/png"
