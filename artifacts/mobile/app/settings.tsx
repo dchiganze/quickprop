@@ -16,6 +16,7 @@ import {
   registerListingHousekeepingPushToken,
   updateListingHousekeepingPreferences,
 } from '@workspace/api-client-react';
+import { useData } from '@/contexts/DataContext';
 import {
   PUSH_TOKEN_STORAGE_KEY,
   registerForPushNotificationsAsync,
@@ -80,6 +81,7 @@ export default function SettingsScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
+  const { offlineListingIds, pendingSyncCount, syncNow } = useData();
 
   const [pushEnabled, setPushEnabled] = useState(false);
   const [pushLoading, setPushLoading] = useState(false);
@@ -98,7 +100,6 @@ export default function SettingsScreen() {
   const [biometric, setBiometric] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
   const [highQualityImages, setHighQualityImages] = useState(true);
-  const [offlineMode, setOfflineMode] = useState(true);
 
   useEffect(() => {
     if (!supportsNativePush || Platform.OS === 'web') return;
@@ -242,8 +243,25 @@ export default function SettingsScreen() {
 
         <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>OFFLINE</Text>
         <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <ToggleRow icon="wifi-outline" label="Offline Mode" description="Cache listings and sync when online" value={offlineMode} onChange={setOfflineMode} />
-          <SelectRow icon="folder-outline" label="Offline Storage Used" value="84 MB" onPress={() => {}} />
+          <SelectRow
+            icon="download-outline"
+            label="Saved listings"
+            value={String(offlineListingIds.length)}
+            onPress={() => router.push('/(tabs)/listings?filter=offline' as never)}
+          />
+          <SelectRow
+            icon="cloud-upload-outline"
+            label="Changes waiting to sync"
+            value={String(pendingSyncCount)}
+            onPress={() => {
+              void syncNow().catch(() => {
+                Alert.alert('Sync will retry', 'Your changes remain saved on this device and will retry when you are online.');
+              });
+            }}
+          />
+          <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 18, padding: 14 }}>
+            Loaded listing details and saved media remain available without internet. New listings are queued on this device until they can upload.
+          </Text>
         </View>
 
         <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>PRIVACY</Text>

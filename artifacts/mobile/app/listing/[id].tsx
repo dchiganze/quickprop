@@ -13,6 +13,7 @@ import { useColors } from '@/hooks/useColors';
 import { propertyShareLinks } from '@/utils/shareLinks';
 import { sharePropertyGeneric } from '@/utils/whatsapp';
 import { getPrimaryListingPhoto } from '@/utils/listingPhoto';
+import { useNetworkStatus } from '@/contexts/ConnectivityContext';
 import { ListingImage } from '@/components/ListingImage';
 import { KeyboardAwareScrollViewCompat } from '@/components/KeyboardAwareScrollViewCompat';
 import { PropertyFlyer, PropertyFlyerHandle } from '@/components/PropertyFlyer';
@@ -79,7 +80,11 @@ export default function ListingDetailScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { properties, updateProperty, recordPropertySale } = useData();
+  const {
+    properties, updateProperty, recordPropertySale, offlineListingIds,
+    saveListingOffline, removeListingOffline,
+  } = useData();
+  const { isOnline } = useNetworkStatus();
   const property = properties.find(p => p.id === id);
   const { user, loading: authLoading } = useAuth();
   const remoteAgentId = user?.id && /^\d+$/.test(user.id) ? user.id : null;
@@ -137,6 +142,7 @@ export default function ListingDetailScreen() {
   const [conveyancerEmailInput, setConveyancerEmailInput] = useState('');
   const [conveyancerPhoneInput, setConveyancerPhoneInput] = useState('');
   const [saleSubmitting, setSaleSubmitting] = useState(false);
+  const [savingOffline, setSavingOffline] = useState(false);
   const [saleConfirmation, setSaleConfirmation] = useState<{
     confirmationUrl: string;
     conveyancerName: string;
@@ -193,6 +199,25 @@ export default function ListingDetailScreen() {
       </View>
     );
   }
+
+  const isSavedOffline = offlineListingIds.includes(property.id);
+  const handleOfflineToggle = async () => {
+    if (savingOffline) return;
+    setSavingOffline(true);
+    try {
+      if (isSavedOffline) {
+        await removeListingOffline(property.id);
+        Alert.alert('Removed from offline listings', 'This listing’s downloaded media was removed when it was not shared with another saved listing.');
+      } else {
+        await saveListingOffline(property.id);
+        Alert.alert('Saved for offline use', 'This listing and its available photos and video are saved on this device.');
+      }
+    } catch (error) {
+      Alert.alert('Could not update offline listing', error instanceof Error ? error.message : 'Please try again while connected.');
+    } finally {
+      setSavingOffline(false);
+    }
+  };
 
   const handleShare = async () => {
     if (sharingProperty) return;
@@ -473,12 +498,12 @@ export default function ListingDetailScreen() {
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.galleryScroll}>
               {property.photos.length === 0 && primaryPhoto && (
                 <View style={styles.photoThumb}>
-                  <ListingImage uri={primaryPhoto} style={styles.photoImg} resizeMode="cover" />
+                  <ListingImage uri={primaryPhoto} listingId={property.id} style={styles.photoImg} resizeMode="cover" />
                 </View>
               )}
               {property.photos.map((uri, index) => (
                 <View key={index} style={styles.photoThumb}>
-                  <ListingImage uri={uri} style={styles.photoImg} resizeMode="cover" />
+                  <ListingImage uri={uri} listingId={property.id} style={styles.photoImg} resizeMode="cover" />
                   <TouchableOpacity style={styles.photoDelete} onPress={() => handleRemovePhoto(index)}>
                     <Ionicons name="close-circle" size={24} color="#FFF" />
                   </TouchableOpacity>
@@ -505,8 +530,8 @@ export default function ListingDetailScreen() {
                 <Text style={[styles.addPhotoLabel, { color: colors.primary }]}>Add</Text>
               </TouchableOpacity>
             </ScrollView>
-            <View style={[styles.statusBadge, { backgroundColor: STATUS_COLORS[property.status] }]}>
-              <Text style={styles.statusText}>{property.status.charAt(0).toUpperCase() + property.status.slice(1)}</Text>
+            <View style={[styles.statusBadge, { backgroundColor: property.syncStatus ? colors.info : STATUS_COLORS[property.status] }]}>
+              <Text style={styles.statusText}>{property.syncStatus === 'conflict' ? 'Needs review' : property.syncStatus === 'queued' ? 'Waiting to sync' : property.status.charAt(0).toUpperCase() + property.status.slice(1)}</Text>
             </View>
             <View style={[styles.photoCountBadge, { backgroundColor: '#00000066' }]}>
               <Ionicons name="images-outline" size={12} color="#FFF" />
@@ -524,10 +549,40 @@ export default function ListingDetailScreen() {
               <Ionicons name="home-outline" size={38} color={colors.mutedForeground} />
               <Text style={[styles.galleryHint, { color: colors.mutedForeground }]}>Main photo coming soon · tap to add media</Text>
             </View>
-            <View style={[styles.statusBadge, { backgroundColor: STATUS_COLORS[property.status] }]}>
-              <Text style={styles.statusText}>{property.status.charAt(0).toUpperCase() + property.status.slice(1)}</Text>
+            <View style={[styles.statusBadge, { backgroundColor: property.syncStatus ? colors.info : STATUS_COLORS[property.status] }]}>
+              <Text style={styles.statusText}>{property.syncStatus === 'conflict' ? 'Needs review' : property.syncStatus === 'queued' ? 'Waiting to sync' : property.status.charAt(0).toUpperCase() + property.status.slice(1)}</Text>
             </View>
           </TouchableOpacity>
+        )}
+
+        <TouchableOpacity
+          style={[styles.offlineButton, { backgroundColor: colors.card, borderColor: colors.border }]}
+          onPress={handleOfflineToggle}
+          disabled={savingOffline}
+          accessibilityRole="button"
+          accessibilityLabel={isSavedOffline ? 'Remove listing from offline use' : 'Save listing for offline use'}
+          testID="toggle-listing-offline"
+        >
+          {savingOffline
+            ? <ActivityIndicator size="small" color={colors.primary} />
+            : <Ionicons name={isSavedOffline ? 'checkmark-circle' : 'cloud-download-outline'} size={20} color={colors.primary} />}
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: colors.foreground, fontSize: 14, fontWeight: '700' }}>
+              {isSavedOffline ? 'Saved for offline use' : 'Save for offline use'}
+            </Text>
+            <Text style={{ color: colors.mutedForeground, fontSize: 12, marginTop: 2 }}>
+              {isOnline ? 'Keep this listing and its media on this device' : 'Listing details are cached; connect to download its media'}
+            </Text>
+          </View>
+        </TouchableOpacity>
+
+        {property.syncStatus === 'conflict' && (
+          <View style={[styles.offlineConflictNotice, { backgroundColor: colors.info + '18', borderColor: colors.info + '55' }]}>
+            <Ionicons name="alert-circle-outline" size={18} color={colors.info} />
+            <Text style={{ color: colors.foreground, flex: 1, fontSize: 12, lineHeight: 18 }}>
+              This listing changed online while you were offline. Your device’s version is kept here and was not uploaded; compare it with the latest listing before re-entering changes.
+            </Text>
+          </View>
         )}
 
         <View style={styles.body}>
@@ -1261,6 +1316,8 @@ const styles = StyleSheet.create({
   infoItem: { flex: 1, minWidth: '45%', borderRadius: 12, padding: 12, gap: 4 },
   infoLabel: { fontSize: 11, fontWeight: '600' },
   infoValue: { fontSize: 14, fontWeight: '700' },
+  offlineButton: { flexDirection: 'row', alignItems: 'center', gap: 11, borderWidth: 1, borderRadius: 14, padding: 14, marginHorizontal: 16, marginTop: 14 },
+  offlineConflictNotice: { flexDirection: 'row', alignItems: 'flex-start', gap: 9, borderWidth: 1, borderRadius: 12, padding: 12, marginHorizontal: 16, marginTop: 10 },
   videoPlayOverlay: { position: 'absolute' },
   shareCardHost: { position: 'absolute', left: -1000, top: 0, width: 360, height: 450 },
   shareCollageHost: { position: 'absolute', left: 0, top: 450, width: 360, height: 360 },

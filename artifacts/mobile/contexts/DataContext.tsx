@@ -5,6 +5,7 @@ import { Property, Lead, BuyerMatch, Task, PropertyAlert } from '@/types';
 import { registerDataReset } from './dataReset';
 import { useNetworkStatus } from './ConnectivityContext';
 import { apiBaseUrl, apiOrigin, getStoredAccessToken, useAuth } from './AuthContext';
+import { cacheMediaForOffline, removeCachedOfflineMedia } from '@/utils/offlineMedia';
 import {
   createProperty, createTask, createViewing, deleteAgentSearchAlert, deleteProperty as deleteRemoteProperty,
   deleteTask as deleteRemoteTask, deleteViewing as deleteRemoteViewing,
@@ -42,7 +43,10 @@ interface DataContextType {
   lastSyncedAt: string | null;
   lastSyncError: string | null;
   pendingSyncCount: number;
+  offlineListingIds: string[];
   syncNow: () => Promise<void>;
+  saveListingOffline: (id: string) => Promise<void>;
+  removeListingOffline: (id: string) => Promise<void>;
   addProperty: (p: Omit<Property, 'id' | 'createdAt' | 'updatedAt'>) => Promise<Property>;
   updateProperty: (id: string, updates: Partial<Property>) => Promise<void>;
   recordPropertySale: (id: string, input: MarkPropertySoldInput) => Promise<PropertySaleConfirmationRequestResult>;
@@ -67,6 +71,7 @@ const TASKS_KEY = '@qp_tasks';
 const ALERTS_KEY = '@qp_alerts';
 const VIEWINGS_KEY = '@qp_viewings';
 const PENDING_SYNC_KEY = '@qp_pending_sync';
+const OFFLINE_LISTINGS_KEY = '@qp_offline_listing_ids';
 
 type PendingSyncMetadata = {
   retryCount?: number;
@@ -75,7 +80,7 @@ type PendingSyncMetadata = {
 
 type PendingSync = PendingSyncMetadata & (
   | { kind: 'property-create'; localId: string; property: Property }
-  | { kind: 'property-update'; localId: string; updates: Partial<Property> }
+  | { kind: 'property-update'; localId: string; updates: Partial<Property>; baseUpdatedAt?: string }
   | { kind: 'property-delete'; localId: string }
   | { kind: 'task-create'; localId: string; task: Task }
   | { kind: 'task-update'; localId: string; updates: Partial<Task> }
@@ -235,13 +240,14 @@ function toServerProperty(property: Property, userId: string): PropertyInput {
       : 'house'
   );
   const listingType = property.listingType ?? (property.type === 'rent' ? 'rent' : 'sale');
+  const desiredStatus = property.pendingStatus ?? property.status;
   return {
     title: property.title || property.address || `${property.bedrooms ?? ''} bedroom ${propertyType}`.trim(),
     description: property.description,
     propertyType,
     listingType,
-    status: serverStatus(property.status),
-    pipelineStage: property.status === 'published' ? 'published' : property.status === 'pending' ? 'ready' : property.status,
+    status: serverStatus(desiredStatus),
+    pipelineStage: desiredStatus === 'published' ? 'published' : desiredStatus === 'pending' ? 'ready' : desiredStatus,
     price: property.price,
     salePrice: property.salePrice,
     currency: property.currency,
@@ -478,6 +484,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [cloudSyncState, setCloudSyncState] = useState<CloudSyncState>('offline');
   const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
   const [lastSyncError, setLastSyncError] = useState<string | null>(null);
+  const [offlineListingIds, setOfflineListingIds] = useState<string[]>([]);
   // Collections are ref-backed so asynchronous mutations never use a render's
   // stale snapshot. Versions prevent a late hydration from replacing a
   // collection changed while its AsyncStorage read was in flight.
@@ -494,6 +501,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const tasksVersionRef = useRef(0);
   const alertsVersionRef = useRef(0);
   const pendingSyncRef = useRef<PendingSync[]>([]);
+  const offlineListingIdsRef = useRef<string[]>([]);
   const syncedPropertyResultsRef = useRef(new Map<string, Property>());
   const flushingRef = useRef(false);
   const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -509,6 +517,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     tasksRef.current = [];
     viewingsRef.current = [];
     pendingSyncRef.current = [];
+    offlineListingIdsRef.current = [];
     syncedPropertyResultsRef.current.clear();
     alertsRef.current = [];
     propertiesVersionRef.current += 1;
@@ -522,11 +531,26 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setTasks([]);
     setViewings([]);
     setAlerts([]);
+    setOfflineListingIds([]);
     setIsLoading(false);
     setCloudSyncState('offline');
     setLastSyncedAt(null);
     setLastSyncError(null);
   }), []);
+
+  useEffect(() => {
+    let cancelled = false;
+    offlineListingIdsRef.current = [];
+    setOfflineListingIds([]);
+    if (!user?.id) return () => { cancelled = true; };
+    AsyncStorage.getItem(OFFLINE_LISTINGS_KEY).then(raw => {
+      if (cancelled) return;
+      const ids = parseStoredArray<string>(raw, []).filter(id => typeof id === 'string');
+      offlineListingIdsRef.current = ids;
+      setOfflineListingIds(ids);
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [user?.id]);
 
   useEffect(() => {
     const load = async () => {
@@ -660,6 +684,12 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setCloudSyncState('syncing');
     const idMap = new Map<string, string>();
     try {
+      const hasRemotePropertyUpdates = pendingSyncRef.current.some(
+        operation => operation.kind === 'property-update' && isServerId(operation.localId),
+      );
+      const latestRemoteProperties = hasRemotePropertyUpdates
+        ? await listProperties({ agentId: Number(user!.id) })
+        : [];
       while (pendingSyncRef.current.length > 0) {
         const operation = pendingSyncRef.current[0];
         const retryDelay = (operation.retryAt ?? 0) - Date.now();
@@ -680,6 +710,16 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           const remote = toMobileProperty(created);
           idMap.set(operation.localId, remote.id);
           syncedPropertyResultsRef.current.set(operation.localId, remote);
+          if (offlineListingIdsRef.current.includes(operation.localId)) {
+            const remappedIds = offlineListingIdsRef.current.map(id => id === operation.localId ? remote.id : id);
+            await AsyncStorage.setItem(OFFLINE_LISTINGS_KEY, JSON.stringify(remappedIds));
+            offlineListingIdsRef.current = remappedIds;
+            setOfflineListingIds(remappedIds);
+            Promise.all([
+              ...remote.photos.map(uri => cacheMediaForOffline(uri, user!.id)),
+              ...(remote.videoUrl ? [cacheMediaForOffline(remote.videoUrl, user!.id)] : []),
+            ]).catch(error => console.warn('Saved listing media will retry after sync.', error));
+          }
           propertiesRef.current = propertiesRef.current.map(p => p.id === operation.localId ? remote : p);
           setProperties(propertiesRef.current);
           await save(PROPS_KEY, propertiesRef);
@@ -688,12 +728,26 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           if (isServerId(id)) {
             const current = propertiesRef.current.find(p => p.id === id);
             if (current) {
-              const withDurableMedia = await uploadPropertyMedia(current);
-              const result = await updateRemoteProperty(Number(id), toServerProperty(withDurableMedia, user!.id) as PropertyUpdate);
-              const remote = toMobileProperty(result);
-              propertiesRef.current = propertiesRef.current.map(p => p.id === id ? remote : p);
-              setProperties(propertiesRef.current);
-              await save(PROPS_KEY, propertiesRef);
+              const latest = latestRemoteProperties.find(property => String(property.id) === id);
+              const baseTime = operation.baseUpdatedAt ? Date.parse(operation.baseUpdatedAt) : Number.NaN;
+              const remoteTime = latest?.updatedAt ? Date.parse(latest.updatedAt) : Number.NaN;
+              const changedElsewhere = Number.isFinite(baseTime)
+                && Number.isFinite(remoteTime)
+                && remoteTime > baseTime;
+              if (changedElsewhere || !latest) {
+                propertiesRef.current = propertiesRef.current.map(property => property.id === id
+                  ? { ...property, syncStatus: 'conflict' }
+                  : property);
+                setProperties(propertiesRef.current);
+                await save(PROPS_KEY, propertiesRef);
+              } else {
+                const withDurableMedia = await uploadPropertyMedia(current);
+                const result = await updateRemoteProperty(Number(id), toServerProperty(withDurableMedia, user!.id) as PropertyUpdate);
+                const remote = toMobileProperty(result);
+                propertiesRef.current = propertiesRef.current.map(p => p.id === id ? remote : p);
+                setProperties(propertiesRef.current);
+                await save(PROPS_KEY, propertiesRef);
+              }
             }
           }
         } else if (operation.kind === 'property-delete') {
@@ -859,16 +913,23 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           });
         }
       }
+      const localConflicts = new Map(
+        propertiesRef.current.filter(property => property.syncStatus === 'conflict').map(property => [property.id, property]),
+      );
       const mappedProperties = remoteProperties
         .map(toMobileProperty)
         .filter(property => !pendingPropertyDeletes.has(property.id))
-        .map(property => ({ ...property, ...pendingPropertyUpdates.get(property.id) }));
+        .map(property => localConflicts.get(property.id) ?? { ...property, ...pendingPropertyUpdates.get(property.id) });
+      const mappedPropertyIds = new Set(mappedProperties.map(property => property.id));
+      const missingConflictProperties = [...localConflicts.values()].filter(
+        property => !mappedPropertyIds.has(property.id),
+      );
       const localOnlyProperties = propertiesRef.current.filter(
         property => !isServerId(property.id)
           && !LEGACY_DEMO_PROPERTY_IDS.has(property.id)
           && !pendingPropertyDeletes.has(property.id),
       );
-      propertiesRef.current = [...mappedProperties, ...localOnlyProperties];
+      propertiesRef.current = [...mappedProperties, ...localOnlyProperties, ...missingConflictProperties];
       setProperties(propertiesRef.current);
       await save(PROPS_KEY, propertiesRef);
 
@@ -1006,14 +1067,59 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     [alertMatches]
   );
 
+  const saveListingOffline = async (id: string) => {
+    if (!user?.id) throw new Error('Sign in to save listings for offline use.');
+    const property = propertiesRef.current.find(item => item.id === id);
+    if (!property) throw new Error('This listing is no longer available on this device.');
+    const media = [...property.photos, ...(property.videoUrl ? [property.videoUrl] : [])];
+    await Promise.all(media.map(uri => cacheMediaForOffline(uri, user.id)));
+    const next = [...new Set([...offlineListingIdsRef.current, id])];
+    await AsyncStorage.setItem(OFFLINE_LISTINGS_KEY, JSON.stringify(next));
+    offlineListingIdsRef.current = next;
+    setOfflineListingIds(next);
+  };
+
+  const removeListingOffline = async (id: string) => {
+    if (!user?.id) return;
+    const next = offlineListingIdsRef.current.filter(savedId => savedId !== id);
+    await AsyncStorage.setItem(OFFLINE_LISTINGS_KEY, JSON.stringify(next));
+    offlineListingIdsRef.current = next;
+    setOfflineListingIds(next);
+
+    const removedProperty = propertiesRef.current.find(item => item.id === id);
+    if (!removedProperty) return;
+    const stillUsedMedia = new Set(
+      next.flatMap(savedId => {
+        const savedProperty = propertiesRef.current.find(item => item.id === savedId);
+        return savedProperty
+          ? [...savedProperty.photos, ...(savedProperty.videoUrl ? [savedProperty.videoUrl] : [])]
+          : [];
+      }),
+    );
+    const removable = [...removedProperty.photos, ...(removedProperty.videoUrl ? [removedProperty.videoUrl] : [])]
+      .filter(uri => !stillUsedMedia.has(uri));
+    await Promise.all(removable.map(uri => removeCachedOfflineMedia(uri, user.id)));
+  };
+
   const addProperty = async (p: Omit<Property, 'id' | 'createdAt' | 'updatedAt'>) => {
-    const prop: Property = { ...p, id: uid(), createdAt: now(), updatedAt: now() };
+    const shouldQueue = remoteEnabled(user?.id);
+    const prop: Property = {
+      ...p,
+      ...(shouldQueue ? {
+        status: p.status === 'published' ? 'draft' as const : p.status,
+        pendingStatus: p.status,
+        syncStatus: 'queued' as const,
+      } : {}),
+      id: uid(),
+      createdAt: now(),
+      updatedAt: now(),
+    };
     const updated = [...propertiesRef.current, prop];
     propertiesRef.current = updated;
     propertiesVersionRef.current += 1;
     setProperties(updated);
     await save(PROPS_KEY, propertiesRef);
-    if (remoteEnabled(user?.id)) {
+    if (shouldQueue) {
       pendingSyncRef.current.push({ kind: 'property-create', localId: prop.id, property: prop });
       await persistPending();
       await syncNow();
@@ -1022,15 +1128,32 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   };
 
   const updateProperty = async (id: string, updates: Partial<Property>) => {
+    const beforeUpdate = propertiesRef.current.find(p => p.id === id);
     const updated = propertiesRef.current.map(p => p.id === id ? { ...p, ...updates, updatedAt: now() } : p);
     propertiesRef.current = updated;
     propertiesVersionRef.current += 1;
     setProperties(updated);
     await save(PROPS_KEY, propertiesRef);
     if (remoteEnabled(user?.id)) {
-      pendingSyncRef.current.push({ kind: 'property-update', localId: id, updates });
-      await persistPending();
-      await syncNow();
+      if (beforeUpdate?.syncStatus !== 'conflict') {
+        if (isServerId(id)) {
+          const existingUpdate = pendingSyncRef.current.find(
+            (operation): operation is Extract<PendingSync, { kind: 'property-update' }> =>
+              operation.kind === 'property-update' && operation.localId === id,
+          );
+          pendingSyncRef.current = pendingSyncRef.current.filter(
+            operation => !(operation.kind === 'property-update' && operation.localId === id),
+          );
+          pendingSyncRef.current.push({
+            kind: 'property-update',
+            localId: id,
+            updates: { ...existingUpdate?.updates, ...updates },
+            baseUpdatedAt: existingUpdate?.baseUpdatedAt ?? beforeUpdate?.updatedAt,
+          });
+          await persistPending();
+          await syncNow();
+        }
+      }
     }
   };
 
@@ -1230,7 +1353,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       properties, leads, buyerMatches, tasks, viewings, alerts,
       alertMatches, unseenMatchCount, isLoading,
       cloudSyncEnabled, cloudSyncState, lastSyncedAt, lastSyncError,
-      pendingSyncCount: pendingSyncRef.current.length, syncNow,
+      pendingSyncCount: pendingSyncRef.current.length, offlineListingIds, syncNow,
+      saveListingOffline, removeListingOffline,
       addProperty, updateProperty, recordPropertySale, deleteProperty,
       addLead, updateLead, addTask, updateTask, deleteTask,
       addViewing, updateViewing, deleteViewing,
