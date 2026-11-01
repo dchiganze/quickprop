@@ -5,6 +5,26 @@
  * QuickProp Office API
  * OpenAPI spec version: 0.1.0
  */
+export interface FlyerSharePreviewInput {
+  /**
+     * @minLength 1
+     * @maxLength 500
+     */
+  objectPath: string;
+  /**
+     * @minLength 1
+     * @maxLength 80
+     */
+  propertyReference: string;
+  /** @minimum 1 */
+  agentId: number;
+}
+
+export interface FlyerSharePreviewResult {
+  /** @minLength 1 */
+  url: string;
+}
+
 export interface StoredMediaUrl {
   url: string;
   expiresAt: string;

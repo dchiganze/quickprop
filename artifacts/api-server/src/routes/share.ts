@@ -5,6 +5,8 @@ import { and, desc, eq, inArray } from "drizzle-orm";
 import Jimp from "jimp-compact";
 import { db, propertiesTable, usersTable } from "@workspace/db";
 import { getCanonicalProperty } from "../lib/multi-agent";
+import { signFlyerShareToken, verifyFlyerShareToken } from "../lib/flyer-share-token";
+import { currentUser } from "./auth";
 import { getPrivateObjectDownloadUrl } from "./storage";
 
 const router: IRouter = Router();
@@ -291,6 +293,7 @@ function htmlPage({
   shareUrl,
   destinationUrl,
   redirectToDestination = true,
+  imageDimensions,
 }: {
   title: string;
   description: string;
@@ -298,12 +301,17 @@ function htmlPage({
   shareUrl: string;
   destinationUrl: string;
   redirectToDestination?: boolean;
+  imageDimensions?: { width: number; height: number } | null;
 }): string {
   const safeTitle = escapeHtml(title);
   const safeDescription = escapeHtml(description);
   const safeImageUrl = escapeHtml(imageUrl);
   const safeShareUrl = escapeHtml(shareUrl);
   const safeDestinationUrl = escapeHtml(destinationUrl);
+  const imageSizeMeta = imageDimensions === null
+    ? ""
+    : `<meta property="og:image:width" content="${imageDimensions?.width ?? COLLAGE_WIDTH}">
+     <meta property="og:image:height" content="${imageDimensions?.height ?? COLLAGE_HEIGHT}">`;
   const redirectHead = redirectToDestination
     ? `<meta http-equiv="refresh" content="0;url=${safeDestinationUrl}">
      <script>window.location.replace(${JSON.stringify(destinationUrl)});</script>`
@@ -311,7 +319,7 @@ function htmlPage({
   const body = redirectToDestination
     ? `<p>Opening QuickProp… <a href="${safeDestinationUrl}">Continue to the listing</a></p>`
     : `<main>
-    <img src="${safeImageUrl}" alt="${safeTitle}" width="${COLLAGE_WIDTH}" height="${COLLAGE_HEIGHT}">
+    <img src="${safeImageUrl}" alt="${safeTitle}" style="max-width:100%;height:auto">
     <h1><a href="${safeDestinationUrl}">${safeTitle}</a></h1>
     <p>${safeDescription}</p>
     <p><a href="${safeDestinationUrl}">View this agent's QuickProp marketplace profile</a></p>
@@ -329,8 +337,7 @@ function htmlPage({
     <meta property="og:image" content="${safeImageUrl}">
     <meta property="og:image:secure_url" content="${safeImageUrl}">
     <meta property="og:image:type" content="image/jpeg">
-    <meta property="og:image:width" content="${COLLAGE_WIDTH}">
-    <meta property="og:image:height" content="${COLLAGE_HEIGHT}">
+    ${imageSizeMeta}
     <meta property="og:image:alt" content="${safeTitle}">
     <meta property="og:site_name" content="QuickProp">
     <meta property="og:url" content="${safeShareUrl}">
@@ -346,6 +353,127 @@ function htmlPage({
   </body>
 </html>`;
 }
+
+function flyerShareSecret(): string | null {
+  const secret = process.env.SESSION_SECRET;
+  return secret && secret.length >= 32 ? secret : null;
+}
+
+function uploadedFlyerPathBelongsToAgent(objectPath: string, agentId: number): boolean {
+  return new RegExp(`^/objects/uploads/${agentId}/[a-z0-9-]+\\.jpg$`, "i").test(objectPath);
+}
+
+router.post("/share/flyer-previews", async (req, res): Promise<void> => {
+  const user = await currentUser(req);
+  if (!user || user.status !== "active") {
+    res.status(401).json({ error: "Not logged in" });
+    return;
+  }
+
+  const body = req.body as {
+    objectPath?: unknown;
+    propertyReference?: unknown;
+    agentId?: unknown;
+  } | undefined;
+  const objectPath = text(body?.objectPath);
+  const propertyReference = text(body?.propertyReference).toUpperCase();
+  const agentId = Number(body?.agentId);
+  const currentAgentId = Number(user.id);
+  if (
+    !Number.isInteger(agentId)
+    || agentId <= 0
+    || agentId !== currentAgentId
+    || !uploadedFlyerPathBelongsToAgent(objectPath, currentAgentId)
+    || !propertyReference
+    || propertyReference.length > 80
+  ) {
+    res.status(400).json({ error: "Invalid flyer details" });
+    return;
+  }
+
+  const property = await findPublicProperty(propertyReference);
+  if (!property) {
+    res.status(404).json({ error: "Published property not found" });
+    return;
+  }
+
+  const secret = flyerShareSecret();
+  if (!secret) {
+    req.log.error("SESSION_SECRET is unavailable for flyer share previews");
+    res.status(500).json({ error: "Flyer sharing is temporarily unavailable" });
+    return;
+  }
+  const token = signFlyerShareToken({ agentId, propertyReference, objectPath }, secret);
+  const url = `${originFor(req)}/api/share/flyer-previews/${token}`;
+  res.status(201).json({ url });
+});
+
+router.get("/share/flyer-previews/:token/image.jpg", async (req, res): Promise<void> => {
+  const secret = flyerShareSecret();
+  const payload = secret
+    ? verifyFlyerShareToken(req.params.token ?? "", secret)
+    : null;
+  if (!payload || !await findPublicProperty(payload.propertyReference)) {
+    res.status(404).json({ error: "Flyer preview not found" });
+    return;
+  }
+
+  try {
+    const downloadUrl = await getPrivateObjectDownloadUrl(payload.objectPath);
+    const response = await fetch(downloadUrl, { signal: AbortSignal.timeout(15_000) });
+    const contentType = response.headers.get("content-type")?.split(";")[0].trim().toLowerCase();
+    if (!response.ok || contentType !== "image/jpeg") {
+      res.status(404).json({ error: "Flyer image unavailable" });
+      return;
+    }
+    const image = Buffer.from(await response.arrayBuffer());
+    if (!image.length || image.length > 12 * 1024 * 1024) {
+      res.status(404).json({ error: "Flyer image unavailable" });
+      return;
+    }
+    res.setHeader("Cache-Control", "public, max-age=300, stale-while-revalidate=3600");
+    res.type("jpg").send(image);
+  } catch (error) {
+    req.log.warn({ err: error }, "Unable to load uploaded flyer preview");
+    res.status(404).json({ error: "Flyer image unavailable" });
+  }
+});
+
+router.get("/share/flyer-previews/:token", async (req, res): Promise<void> => {
+  const secret = flyerShareSecret();
+  const payload = secret
+    ? verifyFlyerShareToken(req.params.token ?? "", secret)
+    : null;
+  const property = payload
+    ? await findPublicProperty(payload.propertyReference)
+    : null;
+  if (!payload || !property) {
+    res.status(404).send("Flyer preview not found");
+    return;
+  }
+
+  const origin = originFor(req);
+  const shareUrl = `${origin}/api/share/flyer-previews/${req.params.token}`;
+  const imageUrl = `${shareUrl}/image.jpg`;
+  const destinationUrl = `${origin}${agentPublicPath(payload.agentId)}`;
+  const title = `${propertyTitle(property)} · QuickProp flyer`;
+  const description = `For my full catalogue on QuickProp, click this link. ${propertyDescription(property)}`;
+  if (!isSocialCrawler(req)) {
+    res.redirect(302, destinationUrl);
+    return;
+  }
+
+  res.setHeader("Cache-Control", "public, max-age=300, stale-while-revalidate=3600");
+  res.type("html").send(htmlPage({
+    title,
+    description,
+    imageUrl,
+    shareUrl,
+    destinationUrl,
+    redirectToDestination: false,
+    imageDimensions: null,
+  }));
+});
 
 async function sendCollage(
   req: Request,

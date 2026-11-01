@@ -108,6 +108,8 @@ export * from './duplicateReviewActionAction';
 export * from './eacAgencyOption';
 export * from './enquiryInput';
 export * from './enquiryResult';
+export * from './flyerSharePreviewInput';
+export * from './flyerSharePreviewResult';
 export * from './freshnessEntry';
 export * from './getAgentContactsParams';
 export * from './getAgentContactsType';

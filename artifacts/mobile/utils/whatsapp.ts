@@ -3,7 +3,8 @@ import * as Clipboard from 'expo-clipboard';
 import * as Sharing from 'expo-sharing';
 import Constants, { ExecutionEnvironment } from 'expo-constants';
 import { Property } from '@/types';
-import { shareProperty } from '@workspace/api-client-react';
+import { createFlyerSharePreview, shareProperty } from '@workspace/api-client-react';
+import { apiBaseUrl, getStoredAccessToken } from '@/contexts/AuthContext';
 import { prepareShareImage, runNativeSocialShare, runPropertyFlyerShare } from '@/utils/socialShareFlow';
 import {
   buildPropertyShareMessage,
@@ -11,6 +12,58 @@ import {
 } from '@/utils/shareContent';
 
 const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
+
+async function createUploadedFlyerPreview(
+  flyerUri: string,
+  propertyReference: string,
+  agentId: string,
+): Promise<string> {
+  if (!apiBaseUrl) throw new Error('Connect to the internet and sign in before sharing the flyer.');
+  const accessToken = await getStoredAccessToken();
+  if (!accessToken) throw new Error('Sign in again before sharing the flyer.');
+
+  const source = await fetch(flyerUri);
+  if (!source.ok) throw new Error('The flyer image could not be prepared for sharing.');
+  const image = await source.blob();
+  if (!image.size || image.size > 12 * 1024 * 1024) {
+    throw new Error('The flyer image is too large to share. Please try again.');
+  }
+
+  const uploadRequest = await fetch(`${apiBaseUrl}/storage/uploads/request-url`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify({
+      name: 'quickprop-property-flyer.jpg',
+      size: image.size,
+      contentType: 'image/jpeg',
+    }),
+  });
+  const uploadTarget = await uploadRequest.json().catch(() => null) as {
+    uploadURL?: string;
+    objectPath?: string;
+    error?: string;
+  } | null;
+  if (!uploadRequest.ok || !uploadTarget?.uploadURL || !uploadTarget.objectPath) {
+    throw new Error(uploadTarget?.error || 'The flyer could not be uploaded for sharing.');
+  }
+
+  const uploaded = await fetch(uploadTarget.uploadURL, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'image/jpeg' },
+    body: image,
+  });
+  if (!uploaded.ok) throw new Error('The flyer image could not be uploaded. Check your connection and try again.');
+
+  const preview = await createFlyerSharePreview({
+    objectPath: uploadTarget.objectPath,
+    propertyReference,
+    agentId: Number(agentId),
+  });
+  return preview.url;
+}
 
 async function shareImageWithSystemSheet(uri: string, dialogTitle: string): Promise<void> {
   if (!await Sharing.isAvailableAsync()) {
@@ -72,10 +125,11 @@ export async function sharePropertyToWhatsApp(
   captureCard: () => Promise<string>,
   options: { agentId?: string; beforeNativeShare?: () => Promise<void> } = {},
 ): Promise<{ caption: string; sharedPhoto: boolean }> {
-  const caption = buildPropertyFlyerCaption(options.agentId ?? property.agentId);
-  await Clipboard.setStringAsync(caption);
+  const agentId = options.agentId ?? property.agentId;
 
   if (Platform.OS === 'web') {
+    const caption = buildPropertyFlyerCaption(agentId);
+    await Clipboard.setStringAsync(caption);
     const cardUri = await prepareShareImage(captureCard);
     await shareFlyerInBrowser(cardUri, 'QuickProp property flyer', caption);
     return { caption, sharedPhoto: true };
@@ -83,19 +137,30 @@ export async function sharePropertyToWhatsApp(
 
   if (Platform.OS === 'ios') {
     const cardUri = await prepareShareImage(captureCard);
+    const previewUrl = await createUploadedFlyerPreview(
+      cardUri,
+      property.referenceNumber,
+      agentId,
+    );
+    const caption = buildPropertyFlyerCaption(agentId, previewUrl);
+    await Clipboard.setStringAsync(caption);
     await options.beforeNativeShare?.();
     await recordPropertyShare(property);
-    await Share.share({ url: cardUri, message: caption });
+    await Share.share({ message: caption });
     return { caption, sharedPhoto: true };
   }
 
   if (isExpoGo) {
+    const caption = buildPropertyFlyerCaption(agentId);
+    await Clipboard.setStringAsync(caption);
     await options.beforeNativeShare?.();
     await recordPropertyShare(property);
     await Share.share({ message: caption, title: 'QuickProp property flyer' });
     return { caption, sharedPhoto: false };
   }
 
+  const caption = buildPropertyFlyerCaption(agentId);
+  await Clipboard.setStringAsync(caption);
   const cardUri = await prepareShareImage(captureCard);
   await options.beforeNativeShare?.();
   await recordPropertyShare(property);

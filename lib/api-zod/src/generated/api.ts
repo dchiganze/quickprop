@@ -950,6 +950,27 @@ export const SharePropertyResponse = zod.object({
 })
 
 
+export const createFlyerSharePreviewBodyObjectPathMax = 500;
+
+export const createFlyerSharePreviewBodyPropertyReferenceMax = 80;
+
+
+
+
+export const CreateFlyerSharePreviewBody = zod.object({
+  "objectPath": zod.string().min(1).max(createFlyerSharePreviewBodyObjectPathMax),
+  "propertyReference": zod.string().min(1).max(createFlyerSharePreviewBodyPropertyReferenceMax),
+  "agentId": zod.number().min(1)
+})
+
+
+
+
+export const CreateFlyerSharePreviewResponse = zod.object({
+  "url": zod.string().min(1)
+})
+
+
 export const GenerateBrochureParams = zod.object({
   "id": zod.coerce.number()
 })
