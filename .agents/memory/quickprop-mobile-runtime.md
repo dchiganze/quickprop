@@ -116,3 +116,9 @@ For the SDK 58 mobile app, keep generated API hooks and the root provider on the
 **Why:** Moving the app to React 19.3 exposed a peer-specific React Query copy inside the shared workspace library, causing `No QueryClient set` at startup even though the app had a provider.
 
 **How to apply:** Resolve mobile API-client imports through the app's React Query package in Metro, then verify a cold Expo preview loads the dashboard without a query-context error.
+
+Keep persistent image caching limited to public/external listing URLs; private object-storage media should remain memory-cached unless the agent explicitly saves the listing for offline use.
+
+**Why:** The generic image cache is not account-scoped, so persistent caching could leave private draft photos on a shared device after sign-out.
+
+**How to apply:** Use the explicit offline-media cache for durable private copies, and do not hide a still-valid signed image URL solely because NetInfo briefly reports offline.
