@@ -206,7 +206,11 @@ function toMobileProperty(property: ApiProperty): Property {
     rates: property.rates ?? undefined,
     features: property.features ?? [],
     description: property.description ?? '',
-    photos: property.photos ?? [],
+    photos: property.photos?.length
+      ? property.photos
+      : property.coverImage
+        ? [property.coverImage]
+        : [],
     proposedViewingTimes: property.proposedViewingTimes ?? [],
     videoUrl: property.videoUrl ?? undefined,
     collaborationEnabled: property.collaborationEnabled ?? false,
