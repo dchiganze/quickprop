@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Image, type ImageProps } from 'react-native';
+import { Image as ExpoImage, type ImageProps } from 'expo-image';
 import { useGetStoredMediaUrl } from '@workspace/api-client-react';
 import { apiBaseUrl, useAuth } from '@/contexts/AuthContext';
 import { getStoredMediaObjectPath } from '@/utils/listingPhoto';
@@ -7,11 +7,15 @@ import { getCachedOfflineMediaUri } from '@/utils/offlineMedia';
 import { useNetworkStatus } from '@/contexts/ConnectivityContext';
 import { useData } from '@/contexts/DataContext';
 
-type Props = Omit<ImageProps, 'source'> & { uri: string; listingId?: string };
+type Props = Omit<ImageProps, 'source' | 'contentFit' | 'resizeMode'> & {
+  uri: string;
+  listingId?: string;
+  resizeMode?: 'cover' | 'contain';
+};
 
 // Keep durable paths in the listing/offline cache; signed URLs belong only in
 // the short-lived query cache and must be refreshed before they expire.
-export function ListingImage({ uri, listingId, ...props }: Props) {
+export function ListingImage({ uri, listingId, resizeMode = 'cover', ...props }: Props) {
   const { user } = useAuth();
   const { isOnline } = useNetworkStatus();
   const { offlineListingIds } = useData();
@@ -54,22 +58,32 @@ export function ListingImage({ uri, listingId, ...props }: Props) {
       },
     },
   );
+  const cacheKey = objectPath
+    ? `${apiBaseUrl}:${user?.id ?? 'public'}:${objectPath}`
+    : uri;
   const resolvedUri = offlineUri
-    ?? (resolveStoredMedia ? (isOnline ? media.data?.url : undefined) : uri);
+    // A signed URL remains usable for its short lifetime. Keep showing it if
+    // NetInfo briefly reports offline; the explicit offline file cache takes
+    // over after the URL expires.
+    ?? (resolveStoredMedia ? media.data?.url : uri);
   const onErrorRef = useRef(props.onError);
   onErrorRef.current = props.onError;
   useEffect(() => {
     if (resolveStoredMedia && media.isError && !media.data) {
       onErrorRef.current?.({
-        nativeEvent: { error: 'Unable to authorize this image. Please retry.' },
+        error: 'Unable to authorize this image. Please retry.',
       } as Parameters<NonNullable<ImageProps['onError']>>[0]);
     }
   }, [resolveStoredMedia, media.isError, media.data]);
 
-  return <Image
+  return <ExpoImage
     {...props}
     key={`${uri}:${attempt}`}
-    source={resolvedUri ? { uri: resolvedUri, ...(attempt ? { cache: 'reload' as const } : {}) } : undefined}
+    contentFit={resizeMode}
+    cachePolicy={attempt > 0 ? 'none' : objectPath ? 'memory' : 'memory-disk'}
+    source={resolvedUri
+      ? { uri: resolvedUri, cacheKey: cacheKey ?? uri }
+      : undefined}
     onError={async event => {
       // A successfully resolved URL can still fail during the native download
       // (including a cached URL expiring while the app was backgrounded).
