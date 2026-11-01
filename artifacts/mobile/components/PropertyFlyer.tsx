@@ -5,7 +5,7 @@ import type { Property } from '@/types';
 import { ListingImage } from '@/components/ListingImage';
 import type { FlyerSettings } from '@/utils/propertyFlyer';
 import {
-  EditorialTemplate, FLYER_H, FLYER_W, MinimalTemplate, ShowcaseTemplate, type TemplateProps,
+  EditorialTemplate, FLYER_H, FLYER_W, type TemplateProps,
 } from '@/components/flyer/FlyerTemplates';
 
 export interface PropertyFlyerHandle {
@@ -14,7 +14,7 @@ export interface PropertyFlyerHandle {
 interface Props { property: Property; settings: FlyerSettings; shareUrl: string }
 
 const READY_TIMEOUT_MS = 10_000;
-const EXTRA_SLOTS = { editorial: 3, showcase: 3, minimal: 3 } as const;
+const MAX_EXTRA_PHOTOS = 3;
 const sleep = (ms: number) => new Promise<void>(r => setTimeout(r, ms));
 
 export const PropertyFlyer = forwardRef<PropertyFlyerHandle, Props>(function PropertyFlyer(
@@ -22,7 +22,7 @@ export const PropertyFlyer = forwardRef<PropertyFlyerHandle, Props>(function Pro
 ) {
   const viewShot = useRef<ViewShotRef>(null);
   const main = property.photos?.[0] || undefined;
-  const slots = EXTRA_SLOTS[settings.template] ?? 3;
+  const slots = MAX_EXTRA_PHOTOS;
   const candidates = useMemo(
     () => (property.photos ?? []).slice(1).filter((u, i, a) => !!u && u !== main && a.indexOf(u) === i).slice(0, slots + 3),
     [property.photos, main, slots],
@@ -112,16 +112,13 @@ export const PropertyFlyer = forwardRef<PropertyFlyerHandle, Props>(function Pro
     mainFailed: !main || status[main] === 'fail',
     logoOk: !!logo && status[logo] !== 'fail',
   };
-  const Template = settings.template === 'showcase' ? ShowcaseTemplate
-    : settings.template === 'minimal' ? MinimalTemplate : EditorialTemplate;
-
   return (
     <ViewShot
       ref={viewShot}
       style={{ width: FLYER_W, height: FLYER_H }}
       options={{ format: 'jpg', quality: 0.92, width: 1080, height: 1350 }}
     >
-      <Template {...tp} />
+      <EditorialTemplate {...tp} />
     </ViewShot>
   );
 });

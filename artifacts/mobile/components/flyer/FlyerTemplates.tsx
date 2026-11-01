@@ -1,8 +1,9 @@
 import React from 'react';
 import { StyleSheet, Text, View, type StyleProp, type ImageStyle } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import type { Property } from '@/types';
 import {
-  flyerFeatures, flyerLocation, flyerPrice, flyerStats, flyerSummary, readableOn, safeColor,
+  FALLBACK_FLYER_COLOR, flyerFeatures, flyerLocation, flyerPrice, flyerStats, flyerSummary, readableOn, safeColor,
   type FlyerSettings,
 } from '@/utils/propertyFlyer';
 
@@ -69,6 +70,41 @@ function ContactLine({ s, color }: { s: FlyerSettings; color: string }) {
   );
 }
 
+function contrastingBrandColor(value: string, fallback: string): string {
+  const color = safeColor(value);
+  return readableOn(color) === '#0B1929' ? fallback : color;
+}
+
+function StatIcon({
+  label, primary, accent,
+}: {
+  label: string;
+  primary: string;
+  accent: string;
+}) {
+  const isBedroom = label.includes('Bedroom');
+  const isBathroom = label.includes('Bathroom');
+  const icon: React.ComponentProps<typeof MaterialCommunityIcons>['name'] = isBedroom ? 'bed'
+    : isBathroom ? 'bathtub'
+      : label.includes('Garage') ? 'garage'
+        : label === 'Land Area' ? 'land-plots' : 'floor-plan';
+
+  return (
+    <View style={{ flex: 1, minWidth: 0, alignItems: 'center', justifyContent: 'center', gap: 1 }}>
+      <View style={{ height: 24, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+        {isBathroom ? (
+          <>
+            <MaterialCommunityIcons name="bathtub" size={22} color={primary} />
+            <MaterialCommunityIcons name="shower-head" size={18} color={accent} />
+          </>
+        ) : (
+          <MaterialCommunityIcons name={icon} size={22} color={primary} />
+        )}
+      </View>
+    </View>
+  );
+}
+
 export function EditorialTemplate(p: TemplateProps) {
   const { settings: s, property } = p;
   const c = safeColor(s.primaryColor);
@@ -76,6 +112,8 @@ export function EditorialTemplate(p: TemplateProps) {
   const features = flyerFeatures(property, 6);
   const summary = flyerSummary(property, 150);
   const stats = flyerStats(property);
+  const iconPrimary = contrastingBrandColor(s.logoColors?.[0] ?? s.primaryColor, FALLBACK_FLYER_COLOR);
+  const iconAccent = contrastingBrandColor(s.logoColors?.[1] ?? iconPrimary, iconPrimary);
   const price = flyerPrice(property);
   const words = (s.headline || '').trim().split(/\s+/);
   const last = words.length > 1 ? words.pop() : '';
@@ -100,6 +138,17 @@ export function EditorialTemplate(p: TemplateProps) {
         <Text style={{ color: on, fontSize: 8, fontWeight: '800', flex: 1 }} numberOfLines={2}>{flyerLocation(property).toUpperCase()}</Text>
         {!!price && <Text style={{ color: on, fontSize: 18, fontWeight: '900', marginLeft: 8 }} numberOfLines={1}>{price}</Text>}
       </View>
+      {stats.length > 0 && (
+        <View style={{ flexDirection: 'row', paddingHorizontal: 14, marginTop: 6, marginBottom: 4, gap: 2 }}>
+          {stats.map((stat, index) => (
+            <View key={stat.label} style={{ flex: 1, minWidth: 0, alignItems: 'center' }}>
+              <StatIcon label={stat.label} primary={index % 2 === 0 ? iconPrimary : iconAccent} accent={iconAccent} />
+              <Text style={{ color: '#111827', fontSize: 8, lineHeight: 10, fontWeight: '900', marginTop: -2 }}>{stat.value}</Text>
+              <Text style={{ color: '#4B5563', fontSize: 6.5, lineHeight: 7.5, fontWeight: '700', textAlign: 'center' }} numberOfLines={2}>{stat.label}</Text>
+            </View>
+          ))}
+        </View>
+      )}
       <View style={{ flexDirection: 'row', paddingHorizontal: 14, marginTop: 6, gap: 8, flex: 1 }}>
         <View style={{ flex: 1.25 }}>
           {!!summary && <Text style={{ fontSize: 7.5, lineHeight: 10, color: '#374151' }} numberOfLines={5}>{summary}</Text>}
@@ -120,89 +169,11 @@ export function EditorialTemplate(p: TemplateProps) {
           ))}
         </View>
       </View>
-      {stats.length > 0 && (
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', columnGap: 8, rowGap: 2, paddingHorizontal: 14, marginTop: 4 }}>
-          {stats.map(stat => (
-            <Text key={stat.label} style={{ color: '#374151', fontSize: 7.5, lineHeight: 10 }}>
-              {stat.value} {stat.label}
-            </Text>
-          ))}
-        </View>
-      )}
+      <View style={{ paddingHorizontal: 14, marginTop: 4, marginBottom: 4 }}>
+        <ContactLine s={s} color="#111827" />
+      </View>
       <View style={[st.footer, { backgroundColor: c }]}>
         <Text style={{ color: on, fontSize: 8, fontWeight: '700', letterSpacing: 0.3 }}>Powered by quickprop.co.zw</Text>
-      </View>
-    </View>
-  );
-}
-
-export function ShowcaseTemplate(p: TemplateProps) {
-  const { settings: s, property } = p;
-  const c = safeColor(s.primaryColor);
-  const price = flyerPrice(property);
-  const stats = flyerStats(property);
-  return (
-    <View style={[st.root, { backgroundColor: '#0B1220' }]}>
-      <View style={StyleSheet.absoluteFill}><MainPhoto p={p} /></View>
-      <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(8,12,24,0.18)' }]} />
-      <View style={{ position: 'absolute', top: 14, left: 14, right: 14, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-        <View style={{ backgroundColor: 'rgba(255,255,255,0.92)', borderRadius: 6, paddingHorizontal: 9, paddingVertical: 6 }}>
-          <Brand s={s} logoOk={p.logoOk} pic={p.pic} color={c} size={78} />
-        </View>
-        {!!price && <View style={{ backgroundColor: c, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 6 }}><Text style={{ color: readableOn(c), fontWeight: '900', fontSize: 15 }}>{price}</Text></View>}
-      </View>
-      <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(8,12,24,0.88)', padding: 14 }}>
-        {p.extras.length > 0 && (
-          <View style={{ flexDirection: 'row', gap: 5, marginBottom: 9 }}>
-            {p.extras.slice(0, 4).map(u => <View key={u} style={{ flex: 1, height: 52, borderRadius: 4, overflow: 'hidden' }}>{p.pic(u, { width: '100%', height: '100%' })}</View>)}
-          </View>
-        )}
-        <Text style={{ color: '#FFFFFF', fontSize: 22, fontWeight: '800', letterSpacing: -0.4 }} numberOfLines={2}>{s.headline}</Text>
-        <Text style={{ color: '#CBD5E1', fontSize: 9, marginTop: 2 }} numberOfLines={1}>{flyerLocation(property)}</Text>
-        {stats.length > 0 && (
-          <View style={{ flexDirection: 'row', gap: 14, marginTop: 8 }}>
-            {stats.map(x => (
-              <View key={x.label}><Text style={{ color: '#FFFFFF', fontWeight: '800', fontSize: 15 }}>{x.value}</Text><Text style={{ color: '#94A3B8', fontSize: 7 }}>{x.label.toUpperCase()}</Text></View>
-            ))}
-          </View>
-        )}
-        <View style={{ height: 2, backgroundColor: c, marginVertical: 9 }} />
-        <ContactLine s={s} color="#FFFFFF" />
-      </View>
-    </View>
-  );
-}
-
-export function MinimalTemplate(p: TemplateProps) {
-  const { settings: s, property } = p;
-  const c = safeColor(s.primaryColor);
-  const features = flyerFeatures(property, 6);
-  const summary = flyerSummary(property, 170);
-  const stats = flyerStats(property);
-  const price = flyerPrice(property);
-  return (
-    <View style={[st.root, { backgroundColor: '#F7F4EE', padding: 18 }]}>
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-        <Brand s={s} logoOk={p.logoOk} pic={p.pic} color="#1F2937" size={72} />
-        <Text style={{ fontSize: 7, letterSpacing: 2, color: '#6B7280' }}>{property.listingType === 'rent' || property.type === 'rent' ? 'TO RENT' : 'FOR SALE'}</Text>
-      </View>
-      <View style={{ height: 190, overflow: 'hidden', backgroundColor: '#E5E7EB' }}><MainPhoto p={p} /></View>
-      {p.extras.length > 0 && (
-        <View style={{ flexDirection: 'row', gap: 4, marginTop: 4 }}>
-          {p.extras.slice(0, 3).map(u => <View key={u} style={{ flex: 1, height: 44, overflow: 'hidden' }}>{p.pic(u, { width: '100%', height: '100%' })}</View>)}
-        </View>
-      )}
-      <Text style={{ fontSize: 19, color: '#111827', fontWeight: '300', marginTop: 10, letterSpacing: -0.2 }} numberOfLines={2}>{s.headline}</Text>
-      <Text style={{ fontSize: 8, color: '#6B7280', marginTop: 1 }} numberOfLines={1}>{flyerLocation(property)}</Text>
-      {!!price && <Text style={{ fontSize: 17, fontWeight: '700', color: c, marginTop: 4 }}>{price}</Text>}
-      <View style={{ height: 1, backgroundColor: '#D6D0C4', marginVertical: 6 }} />
-      <Text style={{ fontSize: 7.5, color: '#374151', lineHeight: 10 }} numberOfLines={3}>
-        {[stats.map(x => `${x.value} ${x.label.toLowerCase()}`).join(', '), summary].filter(Boolean).join('. ')}
-      </Text>
-      {features.length > 0 && <Text style={{ fontSize: 7, color: '#6B7280', marginTop: 3 }} numberOfLines={2}>{features.join('  /  ')}</Text>}
-      <View style={{ marginTop: 'auto', flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between' }}>
-        <ContactLine s={s} color="#111827" />
-        <View style={{ width: 28, height: 3, backgroundColor: c }} />
       </View>
     </View>
   );

@@ -1,11 +1,11 @@
 import React, { useRef, useState } from 'react';
-import { Modal, Platform, Pressable, useWindowDimensions, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Modal, Platform, Pressable, useWindowDimensions, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { KeyboardAwareScrollViewCompat } from '@/components/KeyboardAwareScrollViewCompat';
 import { PropertyFlyer } from '@/components/PropertyFlyer';
 import { useColors } from '@/hooks/useColors';
 import { pickAndPersistLogo } from '@/utils/flyerLogo';
-import { FLYER_TEMPLATES, isHexColor, type FlyerSettings } from '@/utils/propertyFlyer';
+import { isHexColor, type FlyerSettings } from '@/utils/propertyFlyer';
 
 interface Props {
   visible: boolean;
@@ -75,20 +75,6 @@ export function FlyerCustomizer({ visible, onClose, property, settings, onChange
               </View>
             </View>
           </View>
-          <Text style={[s.label, { color: c.mutedForeground }]}>TEMPLATE</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, marginTop: 6 }}>
-            {FLYER_TEMPLATES.map(t => {
-              const on = settings.template === t.id;
-              return (
-                <Pressable key={t.id} testID={`flyer-template-${t.id}`} onPress={() => set({ template: t.id })}
-                  style={[s.tpl, { borderColor: on ? c.primary : c.border, backgroundColor: on ? c.secondary : c.card }]}>
-                  <Text style={{ color: c.foreground, fontWeight: '800', fontSize: 13 }}>{t.label}</Text>
-                  <Text style={{ color: c.mutedForeground, fontSize: 10, marginTop: 2 }}>{t.hint}</Text>
-                </Pressable>
-              );
-            })}
-          </ScrollView>
-
           <Text style={[s.label, { color: c.mutedForeground, marginTop: 16 }]}>LOGO</Text>
           <View style={{ flexDirection: 'row', gap: 8, marginTop: 6 }}>
             <Pressable onPress={chooseLogo} disabled={picking} style={[s.btn, { backgroundColor: c.primary, opacity: picking ? 0.6 : 1 }]}>
@@ -146,7 +132,6 @@ const s = StyleSheet.create({
   preview: { borderWidth: 1, shadowColor: '#000', shadowOpacity: 0.12, shadowRadius: 12, shadowOffset: { width: 0, height: 4 } },
   label: { fontSize: 11, fontWeight: '800', letterSpacing: 0.8 },
   input: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, fontSize: 15, marginTop: 5 },
-  tpl: { borderWidth: 1.5, borderRadius: 12, padding: 12, width: 150 },
   btn: { borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10 },
   swatch: { width: 32, height: 32, borderRadius: 16, borderWidth: 2 },
 });

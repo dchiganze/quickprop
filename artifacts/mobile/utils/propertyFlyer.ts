@@ -1,6 +1,6 @@
 import type { Property, User } from '@/types';
 
-export type FlyerTemplate = 'editorial' | 'showcase' | 'minimal';
+export type FlyerTemplate = 'editorial';
 
 export interface FlyerSettings {
   template: FlyerTemplate;
@@ -16,12 +16,6 @@ export interface FlyerSettings {
   logoColors?: string[];
   agencyPrimaryColor?: string;
 }
-
-export const FLYER_TEMPLATES: Array<{ id: FlyerTemplate; label: string; hint: string }> = [
-  { id: 'editorial', label: 'Editorial', hint: 'Bold headline, photo grid, branded footer' },
-  { id: 'showcase', label: 'Showcase', hint: 'Full-bleed photo, overlay details' },
-  { id: 'minimal', label: 'Minimal', hint: 'Quiet, spacious, price-led' },
-];
 
 export const FALLBACK_FLYER_COLOR = '#1A3C6E';
 const QUICKPROP_DEFAULT_GREEN = '#10B981';
@@ -91,7 +85,7 @@ export function mergeFlyerSettings(base: FlyerSettings, saved: unknown): FlyerSe
   const str = (k: 'agencyName' | 'logoUrl' | 'primaryColor' | 'headline' | 'contactName' | 'contactPhone' | 'tagline'): string =>
     typeof s[k] === 'string' ? s[k] as string : base[k];
   const savedColor = typeof s.primaryColor === 'string' ? s.primaryColor : '';
-  const template = (['editorial', 'showcase', 'minimal'] as const).find(t => t === s.template) ?? base.template;
+  const template: FlyerTemplate = 'editorial';
   const logoSource = s.logoSource === 'none' ? 'none'
     : s.logoSource === 'custom' || (s.logoSource !== 'agency' && typeof s.logoUrl === 'string' && s.logoUrl && s.logoUrl !== base.logoUrl)
       ? 'custom' : 'agency';
