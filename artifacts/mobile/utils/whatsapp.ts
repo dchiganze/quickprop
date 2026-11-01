@@ -81,6 +81,14 @@ export async function sharePropertyToWhatsApp(
     return { caption, sharedPhoto: true };
   }
 
+  if (Platform.OS === 'ios') {
+    const cardUri = await prepareShareImage(captureCard);
+    await options.beforeNativeShare?.();
+    await recordPropertyShare(property);
+    await Share.share({ url: cardUri, message: caption });
+    return { caption, sharedPhoto: true };
+  }
+
   if (isExpoGo) {
     await options.beforeNativeShare?.();
     await recordPropertyShare(property);
