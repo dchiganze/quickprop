@@ -39,11 +39,11 @@ The Expo static bundle script must select an available Metro port instead of ass
 
 **How to apply:** Keep Metro's selected port shared by health checks, bundle requests, manifest requests, and asset URL parsing.
 
-In Expo Go, never import react-native-share, even lazily. Use React Native's Share API for text/caption handoff and expo-sharing for image-only handoff.
+In Expo Go, never import react-native-share, even lazily. On iOS, use React Native Share with both the flyer URI and caption; Android Expo Go can only use text sharing for WhatsApp.
 
-**Why:** Expo Go lacks the RNShare native module, and evaluating a lazy import still raises a TurboModuleRegistry error. expo-sharing accepts a file URI but no caption, so using it for WhatsApp silently drops the catalogue link.
+**Why:** Expo Go lacks the RNShare native module, and evaluating a lazy import still raises a TurboModuleRegistry error. expo-sharing accepts a file URI but no caption, so using it for WhatsApp silently drops the catalogue link; the iOS Share API supports the previously working image-plus-caption handoff.
 
-**How to apply:** Check `Constants.executionEnvironment` before every native-share import. In Expo Go, WhatsApp shares must pass the caption through `Share.share`; installed builds can use react-native-share to attach the flyer and caption together.
+**How to apply:** Check `Constants.executionEnvironment` before every native-share import. On iOS use `Share.share({ url, message })` for property flyers, including in Expo Go. On Android Expo Go, use text-only `Share.share`; installed Android builds can use react-native-share for image plus caption.
 
 For targeted social sharing with react-native-share, keep the destination type narrowed to non-story Social values.
 
