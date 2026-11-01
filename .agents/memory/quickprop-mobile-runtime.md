@@ -39,11 +39,11 @@ The Expo static bundle script must select an available Metro port instead of ass
 
 **How to apply:** Keep Metro's selected port shared by health checks, bundle requests, manifest requests, and asset URL parsing.
 
-When using react-native-share with Expo, include its config plugin with an explicit options object and add the Expo build-properties package at the SDK-compatible version.
+In Expo Go, never import react-native-share, even lazily; route image shares through expo-sharing instead.
 
-**Why:** The plugin can fail Expo startup when its options argument is omitted, and it imports expo-build-properties even when no extra share targets are configured.
+**Why:** Expo Go lacks the RNShare native module, and evaluating a lazy import still raises a TurboModuleRegistry error that can disrupt the preview.
 
-**How to apply:** Keep the plugin entry as a two-item array with `{}` (or explicit target options), and align expo-build-properties with Expo's expected version before restarting Metro.
+**How to apply:** Check `Constants.executionEnvironment` before every native-share import. Use Expo's system share sheet in Expo Go and keep react-native-share for installed builds.
 
 For targeted social sharing with react-native-share, keep the destination type narrowed to non-story Social values.
 
