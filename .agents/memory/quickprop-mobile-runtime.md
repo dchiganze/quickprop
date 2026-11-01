@@ -27,11 +27,11 @@ Treat Expo Go success as insufficient validation for outbound third-party URL sc
 
 **How to apply:** Whitelist required third-party schemes in the standalone iOS Info.plist, validate the generated Expo config, and use the native iOS share sheet for WhatsApp text so the complete payload survives the handoff.
 
-For WhatsApp Status media on iOS, share the listing photo and copy a concise caption rather than attempting to prefill both as one attachment.
+For iOS WhatsApp image attachments, a local flyer and separate caption text are not reliably combined; use a public Open Graph preview for one-message image-plus-link sharing.
 
-**Why:** WhatsApp's iOS share receiver can accept the image or the message but does not reliably preserve both from an external app, including dedicated sharing libraries.
+**Why:** The iOS share controller passes message and file as separate items, but WhatsApp's receiver can discard the text when opening an image attachment. Restoring the previous `Share.share({ url, message })` path did not populate the caption field on the tested iPhone.
 
-**How to apply:** Put the primary photo in the native share sheet, copy the Status-ready description first, and tell the agent to select WhatsApp → My Status and paste the caption.
+**How to apply:** For a single WhatsApp message with a visible image and clickable destination, share text containing a QuickProp preview URL whose server-rendered Open Graph image is public. If the exact JPEG must remain an attachment, copy the caption and require a manual paste; do not promise automatic caption prefilling without device verification.
 
 The Expo static bundle script must select an available Metro port instead of assuming 8081.
 
@@ -39,11 +39,11 @@ The Expo static bundle script must select an available Metro port instead of ass
 
 **How to apply:** Keep Metro's selected port shared by health checks, bundle requests, manifest requests, and asset URL parsing.
 
-In Expo Go, never import react-native-share, even lazily. On iOS, use React Native Share with both the flyer URI and caption; Android Expo Go can only use text sharing for WhatsApp.
+In Expo Go, never import react-native-share, even lazily. Use React Native Share for the supported text or preview-link flow; Android Expo Go can only use text sharing for WhatsApp.
 
-**Why:** Expo Go lacks the RNShare native module, and evaluating a lazy import still raises a TurboModuleRegistry error. expo-sharing accepts a file URI but no caption, so using it for WhatsApp silently drops the catalogue link; the iOS Share API supports the previously working image-plus-caption handoff.
+**Why:** Expo Go lacks the RNShare native module, and evaluating a lazy import still raises a TurboModuleRegistry error. expo-sharing accepts a file URI but no caption. Although iOS Share accepts both values, WhatsApp may drop the separate text item when the URL is a local flyer file.
 
-**How to apply:** Check `Constants.executionEnvironment` before every native-share import. On iOS use `Share.share({ url, message })` for property flyers, including in Expo Go. On Android Expo Go, use text-only `Share.share`; installed Android builds can use react-native-share for image plus caption.
+**How to apply:** Check `Constants.executionEnvironment` before every native-share import. On iOS, prefer a QuickProp public preview URL plus message for WhatsApp; installed Android builds can use react-native-share for local image plus caption.
 
 For targeted social sharing with react-native-share, keep the destination type narrowed to non-story Social values.
 
