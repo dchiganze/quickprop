@@ -342,7 +342,7 @@ export default function MatchesScreen() {
               <TouchableOpacity style={[styles.whatsAppButton, { backgroundColor: colors.accent }]} onPress={() => Alert.alert('WhatsApp message preview', `Hi Alex, it's ${user?.name?.split(' ')[0] || 'your fellow agent'}, let's collaborate to close this deal.\n\n3-bedroom home in Borrowdale\nDEMO-MATCH\nFor sale · USD 250,000\nBorrowdale`)}><Ionicons name="logo-whatsapp" size={17} color="#FFF" /><Text style={styles.acceptText}>WhatsApp</Text></TouchableOpacity>
             </View>
           </View> : <TouchableOpacity onPress={() => setDemoVisible(true)}><Text style={{ color: colors.primary, paddingBottom: 12 }}>Show demo match</Text></TouchableOpacity>
-        ) : null}
+        ) : undefined}
         contentContainerStyle={[styles.list, { paddingBottom: insets.bottom + 100 }, !loading && currentData.length === 0 && styles.emptyList]}
         ListEmptyComponent={!loading ? (
           <View style={styles.empty}>
@@ -350,7 +350,7 @@ export default function MatchesScreen() {
             <Text style={[styles.emptyTitle, { color: colors.foreground }]}>{emptyTitle}</Text>
             <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>{emptyText}</Text>
           </View>
-        ) : null}
+        ) : undefined}
         showsVerticalScrollIndicator={false}
       />
       <AlertsSheet visible={alertsOpen} onClose={() => setAlertsOpen(false)} />

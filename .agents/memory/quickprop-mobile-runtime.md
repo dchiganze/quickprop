@@ -110,3 +110,9 @@ Do not statically import `expo-notifications` in code that runs in Expo Go when 
 **Why:** Expo Go on Android reported a missing `ExpoTopicSubscriptionModule` at app startup even though Expo Doctor passed. The newer JavaScript package expected a native module absent from that Go binary; a top-level import caused the whole app to fail before routes loaded.
 
 **How to apply:** Detect `ExecutionEnvironment.StoreClient` before loading notification modules and use a dynamic import only in native installed builds. Push registration is unavailable in Expo Go; verify push behavior in an installed build.
+
+For the SDK 58 mobile app, keep generated API hooks and the root provider on the same `@tanstack/react-query` instance.
+
+**Why:** Moving the app to React 19.3 exposed a peer-specific React Query copy inside the shared workspace library, causing `No QueryClient set` at startup even though the app had a provider.
+
+**How to apply:** Resolve mobile API-client imports through the app's React Query package in Metro, then verify a cold Expo preview loads the dashboard without a query-context error.
