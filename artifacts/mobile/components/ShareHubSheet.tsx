@@ -93,7 +93,10 @@ export function ShareHubSheet({ visible, onClose }: Props) {
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : '';
       if (!message.toLowerCase().includes('cancel') && !message.toLowerCase().includes('dismiss')) {
-        Alert.alert('Could not share listing', 'Unable to prepare the property. Please try again.');
+        Alert.alert(
+          'Could not share listing',
+          message || 'Unable to prepare the property. Please try again.',
+        );
       }
     } finally {
       setSharing(false);

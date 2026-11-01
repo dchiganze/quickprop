@@ -98,8 +98,6 @@ import type {
   EacAgencyOption,
   EnquiryInput,
   EnquiryResult,
-  FlyerSharePreviewInput,
-  FlyerSharePreviewResult,
   GetAgentContactsParams,
   GetPasskeyAuthenticationOptions200,
   GetPasskeyRegistrationOptions200,
@@ -2559,71 +2557,6 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
         TContext
       > => {
       return useMutation(getSharePropertyMutationOptions(options));
-    }
-
-export const getCreateFlyerSharePreviewUrl = () => {
-
-
-
-
-  return `/api/share/flyer-previews`
-}
-
-export const createFlyerSharePreview = async (flyerSharePreviewInput: FlyerSharePreviewInput, options?: RequestInit): Promise<FlyerSharePreviewResult> => {
-
-  return customFetch<FlyerSharePreviewResult>(getCreateFlyerSharePreviewUrl(),
-  {
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(flyerSharePreviewInput)
-  }
-);}
-
-
-
-
-
-export const getCreateFlyerSharePreviewMutationOptions = <TError = ErrorType<void>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createFlyerSharePreview>>, TError,{data: BodyType<FlyerSharePreviewInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof createFlyerSharePreview>>, TError,{data: BodyType<FlyerSharePreviewInput>}, TContext> => {
-
-const mutationKey = ['createFlyerSharePreview'];
-const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
-
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createFlyerSharePreview>>, {data: BodyType<FlyerSharePreviewInput>}> = (props) => {
-          const {data} = props ?? {};
-
-          return  createFlyerSharePreview(data,requestOptions)
-        }
-
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type CreateFlyerSharePreviewMutationResult = NonNullable<Awaited<ReturnType<typeof createFlyerSharePreview>>>
-    export type CreateFlyerSharePreviewMutationBody = BodyType<FlyerSharePreviewInput>
-    export type CreateFlyerSharePreviewMutationError = ErrorType<void>
-
-    export const useCreateFlyerSharePreview = <TError = ErrorType<void>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createFlyerSharePreview>>, TError,{data: BodyType<FlyerSharePreviewInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
- ): UseMutationResult<
-        Awaited<ReturnType<typeof createFlyerSharePreview>>,
-        TError,
-        {data: BodyType<FlyerSharePreviewInput>},
-        TContext
-      > => {
-      return useMutation(getCreateFlyerSharePreviewMutationOptions(options));
     }
 
 export const getGenerateBrochureUrl = (id: number,) => {

@@ -3,6 +3,21 @@ export function isShareCancellation(error: unknown): boolean {
   return message.includes('cancel') || message.includes('dismiss') || message.includes('user did not share');
 }
 
+export function buildFlyerMessageSharePayload(
+  imageUri: string,
+  caption: string,
+  title: string,
+) {
+  return {
+    url: imageUri,
+    type: 'image/jpeg' as const,
+    message: caption,
+    title,
+    failOnCancel: false,
+    useInternalStorage: true,
+  };
+}
+
 /** All property social posts receive the same flyer image, without text. */
 export async function runPropertyFlyerShare(
   actions: {

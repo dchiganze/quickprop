@@ -66,10 +66,6 @@ test('WhatsApp flyer caption uses the exact requested words and the sharing agen
   const caption = buildPropertyFlyerCaption(user.id);
   assert.equal(caption, 'For my full catalogue on QuickProp click this link\nhttps://www.quickprop.melios.co.zw/agents/2535');
   assert.equal(caption.includes('/properties/'), false);
-  assert.equal(
-    buildPropertyFlyerCaption(user.id, 'https://quickprop.example/share/flyer-preview'),
-    'For my full catalogue on QuickProp click this link\nhttps://quickprop.example/share/flyer-preview',
-  );
 });
 
 test('logo palette supplies flyer accents, with manual custom colours preserved', () => {

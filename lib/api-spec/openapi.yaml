@@ -572,24 +572,6 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/ShareResult" }
-  /share/flyer-previews:
-    post:
-      operationId: createFlyerSharePreview
-      tags: [marketing]
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { $ref: "#/components/schemas/FlyerSharePreviewInput" }
-      responses:
-        "201":
-          description: Public preview URL for the uploaded property flyer
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/FlyerSharePreviewResult" }
-        "400": { description: Invalid flyer details }
-        "401": { description: Authentication required }
-        "404": { description: Published property not found }
   /properties/{id}/brochure:
     post:
       operationId: generateBrochure
@@ -2812,18 +2794,6 @@ paths:
         "409": { description: Branch assignment required }
 components:
   schemas:
-    FlyerSharePreviewInput:
-      type: object
-      required: [objectPath, propertyReference, agentId]
-      properties:
-        objectPath: { type: string, minLength: 1, maxLength: 500 }
-        propertyReference: { type: string, minLength: 1, maxLength: 80 }
-        agentId: { type: integer, minimum: 1 }
-    FlyerSharePreviewResult:
-      type: object
-      required: [url]
-      properties:
-        url: { type: string, minLength: 1 }
     StoredMediaUrl:
       type: object
       required: [url, expiresAt]
