@@ -75,27 +75,28 @@ export function EditorialTemplate(p: TemplateProps) {
   const on = readableOn(c);
   const features = flyerFeatures(property, 6);
   const summary = flyerSummary(property, 150);
+  const stats = flyerStats(property);
   const price = flyerPrice(property);
   const words = (s.headline || '').trim().split(/\s+/);
   const last = words.length > 1 ? words.pop() : '';
   return (
     <View style={[st.root, { backgroundColor: '#FFFFFF' }]}>
-      <View style={{ height: 150 }}>
-        <View style={{ position: 'absolute', right: 0, top: 0, width: 200, height: 150, overflow: 'hidden', backgroundColor: '#E5E7EB' }}>
+      <View style={{ height: 172, position: 'relative' }}>
+        <View style={{ position: 'absolute', right: 0, top: 0, width: 200, height: 172, overflow: 'hidden', backgroundColor: '#E5E7EB' }}>
           <MainPhoto p={p} />
         </View>
-        <View style={{ position: 'absolute', left: 0, top: 0, width: 160, height: 150, justifyContent: 'center', paddingLeft: 5 }}>
-          <Brand s={s} logoOk={p.logoOk} pic={p.pic} color={c} />
+        <View style={{ position: 'absolute', left: 0, top: 0, width: 160, height: 102, paddingLeft: 5 }}>
+          <Brand s={s} logoOk={p.logoOk} pic={p.pic} color={c} size={92} />
+        </View>
+        <View style={{ position: 'absolute', left: 0, bottom: 0, width: 160, height: 64, justifyContent: 'flex-end', paddingLeft: 5 }}>
+          <Text style={{ fontSize: 22, lineHeight: 24, fontWeight: '900', color: '#111827', letterSpacing: -0.5 }} numberOfLines={1} adjustsFontSizeToFit>
+            {(last ? words.join(' ') : s.headline).toUpperCase()}
+          </Text>
+          {!!last && <Text style={{ fontSize: 30, lineHeight: 33, fontWeight: '900', color: c, letterSpacing: -0.5, marginTop: -3 }} numberOfLines={1} adjustsFontSizeToFit>{last.toUpperCase()}</Text>}
         </View>
         <View style={{ position: 'absolute', right: 0, bottom: 0, width: 200, height: 5, backgroundColor: c }} />
       </View>
-      <View style={{ paddingHorizontal: 14, paddingTop: 6 }}>
-        <Text style={{ fontSize: 22, fontWeight: '900', color: '#111827', letterSpacing: -0.5 }} numberOfLines={1} adjustsFontSizeToFit>
-          {(last ? words.join(' ') : s.headline).toUpperCase()}
-        </Text>
-        {!!last && <Text style={{ fontSize: 30, fontWeight: '900', color: c, letterSpacing: -0.5, marginTop: -4 }} numberOfLines={1} adjustsFontSizeToFit>{last.toUpperCase()}</Text>}
-      </View>
-      <View style={[st.bar, { backgroundColor: c, marginHorizontal: 14, marginTop: 4 }]}>
+      <View style={[st.bar, { backgroundColor: c, marginHorizontal: 14, marginTop: 1.2 }]}>
         <Text style={{ color: on, fontSize: 8, fontWeight: '800', flex: 1 }} numberOfLines={2}>{flyerLocation(property).toUpperCase()}</Text>
         {!!price && <Text style={{ color: on, fontSize: 18, fontWeight: '900', marginLeft: 8 }} numberOfLines={1}>{price}</Text>}
       </View>
@@ -119,12 +120,17 @@ export function EditorialTemplate(p: TemplateProps) {
           ))}
         </View>
       </View>
-      <View style={[st.footer, { backgroundColor: c }]}>
-        <View style={{ flex: 1 }}>
-           <Text style={{ color: on, fontSize: 13, opacity: 0.85 }} numberOfLines={1}>{flyerStats(property).map(x => `${x.value} ${x.label}`).join('  |  ')}</Text>
-           <Text style={{ color: on, fontSize: 13, opacity: 0.85, marginTop: 1 }} numberOfLines={1}>{p.shareUrl.replace(/^https?:\/\//i, '')}</Text>
+      {stats.length > 0 && (
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', columnGap: 8, rowGap: 2, paddingHorizontal: 14, marginTop: 4 }}>
+          {stats.map(stat => (
+            <Text key={stat.label} style={{ color: '#374151', fontSize: 7.5, lineHeight: 10 }}>
+              {stat.value} {stat.label}
+            </Text>
+          ))}
         </View>
-        <ContactLine s={s} color={on} />
+      )}
+      <View style={[st.footer, { backgroundColor: c }]}>
+        <Text style={{ color: on, fontSize: 8, fontWeight: '700', letterSpacing: 0.3 }}>Powered by quickprop.co.zw</Text>
       </View>
     </View>
   );
@@ -206,7 +212,7 @@ const st = StyleSheet.create({
   root: { width: FLYER_W, height: FLYER_H, overflow: 'hidden' },
   bar: { flexDirection: 'row', alignItems: 'center', borderRadius: 6, paddingHorizontal: 9, paddingVertical: 6 },
   featBox: { borderWidth: 1, borderRadius: 5, padding: 6, marginTop: 6 },
-  footer: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 8, gap: 8, marginTop: 6 },
+  footer: { alignItems: 'center', justifyContent: 'center', paddingHorizontal: 14, paddingVertical: 5, marginTop: 4 },
   failed: { backgroundColor: '#7F1D1D', alignItems: 'center', justifyContent: 'center', padding: 16 },
   failedTitle: { color: '#FFFFFF', fontWeight: '800', fontSize: 12, textAlign: 'center' },
   failedSub: { color: '#FECACA', fontSize: 9, marginTop: 3, textAlign: 'center' },

@@ -14,7 +14,7 @@ export interface PropertyFlyerHandle {
 interface Props { property: Property; settings: FlyerSettings; shareUrl: string }
 
 const READY_TIMEOUT_MS = 10_000;
-const EXTRA_SLOTS = { editorial: 3, showcase: 4, minimal: 3 } as const;
+const EXTRA_SLOTS = { editorial: 3, showcase: 3, minimal: 3 } as const;
 const sleep = (ms: number) => new Promise<void>(r => setTimeout(r, ms));
 
 export const PropertyFlyer = forwardRef<PropertyFlyerHandle, Props>(function PropertyFlyer(
