@@ -19,7 +19,6 @@ export default function DashboardScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
-  const tabsNavigation = useNavigation('/(tabs)');
   const { user, loading: authLoading, logout } = useAuth();
   const { properties, leads, syncNow } = useData();
   const remoteAgentId = user?.id && /^\d+$/.test(user.id) ? user.id : null;
@@ -139,7 +138,7 @@ export default function DashboardScreen() {
         <TouchableOpacity
           style={styles.headerProfileBtn}
           onPress={() => {
-            tabsNavigation.navigate('profile' as never);
+            router.push('/account');
             void Promise.resolve()
               .then(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light))
               .catch(() => {});
