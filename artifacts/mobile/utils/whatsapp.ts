@@ -74,27 +74,23 @@ export async function sharePropertyToWhatsApp(
 ): Promise<{ caption: string; sharedPhoto: boolean }> {
   const caption = buildPropertyFlyerCaption(options.agentId ?? property.agentId);
   await Clipboard.setStringAsync(caption);
-  const cardUri = await prepareShareImage(captureCard);
 
   if (Platform.OS === 'web') {
+    const cardUri = await prepareShareImage(captureCard);
     await shareFlyerInBrowser(cardUri, 'QuickProp property flyer', caption);
     return { caption, sharedPhoto: true };
   }
 
+  if (isExpoGo) {
+    await options.beforeNativeShare?.();
+    await recordPropertyShare(property);
+    await Share.share({ message: caption, title: 'QuickProp property flyer' });
+    return { caption, sharedPhoto: false };
+  }
+
+  const cardUri = await prepareShareImage(captureCard);
   await options.beforeNativeShare?.();
   await recordPropertyShare(property);
-
-  if (Platform.OS === 'ios') {
-    // Available in Expo Go. Some WhatsApp versions still require pasting the
-    // caption, so keep the same text on the clipboard as a fallback.
-    await Share.share({ url: cardUri, message: caption });
-    return { caption, sharedPhoto: true };
-  }
-
-  if (isExpoGo) {
-    await shareImageWithSystemSheet(cardUri, 'Share property to WhatsApp');
-    return { caption, sharedPhoto: true };
-  }
 
   try {
     const { default: NativeShare } = await import('react-native-share');
@@ -112,12 +108,8 @@ export async function sharePropertyToWhatsApp(
       return { caption, sharedPhoto: true };
     }
 
-    if (!(await Sharing.isAvailableAsync())) throw error;
-    await Sharing.shareAsync(cardUri, {
-      dialogTitle: 'Share property to WhatsApp',
-      mimeType: 'image/jpeg',
-      UTI: 'public.jpeg',
-    });
+    await Share.share({ message: caption, title: 'QuickProp property flyer' });
+    return { caption, sharedPhoto: false };
   }
 
   return { caption, sharedPhoto: true };
@@ -134,11 +126,12 @@ export async function shareCatalogueToWhatsApp(
     return { caption, sharedPhoto: false };
   }
 
-  const cardUri = await prepareShareImage(captureCard);
   if (isExpoGo) {
-    await shareImageWithSystemSheet(cardUri, 'Share brochure to WhatsApp');
-    return { caption, sharedPhoto: true };
+    await Share.share({ message: caption, title: 'QuickProp Property Brochure' });
+    return { caption, sharedPhoto: false };
   }
+
+  const cardUri = await prepareShareImage(captureCard);
   try {
     const { default: NativeShare } = await import('react-native-share');
     await NativeShare.open({
@@ -154,12 +147,8 @@ export async function shareCatalogueToWhatsApp(
     if (message.includes('cancel') || message.includes('dismiss')) {
       return { caption, sharedPhoto: true };
     }
-    if (!(await Sharing.isAvailableAsync())) throw error;
-    await Sharing.shareAsync(cardUri, {
-       dialogTitle: 'Share brochure to WhatsApp',
-      mimeType: 'image/jpeg',
-      UTI: 'public.jpeg',
-    });
+    await Share.share({ message: caption, title: 'QuickProp Property Brochure' });
+    return { caption, sharedPhoto: false };
   }
 
   return { caption, sharedPhoto: true };
