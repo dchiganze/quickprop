@@ -103,7 +103,7 @@ Keep file watching enabled for persistent Expo phone previews; reserve CI mode f
 
 **Why:** CI mode disabled reloads and left Metro serving stale modules. An older Metro process also continued occupying the assigned port while the managed workflow was failed, so a successful health check alone did not prove that the current preview was running.
 
-**How to apply:** Verify managed-workflow state and port ownership together, not just an HTTP status. If a previous Metro process blocks the assigned port, verify its command and working directory before stopping only that process; then restart the existing managed workflow. Preserve the injected port and managed login, keep the listener externally reachable, and use the Expo preview domain in advertised native URLs.
+**How to apply:** Verify managed-workflow state and port ownership together, not just an HTTP status. If a previous Metro process blocks the assigned port, verify its command and working directory before stopping only that process; then restart the existing managed workflow. Preserve the injected port and managed login, and keep the listener externally reachable. For Replit's direct preview proxy, advertise the Replit Expo host. If switching to Expo CLI `--tunnel`, remove `EXPO_PACKAGER_PROXY_URL` and `REACT_NATIVE_PACKAGER_HOSTNAME`; the proxy override takes precedence over the tunnel URL. Confirm the current QR and manifest both point to the tunnel host, and leave any cached `.replit.dev` QR before retrying.
 
 Do not statically import `expo-notifications` in code that runs in Expo Go when the bundled native container may not include the installed SDK patch's notification modules.
 
