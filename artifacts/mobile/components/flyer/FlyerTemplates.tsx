@@ -90,15 +90,15 @@ function StatIcon({
         : label === 'Land Area' ? 'land-plots' : 'floor-plan';
 
   return (
-    <View style={{ flex: 1, minWidth: 0, alignItems: 'center', justifyContent: 'center', gap: 1 }}>
-      <View style={{ height: 24, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+    <View style={{ height: 30, width: '100%', alignItems: 'center', justifyContent: 'center' }}>
+      <View style={{ height: 28, width: '100%', flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
         {isBathroom ? (
           <>
-            <MaterialCommunityIcons name="bathtub" size={22} color={primary} />
-            <MaterialCommunityIcons name="shower-head" size={18} color={accent} />
+            <MaterialCommunityIcons name="bathtub" size={21} color={primary} />
+            <MaterialCommunityIcons name="shower-head" size={17} color={accent} />
           </>
         ) : (
-          <MaterialCommunityIcons name={icon} size={22} color={primary} />
+          <MaterialCommunityIcons name={icon} size={23} color={primary} />
         )}
       </View>
     </View>
@@ -126,7 +126,7 @@ export function EditorialTemplate(p: TemplateProps) {
         <View style={{ position: 'absolute', left: 0, top: 0, width: 160, height: 102, paddingLeft: 5 }}>
           <Brand s={s} logoOk={p.logoOk} pic={p.pic} color={c} size={92} />
         </View>
-        <View style={{ position: 'absolute', left: 0, bottom: 0, width: 160, height: 64, justifyContent: 'flex-end', paddingLeft: 5 }}>
+        <View style={{ position: 'absolute', left: 0, bottom: 0, width: 160, height: 64, justifyContent: 'flex-end', paddingLeft: 13 }}>
           <Text style={{ fontSize: 22, lineHeight: 24, fontWeight: '900', color: '#111827', letterSpacing: -0.5 }} numberOfLines={1} adjustsFontSizeToFit>
             {(last ? words.join(' ') : s.headline).toUpperCase()}
           </Text>
@@ -139,38 +139,38 @@ export function EditorialTemplate(p: TemplateProps) {
         {!!price && <Text style={{ color: on, fontSize: 18, fontWeight: '900', marginLeft: 8 }} numberOfLines={1}>{price}</Text>}
       </View>
       {stats.length > 0 && (
-        <View style={{ flexDirection: 'row', paddingHorizontal: 14, marginTop: 6, marginBottom: 4, gap: 2 }}>
+        <View style={{ flexDirection: 'row', paddingHorizontal: 14, minHeight: 62, marginTop: 8, marginBottom: 6, gap: 2 }}>
           {stats.map((stat, index) => (
-            <View key={stat.label} style={{ flex: 1, minWidth: 0, alignItems: 'center' }}>
+            <View key={stat.label} style={{ flex: 1, minWidth: 0, alignItems: 'center', justifyContent: 'center' }}>
               <StatIcon label={stat.label} primary={index % 2 === 0 ? iconPrimary : iconAccent} accent={iconAccent} />
-              <Text style={{ color: '#111827', fontSize: 8, lineHeight: 10, fontWeight: '900', marginTop: -2 }}>{stat.value}</Text>
-              <Text style={{ color: '#4B5563', fontSize: 6.5, lineHeight: 7.5, fontWeight: '700', textAlign: 'center' }} numberOfLines={2}>{stat.label}</Text>
+              <Text style={{ color: '#111827', fontSize: 8.5, lineHeight: 11, fontWeight: '900', marginTop: 2, textAlign: 'center' }} numberOfLines={1} adjustsFontSizeToFit>{stat.value}</Text>
+              <Text style={{ color: '#4B5563', fontSize: 6.5, lineHeight: 9, fontWeight: '700', textAlign: 'center', marginTop: 1 }} numberOfLines={2}>{stat.label}</Text>
             </View>
           ))}
         </View>
       )}
-      <View style={{ flexDirection: 'row', paddingHorizontal: 14, marginTop: 6, gap: 8, flex: 1 }}>
-        <View style={{ flex: 1.25 }}>
-          {!!summary && <Text style={{ fontSize: 7.5, lineHeight: 10, color: '#374151' }} numberOfLines={5}>{summary}</Text>}
+      <View style={{ flexDirection: 'row', paddingHorizontal: 14, gap: 8, flex: 1, minHeight: 0 }}>
+        <View style={{ flex: 1.1, minWidth: 0 }}>
+          <View style={{ marginBottom: 1.2 }}>
+            <ContactLine s={s} color="#111827" />
+          </View>
+          {!!summary && <Text style={{ fontSize: 7.2, lineHeight: 8.5, color: '#374151' }} numberOfLines={5}>{summary}</Text>}
           {features.length > 0 && (
-            <View style={[st.featBox, { borderColor: c }]}>
-              <Text style={{ color: c, fontSize: 7, fontWeight: '900', letterSpacing: 1, marginBottom: 2 }}>PROPERTY FEATURES</Text>
+            <View style={[st.featBox, { borderColor: c, padding: 4, marginTop: 3 }]}>
+              <Text style={{ color: c, fontSize: 6.8, fontWeight: '900', letterSpacing: 1, marginBottom: 1 }}>PROPERTY FEATURES</Text>
               {features.map(f => (
-                <Text key={f} style={{ fontSize: 7.5, color: '#111827', lineHeight: 10 }} numberOfLines={1}>{'\u2022 '}{f}</Text>
+                <Text key={f} style={{ fontSize: 7, color: '#111827', lineHeight: 8 }} numberOfLines={1}>{'\u2022 '}{f}</Text>
               ))}
             </View>
           )}
         </View>
-        <View style={{ flex: 1, gap: 4 }}>
+        <View style={{ flex: 1, minWidth: 0, minHeight: 0, gap: 4 }}>
           {p.extras.slice(0, 3).map(u => (
-            <View key={u} style={{ flex: 1, borderRadius: 3, overflow: 'hidden', borderWidth: 1.5, borderColor: c }}>
+            <View key={u} style={{ flex: 1, minHeight: 0, borderRadius: 3, overflow: 'hidden', borderWidth: 1.5, borderColor: c }}>
               {p.pic(u, { width: '100%', height: '100%' })}
             </View>
           ))}
         </View>
-      </View>
-      <View style={{ paddingHorizontal: 14, marginTop: 4, marginBottom: 4 }}>
-        <ContactLine s={s} color="#111827" />
       </View>
       <View style={[st.footer, { backgroundColor: c }]}>
         <Text style={{ color: on, fontSize: 8, fontWeight: '700', letterSpacing: 0.3 }}>Powered by quickprop.co.zw</Text>
