@@ -139,7 +139,7 @@ export default function DashboardScreen() {
           style={styles.headerProfileBtn}
           onPress={() => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-            navigation.navigate('profile' as never);
+            router.push('/(tabs)/profile');
           }}
           accessibilityRole="button"
           accessibilityLabel="Open profile"
