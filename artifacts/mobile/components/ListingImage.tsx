@@ -5,20 +5,17 @@ import { apiBaseUrl, useAuth } from '@/contexts/AuthContext';
 import { getStoredMediaObjectPath } from '@/utils/listingPhoto';
 import { getCachedOfflineMediaUri } from '@/utils/offlineMedia';
 import { useNetworkStatus } from '@/contexts/ConnectivityContext';
-import { useData } from '@/contexts/DataContext';
 
 type Props = Omit<ImageProps, 'source' | 'contentFit' | 'resizeMode'> & {
   uri: string;
-  listingId?: string;
   resizeMode?: 'cover' | 'contain';
 };
 
 // Keep durable paths in the listing/offline cache; signed URLs belong only in
 // the short-lived query cache and must be refreshed before they expire.
-export function ListingImage({ uri, listingId, resizeMode = 'cover', ...props }: Props) {
+export function ListingImage({ uri, resizeMode = 'cover', ...props }: Props) {
   const { user } = useAuth();
   const { isOnline } = useNetworkStatus();
-  const { offlineListingIds } = useData();
   const [attempt, setAttempt] = useState(0);
   const [offlineUri, setOfflineUri] = useState<string>();
   const retried = useRef(false);
@@ -33,7 +30,6 @@ export function ListingImage({ uri, listingId, resizeMode = 'cover', ...props }:
     retried.current = false;
     setAttempt(0);
   }, [uri]);
-  const isPinnedOffline = Boolean(listingId && offlineListingIds.includes(listingId));
   useEffect(() => {
     let active = true;
     setOfflineUri(undefined);
@@ -42,7 +38,7 @@ export function ListingImage({ uri, listingId, resizeMode = 'cover', ...props }:
       .then(localUri => { if (active) setOfflineUri(localUri); })
       .catch(() => {});
     return () => { active = false; };
-  }, [uri, user?.id, isPinnedOffline]);
+  }, [uri, user?.id, isOnline]);
   const objectPath = getStoredMediaObjectPath(uri);
   const resolveStoredMedia = Boolean(objectPath && apiBaseUrl);
   const media = useGetStoredMediaUrl(

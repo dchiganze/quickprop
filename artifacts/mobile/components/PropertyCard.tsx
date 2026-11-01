@@ -53,7 +53,6 @@ export function PropertyCard({ property, onPress }: Props) {
         {photoUri ? (
           <ListingImage
             uri={photoUri}
-            listingId={property.id}
             style={styles.mainImage}
             resizeMode="cover"
             onError={() => setFailedPhotoUri(photoUri)}

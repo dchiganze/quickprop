@@ -241,11 +241,11 @@ export default function SettingsScreen() {
           <SelectRow icon="cloud-upload-outline" label="Image Quality" value={highQualityImages ? 'High (Original)' : 'Compressed'} onPress={() => {}} />
         </View>
 
-        <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>OFFLINE</Text>
+        <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>OFFLINE ACCESS</Text>
         <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <SelectRow
             icon="download-outline"
-            label="Saved listings"
+            label="Offline listings"
             value={String(offlineListingIds.length)}
             onPress={() => router.push('/(tabs)/listings?filter=offline' as never)}
           />

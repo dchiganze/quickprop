@@ -21,7 +21,7 @@ const STATUS_FILTERS: { key: Filter; label: string }[] = [
   { key: 'all', label: 'All' },
   { key: 'my', label: 'My Listings' },
   // 'alerts' chip is rendered separately between My Listings and Draft
-  { key: 'offline', label: 'Saved Offline' },
+  { key: 'offline', label: 'Available Offline' },
   { key: 'draft', label: 'Draft' },
   { key: 'pending', label: 'Pending' },
   { key: 'sold', label: 'Sold' },

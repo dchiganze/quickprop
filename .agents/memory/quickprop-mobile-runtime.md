@@ -117,8 +117,8 @@ For the SDK 58 mobile app, keep generated API hooks and the root provider on the
 
 **How to apply:** Resolve mobile API-client imports through the app's React Query package in Metro, then verify a cold Expo preview loads the dashboard without a query-context error.
 
-Keep persistent image caching limited to public/external listing URLs; private object-storage media should remain memory-cached unless the agent explicitly saves the listing for offline use.
+Automatically cache photos for listings already loaded into the signed-in agent’s local portfolio; keep private media scoped to that account and separate from unsynced draft files.
 
-**Why:** The generic image cache is not account-scoped, so persistent caching could leave private draft photos on a shared device after sign-out.
+**Why:** Agents should be able to reopen already-loaded listings and their photos offline without remembering to save each listing manually.
 
-**How to apply:** Use the explicit offline-media cache for durable private copies, and do not hide a still-valid signed image URL solely because NetInfo briefly reports offline.
+**How to apply:** Persist cached photos under an account-specific directory, refresh signed URLs before downloading private objects, and evict only older synced media when device storage is low. Never evict local draft media or queued work.
