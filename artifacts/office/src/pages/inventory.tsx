@@ -76,7 +76,7 @@ export function AddPropertyDialog() {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
     title: '', propertyType: 'house', listingType: 'sale', price: '', suburb: '', city: 'Harare',
-    address: '', addressVisible: false, bedrooms: '', bathrooms: '', garages: '', landSize: '', floorArea: '',
+    address: '', addressVisible: false, hasTitleDeed: null as boolean | null, bedrooms: '', bathrooms: '', garages: '', landSize: '', floorArea: '',
     negotiable: false, levies: '', rates: '', features: [] as string[], description: '',
     sellerName: '', sellerPhone: '', sellerEmail: '', mandateExpiry: '',
     mandateType: 'sole' as 'open' | 'sole', sellerNotes: '', collaborationEnabled: false,
@@ -100,7 +100,7 @@ export function AddPropertyDialog() {
         queryClient.invalidateQueries({ queryKey: getGetPipelineQueryKey() });
         toast({ title: 'Mandate created', description: `${created.reference} — ${created.title}` });
         setOpen(false);
-         setForm({ title: '', propertyType: 'house', listingType: 'sale', price: '', suburb: '', city: 'Harare', address: '', addressVisible: false, bedrooms: '', bathrooms: '', garages: '', landSize: '', floorArea: '', negotiable: false, levies: '', rates: '', features: [], description: '', sellerName: '', sellerPhone: '', sellerEmail: '', mandateExpiry: '', mandateType: 'sole', sellerNotes: '', collaborationEnabled: false, proposedViewingTimes: [] });
+         setForm({ title: '', propertyType: 'house', listingType: 'sale', price: '', suburb: '', city: 'Harare', address: '', addressVisible: false, hasTitleDeed: null, bedrooms: '', bathrooms: '', garages: '', landSize: '', floorArea: '', negotiable: false, levies: '', rates: '', features: [], description: '', sellerName: '', sellerPhone: '', sellerEmail: '', mandateExpiry: '', mandateType: 'sole', sellerNotes: '', collaborationEnabled: false, proposedViewingTimes: [] });
          setPhotoFiles([]);
          setVideoFile(null);
          setUploadError('');
@@ -230,6 +230,10 @@ export function AddPropertyDialog() {
       toast({ title: 'Title, price, suburb and at least one photo are required', variant: 'destructive' });
       return;
     }
+    if (form.listingType === 'sale' && form.hasTitleDeed === null) {
+      toast({ title: 'Choose whether this sale listing has a title deed', variant: 'destructive' });
+      return;
+    }
     setUploading(true);
     setUploadError('');
     try {
@@ -245,6 +249,7 @@ export function AddPropertyDialog() {
         city: form.city || 'Harare',
         address: form.address.trim() || undefined,
         addressVisible: Boolean(form.address.trim() && form.addressVisible),
+        hasTitleDeed: form.listingType === 'sale' && form.hasTitleDeed === true,
         bedrooms: form.bedrooms ? Number(form.bedrooms) : undefined,
         bathrooms: form.bathrooms ? Number(form.bathrooms) : undefined,
          parking: form.garages ? Number(form.garages) : undefined,
@@ -348,7 +353,7 @@ export function AddPropertyDialog() {
             </div>
             <div className="grid gap-2">
               <Label>Listing Type</Label>
-              <Select value={form.listingType} onValueChange={(v) => setForm({ ...form, listingType: v })}>
+              <Select value={form.listingType} onValueChange={(v) => setForm({ ...form, listingType: v, hasTitleDeed: v === 'sale' ? null : false })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="sale">For Sale</SelectItem>
@@ -357,6 +362,25 @@ export function AddPropertyDialog() {
               </Select>
             </div>
           </div>
+          {form.listingType === 'sale' && (
+            <div className="grid gap-2">
+              <Label>Does this sale listing have a title deed? *</Label>
+              <div className="flex gap-2" role="radiogroup" aria-label="Title deed status">
+                {[true, false].map((value) => (
+                  <Button
+                    key={String(value)}
+                    type="button"
+                    variant={form.hasTitleDeed === value ? 'default' : 'outline'}
+                    role="radio"
+                    aria-checked={form.hasTitleDeed === value}
+                    onClick={() => setForm({ ...form, hasTitleDeed: value })}
+                  >
+                    {value ? 'Yes' : 'No'}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          )}
            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
             <div className="grid gap-2">
               <Label htmlFor="np-price">Price (USD)</Label>

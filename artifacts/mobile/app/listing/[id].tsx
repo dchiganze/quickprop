@@ -543,6 +543,17 @@ export default function ListingDetailScreen() {
               </Text>
             </View>
           </View>
+          {property.listingType === 'sale' && property.hasTitleDeed === true && (
+            <View style={[styles.visibilityBadge, {
+              alignSelf: 'flex-start',
+              marginTop: 8,
+              backgroundColor: colors.accent + '18',
+              borderColor: colors.accent,
+            }]}>
+              <Ionicons name="document-text-outline" size={12} color={colors.accent} />
+              <Text style={[styles.visibilityText, { color: colors.accent }]}>Title deed</Text>
+            </View>
+          )}
 
           {multiAgent && multiAgent.offers.length > 0 && (
             <Section title="MULTI-AGENT PROPERTY">

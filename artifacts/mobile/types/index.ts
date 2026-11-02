@@ -24,6 +24,7 @@ export interface Property {
   syncStatus?: 'queued' | 'conflict';
   address: string;
   showAddress?: boolean;
+  hasTitleDeed?: boolean;
   suburb: string;
   city?: string;
   price: number;

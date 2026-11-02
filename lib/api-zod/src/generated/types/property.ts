@@ -38,6 +38,8 @@ export interface Property {
   address?: string | null;
   /** Whether the full property address may be shown on the public website. */
   addressVisible?: boolean;
+  /** Whether the sale listing has a title deed. */
+  hasTitleDeed: boolean;
   /** @nullable */
   bedrooms?: number | null;
   /** @nullable */

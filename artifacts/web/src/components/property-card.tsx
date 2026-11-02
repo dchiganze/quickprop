@@ -24,10 +24,15 @@ export function PropertyCard({ property }: { property: PublicProperty }) {
               <span className="text-xs uppercase tracking-wider font-semibold">{property.propertyType}</span>
             </div>
           )}
-          <div className="absolute top-3 left-3 flex gap-2">
+          <div className="absolute top-3 left-3 flex flex-wrap gap-2">
             <Badge variant="default" className="bg-primary hover:bg-primary shadow-sm font-semibold tracking-wide uppercase text-[10px]">
               {property.listingType === 'sale' ? 'For Sale' : 'To Rent'}
             </Badge>
+            {property.listingType === 'sale' && property.hasTitleDeed && (
+              <Badge variant="secondary" className="bg-emerald-50 text-emerald-800 shadow-sm font-semibold tracking-wide uppercase text-[10px]">
+                Title deed
+              </Badge>
+            )}
             {property.status && property.status !== 'public' && (
               <Badge variant="secondary" className="bg-white/90 text-gray-800 shadow-sm backdrop-blur-sm font-semibold tracking-wide uppercase text-[10px]">
                 {property.status.replace('_', ' ')}

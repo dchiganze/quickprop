@@ -60,6 +60,7 @@ interface FormData {
   suburb: string;
   city: string;
   showAddress: boolean;
+  hasTitleDeed: boolean | null;
   type: Property['type'] | null;
   propertyType: string;
   price: string;
@@ -86,7 +87,7 @@ interface FormData {
 }
 
 const defaultForm: FormData = {
-  photos: [], videoUri: '', title: '', address: '', suburb: '', city: 'Harare', showAddress: false,
+  photos: [], videoUri: '', title: '', address: '', suburb: '', city: 'Harare', showAddress: false, hasTitleDeed: null,
   type: null, propertyType: 'house', price: '', currency: 'USD', negotiable: false,
   bedrooms: 3, bathrooms: 2, garages: 1, landSize: '', floorArea: '',
   levies: '', rates: '', referenceNumber: `QP-${Date.now().toString().slice(-6)}`,
@@ -347,6 +348,7 @@ export default function NewListingScreen() {
       status,
       address: form.address,
       showAddress: form.showAddress,
+      hasTitleDeed: form.type === 'sale' && form.hasTitleDeed === true,
       suburb: form.suburb,
        city: form.city,
       price: parseFloat(form.price) || 0,
@@ -402,6 +404,7 @@ export default function NewListingScreen() {
     if (!form.title.trim()) missing.push('title');
     if (!form.suburb.trim()) missing.push('suburb');
     if (!form.type) missing.push('listing type');
+    if (form.type === 'sale' && form.hasTitleDeed === null) missing.push('title deed status');
     if (!form.price.trim() || Number(form.price) <= 0) missing.push('valid price');
     if (form.bedrooms < 0) missing.push('bedrooms');
     if (form.bathrooms < 0) missing.push('bathrooms');
@@ -417,7 +420,7 @@ export default function NewListingScreen() {
       1: [],
       2: ['title', 'suburb'],
       3: ['listing type'],
-      4: ['valid price', 'bedrooms', 'bathrooms', 'garages', 'reference number'],
+      4: ['valid price', 'bedrooms', 'bathrooms', 'garages', 'reference number', 'title deed status'],
       5: [],
       6: [],
       7: [],
@@ -594,7 +597,12 @@ export default function NewListingScreen() {
                       borderColor: selected ? colors.primary : colors.border,
                     },
                   ]}
-                  onPress={() => { Haptics.selectionAsync(); set('type', option.value); }}
+                  onPress={() => {
+                    Haptics.selectionAsync();
+                    set('type', option.value);
+                    if (option.value === 'rent') set('hasTitleDeed', null);
+                    else if (form.type !== 'sale') set('hasTitleDeed', null);
+                  }}
                 >
                   <View style={[styles.listingTypeIcon, { backgroundColor: selected ? '#FFFFFF24' : colors.secondary }]}>
                     <Ionicons name={option.icon} size={28} color={selected ? '#FFF' : colors.primary} />
@@ -649,6 +657,35 @@ export default function NewListingScreen() {
                })}
              </View>
            </Field>
+          {form.type === 'sale' && (
+            <Field label="TITLE DEED *" error={fieldError('title deed status')}>
+              <View style={styles.typeGrid}>
+                {[true, false].map(value => {
+                  const selected = form.hasTitleDeed === value;
+                  return (
+                    <TouchableOpacity
+                      key={String(value)}
+                      accessibilityRole="radio"
+                      accessibilityState={{ selected }}
+                      accessibilityLabel={value ? 'Yes, title deed available' : 'No title deed'}
+                      style={[
+                        styles.typeBtn,
+                        {
+                          backgroundColor: selected ? colors.primary : colors.secondary,
+                          borderColor: selected ? colors.primary : fieldError('title deed status') ? colors.destructive : colors.border,
+                        },
+                      ]}
+                      onPress={() => { Haptics.selectionAsync(); set('hasTitleDeed', value); }}
+                    >
+                      <Text style={[styles.typeBtnText, { color: selected ? '#FFF' : colors.foreground }]}>
+                        {value ? 'Yes' : 'No'}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </Field>
+          )}
           <Field label="PRICE *" error={fieldError('valid price')}>
             <View style={styles.priceRow}>
               <TouchableOpacity

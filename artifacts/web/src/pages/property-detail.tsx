@@ -228,6 +228,11 @@ export default function PropertyDetail() {
                   <Badge variant="outline" className="bg-white text-sm px-3 py-1">
                     {property.propertyType}
                   </Badge>
+                  {property.listingType === 'sale' && property.hasTitleDeed && (
+                    <Badge variant="outline" className="bg-emerald-50 text-emerald-800 border-emerald-200 text-sm px-3 py-1">
+                      Title deed
+                    </Badge>
+                  )}
                 </div>
                 <div className="flex gap-2">
                   <Button variant="outline" size="icon" onClick={handleShare}>
