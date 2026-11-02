@@ -128,3 +128,9 @@ Pin the workspace pnpm version when Expo Launch installs with frozen lockfiles.
 **Why:** Expo Launch can use a newer global pnpm than the one used to maintain the workspace lockfile; the newer version may reject the lockfile during iOS export even when the pinned local version installs it cleanly.
 
 **How to apply:** Declare the validated pnpm release in the root `packageManager` field and verify `pnpm install --frozen-lockfile` before retrying Expo Launch.
+
+Keep Sentry runtime event reporting separate from build-time source-map and symbol uploads.
+
+**Why:** Expo Launch's iOS archive fails when Sentry upload scripts lack organization metadata, even though the app's runtime DSN is configured and can still report events.
+
+**How to apply:** If Sentry organization, project, and upload credentials are not configured for release builds, disable the Sentry plugin's automatic uploads rather than inventing account details or disabling runtime Sentry initialization.
