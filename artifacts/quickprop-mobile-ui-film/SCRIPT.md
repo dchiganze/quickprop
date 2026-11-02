@@ -1,61 +1,68 @@
-# QuickProp Agent — Mobile UI Film
+# QuickProp Agent — Mobile Listing & WhatsApp Film
 
 ## Director's treatment
 
-- **Promise:** QuickProp Agent gives property agents a clear place to discover collaboration matches and share a polished listing catalogue.
+- **Promise:** A property listing in QuickProp Agent becomes a polished flyer and a ready-to-send WhatsApp message.
 - **Identity:** 16:9 landscape. QuickProp green `#2C6D5D`, ink, warm white, and pale mint; Plus Jakarta Sans for the product-led display and interface typography.
-- **Hero:** Two faithful, readable mobile app screens inside one physical phone: the Matches tab, then the QuickShare catalogue panel.
-- **Motion:** UI-native card reveals, a slow camera push across the phone, and a selected-state shape carried between screens.
-- **Arc:** The matching interface resolves first; its highlighted match becomes the selected brochure state and opens the share-channel interface.
-- **Payoff:** The channel grid settles inside the real QuickShare UI and holds as the final frame; no separate title or logo card interrupts the two-screen brief.
-- **Runtime:** 10 seconds total: exactly 5 seconds per screen.
+- **Hero:** A readable mobile listing detail screen, then a WhatsApp share composer with the property flyer and exact caption.
+- **Motion:** Listing-detail reveals, a selected share-action pulse, and a diagonal screen handoff.
+- **Arc:** The listing's published details resolve before its share action hands the property image into WhatsApp; the exact message caption appears beneath it.
+- **Payoff:** The complete flyer-and-caption composer holds in the phone as a pre-send state. The send control is visible but the film does not imply that a message was sent.
+- **Runtime:** Exactly 7 seconds total: 3.5 seconds for the listing and 3.5 seconds for the WhatsApp composer.
 - **Sound:** One restrained, upbeat instrumental pulse supports the screen changes without competing with interface copy. No voiceover or sound effects.
 
 ## Timeline overview
 
 | Time | Screen | Main motion | Handoff |
 | --- | --- | --- | --- |
-| 0.00–5.00s | Matches | A collaboration listing resolves, its open status and request action become clear | The green “Open” badge expands into the selected brochure outline |
-| 5.00–10.00s | QuickShare | Brochure scope, preview details, and sharing channels resolve in sequence | The highlighted share tile becomes the opening “Open” badge on loop |
+| 0.00–3.50s | Listing detail | The published property photo, location, price, specs, and share action resolve | The share action scales through the lens into the flyer attachment |
+| 3.50–7.00s | WhatsApp compose | A property flyer lands in the WhatsApp composer; the exact caption and recipient state appear | The green send affordance lifts toward the opening share action; no send is completed |
 
 ## Full shot script
 
-### Shot 01 / 0.00–5.00s / 5.00s — “Matches”
+### Shot 01 / 0.00–3.50s / 3.50s — “Listing detail”
 
-**Purpose:** Show the actual QuickProp Agent Matches tab, with its collaboration discovery tools and a listing ready for an agent's request.
+**Purpose:** Show a QuickProp Agent property detail page as the natural starting point for sharing a single listing.
 
-**Exact content:** App screen text: “Matches”; “Discover, collaborate, and track requests”; “Saved alerts”; “3 criteria · 2 new”; search hint “Road, suburb, amenities, size, beds, price…”; tabs “Discover”, “Requests (2)”, and “Sent”; section label “LISTINGS FOR YOU”; sort label “Newest”; listing status “FOR SALE” and “Open”; “4-bed in Borrowdale”; “Harare · QP-2418”; “USD 285,000”; “4”, “3”, and “Borehole”; action “Request collaboration”. A second listing resolves below it: “3-bed in Avondale” and “Harare · QP-1986”. The left detail card repeats the listing with “COLLABORATION LISTING”, “4-BED · FOR SALE”, “Borrowdale”, “Harare”, “USD 285,000”, “QP-2418”, “4 beds”, “3 baths”, “Borehole”, and “Request collaboration”. The app tab bar reads “Home”, “Listings”, “Matches”, “Share”, “Profile”. Exterior labels read “01”, “MATCHES”, “DISCOVER · COLLABORATE · TRACK”, “QUICKPROP AGENT”, and “COLLABORATION DISCOVERY”.
+**Exact content:** App listing detail text: reference “QP-2418”; status “Published”; “FOR SALE”; “RESIDENTIAL”; “3 bedroom home”; “Avondale, Harare”; “USD 275,000”; “3 beds”; “2 baths”; “2 garages”; “ABOUT THIS HOME”; “A light-filled family home with generous living spaces and a private garden.”; “ASKING PRICE”; “Share”. The exterior labels read “01”, “LISTING”, “A PROPERTY, READY TO SHARE”, “QUICKPROP AGENT”, and “LISTING DETAILS”. Listing details are illustrative demonstration content, not a live listing claim.
 
-**Composition and artistic idea:** One upright, softly angled phone occupies the right half of the 16:9 frame and nearly the full short edge. Its screen recreates the app's light background, green active states, saved-alert row, search field, three tabs, and stacked collaboration cards. On the left, a restrained ink field carries only the screen label and a thin mint connector terminating at the featured listing's green “Open” badge. The camera pushes closer to the native UI rather than introducing unrelated marketing copy.
+**Composition and artistic idea:** A tall upright phone occupies the right side and most of the short edge. The app listing's architectural photograph is the screen's dominant image; the white details panel and persistent share-price footer follow the actual listing-detail hierarchy. A small light fact card floats in the left negative space. The recurring green share control is the match-cut carrier.
 
-**Timed choreography:** 0.00–0.25s: the phone screen is already visible; the phone settles from a slight 1.06× overscale and 3° rotation. 0.25–0.80s: the Matches header and saved-alert summary sharpen into focus. 0.80–1.40s: the search field and Discover/Requests/Sent tabs trace on in place. 1.40–2.20s: the Borrowdale collaboration listing reveals from its photo edge to its title and property details. 2.20–3.10s: the green “Request collaboration” button resolves; a mint focus line traces from the action toward the listing's “Open” badge. 3.10–4.25s: a second card peeks in beneath the first while the camera advances a restrained 1.08× toward the featured card. 4.25–5.00s: the “Open” badge grows from a pill into the green selected outline that begins the transition.
+**Timed choreography:** 0.00–0.30s: the phone arrives already recognizable, settling from a slight overscale and perspective tilt. 0.30–0.72s: the top reference and property photo sharpen; “Published” sits over the image. 0.42–0.85s: a fact card opens at left. 1.18–1.55s: bed, bath, and garage specs lift into view. 1.59–1.95s: the short home description resolves under a slight camera push. 2.33–2.85s: a mint selection halo blooms around Share and the icon gives a restrained scale pulse. 2.85–3.50s: the listing crop advances and a diagonal clip reveal opens the WhatsApp composer on the 3.50s music accent; the share green is echoed by its send affordance.
 
-**Transition contract:** The outgoing green “Open” pill stays screen-positioned and expands through the lens. The next shot's selected “My Brochure” outline begins at the same centre and scale; a diagonal pane split reveals the new screen beneath the expanding pill. The phone remains the persistent hero.
+**Transition contract:** The outgoing green Share affordance is echoed by the incoming WhatsApp send affordance. A diagonal clip reveal and restrained full-screen scale overlap the cut; the phone remains the hero object. The film does not represent a completed tap or send.
 
-**Assets and technique:** Original CSS-rendered mobile screen artwork based on `artifacts/mobile/app/(tabs)/matches.tsx`, with typography, tabs, listing cards, and icons reconstructed from the app's real labels and hierarchy. CSS geometric property artwork stands in for a listing thumbnail; no generated text or third-party imagery.
+**Assets and technique:** Original CSS-rendered listing detail screen based on `artifacts/mobile/app/listing/[id].tsx`; hierarchy follows its top actions, gallery, published badge, listing price, facts, and share entry. Architectural artwork is a stylized, drawn demonstration home, not listing photography. Lucide icons and the existing device frame are used.
 
-**Sound intent:** A soft opening pulse, two restrained UI-like musical accents as the listing details resolve, then a light rise into the ring transition. All beat alignment remains unverified until the instrumental exists.
+**Sound intent:** Preserve the original instrumental character. The cut at 3.50s is aligned to the measured RMS onset. No voiceover or sound effects.
 
-### Shot 02 / 5.00–10.00s / 5.00s — “QuickShare”
+### Shot 02 / 3.50–7.00s / 3.50s — “WhatsApp compose”
 
-**Purpose:** Show the real catalogue-sharing interface, its brochure preview, and the destinations an agent can use to send it.
+**Purpose:** Make the single-listing handoff unmistakable: the flyer is attached, WhatsApp is open, and the current app caption is present in a pre-send composer.
 
-**Exact content:** Dimmed app underneath the sheet reads “Good morning, Tendai”, “My listings”, “12 active listings”, “View all”, “Borrowdale family home”, “4 beds · For sale”, and the tab labels “Home”, “Listings”, “Matches”, “Share”, “Profile”. The QuickShare panel reads “QUICKPROP AGENT”, “QuickShare”, “My Brochure”, “Your listings only”, “Company”, and “All agency listings”. Its preview reads “Tendai’s Listings”, “Borrowdale, Avondale & more”, “12 properties”, “All details ready”, “4-bed · Borrowdale”, and “3-bed · Avondale”. Below are “SHARE VIA”, “WhatsApp”, “Facebook”, “Instagram”, “LinkedIn”, and “More sharing options”. The enlarged brochure shows the existing QuickProp logo asset, followed by “PROPERTY COLLECTION”, “MY BROCHURE”, “Tendai’s Listings”, “Borrowdale, Avondale & more”, “12 properties”, and “VIEW COLLECTION”. Exterior labels read “02”, “QUICKSHARE”, “ONE BROCHURE · EVERY CHANNEL”, “CATALOGUE PREVIEW”, and “READY WHEN YOU ARE”.
+**Exact content:** WhatsApp-style compose UI labels “WhatsApp” and “Share listing”, with the selected recipient “You”. Flyer artwork uses QuickProp logo asset, “PROPERTY LISTING”, “3 BEDROOM HOME”, “AVONDALE, HARARE”, “USD 275,000”, “3 Bedrooms”, “2 Bathrooms”, “2 Garages”, and “Powered by quickprop.co.zw”. The caption appears exactly as entered in the app: “Follow this link to see all my properties www.quickprop.co.zw/douglaschiganze”. Exterior labels read “02”, “WHATSAPP”, “FLYER + MESSAGE · READY TO SEND”, “PROPERTY FLYER”, and “CAPTION PREFILLED”. The send affordance is visible; no completed-send claim is made.
 
-**Composition and artistic idea:** The same phone opens onto the actual QuickShare sheet. The first half-second preserves the outgoing pill as the green selected edge around “My Brochure”; the rest of the interface stays a clean, readable warm-white sheet over a muted app backdrop. The camera reframes from the upper mode selector to the catalogue preview and then to the four branded destination tiles. The external label moves to the opposite side from Shot 01, keeping focus on the app screen.
+**Composition and artistic idea:** The phone stays in the same right-hand zone but the screen flips into a dark WhatsApp composer, contrasting the light listing view. The flyer is a compact 4:5 editorial card, following the real mobile PropertyFlyer template's hierarchy: brand/photo, headline, accent price bar, specifications, and QuickProp footer. The exact caption is in the attachment card directly beneath the flyer artwork; recipient and green send control remain visible at the bottom, establishing a ready-to-send but unsent state.
 
-**Timed choreography:** 0.00–0.35s: the green ring resolves into the “My Brochure” selected border as the new screen unfolds in two masked panes. 0.35–1.05s: “QuickShare” and the “My Brochure / Company” mode cards settle. 1.05–2.10s: the catalogue preview grows from its top edge; title, property count, and two property rows resolve one at a time. 2.10–3.20s: “SHARE VIA” appears; WhatsApp, Facebook, Instagram, and LinkedIn tiles reveal in a measured stagger. 3.20–4.25s: the camera pushes toward the channel row; a soft green focus sweep highlights WhatsApp, then rests without implying that a share was sent. 4.25–5.00s: the whole UI holds readable; the WhatsApp tile's green icon enlarges to become the outgoing loop carrier.
+**Timed choreography:** 0.00–0.42s: the listing's diagonal reveal clears to the WhatsApp screen; the status/header and dark compose surface are present during the cut. 0.12–0.78s: flyer artwork lands as a single attachment and settles square in its card. 0.76–1.24s: the exact caption reveals beneath the flyer artwork and holds readable. 1.24–1.90s: recipient “You” and the send affordance remain visible beneath the attachment. 1.90–2.65s: a restrained green focus halo blooms around the send button without indicating a tap. 2.65–2.90s: the complete attachment-and-caption composition holds for a clear read. 2.90–3.50s: the green send icon scales forward as a loop echo; it remains visibly a composer action, not a sent message.
 
-**Transition contract:** The WhatsApp green icon scales up and becomes the green “Open” pill at the beginning of Shot 01. The two-pane mask clears as the loop returns to the Matches UI; there is no separate brand or end card.
+**Transition contract:** The enlarged green send affordance acts as a color-and-shape echo of Shot 01's green Share button on the loop. The next listing view resets to its original scale; no completed-send state is shown.
 
-**Assets and technique:** Original CSS-rendered mobile screen artwork based on `artifacts/mobile/components/QuickShareSheet.tsx`. Use the real channel brand colors and Lucide icons; show the selected brochure preview as interface artwork, not as an invented claim that a share completed. Property names, prices, references, and counts are illustrative screen-demonstration details, not live listing claims.
+**Assets and technique:** Original CSS-rendered compose state based on the mobile share behavior in `artifacts/mobile/app/listing/[id].tsx`, `artifacts/mobile/components/ShareHubSheet.tsx`, and `artifacts/mobile/components/PropertyFlyer.tsx`. The caption string is confirmed from `artifacts/mobile/utils/shareContent.ts`. The provided screenshot is a layout reference only; its old caption and DBT Properties branding are deliberately not reproduced. Property details are illustrative, not live listing claims.
 
-**Sound intent:** Maintain the same instrumental pulse, with a soft lift as the channel destinations appear and a resolved but loop-friendly final beat. No voiceover or sound effects; beat alignment remains unverified.
+**Sound intent:** Continue the time-stretched instrumental bed and resolve on the final held composer view. No voiceover or sound effects; the loop tail retains the original soft resolution.
 
 ## Variety and floor review
 
-- The two shots share a device frame but differ in content hierarchy and camera target: collaboration discovery first, brochure and channels second.
-- The app UI occupies the visual centre and more than 60% of the short edge; exterior copy remains secondary.
-- Each five-second scene has several timed changes and an outgoing handoff in its final 15%.
-- Both transitions carry a green interface state, so the cut remains tied to the product.
-- All copy is taken from the mobile app's actual screen structure except clearly marked illustrative listing details.
+- The two shots share the device frame but contrast a light property-detail screen against the dark WhatsApp compose state.
+- The listing's image becomes the flyer attachment; the sequence clearly shows listing → WhatsApp composer.
+- Runtime is exactly 7.00 seconds: 3.50 + 3.50. The persisted 16:9 ratio is unchanged.
+- Both transitions carry the green share/send affordance without claiming that a message was sent.
+- The exact current caption is reproduced verbatim; provided screenshot copy is not reused.
+
+## Audio spec
+
+- Runtime: 7.00s (SCENE_DURATIONS = 3.50s + 3.50s).
+- Music: Preserve the existing restrained, upbeat instrumental pulse; time-stretch the original 10.000s master to 7.00s with pitch-preserving `atempo=10/7`, retaining its soft resolved tail. No vocals, voiceover, or added SFX.
+- Measured RMS onsets in the replacement bed: 1.750s, 3.500s, and 5.250s (50ms RMS windows, >=6dB rise). The listing-to-WhatsApp cut is aligned to the strong 3.500s onset; total runtime remains exactly 7.00s.
+- Playback file: `src/assets/quickprop-mobile-ui-bed.wav` (import path and player wiring unchanged).
