@@ -2490,3 +2490,54 @@ body {
 @media (max-aspect-ratio: 1/1) {
   .listing-fact-card { display: none; }
 }
+
+/* Enlarged exterior labels for the two 16:9 product beats. */
+.listing-scene .index-number,
+.whatsapp-scene .index-number {
+  font-size: 2.7vmin;
+}
+
+.listing-scene .index-label,
+.whatsapp-scene .index-label {
+  font-size: 2.9vmin;
+}
+
+.listing-scene .scene-side-note,
+.whatsapp-scene .scene-side-note {
+  font-size: 2.1vmin;
+  line-height: 1.2;
+}
+
+.whatsapp-scene .scene-side-note {
+  right: auto;
+  left: 7.5%;
+  text-align: left;
+}
+
+.listing-scene .bottom-caption,
+.whatsapp-scene .share-bottom-caption {
+  font-size: 2.06vmin;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.whatsapp-scene .share-bottom-caption {
+  right: auto;
+  left: 7.5%;
+  max-width: 45%;
+  justify-content: flex-start;
+}
+
+.whatsapp-scene .share-bottom-caption > span {
+  flex: 0 0 auto;
+}
+
+.whatsapp-scene .wa-contact strong {
+  font-size: 2.8vmin;
+  line-height: 1.15;
+}
+
+.whatsapp-scene .wa-contact span {
+  font-size: 2vmin;
+  line-height: 1.15;
+}
