@@ -1,0 +1,29 @@
+kind = "video"
+videoAspectRatio = "16:9"
+previewPath = "/quickprop-matching-film/"
+title = "QuickProp — Property Matching Film"
+description = "A 10-second animated QuickProp video showing how property listings are matched with relevant buyers."
+version = "1.0.0"
+id = "artifacts/quickprop-matching-film"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/quickprop-matching-film/" ]
+localPort = 18134
+
+[services.development]
+run = "pnpm --filter @workspace/quickprop-matching-film run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/quickprop-matching-film", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/quickprop-matching-film/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "18134"
+BASE_PATH = "/quickprop-matching-film/"
