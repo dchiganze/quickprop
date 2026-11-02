@@ -122,3 +122,9 @@ Automatically cache photos for listings already loaded into the signed-in agentâ
 **Why:** Agents should be able to reopen already-loaded listings and their photos offline without remembering to save each listing manually.
 
 **How to apply:** Persist cached photos under an account-specific directory, refresh signed URLs before downloading private objects, and evict only older synced media when device storage is low. Never evict local draft media or queued work.
+
+Pin the workspace pnpm version when Expo Launch installs with frozen lockfiles.
+
+**Why:** Expo Launch can use a newer global pnpm than the one used to maintain the workspace lockfile; the newer version may reject the lockfile during iOS export even when the pinned local version installs it cleanly.
+
+**How to apply:** Declare the validated pnpm release in the root `packageManager` field and verify `pnpm install --frozen-lockfile` before retrying Expo Launch.
