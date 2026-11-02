@@ -12,7 +12,6 @@ import {
   runPropertyFlyerShare,
 } from '@/utils/socialShareFlow';
 import {
-  buildPropertyShareMessage,
   buildPropertyFlyerCaption,
 } from '@/utils/shareContent';
 
@@ -76,9 +75,9 @@ async function recordPropertyShare(property: Property): Promise<void> {
 export async function sharePropertyToWhatsApp(
   property: Property,
   captureCard: () => Promise<string>,
-  options: { agentId?: string; beforeNativeShare?: () => Promise<void> } = {},
+  options: { beforeNativeShare?: () => Promise<void> } = {},
 ): Promise<{ caption: string; sharedPhoto: boolean }> {
-  const caption = buildPropertyFlyerCaption(options.agentId ?? property.agentId);
+  const caption = buildPropertyFlyerCaption();
 
   if (Platform.OS === 'web') {
     const cardUri = await prepareShareImage(captureCard);
@@ -425,7 +424,7 @@ export async function sharePropertyGeneric(
   includeCaption = true,
   captionOverride?: string,
 ): Promise<void> {
-  const caption = captionOverride ?? buildPropertyShareMessage(property);
+  const caption = captionOverride ?? buildPropertyFlyerCaption();
   await Clipboard.setStringAsync(caption).catch(() => {});
 
   if (Platform.OS === 'web') {

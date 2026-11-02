@@ -10,7 +10,7 @@ import { useData } from '@/contexts/DataContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Property } from '@/types';
 import { catalogueShareLinks, getFacebookShareUrl } from '@/utils/shareLinks';
-import { buildCatalogueShareMessage, formatSharePrice } from '@/utils/shareContent';
+import { buildCatalogueShareMessage, buildPropertyFlyerCaption, formatSharePrice } from '@/utils/shareContent';
 import { shareCatalogueToSocial, shareCatalogueToWhatsApp } from '@/utils/whatsapp';
 import { ShareCatalogueCard, ShareCatalogueCardHandle } from '@/components/ShareCatalogueCard';
 
@@ -48,7 +48,7 @@ export function QuickShareSheet({ visible, onClose }: QuickShareSheetProps) {
     setSharing(true);
     try {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-       const text = buildCatalogueShareMessage(activeProps, mode, user?.name, mode === 'agent' ? user?.id : undefined);
+       const text = buildPropertyFlyerCaption();
        await shareCatalogueToWhatsApp(
          text,
          () => catalogueCardRef.current?.capture()

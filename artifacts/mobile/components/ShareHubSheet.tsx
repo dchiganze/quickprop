@@ -10,7 +10,7 @@ import { useData } from '@/contexts/DataContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Property } from '@/types';
 import { catalogueShareLinks, getFacebookShareUrl, propertyShareLinks } from '@/utils/shareLinks';
-import { buildCatalogueShareMessage, buildPropertyShareMessage, formatSharePrice } from '@/utils/shareContent';
+import { buildCatalogueShareMessage, buildPropertyFlyerCaption, buildPropertyShareMessage, formatSharePrice } from '@/utils/shareContent';
 import {
   PropertySocialDestination,
   shareCatalogueToSocial,
@@ -87,7 +87,7 @@ export function ShareHubSheet({ visible, onClose }: Props) {
         p,
         () => shareCardRef.current?.capture()
           ?? Promise.reject(new Error('Unable to prepare the property image.')),
-        { agentId: user?.id, beforeNativeShare },
+        { beforeNativeShare },
       );
       handleClose();
     } catch (e: unknown) {
@@ -101,7 +101,7 @@ export function ShareHubSheet({ visible, onClose }: Props) {
     } finally {
       setSharing(false);
     }
-  }, [user?.id, flyer.loading, beforeNativeShare]);
+  }, [flyer.loading, beforeNativeShare]);
 
   const sharePropertyNative = useCallback(async (p: Property) => {
     setSharing(true);
@@ -154,7 +154,7 @@ export function ShareHubSheet({ visible, onClose }: Props) {
     setSharing(true);
     try {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      const text = buildCatalogueShareMessage(activeProps, catalogMode, user?.name, user?.id);
+      const text = buildPropertyFlyerCaption();
       await shareCatalogueToWhatsApp(
         text,
         () => catalogueCardRef.current?.capture()
