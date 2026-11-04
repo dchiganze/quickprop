@@ -24,3 +24,11 @@ Persist the highest submitted Android version code as the source baseline after 
 **Why:** Reusing a stale baseline generates a version code Google Play has already consumed. Uploading a bundle to Internal also consumes its code; moving it to Production requires promotion rather than uploading it again.
 
 **How to apply:** Check the highest used Play version before building. For a new bundle intended directly for Production, prevent the automatic Internal upload, then use the manual submission workflow with that build's artifact. Never cancel native compilation merely to change tracks.
+
+## Expo native module alignment
+
+Keep any Expo native modules manually copied into the mobile app pinned to the versions declared by the app and lockfile; older overrides can pass prebuild and fail R8 against the newer Expo Modules Core.
+
+**Why:** A release build using older copied authentication modules failed minification with missing Kotlin type-provider classes after the app moved to Expo SDK 58.
+
+**How to apply:** Whenever the Expo SDK changes, update or remove the workflow's manual module-install step in the same change and validate through R8.

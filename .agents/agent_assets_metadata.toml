@@ -365,3 +365,31 @@ mtime_ms = 1793797853859
 storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:cf900b3f-04ce-456b-888c-760ecb412036/89103df9-b60e-45a4-a2ed-3ae0ad6cf9c6/43a0f211-6574-4805-bc34-1b8b0b8c54d7"
 storage_version_token = "1793797879351974"
 content_type = "video/mp4"
+
+[[outputs]]
+id = "B0EiBccuVZioqeYzNCMwk"
+uri = "file://generated-artifacts/QuickProp_Promo_5_with_founder_credit.mp4"
+type = "video"
+title = "QuickProp promo with founder credit"
+description = "White lower-left title from the beginning through 9 seconds; original 41.7-second video and audio retained."
+logical_id = "107e76db-b6dc-46ed-ac86-713846bd734d"
+content_hash = "sha256:a372d72241bfadb51364953068b5bf6d8604b997d574ba198b9401aa5fff1e59"
+size = 18815565
+mtime_ms = 1793806976591
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:cf900b3f-04ce-456b-888c-760ecb412036/107e76db-b6dc-46ed-ac86-713846bd734d/7b34b740-6383-4721-a3ca-0906675e4da8"
+storage_version_token = "1793807018978491"
+content_type = "video/mp4"
+
+[[outputs]]
+id = "IW-kLNJyhl1z8Pgmjohuy"
+uri = "file://generated-artifacts/QuickProp_Promo_5_founder_credit.mp4"
+type = "video"
+title = "QuickProp promo with founder credit — MP4"
+description = "Fresh H.264/AAC export, 1920×1080. Founder credit appears in white at bottom left from 0–9 seconds; audio and full 41.7-second duration are retained."
+logical_id = "342abca3-f2f8-4671-bce7-f55a4c2f2ec2"
+content_hash = "sha256:178fe05b516e5db79eb5bf66e06dbe66e9b792481784d743022bfabaf4e1f45c"
+size = 18815112
+mtime_ms = 1793807728899
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:cf900b3f-04ce-456b-888c-760ecb412036/342abca3-f2f8-4671-bce7-f55a4c2f2ec2/4dd3ad5c-3505-445d-a8e1-e924bcf34819"
+storage_version_token = "1793807745430777"
+content_type = "video/mp4"
