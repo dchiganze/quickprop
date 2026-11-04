@@ -65,13 +65,13 @@ export function Scene4() {
           style={{ position: 'absolute', left: '50%', top: '49%', width: '96vmin', height: '96vmin', borderRadius: '50%', background: '#2C6D5D', zIndex: 5, pointerEvents: 'none' }}
           initial={{ scale: 0, x: '-50%', y: '-50%' }}
           animate={{ scale: 2.3, x: '-50%', y: '-50%' }}
-          transition={{ duration: 0.38, delay: 1.62, ease: EASE }}
+          transition={{ duration: 0.38, delay: 2.62, ease: EASE }}
         />
         <motion.div
           style={{ position: 'absolute', left: '50%', top: '49%', width: '96vmin', height: '96vmin', borderRadius: '50%', background: '#F5F4ED', zIndex: 6, pointerEvents: 'none' }}
           initial={{ scale: 0.08, x: '-50%', y: '-50%' }}
           animate={{ scale: 1, x: '-50%', y: '-50%' }}
-          transition={{ duration: 0.38, delay: 1.62, ease: EASE }}
+          transition={{ duration: 0.38, delay: 2.62, ease: EASE }}
         />
       </div>
     </motion.section>

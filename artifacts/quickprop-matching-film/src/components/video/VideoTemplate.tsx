@@ -16,7 +16,7 @@ export const SCENE_DURATIONS = {
   intent: 3000,
   listing: 3000,
   score: 3000,
-  workflow: 2000,
+  workflow: 3000,
   finale: 2000,
 };
 
