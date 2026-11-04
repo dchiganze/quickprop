@@ -1,65 +1,88 @@
 import { motion } from 'framer-motion';
 
+const EASE = [0.16, 1, 0.3, 1] as const;
+
 export function Scene3() {
   return (
     <motion.section
       className="film"
-      style={{ backgroundColor: '#173F36' }}
-      initial={{ clipPath: 'circle(0% at 78% 47%)', scale: 1.1 }}
-      animate={{ clipPath: 'circle(150% at 78% 47%)', scale: 1 }}
-      exit={{ scale: 1.12, opacity: 0, clipPath: 'inset(0 100% 0 0)' }}
-      transition={{ duration: 0.52, ease: [0.16, 1, 0.3, 1] }}
+      style={{ backgroundColor: '#173F36', color: '#F5F4ED' }}
+      initial={{ clipPath: 'circle(0% at 78% 48%)', scale: 1.08 }}
+      animate={{ clipPath: 'circle(150% at 78% 48%)', scale: 1 }}
+      exit={{ scale: 1.08, rotateY: -3, opacity: 0, clipPath: 'inset(0 100% 0 0)' }}
+      transition={{ duration: 0.42, ease: EASE }}
     >
-      <div style={{ position: 'absolute', inset: '9% 8%' }}>
+      <motion.div
+        style={{ position: 'absolute', left: '82%', top: '23%', width: '7vmin', height: '7vmin', borderRadius: '50%', background: '#D5EC79', border: '.65vmin solid #2C6D5D', zIndex: 3 }}
+        initial={{ scale: 0, x: '-50%', y: '-50%' }}
+        animate={{ scale: [0, 1.15, 1], x: '-50%', y: '-50%' }}
+        transition={{ duration: 0.35, ease: EASE }}
+      />
+      <div style={{ position: 'absolute', inset: '8% 9%' }}>
         <motion.div
-          style={{ position: 'absolute', left: '10%', top: '10%', width: '60vmin', height: '60vmin', borderRadius: '50%', border: '1px solid rgba(243,246,234,.16)' }}
-          initial={{ scale: .8, rotate: -8, opacity: 0 }}
-          animate={{ scale: 1, rotate: 0, opacity: 1 }}
-          transition={{ duration: .75, ease: [0.16, 1, .3, 1] }}
-        />
-        <motion.svg
-          viewBox="0 0 100 100"
-          style={{ position: 'absolute', left: '10%', top: '10%', width: '60vmin', height: '60vmin', transform: 'rotate(-90deg)', overflow: 'visible' }}
-          aria-label="94 percent match score"
+          className="film-label"
+          style={{ color: '#D5EC79', position: 'absolute', left: 0, top: 0, fontSize: '2vmin' }}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.24, delay: 0.08 }}
         >
-          <circle cx="50" cy="50" r="44" fill="none" stroke="rgba(240,244,232,.12)" strokeWidth="2.8" />
-          <motion.circle cx="50" cy="50" r="44" fill="none" stroke="#D5EC79" strokeWidth="2.8" strokeLinecap="round" strokeDasharray="276.46" initial={{ strokeDashoffset: 276.46 }} animate={{ strokeDashoffset: 16.59 }} transition={{ duration: .82, delay: .12, ease: [0.2, .8, .2, 1] }} />
-          <motion.circle cx="50" cy="50" r="37" fill="none" stroke="rgba(240,244,232,.17)" strokeWidth=".35" strokeDasharray="1 2" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: .6, duration: .2 }} />
-        </motion.svg>
-        <motion.div
-          style={{ position: 'absolute', left: '17%', top: '31%', width: '45vmin', textAlign: 'center', color: '#F5F4ED' }}
-          initial={{ scale: 1.22, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ duration: .44, delay: .27, ease: [0.16, 1, .3, 1] }}
-        >
-          <div className="tabular" style={{ fontSize: '15vmin', fontWeight: 800, letterSpacing: '-.09em', lineHeight: '.82' }}>94%</div>
-          <motion.div className="film-label" style={{ color: '#D5EC79', marginTop: '2.1vmin', fontSize: '2.05vmin' }} initial={{ opacity: 0, y: 9, letterSpacing: '.34em' }} animate={{ opacity: 1, y: 0, letterSpacing: '.2em' }} transition={{ delay: .5, duration: .4 }}>MATCH</motion.div>
+          COLLABORATION REQUEST
         </motion.div>
+
         <motion.div
-          style={{ position: 'absolute', left: '60%', top: '23%', width: '34%', color: '#17362F', borderRadius: '1.8vmin', background: '#F6F5EE', padding: '2.1vmin', boxShadow: '0 2vmin 5vmin rgba(4,22,17,.25)', transformOrigin: 'left center' }}
-          initial={{ opacity: 0, rotateY: 30, x: 22, scale: .92 }}
-          animate={{ opacity: 1, rotateY: 0, x: 0, scale: 1 }}
-          transition={{ delay: .76, duration: .52, ease: [0.16, 1, .3, 1] }}
+          style={{ position: 'absolute', left: '9%', top: '18%', width: '82%', height: '68%', borderRadius: '2.5vmin', padding: '4vmin 5vmin', color: '#17362F', background: '#F5F4ED', boxShadow: '0 3vmin 8vmin rgba(2,20,15,.3)', transformOrigin: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}
+          initial={{ opacity: 0, scale: 0.84, rotateY: 10, y: 10 }}
+          animate={{ opacity: 1, scale: 1, rotateY: 0, y: 0 }}
+          transition={{ duration: 0.45, delay: 0.12, ease: EASE }}
         >
-          <div className="film-label" style={{ color: '#739183', fontSize: '1.3vmin' }}>BUYER × PROPERTY</div>
-          <div style={{ fontSize: '2.6vmin', fontWeight: 800, letterSpacing: '-.05em', marginTop: '1.2vmin' }}>Tariro M. <span style={{ color: '#85A493' }}>×</span></div>
-          <div style={{ fontSize: '2.25vmin', fontWeight: 700, marginTop: '.3vmin' }}>3-bed Borrowdale</div>
-          <div style={{ fontSize: '1.5vmin', color: '#73877C', marginTop: '1.1vmin' }}>ILLUSTRATIVE PROFILE</div>
-          <div style={{ height: '1px', background: 'rgba(44,109,93,.15)', margin: '1.3vmin 0' }} />
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '.7vmin', color: '#617A6D', fontSize: '1.45vmin', fontWeight: 700 }}>
-            {['Budget', 'Area', 'Cash', 'Immediate'].map((item, i) => (
-              <motion.span key={item} style={{ padding: '.52vmin .7vmin', borderRadius: '99px', background: '#E8EEE6', display: 'inline-flex', gap: '.5vmin', alignItems: 'center' }} initial={{ opacity: 0, scale: .8 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: .99 + i * .11, duration: .24 }}>
-                <span style={{ color: '#2C6D5D' }}>✓</span>{item}
+          <div style={{ color: '#71857B', fontSize: '2vmin', fontWeight: 800, letterSpacing: '.12em' }}>PROPERTY OWNER REVIEW</div>
+          <div style={{ marginTop: '1.2vmin', fontSize: '5.2vmin', lineHeight: 1, fontWeight: 800, letterSpacing: '-.065em' }}>BORROWDALE · 3-BED</div>
+          <div style={{ marginTop: '1.1vmin', color: '#64776E', fontSize: '2.8vmin', fontWeight: 600 }}>An agent wants to collaborate.</div>
+
+          <div style={{ display: 'flex', gap: '2.3vmin', marginTop: '3vmin' }}>
+            <motion.div
+              style={{ position: 'relative', flex: 1, minHeight: '11vmin', borderRadius: '1.4vmin', background: '#2C6D5D', color: '#F8F8F1', display: 'grid', placeItems: 'center', fontSize: '3.4vmin', lineHeight: 1, fontWeight: 800, letterSpacing: '.03em', overflow: 'hidden' }}
+              initial={{ opacity: 0, scale: 0.93, y: 8 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: 0.72, ease: EASE }}
+            >
+              <span>ACCEPT</span>
+              <motion.span
+                style={{ position: 'absolute', inset: '-10%', border: '.55vmin solid #D5EC79', borderRadius: '1.6vmin', pointerEvents: 'none' }}
+                initial={{ scale: 0.82, opacity: 0 }}
+                animate={{ scale: [0.82, 1.18, 1.18], opacity: [0, 1, 0] }}
+                transition={{ duration: 0.6, delay: 1.17, ease: EASE }}
+              />
+              <motion.span
+                style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', background: '#D5EC79', color: '#17362F', fontSize: '3vmin', letterSpacing: '.08em' }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: [0, 0, 1, 1] }}
+                transition={{ duration: 0.54, delay: 1.35, times: [0, 0.22, 0.44, 1], ease: 'linear' }}
+              >
+                ACCEPTED
               </motion.span>
-            ))}
+            </motion.div>
+
+            <motion.div
+              style={{ flex: 1, minHeight: '11vmin', borderRadius: '1.4vmin', background: '#E7ECE5', border: '1px solid rgba(23,54,47,.14)', color: '#42594E', display: 'grid', placeItems: 'center', fontSize: '3.4vmin', fontWeight: 800, letterSpacing: '.03em' }}
+              initial={{ opacity: 0, scale: 0.93, y: 8 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: 0.84, ease: EASE }}
+            >
+              DECLINE
+            </motion.div>
           </div>
         </motion.div>
+
         <motion.div
-          style={{ position: 'absolute', left: '66%', bottom: '10%', color: '#BCD0C2', fontSize: '1.45vmin', letterSpacing: '.12em', fontWeight: 700 }}
-          initial={{ opacity: 0, x: 8 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 1.15, duration: .3 }}
-        >BUDGET · AREA · FINANCE · URGENCY</motion.div>
+          className="film-label"
+          style={{ position: 'absolute', right: '1%', bottom: '0%', color: '#BCD0C2', fontSize: '1.8vmin' }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.05, duration: 0.24 }}
+        >
+          THE LISTING OWNER DECIDES
+        </motion.div>
       </div>
     </motion.section>
   );
