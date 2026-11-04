@@ -142,7 +142,13 @@ export function EditorialTemplate(p: TemplateProps) {
         <View style={{ flexDirection: 'row', paddingHorizontal: 14, minHeight: 62, marginTop: 8, marginBottom: 6, gap: 2 }}>
           {stats.map((stat, index) => (
             <View key={stat.label} style={{ flex: 1, minWidth: 0, alignItems: 'center', justifyContent: 'center' }}>
-              <StatIcon label={stat.label} primary={index % 2 === 0 ? iconPrimary : iconAccent} accent={iconAccent} />
+              <StatIcon
+                label={stat.label}
+                primary={stat.label.includes('Bedroom') || stat.label === 'Land Area'
+                  ? iconPrimary
+                  : index % 2 === 0 ? iconPrimary : iconAccent}
+                accent={iconAccent}
+              />
               <Text style={{ color: '#111827', fontSize: 8.5, lineHeight: 11, fontWeight: '900', marginTop: 2, textAlign: 'center' }} numberOfLines={1} adjustsFontSizeToFit>{stat.value}</Text>
               <Text style={{ color: '#4B5563', fontSize: 6.5, lineHeight: 9, fontWeight: '700', textAlign: 'center', marginTop: 1 }} numberOfLines={2}>{stat.label}</Text>
             </View>
