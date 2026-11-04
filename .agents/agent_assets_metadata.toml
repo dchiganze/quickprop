@@ -323,3 +323,45 @@ mtime_ms = 1792852586662
 storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:cf900b3f-04ce-456b-888c-760ecb412036/76314354-f838-4b43-a2a9-c64c9261d5b8/f27155a4-0146-41db-bdc9-0f9f0d6ef80c"
 storage_version_token = "1792852645091351"
 content_type = "image/png"
+
+[[outputs]]
+id = "QOeluYuN4Ctd9Duk9Cdu1"
+uri = "file://artifacts/mobile/assets/images/splash.png"
+type = "image"
+title = "Corrected QuickProp Agent Splash"
+description = "1024 × 1024 PNG using the app’s exact house mark, with the QuickProp Agent wordmark in matching green."
+logical_id = "fcc58d30-34d2-42b6-a09e-7d92572b80f0"
+content_hash = "sha256:e7b36938d06a6d57b56fa5f9e3966fc9ce5c60e4e21856c568c0dca1b7df95c3"
+size = 55967
+mtime_ms = 1793270373376
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:cf900b3f-04ce-456b-888c-760ecb412036/fcc58d30-34d2-42b6-a09e-7d92572b80f0/95d4ecba-ad3d-4151-8f3a-4a275158e780"
+storage_version_token = "1793270410095018"
+content_type = "image/png"
+
+[[outputs]]
+id = "T05sCQU9Nl9jE4orXOrHl"
+uri = "file://generated-artifacts/quickprop-feature-film-audio-50s.mp3"
+type = "audio"
+title = "QuickProp Feature Film — 50-Second Audio"
+description = "A 50-second MP3 made from five passes of the 10-second feature-film soundtrack, blended with short crossfades."
+logical_id = "a48796d7-7f50-4ba5-b60e-fb0541d1faa0"
+content_hash = "sha256:aabfbd82eea39ace0d805c32bdb287bfd643fac12561c3ece29bb533b922ddfe"
+size = 1202059
+mtime_ms = 1793782867806
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:cf900b3f-04ce-456b-888c-760ecb412036/a48796d7-7f50-4ba5-b60e-fb0541d1faa0/e9ea18d5-4332-4361-ae16-c2ba9f9a3ada"
+storage_version_token = "1793782900902336"
+content_type = "audio/mpeg"
+
+[[outputs]]
+id = "EkHZ9VmxbG8-OsHMozOT_"
+uri = "file://generated-artifacts/quickprop-brand-bumper.mp4"
+type = "video"
+title = "QuickProp — Share more. Sell more. (4K, aligned)"
+description = "3-second 4K MP4 with the house mark raised so its bottom aligns with the wordmark baseline. The 50-second MP3 remains unchanged."
+logical_id = "89103df9-b60e-45a4-a2ed-3ae0ad6cf9c6"
+content_hash = "sha256:8acc3de9144cb846a182f6ca6ff6622dbf55ec86e384b658d7f904a9aeb77e89"
+size = 1941717
+mtime_ms = 1793797853859
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:cf900b3f-04ce-456b-888c-760ecb412036/89103df9-b60e-45a4-a2ed-3ae0ad6cf9c6/43a0f211-6574-4805-bc34-1b8b0b8c54d7"
+storage_version_token = "1793797879351974"
+content_type = "video/mp4"

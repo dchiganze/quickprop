@@ -33,6 +33,7 @@ export const propertiesTable = pgTable("properties", {
   city: text("city").notNull().default("Harare"),
   address: text("address"),
   addressVisible: boolean("address_visible").notNull().default(false),
+  hasTitleDeed: boolean("has_title_deed").notNull().default(false),
   bedrooms: integer("bedrooms"),
   bathrooms: integer("bathrooms"),
   parking: integer("parking"),

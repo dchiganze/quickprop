@@ -3236,7 +3236,7 @@ components:
         phone: { type: string }
     Property:
       type: object
-      required: [id, reference, title, status, pipelineStage, listingType, propertyType, price, currency, suburb, city]
+      required: [id, reference, title, status, pipelineStage, listingType, propertyType, price, currency, suburb, city, hasTitleDeed]
       properties:
         id: { type: integer }
         reference: { type: string }
@@ -3256,6 +3256,7 @@ components:
         city: { type: string }
         address: { type: ["string", "null"] }
         addressVisible: { type: boolean, description: "Whether the full property address may be shown on the public website." }
+        hasTitleDeed: { type: boolean, description: "Whether the sale listing has a title deed." }
         bedrooms: { type: ["integer", "null"] }
         bathrooms: { type: ["integer", "null"] }
         parking: { type: ["integer", "null"] }
@@ -3324,6 +3325,7 @@ components:
         city: { type: string }
         address: { type: string }
         addressVisible: { type: boolean, description: "Whether the full property address may be shown on the public website." }
+        hasTitleDeed: { type: boolean, description: "Whether the sale listing has a title deed." }
         bedrooms: { type: integer }
         bathrooms: { type: integer }
         parking: { type: integer }
@@ -3378,6 +3380,7 @@ components:
         city: { type: string }
         address: { type: string }
         addressVisible: { type: boolean, description: "Whether the full property address may be shown on the public website." }
+        hasTitleDeed: { type: boolean, description: "Whether the sale listing has a title deed." }
         bedrooms: { type: integer }
         bathrooms: { type: integer }
         parking: { type: integer }
@@ -4001,7 +4004,7 @@ components:
           items: { $ref: "#/components/schemas/Lead" }
     PublicProperty:
       type: object
-      required: [id, reference, title, listingType, propertyType, price, currency, suburb, city, features, photos, views, enquiries, createdAt]
+      required: [id, reference, title, listingType, propertyType, price, currency, suburb, city, features, photos, views, enquiries, createdAt, hasTitleDeed]
       properties:
         id: { type: integer }
         reference: { type: string }
@@ -4016,6 +4019,7 @@ components:
         suburb: { type: string }
         city: { type: string }
         address: { type: ["string", "null"] }
+        hasTitleDeed: { type: boolean, description: "Shown only for sale listings that have a title deed." }
         bedrooms: { type: ["integer", "null"] }
         bathrooms: { type: ["integer", "null"] }
         parking: { type: ["integer", "null"] }

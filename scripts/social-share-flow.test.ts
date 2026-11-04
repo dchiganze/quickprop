@@ -1,8 +1,27 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
-  prepareShareImage, runNativeSocialShare, runPropertyFlyerShare, waitForShareModalDismissal,
+  buildFlyerMessageSharePayload, prepareShareImage, runNativeSocialShare, runPropertyFlyerShare,
+  waitForShareModalDismissal,
 } from '../artifacts/mobile/utils/socialShareFlow';
+
+test('WhatsApp flyer payload hands off the JPEG and caption together', () => {
+  assert.deepEqual(
+    buildFlyerMessageSharePayload(
+      'file:///quickprop-flyer.jpg',
+      'For my full catalogue on QuickProp click this link\nhttps://quickprop.test/agents/25',
+      'QP-25 — Avondale',
+    ),
+    {
+      url: 'file:///quickprop-flyer.jpg',
+      type: 'image/jpeg',
+      message: 'For my full catalogue on QuickProp click this link\nhttps://quickprop.test/agents/25',
+      title: 'QP-25 — Avondale',
+      failOnCancel: false,
+      useInternalStorage: true,
+    },
+  );
+});
 
 test('native flyer sharing captures first, dismisses the app modal, then shares the JPEG only', async () => {
   for (const platform of ['ios', 'android']) {

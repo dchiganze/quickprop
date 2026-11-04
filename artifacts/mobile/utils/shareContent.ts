@@ -1,8 +1,8 @@
 import { Property } from '@/types';
 import { catalogueShareLinks, propertyShareLinks } from './shareLinks';
 
-export function buildPropertyFlyerCaption(agentId?: string): string {
-  return `For my full catalogue on QuickProp click this link\n${catalogueShareLinks(agentId).webUrl}`;
+export function buildPropertyFlyerCaption(): string {
+  return 'Follow this link to see all my properties www.quickprop.co.zw/douglaschiganze';
 }
 
 export type CatalogueMode = 'agent' | 'company';

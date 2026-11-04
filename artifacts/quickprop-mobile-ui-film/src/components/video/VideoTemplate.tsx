@@ -9,12 +9,12 @@ import { useEffect, useRef } from 'react';
 import type { ComponentType } from 'react';
 import musicBedUrl from '@/assets/quickprop-mobile-ui-bed.wav';
 
-import { MatchesScene } from './MatchesScene';
-import { QuickShareScene } from './QuickShareScene';
+import { ListingScene } from './ListingScene';
+import { WhatsAppComposeScene } from './WhatsAppComposeScene';
 
 export const SCENE_DURATIONS = {
-  matches: 5000,
-  quickShare: 5000,
+  propertyListing: 3500,
+  whatsappCompose: 3500,
 };
 
 const VIDEO_ASPECT_RATIO: VideoAspectRatio = '16:9';
@@ -30,8 +30,8 @@ const SCENE_START_SEC: Record<string, number> = (() => {
 })();
 
 const SCENE_COMPONENTS: Record<string, ComponentType> = {
-  matches: MatchesScene,
-  quickShare: QuickShareScene,
+  propertyListing: ListingScene,
+  whatsappCompose: WhatsAppComposeScene,
 };
 
 export default function VideoTemplate({

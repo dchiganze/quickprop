@@ -23,6 +23,8 @@ export interface PublicProperty {
   city: string;
   /** @nullable */
   address?: string | null;
+  /** Shown only for sale listings that have a title deed. */
+  hasTitleDeed: boolean;
   /** @nullable */
   bedrooms?: number | null;
   /** @nullable */

@@ -67,8 +67,8 @@ export function PropertyCard({ property, onPress }: Props) {
             <Text style={[styles.fallbackText, { color: colors.mutedForeground }]}>{photoFailed ? 'Photo could not load' : 'Photo coming soon'}</Text>
           </View>
         )}
-        <View style={[styles.statusBadge, { backgroundColor: STATUS_COLORS[property.status] }]}>
-          <Text style={styles.statusText}>{STATUS_LABELS[property.status]}</Text>
+        <View style={[styles.statusBadge, { backgroundColor: property.syncStatus === 'conflict' ? colors.info : property.syncStatus === 'queued' ? colors.info : STATUS_COLORS[property.status] }]}>
+          <Text style={styles.statusText}>{property.syncStatus === 'conflict' ? 'Review changes' : property.syncStatus === 'queued' ? 'Queued' : STATUS_LABELS[property.status]}</Text>
         </View>
         <View style={[styles.typeBadge, { backgroundColor: colors.primary }]}>
           <Text style={styles.typeText}>{property.type.charAt(0).toUpperCase() + property.type.slice(1)}</Text>

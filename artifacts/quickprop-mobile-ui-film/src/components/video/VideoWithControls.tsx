@@ -13,13 +13,13 @@ import VideoTemplate, { SCENE_DURATIONS } from './VideoTemplate';
 import { useSceneControls } from './useSceneControls';
 
 const SCENE_DETAILS: Record<string, { title: string; filePath: string }> = {
-  matches: {
-    title: 'Matches',
-    filePath: 'src/components/video/MatchesScene.tsx',
+  propertyListing: {
+    title: 'Property listing',
+    filePath: 'src/components/video/ListingScene.tsx',
   },
-  quickShare: {
-    title: 'QuickShare',
-    filePath: 'src/components/video/QuickShareScene.tsx',
+  whatsappCompose: {
+    title: 'WhatsApp compose',
+    filePath: 'src/components/video/WhatsAppComposeScene.tsx',
   },
 };
 

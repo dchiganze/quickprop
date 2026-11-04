@@ -73,6 +73,7 @@ export default function EditListingScreen() {
   const [suburb, setSuburb] = useState(property?.suburb ?? '');
   const [city, setCity] = useState(property?.city ?? 'Harare');
   const [showAddress, setShowAddress] = useState(property?.showAddress ?? false);
+  const [hasTitleDeed, setHasTitleDeed] = useState(property?.hasTitleDeed ?? false);
   const [price, setPrice] = useState(String(property?.price ?? ''));
   const [currency, setCurrency] = useState(property?.currency ?? 'USD');
   const [negotiable, setNegotiable] = useState(property?.negotiable ?? false);
@@ -122,6 +123,7 @@ export default function EditListingScreen() {
     try {
       await updateProperty(property.id, {
         status, type, listingType: type === 'rent' ? 'rent' : 'sale', propertyType, title, address, suburb, city, showAddress,
+        hasTitleDeed: type === 'sale' && hasTitleDeed,
         price: parseFloat(price) || 0,
         currency, negotiable, bedrooms, bathrooms, garages,
         landSize: landSize ? parseFloat(landSize) : undefined,
@@ -303,13 +305,40 @@ export default function EditListingScreen() {
                 <TouchableOpacity
                   key={t}
                   style={[styles.typeChip, { backgroundColor: type === t ? colors.primary : colors.secondary, borderColor: type === t ? colors.primary : colors.border }]}
-                  onPress={() => { Haptics.selectionAsync(); setType(t); }}
+                  onPress={() => {
+                    Haptics.selectionAsync();
+                    if (type !== t) setHasTitleDeed(false);
+                    setType(t);
+                  }}
                 >
                   <Text style={[styles.typeChipText, { color: type === t ? '#FFF' : colors.foreground }]}>{t.charAt(0).toUpperCase() + t.slice(1)}</Text>
                 </TouchableOpacity>
               ))}
             </View>
           </Field>
+          {type === 'sale' && (
+            <Field label="TITLE DEED">
+              <View style={styles.chipRow}>
+                {[true, false].map(value => {
+                  const selected = hasTitleDeed === value;
+                  return (
+                    <TouchableOpacity
+                      key={String(value)}
+                      accessibilityRole="radio"
+                      accessibilityState={{ selected }}
+                      style={[styles.typeChip, {
+                        backgroundColor: selected ? colors.primary : colors.secondary,
+                        borderColor: selected ? colors.primary : colors.border,
+                      }]}
+                      onPress={() => { Haptics.selectionAsync(); setHasTitleDeed(value); }}
+                    >
+                      <Text style={[styles.typeChipText, { color: selected ? '#FFF' : colors.foreground }]}>{value ? 'Yes' : 'No'}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </Field>
+          )}
            <Field label="PROPERTY TYPE">
              <View style={styles.chipRow}>
                {PROPERTY_CATEGORIES.map(t => (

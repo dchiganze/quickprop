@@ -1,13 +1,32 @@
 import { Linking, Platform, Share } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import * as Sharing from 'expo-sharing';
+import Constants, { ExecutionEnvironment } from 'expo-constants';
 import { Property } from '@/types';
 import { shareProperty } from '@workspace/api-client-react';
-import { prepareShareImage, runNativeSocialShare, runPropertyFlyerShare } from '@/utils/socialShareFlow';
 import {
-  buildPropertyShareMessage,
+  buildFlyerMessageSharePayload,
+  isShareCancellation,
+  prepareShareImage,
+  runNativeSocialShare,
+  runPropertyFlyerShare,
+} from '@/utils/socialShareFlow';
+import {
   buildPropertyFlyerCaption,
 } from '@/utils/shareContent';
+
+const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
+
+async function shareImageWithSystemSheet(uri: string, dialogTitle: string): Promise<void> {
+  if (!await Sharing.isAvailableAsync()) {
+    throw new Error('Image sharing is unavailable on this device.');
+  }
+  await Sharing.shareAsync(uri, {
+    dialogTitle,
+    mimeType: 'image/jpeg',
+    UTI: 'public.jpeg',
+  });
+}
 
 /**
  * Share a prefilled text message to WhatsApp.
@@ -56,50 +75,39 @@ async function recordPropertyShare(property: Property): Promise<void> {
 export async function sharePropertyToWhatsApp(
   property: Property,
   captureCard: () => Promise<string>,
-  options: { agentId?: string; beforeNativeShare?: () => Promise<void> } = {},
+  options: { beforeNativeShare?: () => Promise<void> } = {},
 ): Promise<{ caption: string; sharedPhoto: boolean }> {
-  const caption = buildPropertyFlyerCaption(options.agentId ?? property.agentId);
-  await Clipboard.setStringAsync(caption);
-  const cardUri = await prepareShareImage(captureCard);
+  const caption = buildPropertyFlyerCaption();
 
   if (Platform.OS === 'web') {
+    const cardUri = await prepareShareImage(captureCard);
     await shareFlyerInBrowser(cardUri, 'QuickProp property flyer', caption);
     return { caption, sharedPhoto: true };
   }
 
-  await options.beforeNativeShare?.();
-  await recordPropertyShare(property);
-
-  if (Platform.OS === 'ios') {
-    // Available in Expo Go. Some WhatsApp versions still require pasting the
-    // caption, so keep the same text on the clipboard as a fallback.
-    await Share.share({ url: cardUri, message: caption });
-    return { caption, sharedPhoto: true };
+  if (isExpoGo) {
+    throw new Error(
+      'Automatic flyer and caption sharing requires the installed QuickProp Agent app. Expo Go does not include the native share module.',
+    );
   }
 
-  try {
-    const { default: NativeShare } = await import('react-native-share');
-    await NativeShare.open({
-      url: cardUri,
-      type: 'image/jpeg',
-      message: caption,
-      title: `${property.referenceNumber} — ${property.suburb}`,
-      failOnCancel: false,
-      useInternalStorage: true,
-    });
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message.toLowerCase() : '';
-    if (message.includes('cancel') || message.includes('dismiss')) {
-      return { caption, sharedPhoto: true };
-    }
-
-    if (!(await Sharing.isAvailableAsync())) throw error;
-    await Sharing.shareAsync(cardUri, {
-      dialogTitle: 'Share property to WhatsApp',
-      mimeType: 'image/jpeg',
-      UTI: 'public.jpeg',
-    });
-  }
+  const title = `${property.referenceNumber} — ${property.suburb}`;
+  await runPropertyFlyerShare({
+    platform: Platform.OS,
+    capture: captureCard,
+    beforeNativeShare: options.beforeNativeShare,
+    shareWeb: uri => shareFlyerInBrowser(uri, 'QuickProp property flyer', caption),
+    shareNative: async imageUri => {
+      await recordPropertyShare(property);
+      try {
+        const { default: NativeShare } = await import('react-native-share');
+        await NativeShare.open(buildFlyerMessageSharePayload(imageUri, caption, title));
+      } catch (error: unknown) {
+        if (isShareCancellation(error)) return;
+        throw error;
+      }
+    },
+  });
 
   return { caption, sharedPhoto: true };
 }
@@ -112,6 +120,11 @@ export async function shareCatalogueToWhatsApp(
 
   if (Platform.OS === 'web') {
     await openWhatsAppMessage(caption);
+    return { caption, sharedPhoto: false };
+  }
+
+  if (isExpoGo) {
+    await Share.share({ message: caption, title: 'QuickProp Property Brochure' });
     return { caption, sharedPhoto: false };
   }
 
@@ -131,12 +144,8 @@ export async function shareCatalogueToWhatsApp(
     if (message.includes('cancel') || message.includes('dismiss')) {
       return { caption, sharedPhoto: true };
     }
-    if (!(await Sharing.isAvailableAsync())) throw error;
-    await Sharing.shareAsync(cardUri, {
-       dialogTitle: 'Share brochure to WhatsApp',
-      mimeType: 'image/jpeg',
-      UTI: 'public.jpeg',
-    });
+    await Share.share({ message: caption, title: 'QuickProp Property Brochure' });
+    return { caption, sharedPhoto: false };
   }
 
   return { caption, sharedPhoto: true };
@@ -237,6 +246,11 @@ export async function shareCatalogueToSocial(
     return;
   }
 
+  if (isExpoGo) {
+    await shareImageWithSystemSheet(cardUri, dialogTitle);
+    return;
+  }
+
   try {
     const { default: NativeShare } = await import('react-native-share');
     await NativeShare.open({
@@ -267,6 +281,10 @@ async function shareNativeSocialPost(
   caption: string,
   title: string,
 ): Promise<void> {
+  if (isExpoGo) {
+    await shareImageWithSystemSheet(cardUri, title);
+    return;
+  }
   if (destination === 'tiktok') {
     if (!await Sharing.isAvailableAsync()) throw new Error('Image sharing is unavailable on this device.');
     await Sharing.shareAsync(cardUri, { dialogTitle: title, mimeType: 'image/jpeg', UTI: 'public.jpeg' });
@@ -330,6 +348,10 @@ export async function sharePropertyToFacebookStory(
   if (Platform.OS === 'web') {
     throw new Error('Facebook Stories sharing is available in the mobile app only.');
   }
+  if (isExpoGo) {
+    await sharePropertyToSocial(property, 'facebook', captureCard, beforeNativeShare);
+    return;
+  }
 
   const metaAppId = process.env.EXPO_PUBLIC_META_APP_ID ?? process.env.EXPO_PUBLIC_FACEBOOK_APP_ID;
   if (!metaAppId) {
@@ -366,6 +388,10 @@ export async function sharePropertyToInstagramStory(
   if (Platform.OS === 'web') {
     throw new Error('Instagram Stories sharing is available in the mobile app only.');
   }
+  if (isExpoGo) {
+    await sharePropertyToSocial(property, 'instagram', captureCard, beforeNativeShare);
+    return;
+  }
 
   const metaAppId = process.env.EXPO_PUBLIC_META_APP_ID ?? process.env.EXPO_PUBLIC_FACEBOOK_APP_ID;
   if (!metaAppId) {
@@ -398,7 +424,7 @@ export async function sharePropertyGeneric(
   includeCaption = true,
   captionOverride?: string,
 ): Promise<void> {
-  const caption = captionOverride ?? buildPropertyShareMessage(property);
+  const caption = captionOverride ?? buildPropertyFlyerCaption();
   await Clipboard.setStringAsync(caption).catch(() => {});
 
   if (Platform.OS === 'web') {
@@ -407,6 +433,10 @@ export async function sharePropertyGeneric(
   }
 
   const cardUri = await prepareShareImage(captureCard);
+  if (isExpoGo) {
+    await shareImageWithSystemSheet(cardUri, dialogTitle);
+    return;
+  }
 
   if (Platform.OS === 'ios' && !includeCaption) {
     if (!await Sharing.isAvailableAsync()) throw new Error('Image sharing is unavailable on this device.');

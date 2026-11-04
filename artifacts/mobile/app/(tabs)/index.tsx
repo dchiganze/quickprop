@@ -137,7 +137,12 @@ export default function DashboardScreen() {
       <View style={styles.brandRow}>
         <TouchableOpacity
           style={styles.headerProfileBtn}
-          onPress={() => router.push('/(tabs)/profile')}
+          onPress={() => {
+            router.push('/account');
+            void Promise.resolve()
+              .then(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light))
+              .catch(() => {});
+          }}
           accessibilityRole="button"
           accessibilityLabel="Open profile"
           testID="dashboard-profile-button"

@@ -202,7 +202,7 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
   const [listingVisibility, setListingVisibility] = useState<'public' | 'internal_only' | 'draft'>('internal_only');
   const [sellingStatus, setSellingStatus] = useState<SellingStatus>('available');
   const [edit, setEdit] = useState({
-    title: '', propertyType: 'house', listingType: 'sale', price: '', negotiable: false,
+    title: '', propertyType: 'house', listingType: 'sale', price: '', negotiable: false, hasTitleDeed: false,
     suburb: '', city: '', address: '', addressVisible: false, bedrooms: '', bathrooms: '',
     parking: '', landSize: '', buildingSize: '', levies: '', rates: '', description: '',
     photos: '', coverImage: '', videoUrl: '', proposedViewingTimes: [] as string[], features: [] as string[],
@@ -218,6 +218,7 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
       listingType: property.listingType,
       price: String(property.price),
       negotiable: property.negotiable ?? false,
+      hasTitleDeed: property.hasTitleDeed ?? false,
       suburb: property.suburb,
       city: property.city,
       address: property.address ?? '',
@@ -704,6 +705,7 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
         listingType: edit.listingType,
         price,
         negotiable: edit.negotiable,
+        hasTitleDeed: edit.listingType === 'sale' && edit.hasTitleDeed,
         suburb: edit.suburb.trim(),
         city: edit.city.trim(),
         address: edit.address.trim() || undefined,
@@ -903,7 +905,11 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
               </div>
               <div className="grid gap-2">
                 <label className="text-sm font-medium">Listing type</label>
-                <Select value={edit.listingType} onValueChange={(value) => setEdit({ ...edit, listingType: value })}>
+                <Select value={edit.listingType} onValueChange={(value) => setEdit({
+                  ...edit,
+                  listingType: value,
+                  hasTitleDeed: value === 'sale' ? (edit.listingType === 'sale' ? edit.hasTitleDeed : false) : false,
+                })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent><SelectItem value="sale">For Sale</SelectItem><SelectItem value="rent">To Rent</SelectItem></SelectContent>
                 </Select>
@@ -930,6 +936,26 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
               <div><label htmlFor="edit-negotiable" className="text-sm font-medium">Price is negotiable</label><p className="text-xs text-muted-foreground">Show buyers that the asking price can be discussed.</p></div>
               <Switch id="edit-negotiable" checked={edit.negotiable} onCheckedChange={(checked) => setEdit({ ...edit, negotiable: checked })} />
             </div>
+            {edit.listingType === 'sale' && (
+              <div className="flex items-center justify-between gap-4 rounded-lg border bg-muted/30 px-4 py-3">
+                <div><label className="text-sm font-medium">Title deed available?</label><p className="text-xs text-muted-foreground">Only shown to buyers when confirmed.</p></div>
+                <div className="flex gap-2" role="radiogroup" aria-label="Title deed status">
+                  {[true, false].map((value) => (
+                    <Button
+                      key={String(value)}
+                      type="button"
+                      size="sm"
+                      variant={edit.hasTitleDeed === value ? 'default' : 'outline'}
+                      role="radio"
+                      aria-checked={edit.hasTitleDeed === value}
+                      onClick={() => setEdit({ ...edit, hasTitleDeed: value })}
+                    >
+                      {value ? 'Yes' : 'No'}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            )}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
               <div className="grid gap-2"><label htmlFor="edit-parking" className="text-sm font-medium">Garages</label><Input id="edit-parking" inputMode="numeric" value={edit.parking} onChange={(event) => setEdit({ ...edit, parking: event.target.value })} /></div>
               <div className="grid gap-2"><label htmlFor="edit-land" className="text-sm font-medium">Land m²</label><Input id="edit-land" inputMode="decimal" value={edit.landSize} onChange={(event) => setEdit({ ...edit, landSize: event.target.value })} /></div>

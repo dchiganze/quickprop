@@ -538,7 +538,15 @@ export default function ProfileScreen() {
         saving={savingPhone}
       />
 
-      <Modal visible={deleteOpen} animationType="slide" transparent onRequestClose={() => !deletingAccount && setDeleteOpen(false)} statusBarTranslucent>
+      <Modal
+        visible={deleteOpen}
+        animationType="slide"
+        transparent
+        onRequestClose={() => {
+          if (!deletingAccount) setDeleteOpen(false);
+        }}
+        statusBarTranslucent
+      >
         <KeyboardAvoidingView
           style={styles.modalKeyboard}
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Platform } from 'react-native';
+import NetInfo from '@react-native-community/netinfo';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 import { User } from '@/types';
@@ -45,6 +46,7 @@ const ACCOUNT_DATA_KEYS = [
   '@qp_viewings',
   '@qp_pending_sync',
   '@qp_alerts',
+  '@qp_offline_listing_ids',
   '@qp_biometric',
 ];
 
@@ -200,31 +202,52 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const serializedUser = storedUser;
       const token = storedToken;
       if (!serializedUser) return;
+      const cachedUser = JSON.parse(serializedUser) as User;
+      setUser(cachedUser);
 
       if (!apiBaseUrl) {
         // Local-demo fallback: no remote identity exists to validate.
-        setUser(JSON.parse(serializedUser) as User);
         return;
       }
 
       if (!token) {
         await clearAccountSession();
+        setUser(null);
         return;
       }
 
+      const network = await NetInfo.fetch().catch(() => null);
+      if (network?.isConnected === false || network?.isInternetReachable === false) {
+        // Keep the stored identity so previously synced data remains usable offline.
+        return;
+      }
+
+      const authCheckController = new AbortController();
+      const authCheckTimer = setTimeout(() => authCheckController.abort(), 5000);
       try {
         const response = await fetch(apiUrl('/auth/me'), {
           headers: { Authorization: `Bearer ${token}` },
+          signal: authCheckController.signal,
         });
-        if (!response.ok) throw new Error('Session is no longer valid');
+        if (response.status === 401 || response.status === 403) {
+          await clearAccountSession();
+          setUser(null);
+          return;
+        }
+        if (!response.ok) return;
         const remoteUser = await response.json() as ApiUser;
         const restoredUser = await withLocalProfilePhoto(toMobileUser(remoteUser));
         await AsyncStorage.setItem(AUTH_KEY, JSON.stringify(restoredUser));
         setUser(restoredUser);
-      } catch {
-        // An expired or invalid native token simply returns the app to its
-        // normal sign-in screen and removes only account-scoped local data.
+      } catch (error) {
+        const message = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
+        const networkFailure = error instanceof TypeError
+          || /network request failed|network error|failed to fetch|timed out|timeout|connection reset|abort/.test(message);
+        if (networkFailure) return;
         await clearAccountSession();
+        setUser(null);
+      } finally {
+        clearTimeout(authCheckTimer);
       }
     };
 

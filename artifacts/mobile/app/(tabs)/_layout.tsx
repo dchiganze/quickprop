@@ -56,28 +56,52 @@ export default function TabLayout() {
           name="index"
           options={{
             title: 'Dashboard',
-            tabBarIcon: ({ color }) => <Feather name="home" size={22} color={color} />,
+            tabBarIcon: ({ focused }) => (
+              <Feather
+                name="home"
+                size={22}
+                color={focused ? colors.primary : colors.mutedForeground}
+              />
+            ),
           }}
         />
         <Tabs.Screen
           name="listings"
           options={{
             title: 'Listings',
-            tabBarIcon: ({ color }) => <Feather name="grid" size={22} color={color} />,
+            tabBarIcon: ({ focused }) => (
+              <Feather
+                name="grid"
+                size={22}
+                color={focused ? colors.primary : colors.mutedForeground}
+              />
+            ),
           }}
         />
         <Tabs.Screen
           name="matches"
           options={{
             title: 'Matches',
-            tabBarIcon: ({ color }) => <Ionicons name="people-outline" size={22} color={color} />,
+            tabBarIcon: ({ focused }) => (
+              <Ionicons
+                name="people-outline"
+                size={22}
+                color={focused ? colors.primary : colors.mutedForeground}
+              />
+            ),
           }}
         />
         <Tabs.Screen
           name="share"
           options={{
             title: 'Share',
-            tabBarIcon: ({ color }) => <Feather name="share-2" size={22} color={color} />,
+            tabBarIcon: ({ focused }) => (
+              <Feather
+                name="share-2"
+                size={22}
+                color={focused ? colors.primary : colors.mutedForeground}
+              />
+            ),
           }}
           listeners={{
             tabPress: (e) => {

@@ -88,6 +88,18 @@ function RootLayoutNav() {
           name="new-listing"
           options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
         />
+        <Stack.Screen
+          name="account"
+          options={{
+            headerShown: true,
+            title: 'My Profile',
+            headerBackTitle: 'Back',
+            headerShadowVisible: false,
+            headerStyle: { backgroundColor: colors.background },
+            headerTintColor: colors.primary,
+            headerTitleStyle: { color: colors.foreground },
+          }}
+        />
         <Stack.Screen name="listing/[id]" />
         <Stack.Screen name="task/[id]" />
         <Stack.Screen

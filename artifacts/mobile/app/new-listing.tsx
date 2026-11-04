@@ -18,6 +18,8 @@ import { PROPERTY_FEATURES, Property } from '@/types';
 import { apiOrigin } from '@/contexts/AuthContext';
 import { addMyAgencyToProperty, findPropertyDuplicates } from '@/utils/multiAgent';
 import { selectMainListingPhoto } from '@/utils/listingPhoto';
+import { persistListingDraftMedia } from '@/utils/offlineMedia';
+import { useNetworkStatus } from '@/contexts/ConnectivityContext';
 
 const TOTAL_STEPS = 11;
 const STEP_LABELS = [
@@ -34,6 +36,11 @@ function dateKey(date: Date): string {
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
+}
+
+function isConnectivityError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
+  return error instanceof TypeError || /network|offline|timeout|timed out|connection reset|failed to fetch/.test(message);
 }
 
 function viewingDates(): Date[] {
@@ -53,6 +60,7 @@ interface FormData {
   suburb: string;
   city: string;
   showAddress: boolean;
+  hasTitleDeed: boolean | null;
   type: Property['type'] | null;
   propertyType: string;
   price: string;
@@ -79,7 +87,7 @@ interface FormData {
 }
 
 const defaultForm: FormData = {
-  photos: [], videoUri: '', title: '', address: '', suburb: '', city: 'Harare', showAddress: false,
+  photos: [], videoUri: '', title: '', address: '', suburb: '', city: 'Harare', showAddress: false, hasTitleDeed: null,
   type: null, propertyType: 'house', price: '', currency: 'USD', negotiable: false,
   bedrooms: 3, bathrooms: 2, garages: 1, landSize: '', floorArea: '',
   levies: '', rates: '', referenceNumber: `QP-${Date.now().toString().slice(-6)}`,
@@ -176,6 +184,7 @@ export default function NewListingScreen() {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const { addProperty } = useData();
+  const { isOnline } = useNetworkStatus();
   const [step, setStep] = useState(0);
   const [form, setForm] = useState<FormData>(defaultForm);
   const [saving, setSaving] = useState(false);
@@ -222,7 +231,7 @@ export default function NewListingScreen() {
         allowsEditing: false,
       });
       if (!result.canceled && result.assets?.[0]) {
-        set('videoUri', result.assets[0].uri);
+        set('videoUri', await persistListingDraftMedia(result.assets[0].uri, user?.id ?? 'local'));
       }
     } catch (e: any) {
       Alert.alert('Camera Error', e?.message ?? 'Could not open camera. Please try again.');
@@ -237,7 +246,7 @@ export default function NewListingScreen() {
         allowsEditing: false,
       });
       if (!result.canceled && result.assets?.[0]) {
-        set('videoUri', result.assets[0].uri);
+        set('videoUri', await persistListingDraftMedia(result.assets[0].uri, user?.id ?? 'local'));
       }
     } catch (e: any) {
       Alert.alert('Library Error', e?.message ?? 'Could not open photo library. Please try again.');
@@ -251,7 +260,12 @@ export default function NewListingScreen() {
         allowsMultipleSelection: true,
         quality: 0.8,
       });
-      if (!result.canceled) set('photos', [...form.photos, ...result.assets.map(a => a.uri)]);
+      if (!result.canceled) {
+        const storedPhotos = await Promise.all(
+          result.assets.map(asset => persistListingDraftMedia(asset.uri, user?.id ?? 'local')),
+        );
+        set('photos', [...form.photos, ...storedPhotos]);
+      }
     } catch (e: any) {
       Alert.alert('Photo Library Error', e?.message ?? 'Could not open the photo library.');
     }
@@ -262,7 +276,7 @@ export default function NewListingScreen() {
     if (!perm.granted) { Alert.alert('Camera', 'Camera permission is required.'); return; }
     const result = await ImagePicker.launchCameraAsync({ quality: 0.8 });
     if (!result.canceled) {
-      set('photos', [...form.photos, result.assets[0].uri]);
+      set('photos', [...form.photos, await persistListingDraftMedia(result.assets[0].uri, user?.id ?? 'local')]);
     }
   };
 
@@ -276,7 +290,7 @@ export default function NewListingScreen() {
     if (!form.type) return;
     setSaving(true);
     try {
-      if (status === 'published' && apiOrigin && user?.id) {
+      if (status === 'published' && apiOrigin && user?.id && isOnline) {
         const duplicateCheck = await findPropertyDuplicates({
           address: form.address,
           suburb: form.suburb,
@@ -289,8 +303,11 @@ export default function NewListingScreen() {
           description: form.description,
           phone: form.sellerPhone,
           photos: form.photos,
+        }).catch(error => {
+          if (isConnectivityError(error)) return null;
+          throw error;
         });
-        const likelyMatch = duplicateCheck.matches[0];
+        const likelyMatch = duplicateCheck?.matches[0];
         if (likelyMatch && duplicateCheck.decision !== 'continue') {
           const action = await new Promise<'agency' | 'continue' | 'cancel'>((resolve) => {
             Alert.alert(
@@ -331,6 +348,7 @@ export default function NewListingScreen() {
       status,
       address: form.address,
       showAddress: form.showAddress,
+      hasTitleDeed: form.type === 'sale' && form.hasTitleDeed === true,
       suburb: form.suburb,
        city: form.city,
       price: parseFloat(form.price) || 0,
@@ -360,11 +378,17 @@ export default function NewListingScreen() {
         agentId: user?.id ?? 'agent-001',
       });
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      const waitingToSync = property.syncStatus === 'queued';
+      const waitingToPublish = waitingToSync && property.pendingStatus === 'published';
       Alert.alert(
-        status === 'published' ? 'Listing Published' : 'Draft Saved',
-        status === 'published'
-          ? `${property.referenceNumber} is now live and visible in your listings.`
-          : `${property.referenceNumber} was saved as a draft.`,
+        waitingToPublish ? 'Listing saved for upload' : status === 'published' ? 'Listing Published' : 'Draft Saved',
+        waitingToPublish
+          ? `${property.referenceNumber} is saved on this device and will be published when the connection returns.`
+          : waitingToSync
+            ? `${property.referenceNumber} is saved on this device and will sync when the connection returns.`
+            : status === 'published'
+              ? `${property.referenceNumber} is now live and visible in your listings.`
+              : `${property.referenceNumber} was saved as a draft.`,
         [{ text: 'View Listings', onPress: () => router.replace('/(tabs)/listings') }]
       );
     } catch (e: any) {
@@ -380,6 +404,7 @@ export default function NewListingScreen() {
     if (!form.title.trim()) missing.push('title');
     if (!form.suburb.trim()) missing.push('suburb');
     if (!form.type) missing.push('listing type');
+    if (form.type === 'sale' && form.hasTitleDeed === null) missing.push('title deed status');
     if (!form.price.trim() || Number(form.price) <= 0) missing.push('valid price');
     if (form.bedrooms < 0) missing.push('bedrooms');
     if (form.bathrooms < 0) missing.push('bathrooms');
@@ -395,7 +420,7 @@ export default function NewListingScreen() {
       1: [],
       2: ['title', 'suburb'],
       3: ['listing type'],
-      4: ['valid price', 'bedrooms', 'bathrooms', 'garages', 'reference number'],
+      4: ['valid price', 'bedrooms', 'bathrooms', 'garages', 'reference number', 'title deed status'],
       5: [],
       6: [],
       7: [],
@@ -572,7 +597,12 @@ export default function NewListingScreen() {
                       borderColor: selected ? colors.primary : colors.border,
                     },
                   ]}
-                  onPress={() => { Haptics.selectionAsync(); set('type', option.value); }}
+                  onPress={() => {
+                    Haptics.selectionAsync();
+                    set('type', option.value);
+                    if (option.value === 'rent') set('hasTitleDeed', null);
+                    else if (form.type !== 'sale') set('hasTitleDeed', null);
+                  }}
                 >
                   <View style={[styles.listingTypeIcon, { backgroundColor: selected ? '#FFFFFF24' : colors.secondary }]}>
                     <Ionicons name={option.icon} size={28} color={selected ? '#FFF' : colors.primary} />
@@ -627,6 +657,35 @@ export default function NewListingScreen() {
                })}
              </View>
            </Field>
+          {form.type === 'sale' && (
+            <Field label="TITLE DEED *" error={fieldError('title deed status')}>
+              <View style={styles.typeGrid}>
+                {[true, false].map(value => {
+                  const selected = form.hasTitleDeed === value;
+                  return (
+                    <TouchableOpacity
+                      key={String(value)}
+                      accessibilityRole="radio"
+                      accessibilityState={{ selected }}
+                      accessibilityLabel={value ? 'Yes, title deed available' : 'No title deed'}
+                      style={[
+                        styles.typeBtn,
+                        {
+                          backgroundColor: selected ? colors.primary : colors.secondary,
+                          borderColor: selected ? colors.primary : fieldError('title deed status') ? colors.destructive : colors.border,
+                        },
+                      ]}
+                      onPress={() => { Haptics.selectionAsync(); set('hasTitleDeed', value); }}
+                    >
+                      <Text style={[styles.typeBtnText, { color: selected ? '#FFF' : colors.foreground }]}>
+                        {value ? 'Yes' : 'No'}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </Field>
+          )}
           <Field label="PRICE *" error={fieldError('valid price')}>
             <View style={styles.priceRow}>
               <TouchableOpacity

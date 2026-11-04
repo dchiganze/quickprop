@@ -27,11 +27,11 @@ Treat Expo Go success as insufficient validation for outbound third-party URL sc
 
 **How to apply:** Whitelist required third-party schemes in the standalone iOS Info.plist, validate the generated Expo config, and use the native iOS share sheet for WhatsApp text so the complete payload survives the handoff.
 
-For WhatsApp Status media on iOS, share the listing photo and copy a concise caption rather than attempting to prefill both as one attachment.
+On iOS, do not replace the requested WhatsApp flyer attachment with a link-preview card or clipboard fallback.
 
-**Why:** WhatsApp's iOS share receiver can accept the image or the message but does not reliably preserve both from an external app, including dedicated sharing libraries.
+**Why:** WhatsApp may discard text passed beside a local image through the system share sheet. The user explicitly requires the flyer and caption to be handed off together automatically; a preview card or manual paste changes that behavior.
 
-**How to apply:** Put the primary photo in the native share sheet, copy the Status-ready description first, and tell the agent to select WhatsApp → My Status and paste the caption.
+**How to apply:** For installed builds, use the existing `react-native-share` `NativeShare.open` path with the flyer URI and caption in one request. Keep Expo Go separate because it lacks that native module; do not claim its system-share fallback reliably fills WhatsApp's caption, and do not silently offer copy/paste or a different preview format.
 
 The Expo static bundle script must select an available Metro port instead of assuming 8081.
 
@@ -39,11 +39,11 @@ The Expo static bundle script must select an available Metro port instead of ass
 
 **How to apply:** Keep Metro's selected port shared by health checks, bundle requests, manifest requests, and asset URL parsing.
 
-When using react-native-share with Expo, include its config plugin with an explicit options object and add the Expo build-properties package at the SDK-compatible version.
+In Expo Go, never import react-native-share, even lazily. On iOS, the best available attempt is React Native Share with both the flyer URI and caption; this remains unverified for WhatsApp and is not equivalent to the installed native path.
 
-**Why:** The plugin can fail Expo startup when its options argument is omitted, and it imports expo-build-properties even when no extra share targets are configured.
+**Why:** Expo Go lacks the RNShare native module, and evaluating a lazy import still raises a TurboModuleRegistry error. expo-sharing accepts a file URI but no caption. iOS React Native Share can pass both values, but WhatsApp may drop the separate text item.
 
-**How to apply:** Keep the plugin entry as a two-item array with `{}` (or explicit target options), and align expo-build-properties with Expo's expected version before restarting Metro.
+**How to apply:** Check `Constants.executionEnvironment` before the native-share import. Use `NativeShare.open` for installed builds, and test Expo Go's iOS handoff on a real device before describing it as automatic. Never degrade a requested image-plus-caption share to text-only.
 
 For targeted social sharing with react-native-share, keep the destination type narrowed to non-story Social values.
 
@@ -103,10 +103,34 @@ Keep file watching enabled for persistent Expo phone previews; reserve CI mode f
 
 **Why:** CI mode disabled reloads and left Metro serving stale modules. An older Metro process also continued occupying the assigned port while the managed workflow was failed, so a successful health check alone did not prove that the current preview was running.
 
-**How to apply:** Verify managed-workflow state and port ownership together, not just an HTTP status. If a previous Metro process blocks the assigned port, verify its command and working directory before stopping only that process; then restart the existing managed workflow. Preserve the injected port and managed login, keep the listener externally reachable, and use the Expo preview domain in advertised native URLs.
+**How to apply:** Verify managed-workflow state and port ownership together, not just an HTTP status. If a previous Metro process blocks the assigned port, verify its command and working directory before stopping only that process; then restart the existing managed workflow. Preserve the injected port and managed login, and keep the listener externally reachable. For Replit's direct preview proxy, advertise the Replit Expo host. If switching to Expo CLI `--tunnel`, remove `EXPO_PACKAGER_PROXY_URL` and `REACT_NATIVE_PACKAGER_HOSTNAME`; the proxy override takes precedence over the tunnel URL. Confirm the current QR and manifest both point to the tunnel host, and leave any cached `.replit.dev` QR before retrying.
 
 Do not statically import `expo-notifications` in code that runs in Expo Go when the bundled native container may not include the installed SDK patch's notification modules.
 
 **Why:** Expo Go on Android reported a missing `ExpoTopicSubscriptionModule` at app startup even though Expo Doctor passed. The newer JavaScript package expected a native module absent from that Go binary; a top-level import caused the whole app to fail before routes loaded.
 
 **How to apply:** Detect `ExecutionEnvironment.StoreClient` before loading notification modules and use a dynamic import only in native installed builds. Push registration is unavailable in Expo Go; verify push behavior in an installed build.
+
+For the SDK 58 mobile app, keep generated API hooks and the root provider on the same `@tanstack/react-query` instance.
+
+**Why:** Moving the app to React 19.3 exposed a peer-specific React Query copy inside the shared workspace library, causing `No QueryClient set` at startup even though the app had a provider.
+
+**How to apply:** Resolve mobile API-client imports through the app's React Query package in Metro, then verify a cold Expo preview loads the dashboard without a query-context error.
+
+Automatically cache photos for listings already loaded into the signed-in agent’s local portfolio; keep private media scoped to that account and separate from unsynced draft files.
+
+**Why:** Agents should be able to reopen already-loaded listings and their photos offline without remembering to save each listing manually.
+
+**How to apply:** Persist cached photos under an account-specific directory, refresh signed URLs before downloading private objects, and evict only older synced media when device storage is low. Never evict local draft media or queued work.
+
+Pin the workspace pnpm version when Expo Launch installs with frozen lockfiles.
+
+**Why:** Expo Launch can use a newer global pnpm than the one used to maintain the workspace lockfile; the newer version may reject the lockfile during iOS export even when the pinned local version installs it cleanly.
+
+**How to apply:** Declare the validated pnpm release in the root `packageManager` field and verify `pnpm install --frozen-lockfile` before retrying Expo Launch.
+
+Keep Sentry runtime event reporting separate from build-time source-map and symbol uploads.
+
+**Why:** Expo Launch's iOS archive fails when Sentry upload scripts lack organization metadata, even though the app's runtime DSN is configured and can still report events.
+
+**How to apply:** If Sentry organization, project, and upload credentials are not configured for release builds, disable the Sentry plugin's automatic uploads rather than inventing account details or disabling runtime Sentry initialization.

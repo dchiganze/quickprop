@@ -18,8 +18,13 @@ export interface Property {
   propertyType?: string;
   listingType?: 'sale' | 'rent';
   status: 'published' | 'draft' | 'archived' | 'sold' | 'rented' | 'pending';
+  /** Server status requested for a new listing still waiting in the device outbox. */
+  pendingStatus?: Property['status'];
+  /** Local-only marker; cleared when the server confirms the queued mutation. */
+  syncStatus?: 'queued' | 'conflict';
   address: string;
   showAddress?: boolean;
+  hasTitleDeed?: boolean;
   suburb: string;
   city?: string;
   price: number;

@@ -4,20 +4,20 @@ import {
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { VideoView, useVideoPlayer } from 'expo-video';
-import { PropertyBrochureSheet } from '@/components/BrochureSheet';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useColors } from '@/hooks/useColors';
 import { propertyShareLinks } from '@/utils/shareLinks';
+import { sharePropertyGeneric } from '@/utils/whatsapp';
 import { getPrimaryListingPhoto } from '@/utils/listingPhoto';
+import { useNetworkStatus } from '@/contexts/ConnectivityContext';
 import { ListingImage } from '@/components/ListingImage';
 import { KeyboardAwareScrollViewCompat } from '@/components/KeyboardAwareScrollViewCompat';
 import { PropertyFlyer, PropertyFlyerHandle } from '@/components/PropertyFlyer';
 import { FlyerCustomizer } from '@/components/FlyerCustomizer';
 import { useFlyerSettings } from '@/hooks/useFlyerSettings';
-import { PropertyShareSheet } from '@/components/PropertyShareSheet';
 import { parsePrivateContactNotes, useData } from '@/contexts/DataContext';
 import { Property } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
@@ -32,7 +32,6 @@ import {
 } from '@workspace/api-client-react';
 import type { RentalApplicationInvite } from '@workspace/api-client-react';
 import * as Clipboard from 'expo-clipboard';
-import { addMyAgencyToProperty } from '@/utils/multiAgent';
 
 function VideoPlayerModal({ uri, onClose }: { uri: string; onClose: () => void }) {
   const player = useVideoPlayer(uri, p => { p.loop = false; p.play(); });
@@ -79,7 +78,10 @@ export default function ListingDetailScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { properties, updateProperty, recordPropertySale } = useData();
+  const {
+    properties, updateProperty, recordPropertySale,
+  } = useData();
+  const { isOnline } = useNetworkStatus();
   const property = properties.find(p => p.id === id);
   const { user, loading: authLoading } = useAuth();
   const remoteAgentId = user?.id && /^\d+$/.test(user.id) ? user.id : null;
@@ -128,9 +130,8 @@ export default function ListingDetailScreen() {
   const hasPrivateContactDetails = Boolean(
     contactName || contactPhone || contactEmail || contactNotes || contactMandateExpiry,
   );
-  const [brochureOpen, setBrochureOpen] = useState(false);
   const [videoPlayerVisible, setVideoPlayerVisible] = useState(false);
-  const [shareOptionsOpen, setShareOptionsOpen] = useState(false);
+  const [sharingProperty, setSharingProperty] = useState(false);
   const [saleModalVisible, setSaleModalVisible] = useState(false);
   const [salePriceInput, setSalePriceInput] = useState('');
   const [conveyancerNameInput, setConveyancerNameInput] = useState('');
@@ -166,26 +167,6 @@ export default function ListingDetailScreen() {
   const rentalApplications = rentalApplicationsQuery.data ?? [];
   const createRentalInvite = useCreateRentalApplicationInvite();
 
-  const handleAddAgency = async () => {
-    if (!multiAgent || !user || !property) return;
-    try {
-      await addMyAgencyToProperty(multiAgent.propertyId, {
-        askingPrice: property.price,
-        currency: property.currency,
-        mandateType: property.seller.mandateType,
-        terms: property.negotiable ? 'Negotiable' : undefined,
-        description: property.description,
-        contactName: user.name,
-        contactPhone: user.phone,
-        contactEmail: user.email,
-        verificationStatus: 'pending',
-      });
-      Alert.alert('Agency Added', 'Your agency now has its own offer on this canonical property.');
-    } catch (error: any) {
-      Alert.alert('Could Not Add Agency', error?.message ?? 'This agency may already be associated with the property.');
-    }
-  };
-
   if (!property) {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background }}>
@@ -195,8 +176,37 @@ export default function ListingDetailScreen() {
   }
 
   const handleShare = async () => {
+    if (sharingProperty) return;
+    if (flyer.loading) {
+      Alert.alert('Preparing flyer', 'Please wait while your saved flyer and agency branding load.');
+      return;
+    }
+
+    setSharingProperty(true);
+    try {
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      await sharePropertyGeneric(
+        property,
+        () => shareCardRef.current?.capture()
+          ?? Promise.reject(new Error('Unable to prepare the property image.')),
+      );
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message.toLowerCase() : '';
+      if (!message.includes('cancel') && !message.includes('dismiss')) {
+        Alert.alert(
+          'Could not share property',
+          error instanceof Error ? error.message : 'Please try again or choose another sharing option.',
+        );
+      }
+    } finally {
+      setSharingProperty(false);
+    }
+  };
+
+  const handleCustomizeFlyer = async () => {
+    if (flyer.loading) return;
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setShareOptionsOpen(true);
+    setFlyerOpen(true);
   };
 
   const handleCreateApplicationInvite = async () => {
@@ -410,8 +420,26 @@ export default function ListingDetailScreen() {
           <TouchableOpacity
             style={[styles.iconBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
             onPress={handleShare}
+            disabled={sharingProperty}
+            accessibilityRole="button"
+            accessibilityLabel="Share property"
+            testID="share-property"
           >
-            <Ionicons name="share-outline" size={20} color={colors.foreground} />
+            {sharingProperty
+              ? <ActivityIndicator size="small" color={colors.foreground} />
+              : <Ionicons name="share-outline" size={20} color={colors.foreground} />}
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.iconBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
+            onPress={handleCustomizeFlyer}
+            disabled={flyer.loading}
+            accessibilityRole="button"
+            accessibilityLabel="Preview and customise flyer"
+            testID="preview-customise-flyer"
+          >
+            {flyer.loading
+              ? <ActivityIndicator size="small" color={colors.foreground} />
+              : <Ionicons name="image-outline" size={20} color={colors.foreground} />}
           </TouchableOpacity>
           <TouchableOpacity style={[styles.iconBtn, { backgroundColor: colors.primary }]} onPress={() => router.push(`/edit-listing/${property.id}`)}>
             <Ionicons name="create-outline" size={20} color="#FFF" />
@@ -458,8 +486,8 @@ export default function ListingDetailScreen() {
                 <Text style={[styles.addPhotoLabel, { color: colors.primary }]}>Add</Text>
               </TouchableOpacity>
             </ScrollView>
-            <View style={[styles.statusBadge, { backgroundColor: STATUS_COLORS[property.status] }]}>
-              <Text style={styles.statusText}>{property.status.charAt(0).toUpperCase() + property.status.slice(1)}</Text>
+            <View style={[styles.statusBadge, { backgroundColor: property.syncStatus ? colors.info : STATUS_COLORS[property.status] }]}>
+              <Text style={styles.statusText}>{property.syncStatus === 'conflict' ? 'Needs review' : property.syncStatus === 'queued' ? 'Waiting to sync' : property.status.charAt(0).toUpperCase() + property.status.slice(1)}</Text>
             </View>
             <View style={[styles.photoCountBadge, { backgroundColor: '#00000066' }]}>
               <Ionicons name="images-outline" size={12} color="#FFF" />
@@ -477,10 +505,19 @@ export default function ListingDetailScreen() {
               <Ionicons name="home-outline" size={38} color={colors.mutedForeground} />
               <Text style={[styles.galleryHint, { color: colors.mutedForeground }]}>Main photo coming soon · tap to add media</Text>
             </View>
-            <View style={[styles.statusBadge, { backgroundColor: STATUS_COLORS[property.status] }]}>
-              <Text style={styles.statusText}>{property.status.charAt(0).toUpperCase() + property.status.slice(1)}</Text>
+            <View style={[styles.statusBadge, { backgroundColor: property.syncStatus ? colors.info : STATUS_COLORS[property.status] }]}>
+              <Text style={styles.statusText}>{property.syncStatus === 'conflict' ? 'Needs review' : property.syncStatus === 'queued' ? 'Waiting to sync' : property.status.charAt(0).toUpperCase() + property.status.slice(1)}</Text>
             </View>
           </TouchableOpacity>
+        )}
+
+        {property.syncStatus === 'conflict' && (
+          <View style={[styles.offlineConflictNotice, { backgroundColor: colors.info + '18', borderColor: colors.info + '55' }]}>
+            <Ionicons name="alert-circle-outline" size={18} color={colors.info} />
+            <Text style={{ color: colors.foreground, flex: 1, fontSize: 12, lineHeight: 18 }}>
+              This listing changed online while you were offline. Your device’s version is kept here and was not uploaded; compare it with the latest listing before re-entering changes.
+            </Text>
+          </View>
         )}
 
         <View style={styles.body}>
@@ -506,6 +543,17 @@ export default function ListingDetailScreen() {
               </Text>
             </View>
           </View>
+          {property.listingType === 'sale' && property.hasTitleDeed === true && (
+            <View style={[styles.visibilityBadge, {
+              alignSelf: 'flex-start',
+              marginTop: 8,
+              backgroundColor: colors.accent + '18',
+              borderColor: colors.accent,
+            }]}>
+              <Ionicons name="document-text-outline" size={12} color={colors.accent} />
+              <Text style={[styles.visibilityText, { color: colors.accent }]}>Title deed</Text>
+            </View>
+          )}
 
           {multiAgent && multiAgent.offers.length > 0 && (
             <Section title="MULTI-AGENT PROPERTY">
@@ -518,10 +566,6 @@ export default function ListingDetailScreen() {
                     Independent offers are kept separate on one physical property record.
                   </Text>
                 </View>
-                <TouchableOpacity style={[styles.agencyButton, { backgroundColor: colors.primary }]} onPress={handleAddAgency}>
-                  <Ionicons name="add" size={16} color="#FFF" />
-                  <Text style={styles.agencyButtonText}>Add my agency</Text>
-                </TouchableOpacity>
               </View>
               {multiAgent.offers.map(offer => (
                 <View key={offer.id} style={[styles.offerRow, { borderColor: colors.border }]}>
@@ -907,16 +951,15 @@ export default function ListingDetailScreen() {
         <TouchableOpacity
           style={[styles.bottomBtn, { backgroundColor: colors.secondary }]}
           onPress={handleShare}
+          disabled={sharingProperty}
+          accessibilityRole="button"
+          accessibilityLabel="Share property"
+          testID="share-property-bottom"
         >
-          <Ionicons name="share-outline" size={18} color={colors.primary} />
+          {sharingProperty
+            ? <ActivityIndicator size="small" color={colors.primary} />
+            : <Ionicons name="share-outline" size={18} color={colors.primary} />}
           <Text style={[styles.bottomBtnText, { color: colors.primary }]}>Share</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={[styles.bottomBtn, { backgroundColor: colors.secondary }]} onPress={async () => {
-          await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-          setBrochureOpen(true);
-        }}>
-          <Ionicons name="document-text-outline" size={18} color={colors.primary} />
-          <Text style={[styles.bottomBtnText, { color: colors.primary }]}>Brochure</Text>
         </TouchableOpacity>
         {property.status === 'published' && property.type === 'sale' && (
           <TouchableOpacity style={[styles.bottomBtn, { backgroundColor: colors.destructive + '15' }]} onPress={handleRemoveListing}>
@@ -1094,22 +1137,6 @@ export default function ListingDetailScreen() {
         </View>
       </Modal>
 
-      <PropertyBrochureSheet
-        visible={brochureOpen}
-        onClose={() => setBrochureOpen(false)}
-        property={property}
-      />
-      <PropertyShareSheet
-        visible={shareOptionsOpen}
-        onClose={() => setShareOptionsOpen(false)}
-        property={property}
-        flyerLoading={flyer.loading}
-        onCustomizeFlyer={() => setFlyerOpen(true)}
-        captureCard={() => shareCardRef.current?.capture()
-          ?? Promise.reject(new Error('Unable to prepare the property image.'))}
-        captureSocialCard={() => shareCardRef.current?.capture()
-          ?? Promise.reject(new Error('Unable to prepare the property flyer.'))}
-      />
     </View>
   );
 }
@@ -1139,8 +1166,6 @@ const styles = StyleSheet.create({
   body: { paddingHorizontal: 20, paddingTop: 20, gap: 0 },
   multiAgentSummary: { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 14, borderWidth: 1, padding: 14, marginBottom: 10 },
   multiAgentTitle: { fontSize: 14, fontWeight: '800' },
-  agencyButton: { flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 9 },
-  agencyButtonText: { color: '#FFF', fontSize: 11, fontWeight: '800' },
   offerRow: { flexDirection: 'row', alignItems: 'center', borderBottomWidth: 1, paddingVertical: 12, gap: 12 },
   offerAgency: { fontSize: 14, fontWeight: '700' },
   offerPrice: { fontSize: 14, fontWeight: '800' },
@@ -1219,13 +1244,14 @@ const styles = StyleSheet.create({
   infoItem: { flex: 1, minWidth: '45%', borderRadius: 12, padding: 12, gap: 4 },
   infoLabel: { fontSize: 11, fontWeight: '600' },
   infoValue: { fontSize: 14, fontWeight: '700' },
+  offlineConflictNotice: { flexDirection: 'row', alignItems: 'flex-start', gap: 9, borderWidth: 1, borderRadius: 12, padding: 12, marginHorizontal: 16, marginTop: 10 },
   videoPlayOverlay: { position: 'absolute' },
   shareCardHost: { position: 'absolute', left: -1000, top: 0, width: 360, height: 450 },
   shareCollageHost: { position: 'absolute', left: 0, top: 450, width: 360, height: 360 },
   bottomBar: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingTop: 12, borderTopWidth: 1 },
   bottomBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, borderRadius: 12, paddingVertical: 11 },
   bottomBtnText: { fontSize: 13, fontWeight: '600' },
-  bottomBtnPrimary: { flex: 1.5, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, borderRadius: 12, paddingVertical: 11 },
+  bottomBtnPrimary: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, borderRadius: 12, paddingVertical: 11 },
   bottomBtnPrimaryText: { color: '#FFF', fontSize: 13, fontWeight: '700' },
   modalBackdrop: { flex: 1, backgroundColor: '#00000088', alignItems: 'center', justifyContent: 'center', padding: 24 },
   inviteModal: { width: '100%', maxWidth: 440, borderRadius: 22, borderWidth: 1, padding: 21, gap: 12 },

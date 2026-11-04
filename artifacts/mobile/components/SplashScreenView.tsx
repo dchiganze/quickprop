@@ -5,13 +5,13 @@ export function SplashScreenView() {
   return (
     <View style={styles.container}>
       <Image
-        source={require('@/assets/images/logo.png')}
+        source={require('@/assets/images/splash.png')}
         style={styles.logo}
         resizeMode="contain"
       />
       <ActivityIndicator
         size="small"
-        color="#10B981"
+        color="#1F956B"
         style={styles.spinner}
       />
     </View>
@@ -27,7 +27,7 @@ const styles = StyleSheet.create({
   },
   logo: {
     width: 200,
-    height: 80,
+    height: 200,
   },
   spinner: {
     marginTop: 40,

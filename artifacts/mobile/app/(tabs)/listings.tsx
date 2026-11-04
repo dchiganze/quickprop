@@ -1,10 +1,10 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   View, Text, FlatList, ScrollView, TouchableOpacity, StyleSheet, Platform, RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useColors } from '@/hooks/useColors';
 import { useData } from '@/contexts/DataContext';
@@ -15,12 +15,13 @@ import { EmptyState } from '@/components/EmptyState';
 import { QuickShareSheet } from '@/components/QuickShareSheet';
 import { AlertsSheet } from '@/components/AlertsSheet';
 
-type Filter = 'all' | 'my' | 'agency' | 'draft' | 'pending' | 'sold' | 'rented' | 'archived';
+type Filter = 'all' | 'my' | 'agency' | 'offline' | 'draft' | 'pending' | 'sold' | 'rented' | 'archived';
 
 const STATUS_FILTERS: { key: Filter; label: string }[] = [
   { key: 'all', label: 'All' },
   { key: 'my', label: 'My Listings' },
   // 'alerts' chip is rendered separately between My Listings and Draft
+  { key: 'offline', label: 'Available Offline' },
   { key: 'draft', label: 'Draft' },
   { key: 'pending', label: 'Pending' },
   { key: 'sold', label: 'Sold' },
@@ -84,17 +85,22 @@ function propertyMatchesQuery(p: {
 }
 
 export default function ListingsScreen() {
+  const params = useLocalSearchParams<{ filter?: string }>();
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const {
-    properties, unseenMatchCount, syncNow,
+    properties, unseenMatchCount, syncNow, offlineListingIds,
   } = useData();
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<Filter>('all');
   const [shareOpen, setShareOpen] = useState(false);
   const [alertsOpen, setAlertsOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+
+  useEffect(() => {
+    if (params.filter === 'offline') setFilter('offline');
+  }, [params.filter]);
 
   const handleRefresh = async () => {
     if (refreshing) return;
@@ -111,6 +117,7 @@ export default function ListingsScreen() {
 
     // Status / ownership filter
     if (filter === 'my') list = list.filter(p => p.agentId === user?.id);
+    else if (filter === 'offline') list = list.filter(p => offlineListingIds.includes(p.id));
     else if (filter === 'draft') list = list.filter(p => p.status === 'draft');
     else if (filter === 'pending') list = list.filter(p => p.status === 'pending');
     else if (filter === 'sold') list = list.filter(p => p.status === 'sold');
@@ -123,7 +130,7 @@ export default function ListingsScreen() {
     }
 
     return list.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
-  }, [properties, filter, query, user]);
+  }, [properties, filter, query, user, offlineListingIds]);
 
   const openAlerts = async () => {
     await Haptics.selectionAsync();

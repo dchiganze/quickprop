@@ -1,10 +1,11 @@
 import React, { createContext, useContext, useEffect, useState, useMemo, useRef, useCallback } from 'react';
-import { AppState } from 'react-native';
+import { AppState, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Property, Lead, BuyerMatch, Task, PropertyAlert } from '@/types';
 import { registerDataReset } from './dataReset';
 import { useNetworkStatus } from './ConnectivityContext';
 import { apiBaseUrl, apiOrigin, getStoredAccessToken, useAuth } from './AuthContext';
+import { cacheMediaForOffline } from '@/utils/offlineMedia';
 import {
   createProperty, createTask, createViewing, deleteAgentSearchAlert, deleteProperty as deleteRemoteProperty,
   deleteTask as deleteRemoteTask, deleteViewing as deleteRemoteViewing,
@@ -42,6 +43,7 @@ interface DataContextType {
   lastSyncedAt: string | null;
   lastSyncError: string | null;
   pendingSyncCount: number;
+  offlineListingIds: string[];
   syncNow: () => Promise<void>;
   addProperty: (p: Omit<Property, 'id' | 'createdAt' | 'updatedAt'>) => Promise<Property>;
   updateProperty: (id: string, updates: Partial<Property>) => Promise<void>;
@@ -75,7 +77,7 @@ type PendingSyncMetadata = {
 
 type PendingSync = PendingSyncMetadata & (
   | { kind: 'property-create'; localId: string; property: Property }
-  | { kind: 'property-update'; localId: string; updates: Partial<Property> }
+  | { kind: 'property-update'; localId: string; updates: Partial<Property>; baseUpdatedAt?: string }
   | { kind: 'property-delete'; localId: string }
   | { kind: 'task-create'; localId: string; task: Task }
   | { kind: 'task-update'; localId: string; updates: Partial<Task> }
@@ -185,6 +187,7 @@ function toMobileProperty(property: ApiProperty): Property {
     status: mobileStatus(property.status),
     address: property.address ?? '',
     showAddress: property.addressVisible,
+    hasTitleDeed: property.hasTitleDeed ?? false,
     suburb: property.suburb,
     city: property.city,
     price: property.price,
@@ -201,7 +204,11 @@ function toMobileProperty(property: ApiProperty): Property {
     rates: property.rates ?? undefined,
     features: property.features ?? [],
     description: property.description ?? '',
-    photos: property.photos ?? [],
+    photos: property.photos?.length
+      ? property.photos
+      : property.coverImage
+        ? [property.coverImage]
+        : [],
     proposedViewingTimes: property.proposedViewingTimes ?? [],
     videoUrl: property.videoUrl ?? undefined,
     collaborationEnabled: property.collaborationEnabled ?? false,
@@ -235,13 +242,14 @@ function toServerProperty(property: Property, userId: string): PropertyInput {
       : 'house'
   );
   const listingType = property.listingType ?? (property.type === 'rent' ? 'rent' : 'sale');
+  const desiredStatus = property.pendingStatus ?? property.status;
   return {
     title: property.title || property.address || `${property.bedrooms ?? ''} bedroom ${propertyType}`.trim(),
     description: property.description,
     propertyType,
     listingType,
-    status: serverStatus(property.status),
-    pipelineStage: property.status === 'published' ? 'published' : property.status === 'pending' ? 'ready' : property.status,
+    status: serverStatus(desiredStatus),
+    pipelineStage: desiredStatus === 'published' ? 'published' : desiredStatus === 'pending' ? 'ready' : desiredStatus,
     price: property.price,
     salePrice: property.salePrice,
     currency: property.currency,
@@ -249,6 +257,7 @@ function toServerProperty(property: Property, userId: string): PropertyInput {
     city: property.city || 'Harare',
     address: property.address || undefined,
     addressVisible: Boolean(property.showAddress),
+    hasTitleDeed: property.hasTitleDeed,
     bedrooms: property.bedrooms,
     bathrooms: property.bathrooms,
     parking: property.garages,
@@ -478,6 +487,13 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [cloudSyncState, setCloudSyncState] = useState<CloudSyncState>('offline');
   const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
   const [lastSyncError, setLastSyncError] = useState<string | null>(null);
+  const [mediaCacheRetryCounter, setMediaCacheRetryCounter] = useState(0);
+  const offlineListingIds = useMemo(() => properties.map(property => property.id), [properties]);
+  const offlinePhotoUris = useMemo(
+    () => [...new Set(properties.flatMap(property => property.photos ?? []).filter(uri => typeof uri === 'string' && uri.trim()))],
+    [properties],
+  );
+  const offlinePhotoCacheSignature = offlinePhotoUris.join('\u0000');
   // Collections are ref-backed so asynchronous mutations never use a render's
   // stale snapshot. Versions prevent a late hydration from replacing a
   // collection changed while its AsyncStorage read was in flight.
@@ -660,6 +676,12 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setCloudSyncState('syncing');
     const idMap = new Map<string, string>();
     try {
+      const hasRemotePropertyUpdates = pendingSyncRef.current.some(
+        operation => operation.kind === 'property-update' && isServerId(operation.localId),
+      );
+      const latestRemoteProperties = hasRemotePropertyUpdates
+        ? await listProperties({ agentId: Number(user!.id) })
+        : [];
       while (pendingSyncRef.current.length > 0) {
         const operation = pendingSyncRef.current[0];
         const retryDelay = (operation.retryAt ?? 0) - Date.now();
@@ -688,12 +710,26 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           if (isServerId(id)) {
             const current = propertiesRef.current.find(p => p.id === id);
             if (current) {
-              const withDurableMedia = await uploadPropertyMedia(current);
-              const result = await updateRemoteProperty(Number(id), toServerProperty(withDurableMedia, user!.id) as PropertyUpdate);
-              const remote = toMobileProperty(result);
-              propertiesRef.current = propertiesRef.current.map(p => p.id === id ? remote : p);
-              setProperties(propertiesRef.current);
-              await save(PROPS_KEY, propertiesRef);
+              const latest = latestRemoteProperties.find(property => String(property.id) === id);
+              const baseTime = operation.baseUpdatedAt ? Date.parse(operation.baseUpdatedAt) : Number.NaN;
+              const remoteTime = latest?.updatedAt ? Date.parse(latest.updatedAt) : Number.NaN;
+              const changedElsewhere = Number.isFinite(baseTime)
+                && Number.isFinite(remoteTime)
+                && remoteTime > baseTime;
+              if (changedElsewhere || !latest) {
+                propertiesRef.current = propertiesRef.current.map(property => property.id === id
+                  ? { ...property, syncStatus: 'conflict' }
+                  : property);
+                setProperties(propertiesRef.current);
+                await save(PROPS_KEY, propertiesRef);
+              } else {
+                const withDurableMedia = await uploadPropertyMedia(current);
+                const result = await updateRemoteProperty(Number(id), toServerProperty(withDurableMedia, user!.id) as PropertyUpdate);
+                const remote = toMobileProperty(result);
+                propertiesRef.current = propertiesRef.current.map(p => p.id === id ? remote : p);
+                setProperties(propertiesRef.current);
+                await save(PROPS_KEY, propertiesRef);
+              }
             }
           }
         } else if (operation.kind === 'property-delete') {
@@ -859,16 +895,23 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           });
         }
       }
+      const localConflicts = new Map(
+        propertiesRef.current.filter(property => property.syncStatus === 'conflict').map(property => [property.id, property]),
+      );
       const mappedProperties = remoteProperties
         .map(toMobileProperty)
         .filter(property => !pendingPropertyDeletes.has(property.id))
-        .map(property => ({ ...property, ...pendingPropertyUpdates.get(property.id) }));
+        .map(property => localConflicts.get(property.id) ?? { ...property, ...pendingPropertyUpdates.get(property.id) });
+      const mappedPropertyIds = new Set(mappedProperties.map(property => property.id));
+      const missingConflictProperties = [...localConflicts.values()].filter(
+        property => !mappedPropertyIds.has(property.id),
+      );
       const localOnlyProperties = propertiesRef.current.filter(
         property => !isServerId(property.id)
           && !LEGACY_DEMO_PROPERTY_IDS.has(property.id)
           && !pendingPropertyDeletes.has(property.id),
       );
-      propertiesRef.current = [...mappedProperties, ...localOnlyProperties];
+      propertiesRef.current = [...mappedProperties, ...localOnlyProperties, ...missingConflictProperties];
       setProperties(propertiesRef.current);
       await save(PROPS_KEY, propertiesRef);
 
@@ -966,8 +1009,46 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   }, [user?.id, isLoading, isOnline, syncNow]);
 
   useEffect(() => {
+    if (
+      Platform.OS === 'web'
+      || !user?.id
+      || isLoading
+      || !isOnline
+      || offlinePhotoUris.length === 0
+    ) return;
+
+    let cancelled = false;
+    let storageUnavailable = false;
+    let nextIndex = 0;
+    const cacheWorker = async () => {
+      while (!cancelled && !storageUnavailable) {
+        const uri = offlinePhotoUris[nextIndex];
+        nextIndex += 1;
+        if (!uri) return;
+        if (uri.startsWith('file://')) continue;
+        try {
+          await cacheMediaForOffline(uri, user.id);
+        } catch (error) {
+          if (error instanceof Error && error.message.includes('free device storage')) {
+            storageUnavailable = true;
+            return;
+          }
+          console.warn('Automatic listing photo cache deferred.', error);
+        }
+      }
+    };
+
+    void Promise.all(Array.from(
+      { length: Math.min(3, offlinePhotoUris.length) },
+      () => cacheWorker(),
+    ));
+    return () => { cancelled = true; };
+  }, [user?.id, isLoading, isOnline, offlinePhotoCacheSignature, mediaCacheRetryCounter]);
+
+  useEffect(() => {
     const subscription = AppState.addEventListener('change', state => {
       if (state === 'active' && isOnline) {
+        setMediaCacheRetryCounter(value => value + 1);
         syncNow().catch(() => {});
       }
     });
@@ -1007,13 +1088,24 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   );
 
   const addProperty = async (p: Omit<Property, 'id' | 'createdAt' | 'updatedAt'>) => {
-    const prop: Property = { ...p, id: uid(), createdAt: now(), updatedAt: now() };
+    const shouldQueue = remoteEnabled(user?.id);
+    const prop: Property = {
+      ...p,
+      ...(shouldQueue ? {
+        status: p.status === 'published' ? 'draft' as const : p.status,
+        pendingStatus: p.status,
+        syncStatus: 'queued' as const,
+      } : {}),
+      id: uid(),
+      createdAt: now(),
+      updatedAt: now(),
+    };
     const updated = [...propertiesRef.current, prop];
     propertiesRef.current = updated;
     propertiesVersionRef.current += 1;
     setProperties(updated);
     await save(PROPS_KEY, propertiesRef);
-    if (remoteEnabled(user?.id)) {
+    if (shouldQueue) {
       pendingSyncRef.current.push({ kind: 'property-create', localId: prop.id, property: prop });
       await persistPending();
       await syncNow();
@@ -1022,15 +1114,32 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   };
 
   const updateProperty = async (id: string, updates: Partial<Property>) => {
+    const beforeUpdate = propertiesRef.current.find(p => p.id === id);
     const updated = propertiesRef.current.map(p => p.id === id ? { ...p, ...updates, updatedAt: now() } : p);
     propertiesRef.current = updated;
     propertiesVersionRef.current += 1;
     setProperties(updated);
     await save(PROPS_KEY, propertiesRef);
     if (remoteEnabled(user?.id)) {
-      pendingSyncRef.current.push({ kind: 'property-update', localId: id, updates });
-      await persistPending();
-      await syncNow();
+      if (beforeUpdate?.syncStatus !== 'conflict') {
+        if (isServerId(id)) {
+          const existingUpdate = pendingSyncRef.current.find(
+            (operation): operation is Extract<PendingSync, { kind: 'property-update' }> =>
+              operation.kind === 'property-update' && operation.localId === id,
+          );
+          pendingSyncRef.current = pendingSyncRef.current.filter(
+            operation => !(operation.kind === 'property-update' && operation.localId === id),
+          );
+          pendingSyncRef.current.push({
+            kind: 'property-update',
+            localId: id,
+            updates: { ...existingUpdate?.updates, ...updates },
+            baseUpdatedAt: existingUpdate?.baseUpdatedAt ?? beforeUpdate?.updatedAt,
+          });
+          await persistPending();
+          await syncNow();
+        }
+      }
     }
   };
 
@@ -1230,7 +1339,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       properties, leads, buyerMatches, tasks, viewings, alerts,
       alertMatches, unseenMatchCount, isLoading,
       cloudSyncEnabled, cloudSyncState, lastSyncedAt, lastSyncError,
-      pendingSyncCount: pendingSyncRef.current.length, syncNow,
+      pendingSyncCount: pendingSyncRef.current.length, offlineListingIds, syncNow,
       addProperty, updateProperty, recordPropertySale, deleteProperty,
       addLead, updateLead, addTask, updateTask, deleteTask,
       addViewing, updateViewing, deleteViewing,
