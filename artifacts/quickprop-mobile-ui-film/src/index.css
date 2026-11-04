@@ -2099,26 +2099,26 @@ body {
   top: 39%;
   left: 8.2%;
   display: flex;
-  width: 31%;
+  width: 49.6%;
   flex-direction: column;
-  gap: 1.2vmin;
-  padding: 2.5vmin;
+  gap: 1.92vmin;
+  padding: 4vmin;
   border: 1px solid rgba(229, 239, 229, .62);
-  border-radius: 2.1vmin;
+  border-radius: 3.36vmin;
   background: linear-gradient(145deg, #fffef9, #f2f5eb);
-  box-shadow: 0 2.4vmin 5vmin rgba(0, 0, 0, .24);
+  box-shadow: 0 3.84vmin 8vmin rgba(0, 0, 0, .24);
   color: #24372b;
 }
 
 .listing-fact-kicker {
   color: #819086;
-  font-size: 1.04vmin;
+  font-size: 1.664vmin;
   font-weight: 750;
   letter-spacing: .15em;
 }
 
 .listing-fact-card > strong {
-  font-size: 2vmin;
+  font-size: 3.2vmin;
   font-weight: 760;
   letter-spacing: -.05em;
   text-transform: capitalize;
@@ -2127,26 +2127,32 @@ body {
 .listing-fact-card > span:not(.listing-fact-kicker) {
   display: flex;
   align-items: center;
-  gap: .65vmin;
+  gap: 1.04vmin;
   color: #708077;
-  font-size: 1.15vmin;
+  font-size: 1.84vmin;
+}
+
+.listing-fact-card svg {
+  width: 20.8px;
+  height: 20.8px;
+  flex: 0 0 auto;
 }
 
 .listing-fact-rule {
-  height: 1px;
-  margin: .4vmin 0;
+  height: 1.6px;
+  margin: .64vmin 0;
   background: #dfe7df;
 }
 
 .listing-fact-card > b {
   color: #2d7255;
-  font-size: 2.2vmin;
+  font-size: 3.52vmin;
   letter-spacing: -.05em;
 }
 
 .listing-fact-card > small {
   color: #88948b;
-  font-size: 1.05vmin;
+  font-size: 1.68vmin;
 }
 
 .whatsapp-scene {
@@ -2352,18 +2358,25 @@ body {
 .wa-flyer-headline {
   position: absolute;
   z-index: 3;
-  top: 12%;
-  left: 4%;
-  color: #16221b;
-  font-size: 1.25vmin;
+  top: 5%;
+  left: 50%;
+  padding: .45vmin 1.1vmin;
+  border: 1px solid rgba(255, 255, 255, .28);
+  border-radius: .55vmin;
+  background: rgba(27, 56, 41, .93);
+  color: #f8fbf7;
+  font-size: 1.45vmin;
   font-weight: 850;
-  line-height: 1;
+  line-height: 1.05;
+  text-align: center;
+  white-space: nowrap;
+  transform: translateX(-50%);
 }
 
 .wa-flyer-headline b {
-  color: #2f7057;
-  font-size: 1.75vmin;
-  letter-spacing: -.04em;
+  color: #c9e7d1;
+  font-size: 1.8vmin;
+  letter-spacing: -.02em;
 }
 
 .wa-flyer-location {
@@ -2494,7 +2507,9 @@ body {
 /* Enlarged exterior labels for the two 16:9 product beats. */
 .listing-scene .index-number,
 .whatsapp-scene .index-number {
-  font-size: 2.7vmin;
+  font-size: clamp(11px, 1.7vmin, 15px);
+  line-height: 1;
+  white-space: nowrap;
 }
 
 .listing-scene .index-label,
