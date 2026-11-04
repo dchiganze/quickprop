@@ -23,11 +23,11 @@
 
 **Purpose:** Present the entire edited promo in the artifact itself, preserving the complete source rather than showing a link, recreating the footage, or assembling a new cut.
 
-**Exact content:** The complete image and original soundtrack from `generated-artifacts/QuickProp_Promo_5_Founder_Credit_1080p.mp4`. The source is 1920×1080 H.264 with AAC audio. Its white lower-left founder credit is visible from 0.000 to 9.000 seconds only. No new copy, title, credit, or graphic is added.
+**Exact content:** The complete image and original soundtrack from the supplied QuickProp promo. The source is 1920×1080 H.264; the preview MP4 retains AAC audio. The white lower-left “Douglas Chiganze, QuickProp Founder” credit is positioned roughly one-fifth of the frame height above the bottom and is visible from 0.000 to 9.000 seconds only. No other copy, title, or graphic is added.
 
 **Composition and artistic idea:** A single 16:9 video surface fills the persisted 16:9 canvas. `object-fit: contain` preserves the complete frame without cropping. The canvas uses a quiet deep-green-black surround only where the browser viewport does not share the source ratio.
 
-**Timed choreography:** 0.000s: begin on the source's own opening frame. 0.000–9.000s: retain the source's lower-left white founder credit exactly as authored. 9.000–41.708s: continue uninterrupted through the complete provided edit and original sound. At 41.708s, return to 0.000s for preview looping; no new transition is composited over the source.
+**Timed choreography:** 0.000s: begin on the source's own opening frame with the white founder credit in the lower-left, raised from its previous position. 0.000–9.000s: show the credit. 9.000–41.708s: continue uninterrupted through the complete provided edit and original sound with no credit. At 41.708s, return to 0.000s for preview looping; no new transition is composited over the source.
 
 **Transition contract:** The only loop handoff is the source video's own endpoint to its first frame. The supplied video element loops the original file without trimming or splicing it.
 
