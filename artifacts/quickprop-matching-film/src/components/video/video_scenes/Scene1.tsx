@@ -29,12 +29,12 @@ export function Scene1() {
           LISTING OWNER · IN CONTROL
         </motion.div>
         <motion.div
-          style={{ position: 'absolute', left: 0, right: 0, top: '13%', textAlign: 'center', fontSize: '14.4vmin', lineHeight: 0.96, letterSpacing: '-.075em', fontWeight: 800 }}
+          style={{ position: 'absolute', left: 0, right: 0, top: '13%', textAlign: 'center', fontSize: '10.2vmin', lineHeight: 0.96, letterSpacing: '0em', fontWeight: 800 }}
           initial={{ opacity: 0, scale: 0.94, y: 10 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           transition={{ duration: 0.42, delay: 0.12, ease: EASE }}
         >
-          THE OWNER CHOOSES
+          MANDATE OWNER CHOOSES
         </motion.div>
 
         <motion.div
@@ -54,8 +54,8 @@ export function Scene1() {
           animate={{ opacity: [0, 1, 1, 1], scale: [0.88, 1, 1, 0.96], rotate: [2, 0, 0, 1], x: [8, 0, 0, 0] }}
           transition={{ duration: 2.3, delay: 0.63, times: [0, 0.12, 0.8, 1], ease: EASE }}
         >
-          <div style={{ color: '#17362F', fontSize: '4.2vmin', lineHeight: 1, fontWeight: 800, letterSpacing: '-.055em' }}>KEEP IT PRIVATE</div>
-          <div style={{ marginTop: '1.65vmin', color: '#64776E', fontSize: '2.8vmin', lineHeight: 1.22, fontWeight: 600 }}>Only your agency can access it.</div>
+          <div style={{ color: '#17362F', fontSize: '4.2vmin', lineHeight: 1, fontWeight: 800, letterSpacing: '-.055em' }}>OR CHOOSE NOT TO</div>
+          <div style={{ marginTop: '1.65vmin', color: '#64776E', fontSize: '2.8vmin', lineHeight: 1.22, fontWeight: 600 }}>You are in control</div>
           <div style={{ position: 'absolute', right: '4%', top: '12%', width: '2.8vmin', height: '2.8vmin', border: '.4vmin solid #789184', borderRadius: '50%' }} />
         </motion.div>
         <motion.div

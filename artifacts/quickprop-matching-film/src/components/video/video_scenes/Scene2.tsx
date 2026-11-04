@@ -33,7 +33,7 @@ export function Scene2() {
             <div style={{ position: 'absolute', left: '-5%', bottom: '-59%', width: '63%', height: '130%', borderRadius: '50% 50% 0 0', background: '#F1F0E8', transform: 'rotate(-9deg)' }} />
             <div style={{ position: 'absolute', right: '-8%', bottom: '-43%', width: '65%', height: '113%', borderRadius: '50% 50% 0 0', background: '#DCE6DB', transform: 'rotate(8deg)' }} />
             <div style={{ position: 'absolute', right: '11%', top: '12%', width: '13vmin', height: '13vmin', borderRadius: '50%', background: 'rgba(245,244,237,.34)' }} />
-            <div className="film-label" style={{ position: 'absolute', left: '5%', top: '10%', color: '#FBFBF6', fontSize: '1.8vmin' }}>FOR SALE</div>
+            <div className="film-label" style={{ position: 'absolute', left: '5%', top: '10%', color: '#000000', fontSize: '1.8vmin' }}>FOR SALE</div>
             <motion.div
               style={{ position: 'absolute', left: '86%', top: '88%', width: '5.2vmin', height: '5.2vmin', borderRadius: '50%', background: '#D5EC79', border: '.55vmin solid #2C6D5D' }}
               initial={{ scale: 0 }}
