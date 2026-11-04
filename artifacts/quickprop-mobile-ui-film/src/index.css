@@ -175,6 +175,56 @@ body {
   object-position: left;
 }
 
+.quickprop-promo-canvas {
+  display: grid;
+  place-items: center;
+}
+
+.quickprop-promo-video {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #10211e;
+}
+
+.quickprop-promo-status {
+  position: absolute;
+  z-index: 1;
+  top: 50%;
+  left: 50%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: min(88%, 420px);
+  padding: 14px 18px;
+  border: 1px solid rgb(208 226 216 / 18%);
+  border-radius: 999px;
+  color: #e4eee8;
+  background: rgb(14 31 27 / 88%);
+  font-size: clamp(12px, 1.2vw, 16px);
+  font-weight: 600;
+  letter-spacing: .01em;
+  text-align: center;
+  transform: translate(-50%, -50%);
+}
+
+.quickprop-promo-status__mark {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: #8ed4bc;
+  box-shadow: 0 0 0 5px rgb(142 212 188 / 12%);
+}
+
+.quickprop-promo-status--error {
+  border-color: rgb(233 168 139 / 32%);
+  color: #f4d5c6;
+}
+
 .film-scene {
   position: absolute;
   inset: 0;

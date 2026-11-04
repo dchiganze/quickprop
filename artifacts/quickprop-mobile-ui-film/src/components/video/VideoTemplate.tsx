@@ -1,44 +1,23 @@
 import {
   VideoCanvas,
-  VideoPausedContext,
   type VideoAspectRatio,
   useVideoPlayer,
 } from '@/lib/video';
-import { AnimatePresence } from 'framer-motion';
-import { useEffect, useRef } from 'react';
-import type { ComponentType } from 'react';
-import musicBedUrl from '@/assets/quickprop-mobile-ui-bed.wav';
-
-import { ListingScene } from './ListingScene';
-import { WhatsAppComposeScene } from './WhatsAppComposeScene';
+import { useEffect, useRef, useState } from 'react';
 
 export const SCENE_DURATIONS = {
-  propertyListing: 3500,
-  whatsappCompose: 3500,
+  completePromo: 41708,
 };
 
 const VIDEO_ASPECT_RATIO: VideoAspectRatio = '16:9';
-
-const SCENE_START_SEC: Record<string, number> = (() => {
-  const offsets: Record<string, number> = {};
-  let elapsedMs = 0;
-  for (const [key, duration] of Object.entries(SCENE_DURATIONS)) {
-    offsets[key] = elapsedMs / 1000;
-    elapsedMs += duration;
-  }
-  return offsets;
-})();
-
-const SCENE_COMPONENTS: Record<string, ComponentType> = {
-  propertyListing: ListingScene,
-  whatsappCompose: WhatsAppComposeScene,
-};
+const PROMO_VIDEO_URL = `${import.meta.env.BASE_URL}QuickProp_Promo_5_Founder_Credit_1080p.mp4`;
+const PROMO_WEBM_URL = `${import.meta.env.BASE_URL}QuickProp_Promo_5_Founder_Credit_1080p_compatible.webm`;
 
 export default function VideoTemplate({
   durations = SCENE_DURATIONS,
   loop = true,
   paused = false,
-  muted = false,
+  muted = true,
   onSceneChange,
 }: {
   durations?: Record<string, number>;
@@ -48,57 +27,72 @@ export default function VideoTemplate({
   onSceneChange?: (sceneKey: string) => void;
 } = {}) {
   const { currentSceneKey } = useVideoPlayer({ durations, loop, paused });
-  const baseSceneKey = currentSceneKey.replace(/_r[12]$/, '');
-  const SceneComponent = SCENE_COMPONENTS[baseSceneKey];
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const previousSceneRef = useRef<string | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const [mediaState, setMediaState] = useState<'loading' | 'ready' | 'error'>('loading');
 
   useEffect(() => {
     onSceneChange?.(currentSceneKey);
   }, [currentSceneKey, onSceneChange]);
 
   useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-
-    audio.volume = 0.42;
+    const video = videoRef.current;
+    if (!video) return;
+    video.muted = muted;
     if (paused) {
-      audio.pause();
+      video.pause();
       return;
     }
 
-    if (previousSceneRef.current !== currentSceneKey) {
-      previousSceneRef.current = currentSceneKey;
-      const targetTime = SCENE_START_SEC[baseSceneKey] ?? 0;
-      if (Math.abs(audio.currentTime - targetTime) > 0.18) {
-        audio.currentTime = targetTime;
-      }
-    }
-
-    void audio.play().catch((error: unknown) => {
+    void video.play().catch((error: unknown) => {
       console.warn(
-        'QuickProp soundtrack autoplay was blocked; use the preview play control to enable audio.',
+        'QuickProp promo autoplay was blocked; use the preview play control to start playback.',
         error,
       );
     });
-  }, [baseSceneKey, currentSceneKey, muted, paused]);
+  }, [muted, paused]);
 
   return (
-    <VideoPausedContext.Provider value={paused}>
-      <VideoCanvas aspectRatio={VIDEO_ASPECT_RATIO} style={{ backgroundColor: '#0c1c19' }}>
-        <AnimatePresence mode="sync">
-          {SceneComponent && <SceneComponent key={currentSceneKey} />}
-        </AnimatePresence>
-        <audio
-          ref={audioRef}
-          src={musicBedUrl}
-          autoPlay
-          preload="auto"
-          muted={muted}
-          aria-hidden="true"
-          style={{ display: 'none' }}
+    <VideoCanvas
+      aspectRatio={VIDEO_ASPECT_RATIO}
+      className="quickprop-promo-canvas"
+      style={{ backgroundColor: '#10211e' }}
+    >
+      <video
+        ref={videoRef}
+        className="quickprop-promo-video"
+        aria-label="Complete QuickProp promotional video"
+        autoPlay
+        loop
+        playsInline
+        preload="auto"
+        muted={muted}
+        onLoadedData={() => setMediaState('ready')}
+      >
+        <source
+          src={PROMO_VIDEO_URL}
+          type="video/mp4"
+          onError={(event) => event.stopPropagation()}
         />
-      </VideoCanvas>
-    </VideoPausedContext.Provider>
+        <source
+          src={PROMO_WEBM_URL}
+          type='video/webm; codecs="vp9, opus"'
+          onError={(event) => {
+            event.stopPropagation();
+            setMediaState('error');
+          }}
+        />
+      </video>
+      {mediaState === 'loading' && (
+        <div className="quickprop-promo-status" role="status">
+          <span className="quickprop-promo-status__mark" />
+          Loading complete promo
+        </div>
+      )}
+      {mediaState === 'error' && (
+        <div className="quickprop-promo-status quickprop-promo-status--error" role="alert">
+          The complete promo could not be loaded. Reload this preview.
+        </div>
+      )}
+    </VideoCanvas>
   );
 }

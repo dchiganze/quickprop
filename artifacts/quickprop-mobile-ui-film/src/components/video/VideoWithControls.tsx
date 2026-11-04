@@ -13,13 +13,9 @@ import VideoTemplate, { SCENE_DURATIONS } from './VideoTemplate';
 import { useSceneControls } from './useSceneControls';
 
 const SCENE_DETAILS: Record<string, { title: string; filePath: string }> = {
-  propertyListing: {
-    title: 'Property listing',
-    filePath: 'src/components/video/ListingScene.tsx',
-  },
-  whatsappCompose: {
-    title: 'WhatsApp compose',
-    filePath: 'src/components/video/WhatsAppComposeScene.tsx',
+  completePromo: {
+    title: 'Complete QuickProp promo',
+    filePath: 'src/components/video/VideoTemplate.tsx',
   },
 };
 
@@ -97,7 +93,7 @@ function PlaybackStatus({
 export default function VideoWithControls() {
   const isIframed = typeof window !== 'undefined' && window.self !== window.top;
   const controls = useSceneControls(SCENE_DURATIONS);
-  const [muted, setMuted] = useState(false);
+  const [muted, setMuted] = useState(true);
   const [collapsed, setCollapsed] = useState(false);
   const [hovering, setHovering] = useState(false);
 
