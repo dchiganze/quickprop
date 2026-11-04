@@ -15,7 +15,7 @@ export function Scene2() {
       <div style={{ position: 'absolute', inset: '9% 7%' }}>
         <motion.div
           className="film-label"
-          style={{ position: 'absolute', left: 0, top: 0, color: '#2C6D5D', fontSize: '2vmin' }}
+          style={{ position: 'absolute', left: 0, top: 0, color: '#2C6D5D', fontSize: '4vmin' }}
           initial={{ opacity: 0, x: -8 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.28, delay: 0.08 }}
@@ -26,8 +26,8 @@ export function Scene2() {
         <motion.div
           style={{ position: 'absolute', left: '0%', top: '15%', width: '57%', height: '74%', borderRadius: '2.2vmin', overflow: 'hidden', background: '#FBFBF6', border: '1px solid rgba(44,109,93,.17)', boxShadow: '0 2.7vmin 6vmin rgba(23,54,47,.14)', transformOrigin: 'center' }}
           initial={{ opacity: 0, scale: 0.88, rotateY: 12, x: -10 }}
-          animate={{ opacity: 1, scale: 1, rotateY: 0, x: 0 }}
-          transition={{ duration: 0.48, delay: 0.12, ease: EASE }}
+          animate={{ opacity: [0, 1, 1, 1], scale: [0.88, 1, 1, 0.96], rotateY: [12, 0, 0, 2], x: [-10, 0, 0, 0] }}
+          transition={{ duration: 2.72, delay: 0.12, times: [0, 0.16, 0.84, 1], ease: EASE }}
         >
           <div style={{ position: 'relative', height: '52%', overflow: 'hidden', background: 'linear-gradient(140deg, #CAD9CE, #91AA9C 60%, #708F80)' }}>
             <div style={{ position: 'absolute', left: '-5%', bottom: '-59%', width: '63%', height: '130%', borderRadius: '50% 50% 0 0', background: '#F1F0E8', transform: 'rotate(-9deg)' }} />
@@ -35,7 +35,7 @@ export function Scene2() {
             <div style={{ position: 'absolute', right: '11%', top: '12%', width: '13vmin', height: '13vmin', borderRadius: '50%', background: 'rgba(245,244,237,.34)' }} />
             <div className="film-label" style={{ position: 'absolute', left: '5%', top: '10%', color: '#FBFBF6', fontSize: '1.8vmin' }}>FOR SALE</div>
             <motion.div
-              style={{ position: 'absolute', left: '69%', top: '61%', width: '5.2vmin', height: '5.2vmin', borderRadius: '50%', background: '#D5EC79', border: '.55vmin solid #2C6D5D' }}
+              style={{ position: 'absolute', left: '86%', top: '88%', width: '5.2vmin', height: '5.2vmin', borderRadius: '50%', background: '#D5EC79', border: '.55vmin solid #2C6D5D' }}
               initial={{ scale: 0 }}
               animate={{ scale: [0, 1.15, 1] }}
               transition={{ delay: 0.44, duration: 0.32, ease: EASE }}
@@ -46,11 +46,10 @@ export function Scene2() {
             <div style={{ fontSize: '4.2vmin', lineHeight: 1.05, fontWeight: 800, letterSpacing: '-.06em', marginTop: '.8vmin' }}>BORROWDALE</div>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: '1.5vmin', marginTop: '1.1vmin' }}>
               <span style={{ fontSize: '3.1vmin', fontWeight: 800, color: '#315D4E' }}>USD 248,000</span>
-              <span style={{ fontSize: '2vmin', color: '#71857B', fontWeight: 600 }}>Illustrative listing</span>
             </div>
           </div>
           <motion.div
-            style={{ position: 'absolute', left: '69%', top: '61%', width: '5.2vmin', height: '5.2vmin', borderRadius: '50%', border: '.55vmin solid #2C6D5D', pointerEvents: 'none' }}
+            style={{ position: 'absolute', left: '86%', top: '46%', width: '5.2vmin', height: '5.2vmin', borderRadius: '50%', border: '.55vmin solid #2C6D5D', pointerEvents: 'none' }}
             initial={{ scale: 0.6, opacity: 0 }}
             animate={{ scale: [0.6, 1.65], opacity: [0.6, 0] }}
             transition={{ delay: 0.7, duration: 0.46, ease: 'easeOut' }}
@@ -64,8 +63,8 @@ export function Scene2() {
         <motion.div
           style={{ position: 'absolute', right: '0%', top: '24%', width: '36%', minHeight: '50%', borderRadius: '2vmin', background: '#FBFBF6', border: '1px solid rgba(44,109,93,.16)', boxShadow: '0 2vmin 5vmin rgba(23,54,47,.12)', padding: '3vmin 2.7vmin', display: 'flex', flexDirection: 'column', justifyContent: 'center', transformOrigin: 'left center' }}
           initial={{ opacity: 0, scale: 0.88, rotateY: -10, x: 10 }}
-          animate={{ opacity: 1, scale: 1, rotateY: 0, x: 0 }}
-          transition={{ duration: 0.42, delay: 0.52, ease: EASE }}
+          animate={{ opacity: [0, 1, 1, 1], scale: [0.88, 1, 1, 0.95], rotateY: [-10, 0, 0, -2], x: [10, 0, 0, 0] }}
+          transition={{ duration: 2.36, delay: 0.52, times: [0, 0.19, 0.8, 1], ease: EASE }}
         >
           <div className="film-label" style={{ color: '#71857B', fontSize: '1.8vmin' }}>YOUR CHOICE TO ASK</div>
           <div style={{ marginTop: '1.5vmin', color: '#17362F', fontSize: '3.8vmin', lineHeight: 1.06, fontWeight: 800, letterSpacing: '-.06em' }}>REQUEST<br />COLLABORATION</div>
@@ -80,7 +79,7 @@ export function Scene2() {
         </motion.div>
 
         <motion.div
-          style={{ position: 'absolute', right: '1%', bottom: '0%', fontSize: '2vmin', fontWeight: 700, color: '#71857B', letterSpacing: '.04em' }}
+          style={{ position: 'absolute', right: '1%', bottom: '0%', fontSize: '4vmin', fontWeight: 700, color: '#71857B', letterSpacing: '.04em' }}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 1.04, duration: 0.25 }}

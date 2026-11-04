@@ -13,14 +13,18 @@ import { Scene4 } from './video_scenes/Scene4';
 import { Scene5 } from './video_scenes/Scene5';
 
 export const SCENE_DURATIONS = {
-  intent: 1607,
-  listing: 1607,
-  score: 2143,
-  workflow: 2143,
-  finale: 2500,
+  intent: 3000,
+  listing: 3000,
+  score: 3000,
+  workflow: 2000,
+  finale: 2000,
 };
 
 const VIDEO_ASPECT_RATIO: VideoAspectRatio = '16:9';
+const SOURCE_AUDIO_DURATION_SEC = 10.031;
+const TOTAL_FILM_DURATION_SEC =
+  Object.values(SCENE_DURATIONS).reduce((total, duration) => total + duration, 0) / 1000;
+const AUDIO_PLAYBACK_RATE = SOURCE_AUDIO_DURATION_SEC / TOTAL_FILM_DURATION_SEC;
 const SCENE_COMPONENTS: Record<string, ComponentType> = {
   intent: Scene1,
   listing: Scene2,
@@ -38,6 +42,15 @@ const SCENE_START_SEC: Record<string, number> = (() => {
   return starts;
 })();
 const AUDIO_SEEK_EPSILON_SEC = 0.18;
+
+interface TimedAudioElement {
+  volume: number;
+  playbackRate: number;
+  preservesPitch: boolean;
+  currentTime: number;
+  pause: () => void;
+  play: () => Promise<void>;
+}
 
 interface VideoTemplateProps {
   durations?: Record<string, number>;
@@ -67,19 +80,22 @@ export default function VideoTemplate({
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
-    audio.volume = 0.45;
+    const timedAudio = audio as unknown as TimedAudioElement;
+    timedAudio.volume = 0.45;
+    timedAudio.playbackRate = AUDIO_PLAYBACK_RATE;
+    timedAudio.preservesPitch = true;
     if (paused) {
-      audio.pause();
+      timedAudio.pause();
       return;
     }
     if (lastSceneKeyRef.current !== currentSceneKey) {
       lastSceneKeyRef.current = currentSceneKey;
-      const targetTime = SCENE_START_SEC[baseSceneKey] ?? 0;
-      if (Math.abs(audio.currentTime - targetTime) > AUDIO_SEEK_EPSILON_SEC) {
-        audio.currentTime = targetTime;
+      const targetTime = (SCENE_START_SEC[baseSceneKey] ?? 0) * AUDIO_PLAYBACK_RATE;
+      if (Math.abs(timedAudio.currentTime - targetTime) > AUDIO_SEEK_EPSILON_SEC) {
+        timedAudio.currentTime = targetTime;
       }
     }
-    audio.play().catch(() => {});
+    timedAudio.play().catch(() => {});
   }, [baseSceneKey, currentSceneKey, muted, paused]);
 
   return (

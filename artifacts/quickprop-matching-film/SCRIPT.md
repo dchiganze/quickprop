@@ -1,80 +1,80 @@
 # QuickProp — Agent-to-Agent Property Matching Film
 
 ## Director's treatment
-- **Promise:** Agents choose whether to collaborate, the listing owner controls every request, and both agents decide together how to proceed.
-- **Identity:** Preserve QuickProp green `#2C6D5D`, warm porcelain, ink, and citrus-lime accents; Plus Jakarta Sans and the supplied official QuickProp logo.
-- **Hero:** A visible chain of choices: listing visibility, a peer's request, the owner's response, then direct agent contact.
-- **Motion:** Choice panels snap into place; a property match is revealed by a card-scale match cut; the owner's accept decision unlocks contact.
-- **Arc:** Owner agency → requester agency → owner approval → human-led next steps → brand close.
-- **Payoff:** A calm, legible official-logo lockup closes on shared control, not an automatic sale.
-- **Format/runtime:** 16:9 landscape, exactly 10 seconds; retain the existing five-scene timing and soundtrack.
+- **Promise:** Agents control whether to collaborate, the listing owner controls each request, and both agents decide the next steps.
+- **Identity:** Keep QuickProp forest green `#2C6D5D`, warm porcelain, sage, ink, citrus-lime, and Plus Jakarta Sans. Use an existing high-resolution official QuickProp wordmark asset; never redraw it.
+- **Hero:** A chain of human choices, carried by one lime marker from owner settings through a request and accepted contact.
+- **Motion:** Snapped owner-choice cards, a property-card depth reveal, accept/decline press, and an enlarged logo aperture.
+- **Arc:** Owner control → peer choice to request → owner response → direct contact → agency-led next steps and brand.
+- **Payoff:** A generous ivory brand circle contains a crisp QuickProp wordmark and one clear takeaway; no extra `MATCHES` label.
+- **Format/runtime:** Existing 16:9 landscape, exactly 13 seconds in five scenes: 3s, 3s, 3s, 2s, 2s.
 
 ## Timeline
 
 | Time | Focus | Motion event | Composition | Handoff |
 |---|---|---|---|---|
-| 0.000–1.607 | Owner controls listing access | Open/private choices snap into view | Warm porcelain, two large decision panels | Lime choice marker becomes the request marker |
-| 1.607–3.214 | Another agent chooses to ask | Listing match card resolves; request tile locks beside it | Sage split, property-led asymmetric layout | Request marker becomes incoming request badge |
-| 3.214–5.357 | Owner decides on the request | Accept/Decline choices appear; Accept is chosen | Forest-green request stage, large readable action row | Accepted badge opens the contact scene |
-| 5.357–7.500 | Agents choose the next steps | Call/WhatsApp contact appears; agents coordinate | Porcelain editorial dialogue tableau | Green contact rule expands into brand field |
-| 7.500–10.000 | Shared control, QuickProp identity | Official logo lockup resolves and holds, then loops | Quiet, centered ivory aperture on green | Aperture scales into the opening choice marker |
+| 0.000–3.000 | Listing owner in control | Owner choices arrive in deliberate beats, then fold to a shared choice marker | Warm porcelain, two large equal option panels | Lime marker becomes listing locator |
+| 3.000–6.000 | Another agent spots a fit | Property resolves, request option joins, connector traces the relationship | Sage split, listing-led asymmetry | Request marker becomes incoming badge |
+| 6.000–9.000 | Owner reviews the collaboration request | Accept and Decline become clear choices; only Accept advances | Forest-green stage, large porcelain decision card | Accepted tile unfolds to contact |
+| 9.000–11.000 | Agents decide next steps | Contact methods unlock and agent messages answer; no overlaid rule line | Porcelain contact card and conversation planes | Contact card folds into the finale aperture |
+| 11.000–13.000 | Collaboration on your terms | Large ivory circle contains crisp official logo and takeaway; loop resolves | Centered brand close, uncluttered and readable | Ivory aperture returns to the opening field |
 
 ## Shot-by-shot script
 
-### Shot 01 / 0.000–1.607s / 1.607s — “The owner chooses.”
-**Purpose:** State immediately that collaboration is the listing owner's choice, with privacy as a real alternative.
-**Exact content:** Eyebrow `LISTING OWNER · IN CONTROL`; headline `THE OWNER CHOOSES`; two equally legible options: `OPEN TO REQUESTS` / `KEEP IT PRIVATE`. Supporting lines: `Other agents may ask to collaborate` and `Only your agency can access it`. Keep every word visible through 1.607s.
-**Composition:** Warm porcelain field, generous 6% safe inset. Headline owns the upper center at about 7vmin. Two broad, side-by-side cards occupy the lower half; OPEN is green/sage, PRIVATE is porcelain/ink with a lock-like geometric mark. Each is a clear peer choice, not a preselected state.
-**Artistic idea:** The listing appears as a hinged plane with two genuinely equal paths, rather than an open-by-default interface.
-**Timed choreography:** 0.00s a lime marker punches into center; 0.10s eyebrow resolves; 0.18s headline unclips; 0.25s OPEN panel snaps in; 0.62s PRIVATE panel snaps in; 1.05s fine connector divides into both choices and holds long enough to read. At 1.36s the two panels fold toward one small lime marker, initiating the outgoing push.
-**Transition contract:** That marker at approximately (50%, 55%) carries into Shot 02 as the requesting agent's choice point. The outgoing panel fold and incoming sage split combine with a scale match.
-**Assets/technique:** Existing QuickProp palette and Plus Jakarta Sans; HTML/CSS vector panels and geometric marks only.
-**Sound intent:** Existing instrumental bed unchanged; the established 1.607s cut is retained. No new sound effects or voiceover.
+### Shot 01 / 0.000–3.000s / 3.000s — “Listing owner in control.”
+**Purpose:** Lead with the owner’s choice between accepting collaboration requests and keeping a listing private.
+**Exact content:** Eyebrow `LISTING OWNER · IN CONTROL` at 4vmin (double the previous 2vmin); headline `THE OWNER CHOOSES` at 14.4vmin (double the previous 7.2vmin); equal option labels `OPEN TO REQUESTS` and `KEEP IT PRIVATE`; supporting lines `Other agents may ask to collaborate.` and `Only your agency can access it.` Hold the choices in view through the end transition.
+**Composition:** Warm porcelain full field with a 7% safe inset. The 4vmin eyebrow is top-left; the main headline sits high and centered at 14.4vmin inside the safe frame. Two broad, side-by-side choice panels occupy the lower half and remain the visual heroes. Their copy is centered vertically; neither is preselected.
+**Artistic idea:** The listing is a hinged plane that divides into two equal paths, giving the owner visible control instead of implying automatic sharing.
+**Timed choreography:** 0.00s lime marker pops at the split point; 0.10s doubled-size eyebrow resolves; 0.20s headline unmasks; 0.32s `OPEN TO REQUESTS` panel snaps in; 0.90s `KEEP IT PRIVATE` answers with an equal snap; 0.95–1.70s a fine circular pulse visually joins both options; 1.80s the paired decision settles in a readable hold; 2.55s the panels compress slightly as the central marker takes focus for the outgoing scale transition.
+**Transition contract:** The marker at the screen center carries into Shot 02 as the listing locator, landing near the lower-center of the property image. Panel fold plus marker scale-through meet the incoming sage property split.
+**Assets/technique:** Existing vector panels, CSS/SVG geometry, Plus Jakarta Sans, existing palette; no new logo art.
+**Sound intent:** Keep the existing soundtrack file. To span the newly confirmed 13s runtime continuously, play the same 10.031s source at a constant pitch-preserving 0.7716 rate and map scene seek offsets proportionally. No new audio or beat-sync claim.
 
-### Shot 02 / 1.607–3.214s / 1.607s — “Another agent can ask.”
-**Purpose:** Show that another agent independently chooses whether to request collaboration on a fitting listing.
-**Exact content:** `ANOTHER AGENT SPOTS A FIT`; property card `3-BED HOME`, `BORROWDALE`, `USD 248,000`, `FOR SALE`; action label `REQUEST COLLABORATION`; supporting line `Their choice to ask.` Values are illustrative, not a live offer. All content holds through the outgoing transition.
-**Composition:** Pale sage split field. A large property card fills the left 58%; a concise request tile occupies the right 34%. A slim connector ties the card's neighborhood marker to the request tile. Property is the visual hero; no dense interface chrome.
-**Artistic idea:** The carried marker lands on the property location and becomes a deliberate request token, not an automatic match.
-**Timed choreography:** 0.00s marker lands; 0.12s property plane unfolds; 0.32s card resolves from a slight depth angle; 0.55s the request tile appears; 0.78s the connector traces to it; 1.05s `REQUEST COLLABORATION` receives one lime edge accent; 1.30s the request token scales toward camera and becomes the incoming badge.
-**Transition contract:** The lime request token is preserved at center-right as the incoming request badge in Shot 03. Card-scale push and diagonal field fold compound the cut.
-**Assets/technique:** Vector property illustration consistent with existing matching-film identity; no external imagery or unverified product controls.
-**Sound intent:** Existing instrumental continues, with the retained 3.214s scene boundary; accent timing is not re-claimed or altered.
+### Shot 02 / 3.000–6.000s / 3.000s — “Another agent spots a fit.”
+**Purpose:** Show that another agent may choose to request collaboration on a property that matches.
+**Exact content:** Eyebrow `ANOTHER AGENT SPOTS A FIT` at 4vmin (double the previous 2vmin); property card `FOR SALE`, `3-BED HOME`, `BORROWDALE`, `USD 248,000`; request tile `YOUR CHOICE TO ASK`, `REQUEST COLLABORATION`, `SEND A REQUEST`; closing callout `A MATCH OPENS A POSSIBILITY.` at 4vmin (double the previous 2vmin). Remove the `Illustrative listing` label entirely. The property amount remains illustrative, not a current offer.
+**Composition:** Pale-sage split. Listing card fills the left 57%, request tile the right 36%, a clear gap between. The enlarged eyebrow is upper-left; the enlarged final callout sits in its own lower-right safe zone and never collides with the card. The card remains property-led.
+**Artistic idea:** The carried marker pinpoints the listing, then a thin route connects it to the peer’s voluntary request.
+**Timed choreography:** 0.00s marker lands; 0.18s landscape plane opens inside the property card; 0.42s listing details resolve; 0.95s request panel builds from depth; 1.00s a thin connector finishes tracing between property and request; 1.04s the 4vmin `A MATCH OPENS A POSSIBILITY.` resolves on its own clear line; 1.40s `SEND A REQUEST` receives its lime accent; 2.55–2.90s property and request panels settle inward around the carried marker, preparing the owner-review cut.
+**Transition contract:** The request marker appears upper-right in both outgoing panel and the next request card. Scale-through and card fold carry it forward.
+**Assets/technique:** Existing vector property illustration and CSS/SVG interface planes. No external or third-party photography required.
+**Sound intent:** Same source track and pitch-preserving time mapping continues.
 
-### Shot 03 / 3.214–5.357s / 2.143s — “The owner decides.”
-**Purpose:** Make the listing owner—not the system—the decision maker on each request.
-**Exact content:** `COLLABORATION REQUEST`; `BORROWDALE · 3-BED`; two visible choices `ACCEPT` and `DECLINE`; then `ACCEPTED`. Do not show or imply a decline notification to the requester.
-**Composition:** Deep forest-green stage. An oversized porcelain request card occupies center; incoming badge at upper-left, property line directly beneath the clear headline. Accept and Decline are two large, separated action tiles along the bottom third. The green Accept tile is chosen only after both choices are visible.
-**Artistic idea:** A cursorless circular press mark lands on Accept; the decision is made by the owner, and only acceptance changes state.
-**Timed choreography:** 0.00s incoming lime badge arrives with the card through a clipped aperture; 0.20s request headline resolves; 0.48s property line appears; 0.72–0.84s Accept and Decline tiles unfold side-by-side; 1.17s a fine press ring lands on Accept; 1.59s only the chosen tile flips to `ACCEPTED`; the Decline tile remains visible and unchanged. From 1.76s the accepted tile opens outward into the next contact tableau.
-**Transition contract:** The green accepted tile scales through the frame and becomes the contact status bar at the same center-left position. Pair scale-through with a porcelain split reveal.
-**Assets/technique:** CSS/SVG card, simple press ring, strong type contrast. Both options are noninteractive film artwork; acceptance is the only path shown as progressing.
-**Sound intent:** Existing soundtrack and 5.357s cut remain untouched.
+### Shot 03 / 6.000–9.000s / 3.000s — “The listing owner decides.”
+**Purpose:** Make the owner’s accept/decline decision explicit.
+**Exact content:** Enlarged 4vmin eyebrow `COLLABORATION REQUEST`; card title `PROPERTY OWNER REVIEW`; `BORROWDALE · 3-BED`; `An agent wants to collaborate.`; two choices `ACCEPT` and `DECLINE`; then `ACCEPTED`. The `THE LISTING OWNER DECIDES` caption is 3.6vmin, exactly double its previous 1.8vmin. Do not show or imply that declining notifies the requester.
+**Composition:** Deep forest-green stage; large porcelain request card centered within an 8% safe margin. The lime request marker sits at the card’s upper-right outside the copy zone. Large decision tiles sit side by side below the listing description; title and owner caption occupy separate zones.
+**Artistic idea:** A cursorless press ring confirms that the owner, not an automated matcher, chooses Accept; Decline stays visibly available and unchanged.
+**Timed choreography:** 0.00s badge and card open through an aperture; 0.20s 4vmin `COLLABORATION REQUEST` resolves; 0.42s card title appears; 0.70s property and request copy lands; 1.05s Accept and Decline unfold side-by-side; 1.17s press ring lands on Accept; 1.59s that tile alone changes to `ACCEPTED`; 2.55–2.84s the entire request card recedes slightly for the cut while the accepted choice stays readable and Decline remains visually unchanged.
+**Transition contract:** The accepted tile grows as a foreground plane while the following porcelain contact card unfolds behind it. The carrier is the same lime marker, repositioned clear of text.
+**Assets/technique:** Existing CSS card, vectors, press ring, high-contrast type. Choice controls are film artwork, not live controls.
+**Sound intent:** Same source track and proportional offsets; no added click or soundtrack replacement.
 
-### Shot 04 / 5.357–7.500s / 2.143s — “Then you decide together.”
-**Purpose:** Clarify that approval unlocks direct contact, but the agents—not QuickProp—decide how to move the deal forward.
-**Exact content:** `ACCEPTED · CONTACT UNLOCKED`; contact methods `CALL` and `WHATSAPP`; two short conversation lines `Let's arrange a viewing.` and `I'll coordinate with the buyer.`; closing statement `THE AGENTS DECIDE THE NEXT STEPS.` Do not claim or depict a sale being closed automatically.
-**Composition:** Warm porcelain full-width editorial tableau, contrasting the previous dark centered request card. A broad contact card on the left holds the accepted status and two clear contact methods; two offset conversation panels on the right carry the short lines. Final statement anchors the lower safe zone.
-**Artistic idea:** The accepted green status bar becomes an open line between two agent messages: contact is enabled, but the path beyond it belongs to them.
-**Timed choreography:** 0.00s contact card unfolds from the accepted status bar; 0.24s `CALL` and `WHATSAPP` resolve in distinct pill-like labels; 0.52s first message lands; 0.92s second answers; 1.25s `THE AGENTS DECIDE THE NEXT STEPS` unclips and holds; 1.80s the status bar extends edge-to-edge and tilts into the brand field.
-**Transition contract:** Extending green rule becomes the finale's full bleed, paired with the interface plane folding away and the centered ivory aperture opening. The change preserves the accepted/contact line.
-**Assets/technique:** Noninteractive CSS-rendered contact and message illustration. No new product UI claims; direct phone/WhatsApp contact is available after acceptance.
-**Sound intent:** Existing bed continues unchanged through the 7.500s cut.
+### Shot 04 / 9.000–11.000s / 2.000s — “Agents choose the next steps.”
+**Purpose:** Show that approval enables direct contact, and agents decide together how to proceed.
+**Exact content:** `ACCEPTED · CONTACT UNLOCKED`; `Reach each other directly.`; contact methods `CALL` and `WHATSAPP`; messages `Let’s arrange a viewing.` and `I’ll coordinate with the buyer.`; `THE AGENTS DECIDE THE NEXT STEPS.` Do not show a line crossing the screen; do not imply an automatic sale.
+**Composition:** Warm porcelain field. A compact contact card owns the left third; a large, clean message panel sits to its right. Final agency-led sentence is anchored in a lower safe zone and is separated from all message copy. No green line or horizontal rule passes across the composition.
+**Artistic idea:** Two offset messages answer across the open space left by the accepted card, making the human collaboration—not a UI connector—the visible next step.
+**Timed choreography:** 0.00s accepted card unfolds; 0.22s CALL and WHATSAPP are clear; 0.44s first agent message arrives; 0.78s second reply answers; 1.08s `THE AGENTS DECIDE THE NEXT STEPS.` resolves; 1.62–2.00s a green iris and ivory finale aperture grow together over the conversation—no line sweep.
+**Transition contract:** The ivory aperture is already full-size at the cut, while the overlapping circular reveal carries into the green end card. No line is carried or drawn across the screen.
+**Assets/technique:** Existing vector contact and conversation planes; no new product UI. Contact is shown only after acceptance.
+**Sound intent:** Existing music is still the only audio; proportional playback continues.
 
-### Shot 05 / 7.500–10.000s / 2.500s — “Collaboration, on your terms.”
-**Purpose:** Close on authentic QuickProp identity and summarize control at both ends of the collaboration.
-**Exact content:** Supplied official QuickProp logo, unchanged; `COLLABORATE ON YOUR TERMS`; smaller `MATCHES`. Hold logo and takeaway together legibly from 8.25s through the final loop handoff.
-**Composition:** QuickProp green outer field with a large warm-ivory circular aperture centered in frame. Official green logo centered within the ivory disc; takeaway below, set in ink/green with no added decorative copy.
-**Artistic idea:** Busy decisions collapse into one quiet aperture, leaving a legible brand lockup rather than a deal-complete claim.
-**Timed choreography:** 0.00s brand field arrives as a two-panel fold; 0.28s ivory aperture opens; 0.45s authentic logo resolves; 0.78s `COLLABORATE ON YOUR TERMS` reveals beneath; 0.88s `MATCHES` appears; from 1.05–2.15s the resolved lockup holds with a subtle camera settle; 2.03–2.50s the aperture scales through the lens while the official lockup stays readable until the scene's loop handoff.
-**Transition contract:** Ivory disc expands into Shot 01's porcelain field; its centered lime marker is the same carrier as the opening beat. Logo remains fully visible during the readable hold.
-**Assets/technique:** Existing supplied `attached_assets/quickprop-logo.png` imported through `@assets`; logo colors and artwork are not redrawn or altered.
-**Sound intent:** Existing soundtrack is preserved and keeps its established 10.031s encoded duration/padding.
+### Shot 05 / 11.000–13.000s / 2.000s — “Collaborate on your terms.”
+**Purpose:** End on the real QuickProp identity and a succinct summary of agent control.
+**Exact content:** High-resolution official QuickProp logo asset and `COLLABORATE ON YOUR TERMS`. Remove the word `MATCHES` from this screen. No other copy.
+**Composition:** QuickProp green field with a centered warm-ivory circle expanded to 96vmin. Official logo, vector-sharp and unmodified, sits in the upper-middle. The takeaway is centered beneath it and fully inside the circle’s safe interior. The longer phrase is constrained to 70% width at 3.5vmin so no letter touches or crosses the circular edge.
+**Artistic idea:** The outgoing contact plane opens into an oversized ivory lens; its enclosed logo and message create a calm, unmistakable final frame.
+**Timed choreography:** 0.00s the carried ivory aperture and circular reveal are visible immediately; 0.34s the outer reveal clears to the green field; 0.44s the high-resolution official logo resolves; 0.60s `COLLABORATE ON YOUR TERMS` unmasks beneath it; 0.85–1.60s the full lockup holds motionless and clearly readable; 1.65–2.00s the ivory circle scales through the lens to hand back to the opening porcelain field.
+**Transition contract:** The ivory circle becomes the warm porcelain opening field, and the same central lime marker returns as the opening’s focal point.
+**Assets/technique:** Existing authentic vector wordmark copied unchanged from `artifacts/mobile/assets/images/quickprop-logo.svg` into this film’s `public/quickprop-logo.svg`; no redraw, recolor, or generated logo.
+**Sound intent:** Same existing instrumental source, stretched in playback to cover this 13s composition; soundtrack file is untouched.
 
 ## Audio spec
-- Runtime: 10 s; existing scene durations total 10,000 ms.
-- Music: Preserve existing instrumental file `public/audio/bg_music.mp3`. No audio edits, new voiceover, or new effects.
-- Existing scene boundaries and soundtrack are unchanged; no new beat-alignment claim is made.
+- Runtime: 13s total (`SCENE_DURATIONS` = 3,000 + 3,000 + 3,000 + 2,000 + 2,000 ms).
+- Music source: existing `public/audio/bg_music.mp3`, unchanged (10.031s including encoder padding).
+- Playback: uniform 0.7716 rate with pitch preservation, so the same full instrumental bed covers the confirmed longer visual runtime. Scene seeks are scaled to the original track duration. No regenerated or edited audio asset.
 
 ## Variety and pacing review
-Five related but distinct compositions: two equal owner-choice panels; an asymmetric property/request split; a dark centered decision card; a wide contact/message tableau; a quiet centered brand lockup. Each beat advances the real collaboration workflow. The only response state shown as progressing is acceptance; decline remains a valid owner choice without any claimed requester notification. Phone/WhatsApp contact follows acceptance. Agents control subsequent steps; no automatic close is represented. The existing 10-second 16:9 film identity, scene durations, official logo and soundtrack remain.
+Five distinct framing systems remain: owner-choice diptych, property/request split, centered owner decision card, open two-agent conversation, enlarged circular logo close. The longer first three sections give the requested headlines more reading room while their final 15% remains a handoff. The 2-second contact scene removes the crossing green line and retains post-acceptance contact plus agent agency. The end card enlarges the circle, contains the takeaway within it, uses the sharp vector wordmark, and removes `MATCHES`. The existing QuickProp palette, five-scene structure and soundtrack file are retained; format is 16:9.

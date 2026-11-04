@@ -21,7 +21,7 @@ export function Scene3() {
       <div style={{ position: 'absolute', inset: '8% 9%' }}>
         <motion.div
           className="film-label"
-          style={{ color: '#D5EC79', position: 'absolute', left: 0, top: 0, fontSize: '2vmin' }}
+          style={{ color: '#D5EC79', position: 'absolute', left: 0, top: 0, fontSize: '4vmin' }}
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.24, delay: 0.08 }}
@@ -32,8 +32,8 @@ export function Scene3() {
         <motion.div
           style={{ position: 'absolute', left: '9%', top: '18%', width: '82%', height: '68%', borderRadius: '2.5vmin', padding: '4vmin 5vmin', color: '#17362F', background: '#F5F4ED', boxShadow: '0 3vmin 8vmin rgba(2,20,15,.3)', transformOrigin: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}
           initial={{ opacity: 0, scale: 0.84, rotateY: 10, y: 10 }}
-          animate={{ opacity: 1, scale: 1, rotateY: 0, y: 0 }}
-          transition={{ duration: 0.45, delay: 0.12, ease: EASE }}
+          animate={{ opacity: [0, 1, 1, 1], scale: [0.84, 1, 1, 0.96], rotateY: [10, 0, 0, -2], y: [10, 0, 0, 0] }}
+          transition={{ duration: 2.72, delay: 0.12, times: [0, 0.17, 0.84, 1], ease: EASE }}
         >
           <div style={{ color: '#71857B', fontSize: '2vmin', fontWeight: 800, letterSpacing: '.12em' }}>PROPERTY OWNER REVIEW</div>
           <div style={{ marginTop: '1.2vmin', fontSize: '5.2vmin', lineHeight: 1, fontWeight: 800, letterSpacing: '-.065em' }}>BORROWDALE · 3-BED</div>
@@ -76,7 +76,7 @@ export function Scene3() {
 
         <motion.div
           className="film-label"
-          style={{ position: 'absolute', right: '1%', bottom: '0%', color: '#BCD0C2', fontSize: '1.8vmin' }}
+          style={{ position: 'absolute', right: '1%', bottom: '0%', color: '#BCD0C2', fontSize: '3.6vmin' }}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 1.05, duration: 0.24 }}

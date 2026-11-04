@@ -21,7 +21,7 @@ export function Scene1() {
       <div style={{ position: 'absolute', inset: '7% 7% 8%' }}>
         <motion.div
           className="film-label"
-          style={{ color: '#2C6D5D', position: 'absolute', left: 0, top: 0, fontSize: '2vmin' }}
+          style={{ color: '#2C6D5D', position: 'absolute', left: 0, top: 0, fontSize: '4vmin' }}
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.26, delay: 0.08 }}
@@ -29,7 +29,7 @@ export function Scene1() {
           LISTING OWNER · IN CONTROL
         </motion.div>
         <motion.div
-          style={{ position: 'absolute', left: 0, right: 0, top: '13%', textAlign: 'center', fontSize: '7.2vmin', lineHeight: 0.96, letterSpacing: '-.075em', fontWeight: 800 }}
+          style={{ position: 'absolute', left: 0, right: 0, top: '13%', textAlign: 'center', fontSize: '14.4vmin', lineHeight: 0.96, letterSpacing: '-.075em', fontWeight: 800 }}
           initial={{ opacity: 0, scale: 0.94, y: 10 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           transition={{ duration: 0.42, delay: 0.12, ease: EASE }}
@@ -40,8 +40,8 @@ export function Scene1() {
         <motion.div
           style={{ position: 'absolute', left: '1%', bottom: '6%', width: '47%', height: '54%', borderRadius: '2.2vmin', background: '#E5EEE5', border: '1px solid rgba(44,109,93,.20)', padding: '3.3vmin 3.5vmin', display: 'flex', flexDirection: 'column', justifyContent: 'center', boxShadow: '0 2vmin 5vmin rgba(23,54,47,.08)' }}
           initial={{ opacity: 0, scale: 0.88, rotate: -2, x: -8 }}
-          animate={{ opacity: 1, scale: 1, rotate: 0, x: 0 }}
-          transition={{ type: 'spring', stiffness: 300, damping: 24, delay: 0.24 }}
+          animate={{ opacity: [0, 1, 1, 1], scale: [0.88, 1, 1, 0.96], rotate: [-2, 0, 0, -1], x: [-8, 0, 0, 0] }}
+          transition={{ duration: 2.7, delay: 0.24, times: [0, 0.1, 0.84, 1], ease: EASE }}
         >
           <div style={{ color: '#2C6D5D', fontSize: '4.2vmin', lineHeight: 1, fontWeight: 800, letterSpacing: '-.055em' }}>OPEN TO REQUESTS</div>
           <div style={{ marginTop: '1.65vmin', color: '#526C5F', fontSize: '2.8vmin', lineHeight: 1.22, fontWeight: 600 }}>Other agents may ask to collaborate.</div>
@@ -51,8 +51,8 @@ export function Scene1() {
         <motion.div
           style={{ position: 'absolute', right: '1%', bottom: '6%', width: '47%', height: '54%', borderRadius: '2.2vmin', background: '#FBFBF6', border: '1px solid rgba(44,109,93,.16)', padding: '3.3vmin 3.5vmin', display: 'flex', flexDirection: 'column', justifyContent: 'center', boxShadow: '0 2vmin 5vmin rgba(23,54,47,.08)' }}
           initial={{ opacity: 0, scale: 0.88, rotate: 2, x: 8 }}
-          animate={{ opacity: 1, scale: 1, rotate: 0, x: 0 }}
-          transition={{ type: 'spring', stiffness: 300, damping: 24, delay: 0.63 }}
+          animate={{ opacity: [0, 1, 1, 1], scale: [0.88, 1, 1, 0.96], rotate: [2, 0, 0, 1], x: [8, 0, 0, 0] }}
+          transition={{ duration: 2.3, delay: 0.63, times: [0, 0.12, 0.8, 1], ease: EASE }}
         >
           <div style={{ color: '#17362F', fontSize: '4.2vmin', lineHeight: 1, fontWeight: 800, letterSpacing: '-.055em' }}>KEEP IT PRIVATE</div>
           <div style={{ marginTop: '1.65vmin', color: '#64776E', fontSize: '2.8vmin', lineHeight: 1.22, fontWeight: 600 }}>Only your agency can access it.</div>
