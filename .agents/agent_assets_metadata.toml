@@ -393,3 +393,17 @@ mtime_ms = 1793807728899
 storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:cf900b3f-04ce-456b-888c-760ecb412036/342abca3-f2f8-4671-bce7-f55a4c2f2ec2/4dd3ad5c-3505-445d-a8e1-e924bcf34819"
 storage_version_token = "1793807745430777"
 content_type = "video/mp4"
+
+[[outputs]]
+id = "1NX6QXVhYGA3ezn5R6TUp"
+uri = "file://generated-artifacts/QuickProp_Promo_5_Founder_Credit_1080p.mp4"
+type = "video"
+title = "QuickProp promo with founder credit — 1080p MP4"
+description = "1920×1080 H.264/AAC, 41.7 seconds. White lower-left credit is visible from 0–9 seconds only; verified as decodable."
+logical_id = "25ed9f58-dd46-4b84-8147-1979eaccb039"
+content_hash = "sha256:7787d8c7d0b5ce8b064a25cc34811aaf01b893c97e9e3a24339af0cf37aea46c"
+size = 18869957
+mtime_ms = 1793808397847
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:cf900b3f-04ce-456b-888c-760ecb412036/25ed9f58-dd46-4b84-8147-1979eaccb039/d776b5f3-85d2-4d11-9638-9e6016b85853"
+storage_version_token = "1793808469230096"
+content_type = "video/mp4"
