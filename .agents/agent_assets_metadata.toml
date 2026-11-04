@@ -351,3 +351,17 @@ mtime_ms = 1793782867806
 storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:cf900b3f-04ce-456b-888c-760ecb412036/a48796d7-7f50-4ba5-b60e-fb0541d1faa0/e9ea18d5-4332-4361-ae16-c2ba9f9a3ada"
 storage_version_token = "1793782900902336"
 content_type = "audio/mpeg"
+
+[[outputs]]
+id = "EkHZ9VmxbG8-OsHMozOT_"
+uri = "file://generated-artifacts/quickprop-brand-bumper.mp4"
+type = "video"
+title = "QuickProp — Share more. Sell more."
+description = "3-second 1920×1080 MP4 using the high-resolution QuickProp house logo. The existing 50-second audio track is unchanged."
+logical_id = "89103df9-b60e-45a4-a2ed-3ae0ad6cf9c6"
+content_hash = "sha256:f148806c003d6040d138b873723a476a0efa9f3dc57f78f440821abfa05e31b6"
+size = 623959
+mtime_ms = 1793796760679
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:cf900b3f-04ce-456b-888c-760ecb412036/89103df9-b60e-45a4-a2ed-3ae0ad6cf9c6/150a2644-1a78-4f3e-892d-1453096ce918"
+storage_version_token = "1793796776222640"
+content_type = "video/mp4"
