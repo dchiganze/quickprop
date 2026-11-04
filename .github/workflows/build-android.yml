@@ -58,9 +58,9 @@ jobs:
           TMPDIR=$(mktemp -d)
           echo '{}' > "$TMPDIR/package.json"
           npm install --prefix "$TMPDIR" --no-save --no-package-lock --legacy-peer-deps \
-            expo-secure-store@15.0.8 \
-            expo-local-authentication@17.0.8 \
-            expo-apple-authentication@8.0.8
+            expo-secure-store@58.0.2 \
+            expo-local-authentication@58.0.2 \
+            expo-apple-authentication@58.0.2
           mkdir -p artifacts/mobile/node_modules
           rm -rf artifacts/mobile/node_modules/expo-secure-store \
                  artifacts/mobile/node_modules/expo-local-authentication \
