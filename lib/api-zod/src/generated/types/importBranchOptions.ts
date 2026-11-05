@@ -5,6 +5,7 @@
  * QuickProp Office API
  * OpenAPI spec version: 0.1.0
  */
+import type { ImportAgentOption } from './importAgentOption';
 import type { ImportBranchOption } from './importBranchOption';
 
 export interface ImportBranchOptions {
@@ -12,4 +13,5 @@ export interface ImportBranchOptions {
   mainBranchId: number;
   /** @minItems 1 */
   branches: ImportBranchOption[];
+  agents: ImportAgentOption[];
 }

@@ -4,6 +4,7 @@ import { and, eq, inArray } from "drizzle-orm";
 import { parseAiJsonResponse } from "./ai-import";
 import { findImportTitlePriceDuplicate, findDuplicateCandidatesInProperties, type DuplicateProperty } from "./multi-agent";
 import { findImportTitleValue } from "./import-title";
+import { matchImportAgentByName } from "./import-agent-match";
 import { findStalePdfDraftIds } from "./import-reconcile";
 import { flattenPdfPageRows } from "./pdf-import";
 import { createSessionToken } from "./sessions";
@@ -22,6 +23,35 @@ const databaseTestSkip = testDatabaseUrl
     ? false
     : "requires an isolated database configured through TEST_DATABASE_URL";
 let databasePool: { end: () => Promise<void> } | null = null;
+
+test("matches an initial and surname to one active agent in the same branch", () => {
+  const agents = [
+    { id: 12, name: "Trish Sachikunda", branchId: 4 },
+    { id: 13, name: "Tawanda Moyo", branchId: 4 },
+    { id: 14, name: "Trish Sachikunda", branchId: 5 },
+  ];
+
+  assert.equal(matchImportAgentByName("T. Sachikunda", agents, 4)?.id, 12);
+});
+
+test("leaves ambiguous initials and surnames unassigned", () => {
+  const agents = [
+    { id: 12, name: "Trish Sachikunda", branchId: 4 },
+    { id: 13, name: "Tawanda Sachikunda", branchId: 4 },
+  ];
+
+  assert.equal(matchImportAgentByName("T. Sachikunda", agents, 4), null);
+});
+
+test("matches normalized full names and rejects names from other branches", () => {
+  const agents = [
+    { id: 12, name: "Trish Sachikunda", branchId: 4 },
+    { id: 15, name: "Sibusiso Ncube", branchId: 5 },
+  ];
+
+  assert.equal(matchImportAgentByName("TRISH SACHIKUNDA", agents, 4)?.id, 12);
+  assert.equal(matchImportAgentByName("S. Ncube", agents, 4), null);
+});
 
 after(async () => {
   await databasePool?.end();

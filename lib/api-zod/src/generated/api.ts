@@ -6231,7 +6231,12 @@ export const GetImportBranchesResponse = zod.object({
   "name": zod.string(),
   "address": zod.string().nullable(),
   "isMain": zod.boolean()
-})).min(1)
+})).min(1),
+  "agents": zod.array(zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "branchId": zod.number()
+}))
 })
 
 

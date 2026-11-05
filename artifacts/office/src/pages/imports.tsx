@@ -498,7 +498,19 @@ function MatchPanel({ record }: { record: ImportRecord }) {
   );
 }
 
-function RecordRow({ record, selected, onToggle, draft, setDraft, onSave, saving, branches }: { record: ImportRecord; selected: boolean; onToggle: () => void; draft: DraftData; setDraft: (data: DraftData) => void; onSave: () => void; saving: boolean; branches: Array<{ id: number; name: string; address: string | null; isMain: boolean }> }) {
+function RecordRow({ record, selected, onToggle, draft, setDraft, onSave, saving, branches, agents, agentBusy, onAssignAgent }: {
+  record: ImportRecord;
+  selected: boolean;
+  onToggle: () => void;
+  draft: DraftData;
+  setDraft: (data: DraftData) => void;
+  onSave: () => void;
+  saving: boolean;
+  branches: Array<{ id: number; name: string; address: string | null; isMain: boolean }>;
+  agents: Array<{ id: number; name: string; branchId: number }>;
+  agentBusy: boolean;
+  onAssignAgent: (recordId: number, agentId: number | null) => void;
+}) {
   const field = (key: string) => draft[key];
   const update = (key: string, value: string, numeric = false) => setDraft({ ...draft, [key]: numeric && value !== '' ? Number(value) : value });
   const sourceMetadata = toRecord(record.sourceMetadata);
@@ -512,14 +524,35 @@ function RecordRow({ record, selected, onToggle, draft, setDraft, onSave, saving
     || (branch.address?.trim().toLowerCase() === draftBranch),
   );
   const branchValue = selectedBranch?.id ?? (draftBranch ? undefined : record.branchId ?? undefined);
+  const rowAgents = agents.filter((agent) => agent.branchId === branchValue);
+  const currentAgentIsUnavailable = record.agentId != null && !rowAgents.some((agent) => agent.id === record.agentId);
+  const assignmentDisabled = agentBusy || branchValue == null || (record.branchId != null && branchValue !== record.branchId);
   return (
     <div className={cn('border-b border-border/80 px-4 py-4 transition-colors', selected && 'bg-primary/[0.035]')}>
-      <div className="grid grid-cols-[24px_minmax(160px,1.25fr)_minmax(150px,1fr)_100px_80px_96px_128px] items-end gap-3">
+      <div className="grid grid-cols-[24px_minmax(160px,1.25fr)_minmax(150px,1fr)_100px_minmax(140px,0.8fr)_96px_128px] items-end gap-3">
         <Checkbox checked={selected} onCheckedChange={onToggle} aria-label={`Select record ${record.id}`} />
         <DataField label="Title" value={field('title') || field('name')} onChange={(value) => update('title', value)} />
         <DataField label="Address / suburb" value={field('address') || field('suburb')} onChange={(value) => update(field('address') ? 'address' : 'suburb', value)} />
         <DataField label="Price" value={field('price')} numeric onChange={(value) => update('price', value, true)} />
-        <DataField label="Beds" value={field('bedrooms')} numeric onChange={(value) => update('bedrooms', value, true)} />
+        <div title={sourceAgent ? `Source agent: ${sourceAgent}` : undefined}>
+          <span className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Agent</span>
+          <Select
+            value={record.agentId == null ? 'unassigned' : String(record.agentId)}
+            onValueChange={(value) => onAssignAgent(record.id, value === 'unassigned' ? null : Number(value))}
+            disabled={assignmentDisabled}
+          >
+            <SelectTrigger className="h-8 bg-background text-xs"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="unassigned">{sourceAgent ? `Choose · ${sourceAgent}` : 'Choose agent'}</SelectItem>
+              {currentAgentIsUnavailable && record.agentId != null && (
+                <SelectItem value={String(record.agentId)} disabled>
+                  {record.agentName ?? `Agent #${record.agentId}`} · unavailable in this branch
+                </SelectItem>
+              )}
+              {rowAgents.map((agent) => <SelectItem key={agent.id} value={String(agent.id)}>{agent.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
         <div><span className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Confidence</span><Confidence score={record.confidenceScore} compact /></div>
         <div className="flex items-center justify-end gap-1.5"><StatusPill value={record.reviewStatus} /><Button size="sm" variant="outline" className="h-8 px-2 text-[11px]" onClick={onSave} disabled={saving}>{saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}<span className="sr-only">Save row</span></Button></div>
       </div>
@@ -542,16 +575,6 @@ function RecordRow({ record, selected, onToggle, draft, setDraft, onSave, saving
       ) : branches.length === 1 ? (
         <p className="ml-9 mt-2 text-[11px] text-muted-foreground">Branch: {branches[0].name}</p>
       ) : null}
-      <div className="ml-9 mt-2 flex flex-wrap items-center gap-1.5 text-[11px]">
-        <UserRound className="h-3 w-3 text-muted-foreground" />
-        <span className="text-muted-foreground">Assigned agent:</span>
-        <span className={cn('font-semibold', record.agentName ? 'text-foreground' : 'text-amber-800')}>
-          {record.agentName ?? (record.agentId ? `Agent #${record.agentId}` : 'Unassigned')}
-        </span>
-        {!record.agentId && sourceAgent && (
-          <span className="text-muted-foreground">· source lists “{sourceAgent}”, not linked to an agent account</span>
-        )}
-      </div>
       <div className="mt-3 flex flex-wrap items-center gap-3 pl-9 text-[11px] text-muted-foreground">
         <span className="inline-flex items-center gap-1">
           {isVision ? <ScanText className="h-3 w-3 text-primary" /> : <FileText className="h-3 w-3" />}
@@ -695,6 +718,17 @@ function ImportDetail({ id }: { id: number }) {
     } catch { toast({ title: 'Could not save row', description: 'The server rejected this correction. Your draft remains on screen.', variant: 'destructive' }); }
     finally { setSavingId(null); }
   };
+  const assignRecordAgent = async (recordId: number, nextAgentId: number | null) => {
+    setActionBusy(true);
+    try {
+      const next = await bulkAction.mutateAsync({ id, data: { recordIds: [recordId], action: 'assign', agentId: nextAgentId } });
+      patchDetail(next);
+      queryClient.invalidateQueries({ queryKey: getListImportSessionsQueryKey() });
+      toast({ title: nextAgentId == null ? 'Agent unassigned' : 'Agent assigned', description: `Record ${recordId} remains unpublished.` });
+    } catch {
+      toast({ title: 'Could not assign agent', description: 'Choose an active agent assigned to this listing’s branch, then try again.', variant: 'destructive' });
+    } finally { setActionBusy(false); }
+  };
   const runBulk = async (action: string) => {
     const ids = Array.from(selected);
     if (!ids.length) return;
@@ -821,8 +855,8 @@ function ImportDetail({ id }: { id: number }) {
               <div className="flex flex-wrap items-center gap-2"><div className="relative"><Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" /><Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Find title or source" className="h-8 w-44 pl-8 text-xs" /></div><Select value={filter} onValueChange={setFilter}><SelectTrigger className="h-8 w-[130px] text-xs"><Filter className="mr-1.5 h-3.5 w-3.5" /><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All rows</SelectItem><SelectItem value="review">Needs review</SelectItem><SelectItem value="approved">Approved</SelectItem><SelectItem value="rejected">Rejected</SelectItem><SelectItem value="duplicates">Duplicates</SelectItem></SelectContent></Select><Select value={sort} onValueChange={(value) => setSort(value as 'confidence' | 'source')}><SelectTrigger className="h-8 w-[126px] text-xs"><ArrowUpDown className="mr-1.5 h-3.5 w-3.5" /><SelectValue /></SelectTrigger><SelectContent><SelectItem value="confidence">Confidence</SelectItem><SelectItem value="source">Source file</SelectItem></SelectContent></Select></div>
             </CardHeader>
             <div className="flex flex-wrap items-center gap-2 border-b bg-muted/30 px-4 py-2.5"><Checkbox checked={records.length > 0 && selected.size === records.length} onCheckedChange={selectAll} aria-label="Select all visible records" /><span className="text-xs font-semibold">{selected.size} selected</span><span className="mx-1 h-4 border-l border-border" /><Button size="sm" variant="outline" className="h-7 gap-1.5 text-[11px]" disabled={!selected.size || actionBusy} onClick={() => runBulk('approve')}><CheckCircle2 className="h-3 w-3 text-emerald-600" /> Approve</Button><Button size="sm" variant="outline" className="h-7 gap-1.5 text-[11px]" disabled={!selected.size || actionBusy} onClick={() => runBulk('reject')}><XCircle className="h-3 w-3 text-red-600" /> Reject</Button><Button size="sm" variant="outline" className="h-7 gap-1.5 text-[11px]" disabled={!selected.size || actionBusy} onClick={() => runBulk('link_duplicate')}><GitMerge className="h-3 w-3 text-amber-600" /> Link match</Button><Button size="sm" variant="outline" className="h-7 gap-1.5 text-[11px]" disabled={!selected.size || actionBusy} onClick={() => runBulk('clear_duplicate')}><Check className="h-3 w-3 text-primary" /> Keep separate</Button><div className="ml-auto flex items-center gap-1.5"><Input value={agentId} onChange={(event) => setAgentId(event.target.value)} placeholder="Agent ID" inputMode="numeric" className="h-7 w-20 text-[11px]" /><Button size="sm" variant="outline" className="h-7 gap-1.5 text-[11px]" disabled={!selected.size || actionBusy} onClick={() => runBulk('assign')}><UserRound className="h-3 w-3" /> Assign</Button></div></div>
-            <div className="hidden grid-cols-[24px_minmax(160px,1.25fr)_minmax(150px,1fr)_100px_80px_96px_128px] gap-3 bg-slate-50/70 px-4 py-2 text-[10px] font-bold uppercase tracking-[0.11em] text-muted-foreground md:grid"><span /><span>Property identity</span><span>Location</span><span>Price</span><span>Beds</span><span>AI signal</span><span>Decision</span></div>
-            {records.length ? records.map((record) => <RecordRow key={record.id} record={record} selected={selected.has(record.id)} onToggle={() => toggle(record.id)} draft={drafts[record.id] || toRecord(record.data)} setDraft={(data) => setDraftState((current) => ({ ...current, drafts: { ...current.drafts, [record.id]: data } }))} onSave={() => saveRecord(record)} saving={savingId === record.id} branches={branchOptions?.branches ?? []} />) : <div className="px-6 py-20 text-center"><SlidersHorizontal className="mx-auto mb-3 h-8 w-8 text-muted-foreground/40" /><p className="text-sm font-semibold">No rows match this view</p><p className="mt-1 text-xs text-muted-foreground">Try clearing the search or changing the review filter.</p></div>}
+            <div className="hidden grid-cols-[24px_minmax(160px,1.25fr)_minmax(150px,1fr)_100px_minmax(140px,0.8fr)_96px_128px] gap-3 bg-slate-50/70 px-4 py-2 text-[10px] font-bold uppercase tracking-[0.11em] text-muted-foreground md:grid"><span /><span>Property identity</span><span>Location</span><span>Price</span><span>Agent</span><span>AI signal</span><span>Decision</span></div>
+            {records.length ? records.map((record) => <RecordRow key={record.id} record={record} selected={selected.has(record.id)} onToggle={() => toggle(record.id)} draft={drafts[record.id] || toRecord(record.data)} setDraft={(data) => setDraftState((current) => ({ ...current, drafts: { ...current.drafts, [record.id]: data } }))} onSave={() => saveRecord(record)} saving={savingId === record.id} branches={branchOptions?.branches ?? []} agents={branchOptions?.agents ?? []} agentBusy={actionBusy} onAssignAgent={assignRecordAgent} />) : <div className="px-6 py-20 text-center"><SlidersHorizontal className="mx-auto mb-3 h-8 w-8 text-muted-foreground/40" /><p className="text-sm font-semibold">No rows match this view</p><p className="mt-1 text-xs text-muted-foreground">Try clearing the search or changing the review filter.</p></div>}
           </Card>
           <div className="flex flex-col gap-3 rounded-lg border border-primary/20 bg-primary/[0.035] p-4 md:flex-row md:items-center">
             <ShieldCheck className="h-6 w-6 shrink-0 text-primary" />

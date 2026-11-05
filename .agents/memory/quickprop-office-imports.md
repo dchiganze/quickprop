@@ -56,3 +56,9 @@ This QuickProp Office workspace is for DBT Properties. Import access requires an
 **Why:** Import sessions and published properties are branch-scoped. A fallback is safe only after the account is assigned and the admin chooses a branch for rows that lack source data.
 
 **How to apply:** Keep the import entry point blocked for unassigned accounts. Match source branch values against active branch names/addresses; require manual correction for unknown values, and never replace an unassigned account with an assumed branch.
+
+Imported agent names may auto-link by normalized full name or initial-plus-surname only when exactly one active agent in the listing's branch matches. Ambiguous matches stay unassigned for human selection, and retries must preserve manual assignments or explicit unassignments.
+
+**Why:** The user wants abbreviated agent names matched to full names while retaining a reliable way to choose the correct agency agent.
+
+**How to apply:** Scope candidate agents to the listing's branch, validate assignments on the server, and never guess between multiple matches.

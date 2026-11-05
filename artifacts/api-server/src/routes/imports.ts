@@ -28,6 +28,7 @@ import {
   type DuplicateProperty,
 } from "../lib/multi-agent";
 import { findImportTitleValue } from "../lib/import-title";
+import { matchImportAgentByName } from "../lib/import-agent-match";
 import { findStalePdfDraftIds } from "../lib/import-reconcile";
 import { jsonify, logAudit } from "../lib/helpers";
 import { logger } from "../lib/logger";
@@ -706,6 +707,17 @@ async function processSession(
   const [creator] = await db.select().from(usersTable).where(eq(usersTable.id, session.createdBy)).limit(1);
   const branchContext = creator ? await importBranchOptionsForUser(creator) : null;
   const importBranches = branchContext?.branches ?? [];
+  const importAgentCandidates = importBranches.length
+    ? await db.select({
+      id: usersTable.id,
+      name: usersTable.name,
+      branchId: usersTable.branchId,
+    }).from(usersTable).where(and(
+      inArray(usersTable.branchId, importBranches.map((branch) => branch.id)),
+      inArray(usersTable.role, ["agent", "senior_agent"]),
+      eq(usersTable.status, "active"),
+    )).orderBy(usersTable.name)
+    : [];
   const fallbackBranch = importBranches.find((branch) => branch.id === session.defaultBranchId)
     ?? importBranches.find((branch) => branch.id === branchContext?.mainBranchId);
   const [started] = await db.update(importSessionsTable).set({
@@ -957,12 +969,25 @@ async function processSession(
               }
             }
             const mandateStatus = mandateState(data.mandateExpiry);
+            const sourceAgentName = asText(data.agent);
+            const matchedAgent = rowBranch
+              ? matchImportAgentByName(sourceAgentName, importAgentCandidates, rowBranch.id)
+              : null;
             const existing = sourceType === "image" && sourceIdentity
               ? identityMatch ?? locationMatch
               : sourceType === "pdf" && sourceIdentity
                 ? locationMatch ?? identityMatch
                 : locationMatch;
             if (existing) matchedExistingIds.add(existing.id);
+            const previousAgentName = [existing?.correctedData, existing?.extractedData, existing?.rawData]
+              .map((value) => value && typeof value === "object" && !Array.isArray(value)
+                ? asText((value as LooseRecord).agent)
+                : "")
+              .find(Boolean) ?? "";
+            const preserveUnassignedAgent = existing !== undefined
+              && existing.agentId == null
+              && existing.agentMatchStatus === "unmatched"
+              && Boolean(previousAgentName);
             const recordValues = {
               rawData,
               branchId: rowBranch?.id ?? null,
@@ -973,7 +998,16 @@ async function processSession(
               matchedPropertyId,
               validationIssues,
               mandateStatus,
-              agentMatchStatus: data.agent ? "suggested" : "unmatched",
+              agentId: existing?.agentId ?? (preserveUnassignedAgent ? null : matchedAgent?.id ?? null),
+              agentMatchStatus: existing?.agentId
+                ? existing.agentMatchStatus
+                : preserveUnassignedAgent
+                  ? "unmatched"
+                : matchedAgent
+                  ? "matched"
+                  : sourceAgentName
+                    ? "suggested"
+                    : "unmatched",
               sourceMetadata: {
                 sourceType,
                 extractionMethod: extraction.extractionMethod ?? (sourceType === "image" ? "gemini-vision" : sourceType),
@@ -1152,7 +1186,18 @@ router.get("/imports/branches", async (req, res): Promise<void> => {
     res.status(409).json({ error: "Assign this account to an active agency branch before using portfolio imports." });
     return;
   }
-  res.json(jsonify(options));
+  const agents = options.branches.length
+    ? await db.select({
+      id: usersTable.id,
+      name: usersTable.name,
+      branchId: usersTable.branchId,
+    }).from(usersTable).where(and(
+      inArray(usersTable.branchId, options.branches.map((branch) => branch.id)),
+      inArray(usersTable.role, ["agent", "senior_agent"]),
+      eq(usersTable.status, "active"),
+    )).orderBy(usersTable.name)
+    : [];
+  res.json(jsonify({ ...options, agents }));
 });
 
 router.get("/imports/sessions", async (req, res): Promise<void> => {
@@ -1344,6 +1389,22 @@ router.post("/imports/sessions/:id/bulk-action", async (req, res): Promise<void>
   }
   else if (action === "mark_duplicate") update.duplicateStatus = "possible";
   else if (action === "assign" && (req.body.agentId === null || Number.isInteger(req.body.agentId))) {
+    if (req.body.agentId !== null) {
+      const [agent] = await db.select({
+        id: usersTable.id,
+        branchId: usersTable.branchId,
+        role: usersTable.role,
+        status: usersTable.status,
+      }).from(usersTable).where(eq(usersTable.id, req.body.agentId)).limit(1);
+      const recordBranches = records.map((record) => record.branchId ?? session.defaultBranchId);
+      if (!agent
+        || agent.status !== "active"
+        || !["agent", "senior_agent"].includes(agent.role)
+        || recordBranches.some((recordBranchId) => recordBranchId !== agent.branchId)) {
+        res.status(400).json({ error: "Choose an active agent assigned to the same branch as every selected listing." });
+        return;
+      }
+    }
     update.agentId = req.body.agentId;
     update.agentMatchStatus = req.body.agentId ? "matched" : "unmatched";
   } else { res.status(400).json({ error: "Unsupported bulk action." }); return; }

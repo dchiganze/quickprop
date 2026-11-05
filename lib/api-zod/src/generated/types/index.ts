@@ -123,6 +123,7 @@ export * from './healthUpdateInputAction';
 export * from './healthUpdateResult';
 export * from './housekeepingRunResult';
 export * from './housekeepingRunResultDeliveries';
+export * from './importAgentOption';
 export * from './importAssistantInput';
 export * from './importAssistantResponse';
 export * from './importBranchOption';

@@ -3040,11 +3040,18 @@ export interface ImportBranchOption {
   isMain: boolean;
 }
 
+export interface ImportAgentOption {
+  id: number;
+  name: string;
+  branchId: number;
+}
+
 export interface ImportBranchOptions {
   currentBranchId: number;
   mainBranchId: number;
   /** @minItems 1 */
   branches: ImportBranchOption[];
+  agents: ImportAgentOption[];
 }
 
 export interface ImportFile {

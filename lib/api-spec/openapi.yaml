@@ -5161,9 +5161,16 @@ components:
         name: { type: string }
         address: { type: ["string", "null"] }
         isMain: { type: boolean }
+    ImportAgentOption:
+      type: object
+      required: [id, name, branchId]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        branchId: { type: integer }
     ImportBranchOptions:
       type: object
-      required: [currentBranchId, mainBranchId, branches]
+      required: [currentBranchId, mainBranchId, branches, agents]
       properties:
         currentBranchId: { type: integer }
         mainBranchId: { type: integer }
@@ -5171,6 +5178,9 @@ components:
           type: array
           minItems: 1
           items: { $ref: "#/components/schemas/ImportBranchOption" }
+        agents:
+          type: array
+          items: { $ref: "#/components/schemas/ImportAgentOption" }
     ImportFile:
       type: object
       required: [id, fileName, fileType, sizeBytes, processingStatus, processingAttempt, extractedRecordCount, createdAt]
