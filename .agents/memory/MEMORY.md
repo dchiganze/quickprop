@@ -5,7 +5,7 @@
 - [QuickProp Collaboration](quickprop-collaboration.md) — agencies group branches for admin; agent listing access remains branch-scoped unless explicitly expanded.
 - [QuickProp Team Onboarding](quickprop-team-onboarding.md) — new members activate immediately; email codes set desktop passwords, while the app uses phone OTP.
 - [QuickProp Merge Recovery](quickprop-merge-recovery.md) — merge recovery checks must use sequential queries within a single PostgreSQL transaction client.
-- [QuickProp Office Bulk Imports](quickprop-office-imports.md) — confirmed mappings, exact title/price matches, status-gated warnings, safe retries, and fresh editor state.
+- [QuickProp Office Bulk Imports](quickprop-office-imports.md) — confirmed mappings, safe retries, and assigned agent plus positive price required before draft creation.
 - [Durable Import Recovery](durable-import-recovery.md) — database file checkpoints and restart-safe worker ownership keep large portfolio imports resumable.
 - [OpenAPI Contract Shape](openapi-contract-shape.md) — keep each operation's request and response blocks directly nested under its method so Orval can resolve the spec.
 - [GitHub Release Workflow Publishing](github-release-workflow.md) — workflow-file pushes require GitHub workflow scope and may be blocked by the connector proxy.

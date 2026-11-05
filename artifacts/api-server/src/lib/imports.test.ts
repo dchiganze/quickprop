@@ -5,7 +5,7 @@ import { parseAiJsonResponse } from "./ai-import";
 import { findImportTitlePriceDuplicate, findDuplicateCandidatesInProperties, type DuplicateProperty } from "./multi-agent";
 import { findImportTitleValue } from "./import-title";
 import { matchImportAgentByName } from "./import-agent-match";
-import { isPhotoRequirementIssue, needsPublicationPhoto } from "./property-drafts";
+import { isDraftPropertyState, isPhotoRequirementIssue, needsPublicationPhoto } from "./property-drafts";
 import { findStalePdfDraftIds } from "./import-reconcile";
 import { flattenPdfPageRows } from "./pdf-import";
 import { createSessionToken } from "./sessions";
@@ -61,6 +61,9 @@ test("photo requirements do not block draft imports", () => {
   assert.equal(isPhotoRequirementIssue("Photo appears blurry"), false);
   assert.equal(needsPublicationPhoto({ status: "draft", pipelineStage: "draft", photos: [] }), false);
   assert.equal(needsPublicationPhoto({ status: "public", photos: [] }), true);
+  assert.equal(isDraftPropertyState(undefined, undefined), false);
+  assert.equal(isDraftPropertyState("draft", "draft"), true);
+  assert.equal(isDraftPropertyState("public", "draft"), true);
 });
 
 after(async () => {

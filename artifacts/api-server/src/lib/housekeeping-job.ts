@@ -24,6 +24,7 @@ import {
 import { deliverDueHousekeepingReminders, REMINDER_CHANNELS, type ReminderDeliveryPayload } from "./housekeeping-delivery";
 import { planHousekeepingActions } from "./housekeeping-planner";
 import { logger } from "./logger";
+import { hasPositiveDraftPrice } from "./property-drafts";
 
 async function getSettings(): Promise<HousekeepingSettings> {
   const [row] = await db.select().from(listingHousekeepingSettingsTable).limit(1);
@@ -33,6 +34,15 @@ async function getSettings(): Promise<HousekeepingSettings> {
 export async function runHousekeepingCycle() {
   const houseSettings = await getSettings();
   const now = new Date();
+  const activeAgentBranches = new Map<number, number | null>(
+    (await db.select({ id: usersTable.id, branchId: usersTable.branchId })
+      .from(usersTable)
+      .where(and(
+        eq(usersTable.status, "active"),
+        inArray(usersTable.role, ["agent", "senior_agent"]),
+      )))
+      .map((agent) => [agent.id, agent.branchId] as const),
+  );
   const legacyNextConfirmationAt = new Date(
     now.getTime() + houseSettings.firstConfirmationDays * 24 * 60 * 60 * 1000,
   );
@@ -173,12 +183,17 @@ export async function runHousekeepingCycle() {
       const expiredDraft = isOwnerListing
         && property.status === "draft"
         && latestLifecycleEventByProperty.get(property.id) === "auto_drafted";
-      const shouldAutoDraft = isOwnerListing && shouldAutoDraftPublishedListing(
-        property.status,
-        property.availabilityStatus,
-        computed.nextConfirmationAt,
-        now,
-      );
+      const shouldAutoDraft = isOwnerListing
+        && property.agentId != null
+        && activeAgentBranches.get(property.agentId) === property.branchId
+        && property.branchId != null
+        && hasPositiveDraftPrice(property.price)
+        && shouldAutoDraftPublishedListing(
+          property.status,
+          property.availabilityStatus,
+          computed.nextConfirmationAt,
+          now,
+        );
       let autoDraftedNow = false;
       if (r) {
         await db.update(propertyAgentRelationshipsTable).set({

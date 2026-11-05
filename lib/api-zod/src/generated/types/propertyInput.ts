@@ -13,6 +13,7 @@ export interface PropertyInput {
   listingType: string;
   status?: string;
   pipelineStage?: string;
+  /** Must be greater than zero before saving a draft. */
   price: number;
   negotiable?: boolean;
   salePrice?: number;
@@ -34,12 +35,13 @@ export interface PropertyInput {
   latitude?: number;
   longitude?: number;
   features?: string[];
-  /** @minItems 1 */
-  photos: string[];
+  /** Drafts may be saved without photos; published listings require at least one photo. */
+  photos?: string[];
   /** Optional proposed viewing slots as ISO 8601 date-time strings. */
   proposedViewingTimes?: Date[];
   videoUrl?: string;
   coverImage?: string;
+  /** Active agent assigned to this listing; required before saving a draft. */
   agentId?: number;
   branchId?: number;
   sellerId?: number;

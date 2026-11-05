@@ -32,11 +32,12 @@ import { matchImportAgentByName } from "../lib/import-agent-match";
 import { findStalePdfDraftIds } from "../lib/import-reconcile";
 import { jsonify, logAudit } from "../lib/helpers";
 import { logger } from "../lib/logger";
-import { importedPropertyDraft, isPhotoRequirementIssue } from "../lib/property-drafts";
+import { hasPositiveDraftPrice, importedPropertyDraft, isPhotoRequirementIssue } from "../lib/property-drafts";
 import { flattenPdfPageRows } from "../lib/pdf-import";
 import { parseAiJsonResponse } from "../lib/ai-import";
 
 const router: IRouter = Router();
+const DRAFT_AGENT_ISSUE = "Assign an active agent before saving this listing as a draft.";
 const IMPORT_EXTENSIONS = new Set([".xlsx", ".xls", ".csv", ".pdf", ".docx", ".txt", ".jpg", ".jpeg", ".png"]);
 const IMPORT_FIELDS = [
   "title", "reference", "address", "suburb", "city", "price", "currency", "propertyType",
@@ -584,7 +585,9 @@ function validateData(data: LooseRecord, sourceType: string, confidence: Record<
   if (!data.suburb) issues.push("Suburb is missing");
   if (!data.city) issues.push("City is missing");
   if (!data.propertyType) issues.push("Property type is missing");
-  if (data.price == null) issues.push("Price is missing");
+  const price = numberValue(data.price);
+  if (price == null) issues.push("Price is missing");
+  else if (!hasPositiveDraftPrice(price)) issues.push("Price must be greater than zero");
   if (sourceType === "image") {
     const lowConfidenceFields = Object.entries(confidence)
       .filter(([, score]) => score < VISION_REVIEW_THRESHOLD)
@@ -988,6 +991,9 @@ async function processSession(
               && existing.agentId == null
               && existing.agentMatchStatus === "unmatched"
               && Boolean(previousAgentName);
+            const assignedAgentId = existing?.agentId
+              ?? (preserveUnassignedAgent ? null : matchedAgent?.id ?? null);
+            if (assignedAgentId == null) validationIssues.push(DRAFT_AGENT_ISSUE);
             const recordValues = {
               rawData,
               branchId: rowBranch?.id ?? null,
@@ -998,7 +1004,7 @@ async function processSession(
               matchedPropertyId,
               validationIssues,
               mandateStatus,
-              agentId: existing?.agentId ?? (preserveUnassignedAgent ? null : matchedAgent?.id ?? null),
+              agentId: assignedAgentId,
               agentMatchStatus: existing?.agentId
                 ? existing.agentMatchStatus
                 : preserveUnassignedAgent
@@ -1335,10 +1341,33 @@ router.patch("/imports/sessions/:id/records/:recordId", async (req, res): Promis
   const previousData = effectiveData(record);
   const changes = Object.keys(nextData).filter((field) => JSON.stringify(previousData[field]) !== JSON.stringify(nextData[field]));
   const validationIssues = validateData(nextData, asText((record.sourceMetadata as LooseRecord)?.sourceType ?? "spreadsheet"));
+  const assignedAgentId = req.body.agentId === null
+    ? null
+    : Number.isInteger(req.body.agentId)
+      ? req.body.agentId as number
+      : record.agentId;
   if (requestedBranch && !matchedBranch && availableBranches.length > 1) {
     validationIssues.push(`Branch "${requestedBranch}" does not match an active branch. Choose a branch before approving.`);
   } else if (!resolvedBranch) {
     validationIssues.push("Choose an active branch before approving this listing.");
+  }
+  if (assignedAgentId == null) {
+    validationIssues.push(DRAFT_AGENT_ISSUE);
+  } else {
+    const [agent] = await db.select({
+      id: usersTable.id,
+      branchId: usersTable.branchId,
+      role: usersTable.role,
+      status: usersTable.status,
+    }).from(usersTable).where(eq(usersTable.id, assignedAgentId)).limit(1);
+    if (!agent || agent.status !== "active" || !["agent", "senior_agent"].includes(agent.role) || agent.branchId !== resolvedBranch?.id) {
+      if (req.body.agentId === undefined) {
+        validationIssues.push(DRAFT_AGENT_ISSUE);
+      } else {
+        res.status(400).json({ error: "Choose an active agent assigned to this listing's branch." });
+        return;
+      }
+    }
   }
   await db.update(importRecordsTable).set({
     correctedData: nextData,
@@ -1346,8 +1375,8 @@ router.patch("/imports/sessions/:id/records/:recordId", async (req, res): Promis
     validationIssues,
     confidenceScore: 100,
     reviewStatus: req.body.reviewStatus === "approved" ? "approved" : "needs_review",
-    agentId: req.body.agentId === null ? null : Number.isInteger(req.body.agentId) ? req.body.agentId : record.agentId,
-    agentMatchStatus: req.body.agentId ? "matched" : record.agentMatchStatus,
+    agentId: assignedAgentId,
+    agentMatchStatus: assignedAgentId == null ? "unmatched" : "matched",
     mandateStatus: mandateState(nextData.mandateExpiry),
     updatedAt: new Date(),
   }).where(eq(importRecordsTable.id, recordId));
@@ -1408,7 +1437,22 @@ router.post("/imports/sessions/:id/bulk-action", async (req, res): Promise<void>
     update.agentId = req.body.agentId;
     update.agentMatchStatus = req.body.agentId ? "matched" : "unmatched";
   } else { res.status(400).json({ error: "Unsupported bulk action." }); return; }
-  await db.update(importRecordsTable).set(update).where(inArray(importRecordsTable.id, records.map((record) => record.id)));
+  if (action === "assign") {
+    await db.transaction(async (tx) => {
+      for (const record of records) {
+        const previousIssues = Array.isArray(record.validationIssues)
+          ? record.validationIssues.map(String)
+          : [];
+        const validationIssues = req.body.agentId === null
+          ? [...new Set([...previousIssues.filter((issue) => issue !== DRAFT_AGENT_ISSUE), DRAFT_AGENT_ISSUE])]
+          : previousIssues.filter((issue) => issue !== DRAFT_AGENT_ISSUE);
+        await tx.update(importRecordsTable).set({ ...update, validationIssues })
+          .where(eq(importRecordsTable.id, record.id));
+      }
+    });
+  } else {
+    await db.update(importRecordsTable).set(update).where(inArray(importRecordsTable.id, records.map((record) => record.id)));
+  }
   await updateCounters(sessionId);
   const detail = await detailFor(sessionId, branchId);
   res.json(detail);
@@ -1432,27 +1476,43 @@ router.post("/imports/sessions/:id/publish", async (req, res): Promise<void> => 
   let created = 0; let linked = 0; let published = 0; const errors: string[] = [];
   for (const record of records) {
     const data = effectiveData(record);
+    const draftPrice = numberValue(data.price);
     const targetBranchId = record.branchId ?? session.defaultBranchId ?? branchContext.mainBranchId;
     if (!branchContext.branches.some((branch) => branch.id === targetBranchId)) {
       errors.push(`Record ${record.id}: select an active branch in this agency before publishing.`);
       continue;
     }
+    if (!hasPositiveDraftPrice(draftPrice)) {
+      errors.push(`Record ${record.id}: enter a price greater than zero before adding this listing to drafts.`);
+      continue;
+    }
     const issues = validateData(data, "spreadsheet").filter((issue) => !isPhotoRequirementIssue(issue));
     const storedIssues = Array.isArray(record.validationIssues)
-      ? record.validationIssues.map(String).filter((issue) => !isPhotoRequirementIssue(issue))
+      ? record.validationIssues.map(String).filter((issue) =>
+        !isPhotoRequirementIssue(issue)
+        && (record.duplicateStatus !== "link_existing" || issue !== DRAFT_AGENT_ISSUE)
+      )
       : [];
+    if (record.duplicateStatus !== "link_existing") {
+      if (record.agentId == null) {
+        errors.push(`Record ${record.id}: assign an active agent before adding this listing to drafts.`);
+        continue;
+      }
+      const [agent] = await db.select({
+        branchId: usersTable.branchId,
+        role: usersTable.role,
+        status: usersTable.status,
+      }).from(usersTable).where(eq(usersTable.id, record.agentId)).limit(1);
+      if (!agent || agent.status !== "active" || !["agent", "senior_agent"].includes(agent.role) || agent.branchId !== targetBranchId) {
+        errors.push(`Record ${record.id}: choose an active agent assigned to the selected branch.`);
+        continue;
+      }
+    }
     if (record.reviewStatus !== "approved" || issues.length || storedIssues.length > 0 || record.duplicateStatus === "possible" || (record.duplicateStatus === "link_existing" && !record.matchedPropertyId)) {
       errors.push(`Record ${record.id}: approve the record and resolve validation or duplicate issues first.`);
       continue;
     }
     try {
-      if (record.agentId) {
-        const [agent] = await db.select({ branchId: usersTable.branchId }).from(usersTable).where(eq(usersTable.id, record.agentId)).limit(1);
-        if (!agent || agent.branchId !== targetBranchId) {
-          errors.push(`Record ${record.id}: its assigned agent does not belong to the selected branch.`);
-          continue;
-        }
-      }
       let propertyId = record.duplicateStatus === "link_existing" ? record.matchedPropertyId : null;
       if (!propertyId) {
         const [property] = await db.insert(propertiesTable).values({
@@ -1462,7 +1522,7 @@ router.post("/imports/sessions/:id/publish", async (req, res): Promise<void> => 
           propertyType: asText(data.propertyType) || "residential",
           listingType: "sale",
           ...importedPropertyDraft(data.photos),
-          price: numberValue(data.price) ?? 0,
+          price: draftPrice ?? 0,
           currency: asText(data.currency) || "USD",
           suburb: asText(data.suburb),
           city: asText(data.city),
@@ -1492,7 +1552,7 @@ router.post("/imports/sessions/:id/publish", async (req, res): Promise<void> => 
             propertyId,
             agentId: record.agentId,
             branchId: targetBranchId,
-            askingPrice: numberValue(data.price) ?? 0,
+            askingPrice: draftPrice ?? 0,
             currency: asText(data.currency) || "USD",
             mandateType: asText(data.mandateType) || "non_exclusive",
             description: asText(data.description) || null,

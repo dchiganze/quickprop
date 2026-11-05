@@ -4,6 +4,8 @@ import { eq, and, ilike, or, gte, lte, desc, type SQL } from "drizzle-orm";
 import {
   db,
   propertiesTable,
+  branchesTable,
+  usersTable,
   priceHistoryTable,
   activityTable,
   sellersTable,
@@ -42,7 +44,7 @@ import { queuePrimaryReviewInvitation } from "../lib/agent-reviews";
 import { matchPropertyToAlerts } from "../lib/property-alerts";
 import { logger } from "../lib/logger";
 import { isPublicProperty, syncPropertyToProduction } from "../lib/publication-sync";
-import { needsPublicationPhoto } from "../lib/property-drafts";
+import { hasPositiveDraftPrice, isDraftPropertyState, needsPublicationPhoto } from "../lib/property-drafts";
 import {
   createPropertySaleConfirmationToken,
   hashPropertySaleConfirmationToken,
@@ -62,6 +64,33 @@ const PIPELINE_STAGES = [
   "archived",
 ];
 const SELLING_STATUSES = ["available", "under_offer", "sold", "withdrawn"] as const;
+
+async function activeAgent(agentId: number) {
+  const [agent] = await db.select({
+    id: usersTable.id,
+    branchId: usersTable.branchId,
+    role: usersTable.role,
+    status: usersTable.status,
+  }).from(usersTable).where(eq(usersTable.id, agentId)).limit(1);
+  return agent && agent.status === "active" && ["agent", "senior_agent"].includes(agent.role)
+    ? agent
+    : null;
+}
+
+async function canAssignPropertyBranch(user: Awaited<ReturnType<typeof currentUser>>, branchId: number) {
+  const [targetBranch] = await db.select({
+    id: branchesTable.id,
+    agencyId: branchesTable.agencyId,
+    status: branchesTable.status,
+  }).from(branchesTable).where(eq(branchesTable.id, branchId)).limit(1);
+  if (!targetBranch || targetBranch.status !== "active" || !user) return false;
+  if (user.branchId == null) return user.role === "admin";
+  if (targetBranch.id === user.branchId) return true;
+  if (!["admin", "principal"].includes(user.role)) return false;
+  const [actorBranch] = await db.select({ agencyId: branchesTable.agencyId })
+    .from(branchesTable).where(eq(branchesTable.id, user.branchId)).limit(1);
+  return actorBranch?.agencyId != null && actorBranch.agencyId === targetBranch.agencyId;
+}
 
 function mutationKey(req: Request): string | null {
   const value = req.get("Idempotency-Key")?.trim();
@@ -120,6 +149,7 @@ router.post("/properties", async (req, res): Promise<void> => {
     res.status(400).json({ error: "A new property cannot be created as sold. Use the Mark as sold flow to request conveyancer confirmation." });
     return;
   }
+  const user = await currentUser(req);
   if (needsPublicationPhoto({
     status: parsed.data.status,
     pipelineStage: parsed.data.pipelineStage,
@@ -128,7 +158,47 @@ router.post("/properties", async (req, res): Promise<void> => {
     res.status(400).json({ error: "Upload at least one property photo before publishing. You can save this property as a draft without photos." });
     return;
   }
-  const user = await currentUser(req);
+  const draftState = isDraftPropertyState(
+    parsed.data.status ?? "draft",
+    parsed.data.pipelineStage ?? "draft",
+  );
+  if (draftState && !hasPositiveDraftPrice(parsed.data.price)) {
+    res.status(400).json({ error: "Enter a price greater than zero before saving this property as a draft." });
+    return;
+  }
+  const requestedAgentId = parsed.data.agentId
+    ?? (user && ["agent", "senior_agent"].includes(user.role) ? user.id : undefined);
+  let assignedAgentId: number | null = null;
+  let assignmentBranchId = parsed.data.branchId ?? user?.branchId ?? null;
+  if (requestedAgentId != null) {
+    if ((user?.role === "agent" || user?.role === "senior_agent") && requestedAgentId !== user.id) {
+      res.status(403).json({ error: "Agents can only assign their own properties." });
+      return;
+    }
+    const agent = await activeAgent(requestedAgentId);
+    if (!agent) {
+      res.status(400).json({ error: "Choose an active agent before saving this property." });
+      return;
+    }
+    assignmentBranchId ??= agent.branchId;
+    if (!agent.branchId || agent.branchId !== assignmentBranchId) {
+      res.status(400).json({ error: "The assigned agent must belong to the property's branch." });
+      return;
+    }
+    if (!await canAssignPropertyBranch(user, assignmentBranchId)) {
+      res.status(403).json({ error: "Choose an active branch in your agency for this property." });
+      return;
+    }
+    assignedAgentId = agent.id;
+  }
+  if (draftState && !assignedAgentId) {
+    res.status(400).json({ error: "Assign an active agent before saving this property as a draft." });
+    return;
+  }
+  if (draftState && assignmentBranchId == null) {
+    res.status(409).json({ error: "Assign this account to a branch before creating a property draft." });
+    return;
+  }
   const requestKey = mutationKey(req);
   const {
     sellerName,
@@ -139,6 +209,8 @@ router.post("/properties", async (req, res): Promise<void> => {
   } = parsed.data;
   const propertyInput = {
     ...propertyData,
+    agentId: assignedAgentId,
+    branchId: assignmentBranchId ?? propertyData.branchId,
     proposedViewingTimes: propertyData.proposedViewingTimes?.map((time) => time.toISOString()),
     privateNotes: sellerNotes?.trim() || propertyData.privateNotes,
   };
@@ -176,7 +248,8 @@ router.post("/properties", async (req, res): Promise<void> => {
       .insert(propertiesTable)
       .values({
         ...propertyInput,
-        agentId: user?.id,
+        agentId: assignedAgentId,
+        branchId: assignmentBranchId ?? propertyData.branchId,
         sellerId: seller?.id ?? propertyData.sellerId,
         reference: temporaryReference,
         normalizedAddress: normalizeText(propertyData.address),
@@ -262,6 +335,43 @@ router.patch("/properties/:id", async (req, res): Promise<void> => {
     res.status(404).json({ error: "Property not found" });
     return;
   }
+  const nextStatus = parsed.data.status ?? existing.status;
+  const nextPipelineStage = parsed.data.status === "draft"
+    ? "draft"
+    : parsed.data.status === "public"
+      ? "published"
+      : parsed.data.pipelineStage ?? existing.pipelineStage;
+  const draftState = isDraftPropertyState(nextStatus, nextPipelineStage);
+  const nextPrice = parsed.data.price ?? existing.price;
+  if (draftState && !hasPositiveDraftPrice(nextPrice)) {
+    res.status(400).json({ error: "Enter a price greater than zero before saving this property as a draft." });
+    return;
+  }
+  const requestedAgentId = parsed.data.agentId === undefined ? existing.agentId : parsed.data.agentId;
+  let assignmentBranchId = parsed.data.branchId ?? existing.branchId ?? null;
+  if (requestedAgentId != null) {
+    const agent = await activeAgent(requestedAgentId);
+    if (!agent) {
+      res.status(400).json({ error: "Choose an active agent before saving this property." });
+      return;
+    }
+    assignmentBranchId ??= agent.branchId;
+    if (!agent.branchId || agent.branchId !== assignmentBranchId) {
+      res.status(400).json({ error: "The assigned agent must belong to the property's branch." });
+      return;
+    }
+    if (!await canAssignPropertyBranch(user, assignmentBranchId)) {
+      res.status(403).json({ error: "Choose an active branch in your agency for this property." });
+      return;
+    }
+  } else if (draftState) {
+    res.status(400).json({ error: "Assign an active agent before saving this property as a draft." });
+    return;
+  }
+  if (draftState && assignmentBranchId == null) {
+    res.status(409).json({ error: "Assign this property to an active branch before saving it as a draft." });
+    return;
+  }
   if (needsPublicationPhoto({
     status: parsed.data.status ?? existing.status,
     pipelineStage: parsed.data.pipelineStage,
@@ -319,6 +429,10 @@ router.patch("/properties/:id", async (req, res): Promise<void> => {
     mandateType: propertyData.mandateType === "exclusive" ? "sole" : propertyData.mandateType,
   };
   const update: Record<string, unknown> = { ...normalizedData, updatedAt: new Date() };
+  if (requestedAgentId != null) {
+    update.agentId = requestedAgentId;
+    update.branchId = assignmentBranchId;
+  }
   if (parsed.data.status === "public" && existing.status !== "public") {
     const publishedAt = new Date();
     update.publishedAt = publishedAt;

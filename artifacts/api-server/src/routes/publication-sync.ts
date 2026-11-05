@@ -11,6 +11,7 @@ import {
   propertyPublicationSchema,
   verifyPublicationRequest,
 } from "../lib/publication-sync";
+import { hasPositiveDraftPrice } from "../lib/property-drafts";
 
 const router: IRouter = Router();
 
@@ -33,16 +34,41 @@ router.post("/internal/publications/properties", async (req, res): Promise<void>
 
   const payload = parsed.data;
   const property = payload.property;
+  if (!payload.isPublic && !hasPositiveDraftPrice(property.price)) {
+    res.status(400).json({ error: "Enter a price greater than zero before syncing this property as a draft." });
+    return;
+  }
   const [agent] = payload.agent
-    ? await db.select({ id: usersTable.id })
+    ? await db.select({
+      id: usersTable.id,
+      role: usersTable.role,
+      status: usersTable.status,
+      branchId: usersTable.branchId,
+    })
       .from(usersTable)
       .where(eq(usersTable.email, payload.agent.email.toLowerCase()))
     : [];
   const [branch] = payload.branch
-    ? await db.select({ id: branchesTable.id })
+    ? await db.select({
+      id: branchesTable.id,
+      status: branchesTable.status,
+    })
       .from(branchesTable)
-      .where(eq(branchesTable.name, payload.branch.name))
+      .where(agent?.branchId
+        ? and(eq(branchesTable.name, payload.branch.name), eq(branchesTable.id, agent.branchId))
+        : eq(branchesTable.name, payload.branch.name))
     : [];
+  if (!payload.isPublic && (
+    !agent
+    || agent.status !== "active"
+    || !["agent", "senior_agent"].includes(agent.role)
+    || !branch
+    || branch.status !== "active"
+    || agent.branchId !== branch.id
+  )) {
+    res.status(400).json({ error: "Assign an active agent in the property's branch before syncing it as a draft." });
+    return;
+  }
 
   const result = await db.transaction(async (tx) => {
     let sellerId: number | null = null;

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { hasListingPhotos, importedPropertyDraft, needsPublicationPhoto } from "./property-drafts";
+import { hasListingPhotos, hasPositiveDraftPrice, importedPropertyDraft, needsPublicationPhoto } from "./property-drafts";
 
 test("all imports start as unpublished drafts, including imports containing photos", () => {
   for (const photos of [undefined, [], ["https://example.com/photo.jpg"]]) {
@@ -24,4 +24,12 @@ test("draft edits can have no photos but publishing requires a nonblank photo", 
   }
   assert.equal(needsPublicationPhoto({ status: "draft", pipelineStage: "published", photos: [] }), true);
   assert.equal(hasListingPhotos([null, 0, " "]), false);
+});
+
+test("drafts require a positive finite price", () => {
+  assert.equal(hasPositiveDraftPrice(275000), true);
+  assert.equal(hasPositiveDraftPrice(0), false);
+  assert.equal(hasPositiveDraftPrice(-1), false);
+  assert.equal(hasPositiveDraftPrice(Number.NaN), false);
+  assert.equal(hasPositiveDraftPrice(null), false);
 });

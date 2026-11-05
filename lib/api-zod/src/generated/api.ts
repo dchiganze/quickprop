@@ -465,9 +465,6 @@ export const ListPropertiesResponseItem = zod.object({
 export const ListPropertiesResponse = zod.array(ListPropertiesResponseItem)
 
 
-
-
-
 export const CreatePropertyBody = zod.object({
   "title": zod.string(),
   "description": zod.string().optional(),
@@ -475,7 +472,7 @@ export const CreatePropertyBody = zod.object({
   "listingType": zod.string(),
   "status": zod.string().optional(),
   "pipelineStage": zod.string().optional(),
-  "price": zod.number(),
+  "price": zod.number().describe('Must be greater than zero before saving a draft.'),
   "negotiable": zod.boolean().optional(),
   "salePrice": zod.number().optional(),
   "currency": zod.string().optional(),
@@ -494,11 +491,11 @@ export const CreatePropertyBody = zod.object({
   "latitude": zod.number().optional(),
   "longitude": zod.number().optional(),
   "features": zod.array(zod.string()).optional(),
-  "photos": zod.array(zod.string()).min(1),
+  "photos": zod.array(zod.string()).optional().describe('Drafts may be saved without photos; published listings require at least one photo.'),
   "proposedViewingTimes": zod.array(zod.coerce.date()).optional().describe('Optional proposed viewing slots as ISO 8601 date-time strings.'),
   "videoUrl": zod.string().optional(),
   "coverImage": zod.string().optional(),
-  "agentId": zod.number().optional(),
+  "agentId": zod.number().optional().describe('Active agent assigned to this listing; required before saving a draft.'),
   "branchId": zod.number().optional(),
   "sellerId": zod.number().optional(),
   "mandateType": zod.string().optional(),

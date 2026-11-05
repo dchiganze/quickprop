@@ -3369,7 +3369,7 @@ components:
         staleSince: { type: ["string", "null"] }
     PropertyInput:
       type: object
-      required: [title, propertyType, listingType, price, suburb, city, photos]
+      required: [title, propertyType, listingType, price, suburb, city]
       properties:
         title: { type: string }
         description: { type: string }
@@ -3377,7 +3377,7 @@ components:
         listingType: { type: string }
         status: { type: string }
         pipelineStage: { type: string }
-        price: { type: number }
+        price: { type: number, description: "Must be greater than zero before saving a draft." }
         negotiable: { type: boolean }
         salePrice: { type: number }
         currency: { type: string }
@@ -3400,7 +3400,7 @@ components:
           items: { type: string }
         photos:
           type: array
-          minItems: 1
+          description: Drafts may be saved without photos; published listings require at least one photo.
           items: { type: string }
         proposedViewingTimes:
           type: array
@@ -3408,7 +3408,7 @@ components:
           items: { type: string, format: date-time }
         videoUrl: { type: string }
         coverImage: { type: string }
-        agentId: { type: integer }
+        agentId: { type: integer, description: Active agent assigned to this listing; required before saving a draft. }
         branchId: { type: integer }
         sellerId: { type: integer }
         mandateType: { type: string }

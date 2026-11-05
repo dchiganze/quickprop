@@ -15,6 +15,12 @@ All newly bulk-imported properties must enter inventory as drafts, even when the
 
 **How to apply:** Keep import completion separate from marketplace publication, allow photo-less draft edits, and enforce the photo requirement on the server as well as the publishing controls. Do not change an existing linked property's visibility merely because another import links to it.
 
+Every new property must have an assigned agent and a positive price before it can be saved as a draft.
+
+**Why:** The user requires each draft property to have a responsible agent and a price.
+
+**How to apply:** Enforce both requirements on direct creation, imports, transitions into draft, automatic draft transitions, and offline sync. Imported rows may be reviewed while incomplete, but must not create inventory drafts until an active agent in the listing branch is selected and a positive price is present.
+
 Import processing must wait for the Office user to review and explicitly confirm source-column mappings. Preserve the confirmed mapping on retries.
 
 **Why:** The user requires the source "Property" column to map to QuickProp "Title" and processing to wait for confirmation.

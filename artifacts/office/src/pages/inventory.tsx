@@ -7,6 +7,8 @@ import { useQueryClient } from '@tanstack/react-query';
 import {
   useListProperties,
   useOfficeSearch,
+  useGetCurrentUser,
+  useGetImportBranches,
   useCreateProperty,
   useCheckPropertyDuplicate,
   useAddPropertyAgencyRelationship,
@@ -82,6 +84,7 @@ export function AddPropertyDialog() {
     mandateType: 'sole' as 'open' | 'sole', sellerNotes: '', collaborationEnabled: false,
     proposedViewingTimes: [] as string[],
   });
+  const [assignedAgentId, setAssignedAgentId] = useState('');
   const [viewingDates, setViewingDates] = useState<ViewingDateOption[]>([{ id: 1, date: tomorrowDate(), times: [] }]);
   const [nextViewingDateId, setNextViewingDateId] = useState(2);
   const [timeInputs, setTimeInputs] = useState<Record<number, string>>({ 1: '' });
@@ -93,6 +96,18 @@ export function AddPropertyDialog() {
   const videoInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { data: currentUser } = useGetCurrentUser();
+  const { data: branchOptions } = useGetImportBranches();
+  const isAgentUser = currentUser?.role === 'agent' || currentUser?.role === 'senior_agent';
+  const selectedAgentId = assignedAgentId || (isAgentUser && currentUser ? String(currentUser.id) : '');
+  const availableAgents = (branchOptions?.agents ?? []).filter((agent) =>
+    isAgentUser ? agent.id === currentUser?.id : true
+  );
+  const selectedAgent = availableAgents.find((agent) => String(agent.id) === selectedAgentId)
+    ?? (isAgentUser && currentUser?.branchId != null
+      ? { id: currentUser.id, name: currentUser.name, branchId: currentUser.branchId }
+      : undefined);
+  const branchNameById = new Map((branchOptions?.branches ?? []).map((branch) => [branch.id, branch.name]));
   const createProperty = useCreateProperty({
     mutation: {
       onSuccess: (created) => {
@@ -100,6 +115,7 @@ export function AddPropertyDialog() {
         queryClient.invalidateQueries({ queryKey: getGetPipelineQueryKey() });
         toast({ title: 'Mandate created', description: `${created.reference} — ${created.title}` });
         setOpen(false);
+        setAssignedAgentId('');
          setForm({ title: '', propertyType: 'house', listingType: 'sale', price: '', suburb: '', city: 'Harare', address: '', addressVisible: false, hasTitleDeed: null, bedrooms: '', bathrooms: '', garages: '', landSize: '', floorArea: '', negotiable: false, levies: '', rates: '', features: [], description: '', sellerName: '', sellerPhone: '', sellerEmail: '', mandateExpiry: '', mandateType: 'sole', sellerNotes: '', collaborationEnabled: false, proposedViewingTimes: [] });
          setPhotoFiles([]);
          setVideoFile(null);
@@ -226,8 +242,21 @@ export function AddPropertyDialog() {
   };
 
   const submit = async () => {
-    if (!form.title || !form.price || !form.suburb) {
-      toast({ title: 'Title, price and suburb are required', description: 'Photos can be added to the draft later; at least one is required before publishing.', variant: 'destructive' });
+    if (!form.title.trim() || !form.suburb.trim()) {
+      toast({ title: 'Title and suburb are required', description: 'Photos can be added to the draft later; at least one is required before publishing.', variant: 'destructive' });
+      return;
+    }
+    const price = Number(form.price);
+    if (!Number.isFinite(price) || price <= 0) {
+      toast({ title: 'Enter a price greater than zero', description: 'A positive price is required before saving this property as a draft.', variant: 'destructive' });
+      return;
+    }
+    if (!selectedAgent || selectedAgent.branchId == null) {
+      toast({
+        title: 'Assign an active agent before saving this draft',
+        description: branchOptions ? 'Choose an active agent in the listing branch.' : 'Assign this account to an active branch first.',
+        variant: 'destructive',
+      });
       return;
     }
     if (form.listingType === 'sale' && form.hasTitleDeed === null) {
@@ -241,6 +270,8 @@ export function AddPropertyDialog() {
       const videoUrl = videoFile ? await uploadMedia(videoFile) : undefined;
       const input = {
         title: form.title,
+        agentId: selectedAgent.id,
+        branchId: selectedAgent.branchId,
         propertyType: form.propertyType,
         listingType: form.listingType,
         price: Number(form.price),
@@ -383,8 +414,8 @@ export function AddPropertyDialog() {
           )}
            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
             <div className="grid gap-2">
-              <Label htmlFor="np-price">Price (USD)</Label>
-              <Input id="np-price" data-testid="input-property-price" inputMode="decimal" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} />
+              <Label htmlFor="np-price">Price (USD) *</Label>
+              <Input id="np-price" data-testid="input-property-price" type="number" min="0.01" step="any" required inputMode="decimal" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="np-beds">Bedrooms</Label>
@@ -435,6 +466,30 @@ export function AddPropertyDialog() {
               <Label htmlFor="np-city">City</Label>
               <Input id="np-city" value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} />
             </div>
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="np-assigned-agent">Assigned agent</Label>
+            <Select
+              value={selectedAgentId || 'unassigned'}
+              onValueChange={(value) => setAssignedAgentId(value === 'unassigned' ? '' : value)}
+              disabled={isAgentUser || availableAgents.length === 0}
+            >
+              <SelectTrigger id="np-assigned-agent"><SelectValue placeholder="Choose an active agent" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="unassigned">Choose an active agent</SelectItem>
+                {selectedAgent && !availableAgents.some((agent) => agent.id === selectedAgent.id) && (
+                  <SelectItem value={String(selectedAgent.id)}>{selectedAgent.name}</SelectItem>
+                )}
+                {availableAgents.map((agent) => (
+                  <SelectItem key={agent.id} value={String(agent.id)}>
+                    {agent.name}{branchNameById.has(agent.branchId) ? ` · ${branchNameById.get(agent.branchId)}` : ''}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              Every new draft must be assigned to an active agent in its branch.
+            </p>
           </div>
           <div className="grid gap-3 rounded-lg border border-border bg-muted/30 p-4">
             <div className="grid gap-2">

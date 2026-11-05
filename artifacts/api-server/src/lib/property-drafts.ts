@@ -9,6 +9,14 @@ export function importedPropertyDraft(photos: unknown) {
   };
 }
 
+export function isDraftPropertyState(status?: string | null, pipelineStage?: string | null): boolean {
+  return status === "draft" || pipelineStage === "draft";
+}
+
+export function hasPositiveDraftPrice(price: unknown): boolean {
+  return typeof price === "number" && Number.isFinite(price) && price > 0;
+}
+
 export function hasListingPhotos(photos: unknown): boolean {
   return Array.isArray(photos) && photos.some(photo => typeof photo === "string" && !!photo.trim());
 }
