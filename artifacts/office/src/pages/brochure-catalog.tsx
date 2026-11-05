@@ -27,8 +27,6 @@ const STATUS_LABELS: Record<string, string> = {
   coming_soon: 'Coming Soon',
   sold: 'Sold',
 };
-const STOCK_PROPERTY_PHOTOS_BASE = `${import.meta.env.BASE_URL}stock-property-images/`;
-const GENERIC_PROPERTY_PHOTOS = ['house-exterior.jpg', 'house-interior.jpg', 'house-living.jpg'];
 type PropertyGroup = 'residential' | 'commercial' | 'stand' | 'mine' | 'farm' | 'other_land';
 type LandGroupKey = Extract<PropertyGroup, 'stand' | 'mine' | 'farm' | 'other_land'>;
 const LAND_TYPE_GROUPS: Record<string, LandGroupKey> = {
@@ -63,22 +61,12 @@ function formatPrice(price: number, currency: string, listingType: string) {
   return listingType === 'rent' ? `${formatted}/mo` : formatted;
 }
 
-function getGenericPropertyPhotos(property: any): string[] {
-  const stockStart = Number(property.id ?? 0) % GENERIC_PROPERTY_PHOTOS.length;
-  return [
-    ...GENERIC_PROPERTY_PHOTOS.slice(stockStart),
-    ...GENERIC_PROPERTY_PHOTOS.slice(0, stockStart),
-  ].map((photo) => `${STOCK_PROPERTY_PHOTOS_BASE}${photo}`);
-}
-
 function getPropertyPhotos(property: any): string[] {
   const listingPhotos = [...new Set([
     property.coverImage,
     ...(Array.isArray(property.photos) ? property.photos : []),
   ].filter((photo): photo is string => typeof photo === 'string' && photo.trim().length > 0))];
-  const genericPhotos = getGenericPropertyPhotos(property);
-
-  return Array.from({ length: 3 }, (_, index) => listingPhotos[index] ?? genericPhotos[index]);
+  return Array.from({ length: 4 }, (_, index) => listingPhotos[index] ?? '');
 }
 
 export default function BrochureCatalog() {
@@ -148,7 +136,7 @@ export default function BrochureCatalog() {
     return [...agentIds].map((id) => agentMap[String(id)]?.name).filter(Boolean);
   }, [agentMap, mode, properties]);
 
-  const agencyName = agencySettings?.agencyName || 'QuickProp';
+  const agencyName = 'DBT Properties';
   const titleLine = mode === 'my'
     ? `${currentUser?.name ?? 'Agent'}'s Property Brochure`
     : mode === 'custom' && customAgentNames.length > 0
@@ -157,7 +145,7 @@ export default function BrochureCatalog() {
   const saleProperties = properties.filter((property) => property.listingType === 'sale');
   const rentalProperties = properties.filter((property) => property.listingType === 'rent');
   const pagesCount = properties.length > 0 ? properties.length + 1 : 2;
-  const tagline = agencySettings?.tagline?.trim() ?? '';
+  const tagline = 'Property is what we know best!';
   const aboutText = agencySettings?.aboutText?.trim() ?? '';
   const agencyColors = getAgencyBrandColors(agencySettings);
 
@@ -225,24 +213,41 @@ export default function BrochureCatalog() {
 
         .cover-logo {
           display: flex;
-          align-items: flex-start;
-          justify-content: center;
+          align-items: center;
+          justify-content: flex-start;
+          gap: 16px;
           min-height: 31.5mm;
         }
 
         .cover-logo img {
           display: block;
-          max-width: 101.5mm;
-          max-height: 31.5mm;
+          max-width: 48mm;
+          max-height: 25mm;
           object-fit: contain;
-          object-position: center top;
+          object-position: left center;
         }
 
-        .cover-logo-fallback {
+        .cover-brand-copy,
+        .property-brand-copy {
+          display: flex;
+          flex-direction: column;
+          gap: 3px;
+        }
+
+        .cover-brand-name,
+        .property-brand-name {
           color: var(--brochure-ink);
-          font-size: 31px;
+          font-size: 22px;
           font-weight: 800;
-          letter-spacing: -0.05em;
+          letter-spacing: -0.04em;
+          line-height: 1.1;
+        }
+
+        .cover-brand-tagline,
+        .property-brand-tagline {
+          color: var(--brochure-muted);
+          font-size: 10px;
+          line-height: 1.35;
         }
 
         .cover-kicker,
@@ -269,14 +274,6 @@ export default function BrochureCatalog() {
           font-weight: 800;
           letter-spacing: -0.07em;
           line-height: 0.96;
-        }
-
-        .cover-description {
-          max-width: 135mm;
-          margin: 18px 0 0;
-          color: var(--brochure-muted);
-          font-size: 18px;
-          line-height: 1.65;
         }
 
         .cover-rule {
@@ -405,147 +402,50 @@ export default function BrochureCatalog() {
 
         .property-page-header {
           display: flex;
-          align-items: flex-start;
+          align-items: center;
           justify-content: space-between;
           gap: 16px;
           margin-bottom: 13px;
         }
 
-        .property-kicker {
-          color: var(--brochure-muted);
-        }
-
-        .property-reference {
-          color: var(--brochure-muted);
-          font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-          font-size: 9px;
-          font-weight: 700;
-          letter-spacing: 0.1em;
-          text-transform: uppercase;
-        }
-
-        .property-hero {
-          position: relative;
-          width: 100%;
-          height: 76mm;
-          overflow: hidden;
-          background: #e7efeb;
-        }
-
-        .property-hero img,
-        .property-side-photo img {
-          display: block;
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-        }
-
-        .property-lower {
-          display: grid;
-          grid-template-columns: minmax(0, 1fr) 67mm;
-          gap: 11mm;
-          margin-top: 10mm;
-        }
-
-        .property-copy {
+        .property-brand {
+          display: flex;
           min-width: 0;
-        }
-
-        .property-title {
-          margin: 8px 0 0;
-          color: var(--brochure-ink);
-          font-size: 28px;
-          font-weight: 800;
-          letter-spacing: -0.06em;
-          line-height: 1.02;
-        }
-
-        .property-location {
-          display: flex;
-          align-items: flex-start;
-          gap: 6px;
-          margin-top: 10px;
-          color: var(--brochure-muted);
-          font-size: 11px;
-          line-height: 1.4;
-        }
-
-        .property-location svg {
-          flex: 0 0 auto;
-          margin-top: 1px;
-          color: var(--brochure-primary);
-        }
-
-        .property-description {
-          margin: 19px 0 0;
-          color: var(--brochure-ink-soft);
-          font-size: 11px;
-          line-height: 1.6;
-        }
-
-        .property-specs {
-          display: grid;
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-          gap: 9px 12px;
-          margin-top: 20px;
-          padding: 13px 0;
-          border-top: 1px solid var(--brochure-line);
-          border-bottom: 1px solid var(--brochure-line);
-          color: var(--brochure-ink-soft);
-          font-size: 10px;
-        }
-
-        .property-spec {
-          display: inline-flex;
           align-items: center;
-          gap: 6px;
+          gap: 9px;
         }
 
-        .property-spec svg {
-          color: var(--brochure-primary);
-        }
-
-        .property-tags {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 5px;
-          margin-top: 16px;
-        }
-
-        .property-tag {
-          padding: 5px 7px;
-          color: var(--brochure-ink-soft);
-          background: var(--brochure-paper-warm);
-          border: 1px solid var(--brochure-line);
-          border-radius: 4px;
-          font-size: 8px;
-          font-weight: 700;
-        }
-
-        .property-price {
+        .property-brand img {
           display: block;
-          margin-top: 22px;
-          padding: 13px 14px;
-          color: white;
-          background: var(--brochure-primary);
-          -webkit-print-color-adjust: exact;
-          print-color-adjust: exact;
-          font-size: 22px;
-          font-weight: 800;
-          letter-spacing: -0.05em;
-          line-height: 1.1;
+          width: 19mm;
+          height: 15mm;
+          object-fit: contain;
+          object-position: left center;
+        }
+
+        .property-brand-name {
+          font-size: 14px;
+        }
+
+        .property-brand-tagline {
+          font-size: 8px;
+        }
+
+        .property-page-meta {
+          flex: 0 0 auto;
+          text-align: right;
         }
 
         .property-status {
           display: inline-block;
-          margin-top: 12px;
-          padding: 5px 8px;
+          margin: 0 0 3px 8px;
+          padding: 3px 6px;
           color: var(--brochure-primary);
           border: 1px solid var(--brochure-primary-bright);
-          border-radius: 4px;
-          font-size: 8px;
+          border-radius: 3px;
+          font-size: 7px;
           font-weight: 800;
-          letter-spacing: 0.1em;
+          letter-spacing: 0.08em;
           text-transform: uppercase;
         }
 
@@ -559,17 +459,187 @@ export default function BrochureCatalog() {
           border-color: #e5aaaa;
         }
 
+        .property-kicker {
+          margin: 0 0 4px;
+          color: var(--brochure-muted);
+        }
+
+        .property-reference {
+          color: var(--brochure-muted);
+          font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+          font-size: 9px;
+          font-weight: 700;
+          letter-spacing: 0.1em;
+          text-transform: uppercase;
+        }
+
+        .property-gallery {
+          display: grid;
+          grid-template-columns: minmax(0, 1.8fr) minmax(35mm, 0.82fr);
+          gap: 5mm;
+          height: 94mm;
+        }
+
+        .property-hero {
+          position: relative;
+          overflow: hidden;
+          background: #e7efeb;
+        }
+
+        .property-hero img,
+        .property-side-photo img {
+          display: block;
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+
         .property-side-photos {
           display: grid;
-          grid-template-rows: repeat(2, 1fr);
-          gap: 10px;
+          grid-template-rows: repeat(3, minmax(0, 1fr));
+          gap: 3mm;
+          min-height: 0;
         }
 
         .property-side-photo {
           position: relative;
-          min-height: 53mm;
+          min-height: 0;
           overflow: hidden;
           background: #e7efeb;
+        }
+
+        .property-heading-row {
+          display: flex;
+          align-items: flex-end;
+          justify-content: space-between;
+          gap: 16px;
+          margin-top: 7mm;
+        }
+
+        .property-copy {
+          min-width: 0;
+        }
+
+        .property-title {
+          margin: 0;
+          color: var(--brochure-ink);
+          font-size: 27px;
+          font-weight: 800;
+          letter-spacing: -0.06em;
+          line-height: 1.02;
+        }
+
+        .property-location {
+          display: flex;
+          align-items: flex-start;
+          gap: 6px;
+          margin-top: 7px;
+          color: var(--brochure-muted);
+          font-size: 11px;
+          line-height: 1.4;
+        }
+
+        .property-location svg {
+          flex: 0 0 auto;
+          margin-top: 1px;
+          color: var(--brochure-primary);
+        }
+
+        .property-description {
+          margin: 12px 0 0;
+          color: var(--brochure-ink-soft);
+          font-size: 11px;
+          line-height: 1.6;
+        }
+
+        .property-specs {
+          display: grid;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: 10px;
+          margin-top: 6mm;
+          padding: 12px 0;
+          border-top: 1px solid var(--brochure-line);
+          border-bottom: 1px solid var(--brochure-line);
+          color: var(--brochure-ink-soft);
+          font-size: 9px;
+        }
+
+        .property-spec {
+          display: flex;
+          min-width: 0;
+          flex-direction: column;
+          align-items: center;
+          gap: 4px;
+          text-align: center;
+        }
+
+        .property-spec svg {
+          width: 18px;
+          height: 18px;
+          color: var(--brochure-primary);
+        }
+
+        .property-spec-value {
+          color: var(--brochure-ink);
+          font-size: 15px;
+          font-weight: 800;
+          line-height: 1;
+        }
+
+        .property-spec-label {
+          color: var(--brochure-muted);
+          font-size: 8px;
+          font-weight: 700;
+          letter-spacing: 0.05em;
+          text-transform: uppercase;
+        }
+
+        .property-detail-grid {
+          display: grid;
+          grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+          gap: 8mm;
+          margin-top: 6mm;
+        }
+
+        .property-detail-grid-single {
+          grid-template-columns: 1fr;
+        }
+
+        .property-features-title {
+          margin: 0 0 8px;
+          color: var(--brochure-primary);
+          font-size: 10px;
+          font-weight: 800;
+          letter-spacing: 0.14em;
+          text-transform: uppercase;
+        }
+
+        .property-tags {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 5px 12px;
+          margin-top: 0;
+        }
+
+        .property-tag {
+          color: var(--brochure-ink-soft);
+          font-size: 9px;
+          line-height: 1.35;
+        }
+
+        .property-price {
+          display: inline-block;
+          flex: 0 0 auto;
+          margin: 0 0 2px;
+          padding: 11px 14px;
+          color: white;
+          background: var(--brochure-primary);
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+          font-size: 20px;
+          font-weight: 800;
+          letter-spacing: -0.05em;
+          line-height: 1.1;
         }
 
         .photo-placeholder {
@@ -589,18 +659,18 @@ export default function BrochureCatalog() {
           display: flex;
           flex-wrap: wrap;
           gap: 7px 18px;
-          margin-top: 18px;
+          margin-top: 6mm;
           padding: 12px 14px;
           color: var(--brochure-ink-soft);
           background: var(--brochure-paper-warm);
           border: 1px solid var(--brochure-line);
-          font-size: 17.5px;
+          font-size: 9px;
         }
 
         .property-contact-label {
           width: 100%;
           color: var(--brochure-primary);
-          font-size: 14px;
+          font-size: 9px;
           font-weight: 800;
           letter-spacing: 0.12em;
           text-transform: uppercase;
@@ -635,13 +705,13 @@ export default function BrochureCatalog() {
           display: flex;
           flex-direction: column;
           gap: 3px;
-          font-size: 12px;
+          font-size: 8px;
           line-height: 1.2;
         }
 
         .page-footer-meta strong {
           color: var(--brochure-ink-soft);
-          font-size: 13.5px;
+          font-size: 9px;
         }
 
         .page-footer-meta a {
@@ -709,10 +779,13 @@ export default function BrochureCatalog() {
             border-left: 0;
           }
           .cover-stat + .cover-stat { border-top: 1px solid var(--brochure-line); }
-          .property-lower { grid-template-columns: 1fr; }
+          .property-gallery { grid-template-columns: 1fr; height: auto; }
           .property-hero { height: 58vw; }
-          .property-side-photos { grid-template-columns: repeat(2, 1fr); grid-template-rows: 42vw; }
+          .property-side-photos { grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: 25vw; }
           .property-side-photo { min-height: 0; }
+          .property-heading-row { align-items: flex-start; flex-direction: column; }
+          .property-specs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+          .property-detail-grid { grid-template-columns: 1fr; }
           .page-footer { right: 22px; bottom: 24px; left: 22px; }
         }
 
@@ -761,6 +834,7 @@ export default function BrochureCatalog() {
             agentContact={property.agentId != null ? agentMap[String(property.agentId)] ?? null : null}
             agencyName={agencyName}
             agencyLogo={agencySettings?.logoUrl}
+            tagline={tagline}
             agencyWebsite={agencySettings?.website}
             pageNumber={index + 2}
             pageCount={pagesCount}
@@ -818,13 +892,14 @@ function CoverPage({
         <div className="cover-logo" aria-label={`${agencyName} logo`}>
           {agencyLogo ? (
             <img src={agencyLogo} alt={`${agencyName} logo`} />
-          ) : (
-            <span className="cover-logo-fallback">{agencyName}</span>
-          )}
+          ) : null}
+          <div className="cover-brand-copy">
+            <span className="cover-brand-name">{agencyName}</span>
+            {tagline && <span className="cover-brand-tagline">{tagline}</span>}
+          </div>
         </div>
         <div className="cover-main">
           <h1 className="cover-title">{titleLine}</h1>
-          {tagline && <p className="cover-description">{tagline}</p>}
           <div className="cover-rule" />
           <div className="cover-stats">
             <CoverStat value={totalProperties} label="Published listings" />
@@ -854,6 +929,7 @@ function PropertyPage({
   agentContact,
   agencyName,
   agencyLogo,
+  tagline,
   agencyWebsite,
   pageNumber,
   pageCount,
@@ -862,12 +938,12 @@ function PropertyPage({
   agentContact: AgentContact | null;
   agencyName: string;
   agencyLogo?: string | null;
+  tagline: string;
   agencyWebsite?: string | null;
   pageNumber: number;
   pageCount: number;
 }) {
   const photos = getPropertyPhotos(property);
-  const genericPhotos = getGenericPropertyPhotos(property);
   const statusLabel = STATUS_LABELS[property.status] ?? (property.listingType === 'rent' ? 'To Rent' : 'For Sale');
   const statusClass = property.status === 'under_offer'
     ? 'status-under-offer'
@@ -879,68 +955,88 @@ function PropertyPage({
   return (
     <section className="brochure-page property-page">
       <div className="property-page-header">
-        <p className="property-kicker">{property.listingType === 'rent' ? 'To rent' : 'For sale'} · {property.propertyType.replace('_', ' ')}</p>
-        <span className="property-reference">Ref {property.reference}</span>
+        <div className="property-brand">
+          {agencyLogo && <img src={agencyLogo} alt={`${agencyName} logo`} />}
+          <div className="property-brand-copy">
+            <span className="property-brand-name">{agencyName}</span>
+            {tagline && <span className="property-brand-tagline">{tagline}</span>}
+          </div>
+        </div>
+        <div className="property-page-meta">
+          <p className="property-kicker">{property.listingType === 'rent' ? 'To rent' : 'For sale'} · {property.propertyType.replace('_', ' ')}</p>
+          <span className={`property-status ${statusClass}`}>{statusLabel}</span>
+          <span className="property-reference">Ref {property.reference}</span>
+        </div>
       </div>
 
-      <PhotoSlot
-        src={photos[0]}
-        fallbackSrc={genericPhotos[0]}
-        label="Main property image"
-        className="property-hero"
-      />
+      <div className="property-gallery">
+        <PhotoSlot src={photos[0]} label="Main property image" className="property-hero" />
+        <div className="property-side-photos">
+          {photos.slice(1, 4).map((photo, index) => (
+            <PhotoSlot
+              key={index}
+              src={photo}
+              label={`Supporting property image ${index + 1}`}
+              className="property-side-photo"
+            />
+          ))}
+        </div>
+      </div>
 
-      <div className="property-lower">
-        <div className="property-copy">
+      <div className="property-copy">
+        <div className="property-heading-row">
+          <div>
           <h2 className="property-title">{property.title}</h2>
           <div className="property-location">
             <MapPin className="w-3.5 h-3.5" />
             <span>{location}</span>
           </div>
-          {property.description && <p className="property-description">{property.description}</p>}
-
-          <div className="property-specs">
-            {property.bedrooms != null && <span className="property-spec"><Bed className="w-3.5 h-3.5" />{property.bedrooms} bedrooms</span>}
-            {property.bathrooms != null && <span className="property-spec"><Bath className="w-3.5 h-3.5" />{property.bathrooms} bathrooms</span>}
-            {property.parking != null && <span className="property-spec"><Car className="w-3.5 h-3.5" />{property.parking} parking</span>}
-            {property.landSize != null && <span className="property-spec"><Square className="w-3.5 h-3.5" />{property.landSize} m²</span>}
-            <span className="property-spec"><Building2 className="w-3.5 h-3.5" />{property.propertyType.replace('_', ' ')}</span>
           </div>
+          <span className="property-price">{formatPrice(property.price, property.currency, property.listingType)}</span>
+        </div>
 
+        <div className="property-specs">
+          {property.bedrooms != null && (
+            <PropertySpec icon={<Bed />} value={property.bedrooms} label="Bedrooms" />
+          )}
+          {property.bathrooms != null && (
+            <PropertySpec icon={<Bath />} value={property.bathrooms} label="Bathrooms" />
+          )}
+          {property.parking != null && (
+            <PropertySpec icon={<Car />} value={property.parking} label="Garages / parking" />
+          )}
+          {property.landSize != null && (
+            <PropertySpec icon={<Square />} value={`${Number(property.landSize).toLocaleString()} m²`} label="Land area" />
+          )}
+          <PropertySpec
+            icon={<Building2 />}
+            value={property.propertyType.replace('_', ' ')}
+            label="Property type"
+          />
+        </div>
+
+        <div className={`property-detail-grid${property.description && (property.features ?? []).length > 0 ? '' : ' property-detail-grid-single'}`}>
+          <div>
+            {property.description && <p className="property-description">{property.description}</p>}
+          </div>
           {(property.features ?? []).length > 0 && (
-            <div className="property-tags">
-              {(property.features ?? []).slice(0, 8).map((feature: string) => (
-                <span key={feature} className="property-tag">{feature}</span>
-              ))}
+            <div className="property-features">
+              <h3 className="property-features-title">Property features</h3>
+              <div className="property-tags">
+                {(property.features ?? []).slice(0, 8).map((feature: string) => (
+                  <span key={feature} className="property-tag">• {feature}</span>
+                ))}
+              </div>
             </div>
           )}
-
-          <span className="property-price">{formatPrice(property.price, property.currency, property.listingType)}</span>
-          <span className={`property-status ${statusClass}`}>{statusLabel}</span>
         </div>
-
-        <div className="property-side-photos">
-          <PhotoSlot
-            src={photos[1]}
-            fallbackSrc={genericPhotos[1]}
-            label="Supporting property image"
-            className="property-side-photo"
-          />
-          <PhotoSlot
-            src={photos[2]}
-            fallbackSrc={genericPhotos[2]}
-            label="Supporting property image"
-            className="property-side-photo"
-          />
-        </div>
-      </div>
-
       <div className="property-contact">
         {agentContact && <span className="property-contact-label">Handling agent</span>}
         {agentContact?.name && <span className="property-contact-item"><Building2 className="w-3 h-3" />{agentContact.name}</span>}
         {agentContact?.email && <span className="property-contact-item"><Mail className="w-3 h-3" />{agentContact.email}</span>}
         {agentContact?.phone && <span className="property-contact-item"><Phone className="w-3 h-3" />{agentContact.phone}</span>}
         {agencyWebsite && <span className="property-contact-item"><Globe2 className="w-3 h-3" />{agencyWebsite.replace(/^https?:\/\//, '')}</span>}
+      </div>
       </div>
 
       <PageFooter
@@ -953,26 +1049,40 @@ function PropertyPage({
   );
 }
 
+function PropertySpec({
+  icon,
+  value,
+  label,
+}: {
+  icon: React.ReactNode;
+  value: string | number;
+  label: string;
+}) {
+  return (
+    <span className="property-spec">
+      {icon}
+      <span className="property-spec-value">{value}</span>
+      <span className="property-spec-label">{label}</span>
+    </span>
+  );
+}
+
 function PhotoSlot({
   src,
-  fallbackSrc,
   label,
   className,
 }: {
   src?: string;
-  fallbackSrc?: string;
   label: string;
   className: string;
 }) {
-  const [imageState, setImageState] = React.useState<'primary' | 'fallback' | 'none'>(
-    src ? 'primary' : fallbackSrc ? 'fallback' : 'none',
-  );
+  const [imageState, setImageState] = React.useState<'primary' | 'none'>(src ? 'primary' : 'none');
 
   React.useEffect(() => {
-    setImageState(src ? 'primary' : fallbackSrc ? 'fallback' : 'none');
-  }, [src, fallbackSrc]);
+    setImageState(src ? 'primary' : 'none');
+  }, [src]);
 
-  const imageSrc = imageState === 'primary' ? src : imageState === 'fallback' ? fallbackSrc : undefined;
+  const imageSrc = imageState === 'primary' ? src : undefined;
 
   return (
     <div className={className}>
@@ -980,7 +1090,7 @@ function PhotoSlot({
         <img
           src={imageSrc}
           alt={label}
-          onError={() => setImageState((current) => current === 'primary' && fallbackSrc ? 'fallback' : 'none')}
+          onError={() => setImageState('none')}
         />
       ) : (
         <div className="photo-placeholder">
