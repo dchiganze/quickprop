@@ -579,6 +579,24 @@ export interface PasswordResetRequestInput {
   email: string;
 }
 
+export interface PasswordSetupCodeRequestInput {
+  /** @pattern ^[^@\s]+@[^\s@]+\.[^\s@]+$ */
+  email: string;
+}
+
+export interface PasswordSetupCodeCompleteInput {
+  /** @pattern ^[^@\s]+@[^\s@]+\.[^\s@]+$ */
+  email: string;
+  /** @pattern ^[0-9]{8}$ */
+  code: string;
+  /**
+     * At least 10 characters with a letter, number, and special character.
+     * @minLength 10
+     * @pattern ^(?=.*[A-Za-z])(?=.*[0-9])(?=.*[^A-Za-z0-9\s]).{10,}$
+     */
+  newPassword: string;
+}
+
 export interface PasswordResetCompleteInput {
   /**
      * @minLength 32
@@ -2928,7 +2946,7 @@ export type AdminAgencyAgentCreateResultStatus = typeof AdminAgencyAgentCreateRe
 
 
 export const AdminAgencyAgentCreateResultStatus = {
-  invited: 'invited',
+  active: 'active',
 } as const;
 
 export interface AdminAgencyAgentCreateResult {
@@ -2938,7 +2956,7 @@ export interface AdminAgencyAgentCreateResult {
   branchId: number;
   branchName: string;
   status: AdminAgencyAgentCreateResultStatus;
-  setupEmailSent: boolean;
+  passwordSetupRequired: boolean;
 }
 
 export interface AdminAgentSetupResendResult {

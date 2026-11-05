@@ -87,6 +87,33 @@ export async function sendAdminPasswordResetEmail(
   return { status: "sent", providerMessageId: result.id ?? result.messageId };
 }
 
+export async function sendPasswordSetupCodeEmail(
+  email: string,
+  name: string,
+  code: string,
+  idempotencyKey: string,
+): Promise<DeliveryResult> {
+  const from = env("QUICKPROP_EMAIL_FROM");
+  if (!from) return { status: "skipped", reason: "email_from_not_configured" };
+  const resendKey = env("RESEND_API_KEY");
+  if (!resendKey) return { status: "skipped", reason: "email_provider_not_configured" };
+
+  const safeName = name.replace(/[<>&"]/g, "");
+  const result = await postJson(
+    "https://api.resend.com/emails",
+    {
+      from,
+      to: [email],
+      subject: "Your QuickProp password setup code",
+      text: `Hello ${safeName},\n\nUse this code to set your QuickProp password: ${code}\n\nThe code expires in 10 minutes and can only be used once. If you did not request this, you can ignore this email.`,
+      html: `<p>Hello ${safeName},</p><p>Use this code to set your QuickProp password:</p><p style="font-size:28px;font-weight:700;letter-spacing:6px">${code}</p><p>The code expires in 10 minutes and can only be used once.</p><p>If you did not request this, you can ignore this email.</p>`,
+    },
+    idempotencyKey,
+    { Authorization: `Bearer ${resendKey}` },
+  );
+  return { status: "sent", providerMessageId: result.id ?? result.messageId };
+}
+
 export async function sendAgentSetupEmail(
   email: string,
   name: string,

@@ -93,7 +93,7 @@ export function AgentInviteDialog({
         <DialogHeader>
           <DialogTitle>Add agent to {agency?.name ?? 'agency'}</DialogTitle>
           <DialogDescription>
-            QuickProp will email a one-time password setup link. The saved phone can receive sign-in codes immediately; the first verified code activates the account.
+            The agent is active immediately. On desktop, they can verify their email with a code to create a password; the app uses SMS sign-in codes.
           </DialogDescription>
         </DialogHeader>
 
@@ -147,7 +147,7 @@ export function AgentInviteDialog({
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>Cancel</Button>
               <Button type="submit" disabled={saving || !branchId || !phone.trim()}>
                 {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Send setup link
+                Add active agent
               </Button>
             </DialogFooter>
           </form>

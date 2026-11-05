@@ -264,6 +264,50 @@ paths:
           description: Invalid email address
         "503":
           description: Password reset email delivery is not configured
+  /auth/password-setup/request:
+    post:
+      operationId: requestPasswordSetupCode
+      tags: [auth]
+      summary: Email a one-time code to an active account that still needs a password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PasswordSetupCodeRequestInput"
+      responses:
+        "200":
+          description: Generic result that does not reveal whether an account needs setup
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PasswordResetResult"
+        "400":
+          description: Invalid email address
+        "503":
+          description: Password setup email delivery is not configured
+  /auth/password-setup/complete:
+    post:
+      operationId: completePasswordSetup
+      tags: [auth]
+      summary: Set an initial password using a valid email verification code
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PasswordSetupCodeCompleteInput"
+      responses:
+        "200":
+          description: Password set
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PasswordResetResult"
+        "400":
+          description: Invalid code or password details
+        "410":
+          description: Code expired, exhausted, or already used
   /auth/password-reset/complete:
     post:
       operationId: completeAdminPasswordReset
@@ -3129,6 +3173,22 @@ components:
       required: [email]
       properties:
         email: { type: string, pattern: '^[^@\s]+@[^\s@]+\.[^\s@]+$' }
+    PasswordSetupCodeRequestInput:
+      type: object
+      required: [email]
+      properties:
+        email: { type: string, pattern: '^[^@\s]+@[^\s@]+\.[^\s@]+$' }
+    PasswordSetupCodeCompleteInput:
+      type: object
+      required: [email, code, newPassword]
+      properties:
+        email: { type: string, pattern: '^[^@\s]+@[^\s@]+\.[^\s@]+$' }
+        code: { type: string, pattern: '^[0-9]{8}$' }
+        newPassword:
+          type: string
+          minLength: 10
+          pattern: '^(?=.*[A-Za-z])(?=.*[0-9])(?=.*[^A-Za-z0-9\s]).{10,}$'
+          description: At least 10 characters with a letter, number, and special character.
     PasswordResetCompleteInput:
       type: object
       required: [token, newPassword]
@@ -5016,15 +5076,15 @@ components:
         phone: { type: string, minLength: 8, maxLength: 40 }
     AdminAgencyAgentCreateResult:
       type: object
-      required: [id, name, email, branchId, branchName, status, setupEmailSent]
+      required: [id, name, email, branchId, branchName, status, passwordSetupRequired]
       properties:
         id: { type: integer }
         name: { type: string }
         email: { type: string }
         branchId: { type: integer }
         branchName: { type: string }
-        status: { type: string, enum: [invited] }
-        setupEmailSent: { type: boolean }
+        status: { type: string, enum: [active] }
+        passwordSetupRequired: { type: boolean }
     AdminAgentSetupResendResult:
       type: object
       required: [id, email, setupEmailSent]

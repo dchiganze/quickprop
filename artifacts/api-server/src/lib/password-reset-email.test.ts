@@ -3,6 +3,7 @@ import { mock, test } from "node:test";
 import {
   checkAdminPasswordResetEmailReadiness,
   sendAdminPasswordResetEmail,
+  sendPasswordSetupCodeEmail,
 } from "./housekeeping-delivery";
 
 function restoreEnv(name: string, value: string | undefined): void {
@@ -89,6 +90,53 @@ test("admin password reset email sends through Resend with an idempotency key", 
         "reset-request-42",
       ),
       { status: "sent", providerMessageId: "resend-message-42" },
+    );
+  } finally {
+    fetchMock.mock.restore();
+    restoreEnv("RESEND_API_KEY", previousKey);
+    restoreEnv("QUICKPROP_EMAIL_FROM", previousFrom);
+  }
+});
+
+test("initial password setup email sends a short-lived code instead of a link", async () => {
+  const previousKey = process.env.RESEND_API_KEY;
+  const previousFrom = process.env.QUICKPROP_EMAIL_FROM;
+  process.env.RESEND_API_KEY = "test-resend-key";
+  process.env.QUICKPROP_EMAIL_FROM = "QuickProp <reset@example.test>";
+  const fetchMock = mock.method(
+    globalThis,
+    "fetch",
+    async (
+      input: Parameters<typeof globalThis.fetch>[0],
+      init?: Parameters<typeof globalThis.fetch>[1],
+    ): Promise<Response> => {
+      assert.equal(String(input), "https://api.resend.com/emails");
+      const headers = new Headers(init?.headers);
+      assert.equal(headers.get("idempotency-key"), "password-setup-42");
+      const body = JSON.parse(String(init?.body)) as {
+        to: string[];
+        subject: string;
+        text: string;
+        html: string;
+      };
+      assert.deepEqual(body.to, ["agent@example.test"]);
+      assert.match(body.subject, /password setup code/i);
+      assert.match(body.text, /48290173/);
+      assert.match(body.html, /48290173/);
+      assert.doesNotMatch(body.text, /https?:\/\//);
+      return Response.json({ id: "resend-setup-42" });
+    },
+  );
+
+  try {
+    assert.deepEqual(
+      await sendPasswordSetupCodeEmail(
+        "agent@example.test",
+        "New Agent",
+        "48290173",
+        "password-setup-42",
+      ),
+      { status: "sent", providerMessageId: "resend-setup-42" },
     );
   } finally {
     fetchMock.mock.restore();

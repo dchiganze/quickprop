@@ -172,8 +172,8 @@ export default function Users() {
           setTeamInviteOpen(false);
           teamInviteForm.reset(emptyTeamInvite);
           toast({
-            title: 'Team member invited',
-            description: `A secure setup link was sent to ${created.email}.`,
+            title: 'Team member added',
+            description: `${created.email} is active now. They can set a desktop password with an email code or sign in to the app with SMS OTP.`,
           });
         },
         onError: (error) => toast({
@@ -259,14 +259,14 @@ export default function Users() {
       {
         onSuccess: () => {
           toast({
-            title: 'Setup link requested',
-            description: `If the account is eligible and no recent reset was requested, a one-time link will be sent to ${user.email}.`,
+            title: 'Password reset requested',
+            description: `If the account is eligible and no recent reset was requested, a password reset link will be sent to ${user.email}.`,
           });
           setSetupLinkTargetId(null);
         },
         onError: (error) => {
           toast({
-            title: 'Could not request the setup link',
+            title: 'Could not request a password reset',
             description: errorText(error, 'Try again later.'),
             variant: 'destructive',
           });
@@ -290,7 +290,10 @@ export default function Users() {
         onSuccess: (createdUser) => {
           void queryClient.invalidateQueries({ queryKey: getListUsersQueryKey() });
           closeInviteDialog(false);
-          sendSetupLink(createdUser);
+          toast({
+            title: 'Administrator added',
+            description: `${createdUser.email} is active now. They can set a desktop password using an email verification code.`,
+          });
         },
         onError: (error) => {
           toast({
@@ -520,7 +523,7 @@ export default function Users() {
                                 data-testid={`button-setup-link-${user.id}`}
                               >
                                 {setupLinkTargetId === user.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Mail className="mr-2 h-4 w-4" />}
-                                Setup link
+                                Reset password
                               </Button>
                             )}
                             {canManageUsers && (
@@ -624,7 +627,7 @@ export default function Users() {
               Add team member
             </DialogTitle>
             <DialogDescription>
-              Invite an agent to a branch. They receive a secure setup link and can sign in after setting their password.
+              The agent is active immediately. They can set a desktop password using an email code or sign in to the app with SMS OTP.
             </DialogDescription>
           </DialogHeader>
           <Form {...teamInviteForm}>
@@ -759,7 +762,7 @@ export default function Users() {
               Add administrator
             </DialogTitle>
             <DialogDescription>
-              Create an Admin account and request a one-time setup link. The new administrator sets their own password before signing in.
+              Create an active Admin account. The administrator can set a desktop password using an email verification code.
             </DialogDescription>
           </DialogHeader>
           <Form {...inviteForm}>
@@ -791,14 +794,14 @@ export default function Users() {
                 )}
               />
               <div className="rounded-md border bg-muted/30 p-3 text-sm text-muted-foreground" data-testid="text-admin-setup-explainer">
-                No temporary password will be shown or sent. QuickProp will email a secure setup link to the address above.
+                No temporary password or setup link is sent. The account is active immediately; password setup uses a code sent to this email.
               </div>
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => closeInviteDialog(false)}>
                   Cancel
                 </Button>
-                <Button type="submit" disabled={createUser.isPending || requestPasswordReset.isPending} data-testid="button-submit-administrator">
-                  {(createUser.isPending || requestPasswordReset.isPending) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                <Button type="submit" disabled={createUser.isPending} data-testid="button-submit-administrator">
+                  {createUser.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Create administrator
                 </Button>
               </DialogFooter>

@@ -10,5 +10,5 @@ export type AdminAgencyAgentCreateResultStatus = typeof AdminAgencyAgentCreateRe
 
 
 export const AdminAgencyAgentCreateResultStatus = {
-  invited: 'invited',
+  active: 'active',
 } as const;

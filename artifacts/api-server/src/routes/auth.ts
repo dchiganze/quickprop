@@ -1,5 +1,6 @@
 import { Router, type IRouter } from "express";
-import { and, eq, gt, gte, inArray, isNull, or } from "drizzle-orm";
+import { timingSafeEqual } from "node:crypto";
+import { and, desc, eq, gt, gte, inArray, isNull, or } from "drizzle-orm";
 import {
   activityTable,
   auditLogTable,
@@ -27,6 +28,8 @@ import {
   CompleteAgentSetupResponse,
   CompleteAdminPasswordResetBody,
   CompleteAdminPasswordResetResponse,
+  CompletePasswordSetupBody,
+  CompletePasswordSetupResponse,
   DeleteCurrentUserAccountBody,
   DeleteCurrentUserAccountResponse,
   GetCurrentUserResponse,
@@ -34,6 +37,8 @@ import {
   LoginResponse,
   RequestAdminPasswordResetBody,
   RequestAdminPasswordResetResponse,
+  RequestPasswordSetupCodeBody,
+  RequestPasswordSetupCodeResponse,
   UpdateCurrentUserProfileBody,
   UpdateCurrentUserProfileResponse,
 } from "@workspace/api-zod";
@@ -43,12 +48,17 @@ import {
   ADMIN_PASSWORD_RESET_TTL_MS,
   ADMIN_RECOVERY_COMPLETED_AUDIT_ACTION,
   ADMIN_RECOVERY_COOLDOWN_MS,
+  createPasswordSetupCode,
   hashAgentSetupToken,
   createAdminPasswordResetToken,
   getAdminPasswordResetBaseUrl,
   hashAdminPasswordResetToken,
+  hashPasswordSetupCode,
   matchesAdminRecoveryEmail,
   meetsAdminPasswordPolicy,
+  PASSWORD_SETUP_CODE_COOLDOWN_MS,
+  PASSWORD_SETUP_CODE_MAX_ATTEMPTS,
+  PASSWORD_SETUP_CODE_TTL_MS,
 } from "../lib/password-reset";
 import {
   ADMIN_RECOVERY_DEACTIVATE_EMAILS,
@@ -57,6 +67,7 @@ import {
 import {
   checkAdminPasswordResetEmailReadiness,
   sendAdminPasswordResetEmail,
+  sendPasswordSetupCodeEmail,
 } from "../lib/housekeeping-delivery";
 import { hashPassword, isScryptHash, verifyPassword } from "../lib/passwords";
 import {
@@ -205,6 +216,178 @@ function toUser(u: typeof usersTable.$inferSelect) {
   const { password: _pw, createdAt: _c, ...rest } = u;
   return rest;
 }
+
+router.post("/auth/password-setup/request", async (req, res): Promise<void> => {
+  const parsed = RequestPasswordSetupCodeBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+
+  const emailReadiness = await checkAdminPasswordResetEmailReadiness();
+  if (!emailReadiness.ready) {
+    res.status(503).json({ error: "Password setup email is currently unavailable." });
+    return;
+  }
+
+  const email = parsed.data.email.trim().toLowerCase();
+  const genericResponse = RequestPasswordSetupCodeResponse.parse({ ok: true });
+  const pepper = sessionSecret();
+  const issuedCode = await db.transaction(async (tx) => {
+    const [lockedUser] = await tx
+      .select()
+      .from(usersTable)
+      .where(eq(usersTable.email, email))
+      .limit(1)
+      .for("update");
+    if (
+      !lockedUser
+      || lockedUser.status !== "active"
+      || !lockedUser.passwordSetupRequired
+      || !PHONE_LOGIN_ROLES.has(lockedUser.role)
+    ) {
+      return null;
+    }
+
+    const cooldownStart = new Date(Date.now() - PASSWORD_SETUP_CODE_COOLDOWN_MS);
+    const [recentCode] = await tx
+      .select({ id: passwordResetTokensTable.id })
+      .from(passwordResetTokensTable)
+      .where(and(
+        eq(passwordResetTokensTable.userId, lockedUser.id),
+        eq(passwordResetTokensTable.purpose, "password_setup"),
+        gte(passwordResetTokensTable.createdAt, cooldownStart),
+      ))
+      .limit(1);
+    if (recentCode) return null;
+
+    const now = new Date();
+    await tx
+      .delete(passwordResetTokensTable)
+      .where(and(
+        eq(passwordResetTokensTable.userId, lockedUser.id),
+        eq(passwordResetTokensTable.purpose, "password_setup"),
+      ));
+
+    const code = createPasswordSetupCode();
+    const [codeRecord] = await tx
+      .insert(passwordResetTokensTable)
+      .values({
+        userId: lockedUser.id,
+        tokenHash: hashPasswordSetupCode(code, lockedUser.id, pepper),
+        purpose: "password_setup",
+        expiresAt: new Date(now.getTime() + PASSWORD_SETUP_CODE_TTL_MS),
+      })
+      .returning({ id: passwordResetTokensTable.id });
+    return codeRecord
+      ? { id: codeRecord.id, code, email: lockedUser.email, name: lockedUser.name, userId: lockedUser.id }
+      : null;
+  });
+
+  if (issuedCode) {
+    try {
+      const delivery = await sendPasswordSetupCodeEmail(
+        issuedCode.email,
+        issuedCode.name,
+        issuedCode.code,
+        `quickprop-password-setup-${issuedCode.id}`,
+      );
+      if (delivery.status !== "sent") throw new Error(delivery.reason ?? "Email delivery was skipped");
+    } catch (err) {
+      await db
+        .update(passwordResetTokensTable)
+        .set({ usedAt: new Date() })
+        .where(eq(passwordResetTokensTable.id, issuedCode.id));
+      req.log.error({ err, userId: issuedCode.userId }, "Password setup code email delivery failed");
+    }
+  }
+
+  res.json(genericResponse);
+});
+
+router.post("/auth/password-setup/complete", async (req, res): Promise<void> => {
+  const parsed = CompletePasswordSetupBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+  if (!meetsAdminPasswordPolicy(parsed.data.newPassword)) {
+    res.status(400).json({
+      error: "Password must be at least 10 characters and include a letter, a number, and a special character.",
+    });
+    return;
+  }
+
+  const email = parsed.data.email.trim().toLowerCase();
+  const pepper = sessionSecret();
+  const now = new Date();
+  const result = await db.transaction(async (tx) => {
+    const [user] = await tx
+      .select()
+      .from(usersTable)
+      .where(eq(usersTable.email, email))
+      .limit(1)
+      .for("update");
+    if (
+      !user
+      || user.status !== "active"
+      || !user.passwordSetupRequired
+      || !PHONE_LOGIN_ROLES.has(user.role)
+    ) {
+      return { kind: "invalid" as const };
+    }
+
+    const [codeRecord] = await tx
+      .select()
+      .from(passwordResetTokensTable)
+      .where(and(
+        eq(passwordResetTokensTable.userId, user.id),
+        eq(passwordResetTokensTable.purpose, "password_setup"),
+        isNull(passwordResetTokensTable.usedAt),
+        gt(passwordResetTokensTable.expiresAt, now),
+      ))
+      .orderBy(desc(passwordResetTokensTable.createdAt))
+      .limit(1)
+      .for("update");
+    if (!codeRecord) return { kind: "invalid" as const };
+
+    const expectedHash = Buffer.from(hashPasswordSetupCode(parsed.data.code, user.id, pepper), "hex");
+    const storedHash = Buffer.from(codeRecord.tokenHash, "hex");
+    const codeMatches = expectedHash.length === storedHash.length
+      && timingSafeEqual(expectedHash, storedHash);
+    if (!codeMatches) {
+      const attempts = codeRecord.attempts + 1;
+      await tx
+        .update(passwordResetTokensTable)
+        .set({ attempts, ...(attempts >= PASSWORD_SETUP_CODE_MAX_ATTEMPTS ? { usedAt: now } : {}) })
+        .where(eq(passwordResetTokensTable.id, codeRecord.id));
+      return { kind: "invalid" as const };
+    }
+
+    await tx
+      .update(usersTable)
+      .set({
+        password: await hashPassword(parsed.data.newPassword),
+        passwordSetupRequired: false,
+      })
+      .where(eq(usersTable.id, user.id));
+    await tx
+      .update(passwordResetTokensTable)
+      .set({ usedAt: now })
+      .where(and(
+        eq(passwordResetTokensTable.userId, user.id),
+        inArray(passwordResetTokensTable.purpose, ["password_setup", "agent_setup"]),
+        isNull(passwordResetTokensTable.usedAt),
+      ));
+    return { kind: "complete" as const };
+  });
+
+  if (result.kind === "invalid") {
+    res.status(410).json({ error: "The code is invalid, expired, or has reached its attempt limit." });
+    return;
+  }
+  res.json(CompletePasswordSetupResponse.parse({ ok: true }));
+});
 
 router.post("/auth/password-reset/request", async (req, res): Promise<void> => {
   const parsed = RequestAdminPasswordResetBody.safeParse(req.body);

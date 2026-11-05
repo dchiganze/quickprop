@@ -14,5 +14,5 @@ export interface AdminAgencyAgentCreateResult {
   branchId: number;
   branchName: string;
   status: AdminAgencyAgentCreateResultStatus;
-  setupEmailSent: boolean;
+  passwordSetupRequired: boolean;
 }

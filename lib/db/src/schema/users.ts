@@ -26,6 +26,7 @@ export const usersTable = pgTable("users", {
   role: text("role").notNull().default("agent"),
   branchId: integer("branch_id").references(() => branchesTable.id),
   status: text("status").notNull().default("active"),
+  passwordSetupRequired: boolean("password_setup_required").notNull().default(false),
   avatarUrl: text("avatar_url"),
   password: text("password").notNull().default("demo1234"),
   createdAt: timestamp("created_at").notNull().defaultNow(),

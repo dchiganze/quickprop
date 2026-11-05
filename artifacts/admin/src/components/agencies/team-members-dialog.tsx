@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Loader2, Mail, Search, Users } from 'lucide-react';
+import { Loader2, Search, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -20,8 +20,6 @@ type TeamMembersDialogProps = {
   saving: boolean;
   onOpenChange: (open: boolean) => void;
   onSave: (userIds: number[]) => void;
-  onResendSetup: (agentId: number) => void;
-  resendingAgentId: number | null;
 };
 
 export function TeamMembersDialog({
@@ -31,8 +29,6 @@ export function TeamMembersDialog({
   saving,
   onOpenChange,
   onSave,
-  onResendSetup,
-  resendingAgentId,
 }: TeamMembersDialogProps) {
   const [selected, setSelected] = useState<number[]>([]);
   const [search, setSearch] = useState('');
@@ -60,7 +56,7 @@ export function TeamMembersDialog({
         <DialogHeader>
           <DialogTitle>Manage team members</DialogTitle>
           <DialogDescription>
-            Choose existing agent accounts for {branch?.name ?? 'this branch'}. Saving moves selected agents from any other branch.
+            Choose agents for {branch?.name ?? 'this branch'}. Saving moves them from any other branch and activates any setup-pending accounts. They can use an email code for desktop password setup or SMS OTP in the app.
           </DialogDescription>
         </DialogHeader>
         <div className="relative">
@@ -93,24 +89,10 @@ export function TeamMembersDialog({
                     <span className="block truncate text-sm font-medium">{agent.name}</span>
                     <span className="block truncate text-xs text-muted-foreground">{agent.email}</span>
                   </span>
-                  {agent.status === 'invited' && <Badge variant="outline" className="shrink-0 text-xs">Setup pending</Badge>}
+                  {agent.status === 'invited' && <Badge variant="outline" className="shrink-0 text-xs">Activates on save</Badge>}
                   {moving && <Badge variant="outline" className="max-w-40 truncate text-xs">Move from {agent.branchName}</Badge>}
                   {!moving && checked && <Badge variant="secondary" className="shrink-0 text-xs">Assigned here</Badge>}
                 </label>
-                {agent.status === 'invited' && (
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    className="shrink-0"
-                    disabled={resendingAgentId !== null}
-                    onClick={() => onResendSetup(agent.id)}
-                  >
-                    {resendingAgentId === agent.id
-                      ? <Loader2 className="h-4 w-4 animate-spin" />
-                      : <><Mail className="mr-1.5 h-3.5 w-3.5" /> Resend</>}
-                  </Button>
-                )}
               </div>
             );
           })}

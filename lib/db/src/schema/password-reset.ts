@@ -14,5 +14,6 @@ export const passwordResetTokensTable = pgTable("password_reset_tokens", {
   purpose: text("purpose").notNull().default("password_reset"),
   expiresAt: timestamp("expires_at").notNull(),
   usedAt: timestamp("used_at"),
+  attempts: integer("attempts").notNull().default(0),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });

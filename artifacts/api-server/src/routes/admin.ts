@@ -53,6 +53,8 @@ router.post("/users", teamAdminOnly, async (req, res): Promise<void> => {
     .values({
       ...rest,
       email: rest.email.toLowerCase().trim(),
+      status: "active",
+      passwordSetupRequired: true,
       password: await hashPassword(password ?? `${randomBytes(32).toString("base64url")}A1!`),
     })
     .returning();

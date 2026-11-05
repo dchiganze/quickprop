@@ -3,7 +3,6 @@ import {
   useArchiveAdminAgency,
   useArchiveAdminAgencyBranch,
   useCreateAdminAgencyAgent,
-  useResendAdminAgentSetupLink,
   useCreateAdminAgency,
   useCreateAdminAgencyBranch,
   useGetAdminAgencies,
@@ -56,7 +55,6 @@ export default function Agencies() {
   const [pendingAgentAgencyId, setPendingAgentAgencyId] = useState<number | null>(null);
   const [teamBranch, setTeamBranch] = useState<AdminAgencyBranch | null>(null);
   const [myBranchSelection, setMyBranchSelection] = useState('');
-  const [resendingAgentId, setResendingAgentId] = useState<number | null>(null);
 
   const {
     data: agencyData,
@@ -78,7 +76,6 @@ export default function Agencies() {
     refetch: refetchMyBranch,
   } = useGetAdminMyBranch();
   const setMyBranch = useSetAdminMyBranch();
-  const resendAgentSetup = useResendAdminAgentSetupLink();
   const updateAgency = useUpdateAdminAgency();
   const archiveAgency = useArchiveAdminAgency();
   const createBranch = useCreateAdminAgencyBranch();
@@ -206,8 +203,8 @@ export default function Agencies() {
           setAgentDialog(null);
           refetchAll();
           toast({
-            title: 'Agent invited',
-            description: `A setup link was sent to ${result.email}. Their phone can receive OTP sign-in immediately; the first verified code activates the account.`,
+            title: 'Agent added',
+            description: `${result.email} is active now. They can set a desktop password with an email code or sign in to the app with SMS OTP.`,
           });
         },
         onError: (error) => toast({
@@ -282,29 +279,10 @@ export default function Agencies() {
       onSuccess: () => {
         setTeamBranch(null);
         refetchAll();
-        toast({ title: 'Team updated', description: 'Selected agents are now assigned to this branch.' });
+        toast({ title: 'Team updated', description: 'Selected agents are assigned to this branch. Setup-pending accounts are now active and can use email-code password setup or mobile OTP.' });
       },
       onError: (error) => toast({ title: 'Could not update team', description: getErrorMessage(error), variant: 'destructive' }),
     });
-  };
-
-  const handleResendAgentSetup = (agentId: number) => {
-    setResendingAgentId(agentId);
-    resendAgentSetup.mutate(
-      { id: agentId },
-      {
-        onSuccess: (result) => toast({
-          title: 'Setup link sent',
-          description: `A fresh one-time setup link was sent to ${result.email}.`,
-        }),
-        onError: (error) => toast({
-          title: 'Could not resend setup link',
-          description: getErrorMessage(error),
-          variant: 'destructive',
-        }),
-        onSettled: () => setResendingAgentId(null),
-      },
-    );
   };
 
   const handleUnassignedBranch = (branchId: number, agencyId: string) => {
@@ -531,8 +509,6 @@ export default function Agencies() {
         saving={setMembers.isPending}
         onOpenChange={(open) => { if (!open) setTeamBranch(null); }}
         onSave={handleMembersSave}
-        onResendSetup={handleResendAgentSetup}
-        resendingAgentId={resendingAgentId}
       />
       <AgentInviteDialog
         open={agentDialog !== null}

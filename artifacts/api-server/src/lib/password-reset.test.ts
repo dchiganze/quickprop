@@ -3,9 +3,11 @@ import { test } from "node:test";
 import {
   createAdminPasswordResetToken,
   createAgentSetupToken,
+  createPasswordSetupCode,
   getAdminPasswordResetBaseUrl,
   hashAdminPasswordResetToken,
   hashAgentSetupToken,
+  hashPasswordSetupCode,
   matchesAdminRecoveryEmail,
   meetsAdminPasswordPolicy,
   normalizeAdminRecoveryEmail,
@@ -29,6 +31,17 @@ test("agent setup tokens are high-entropy URL-safe values and are stored as hash
   assert.match(hash, /^[a-f0-9]{64}$/);
   assert.notEqual(hash, token);
   assert.equal(hashAgentSetupToken(token), hash);
+});
+
+test("first-time password codes are eight digits and are HMAC-bound to the user", () => {
+  const code = createPasswordSetupCode();
+  const hash = hashPasswordSetupCode(code, 42, "test-session-secret");
+
+  assert.match(code, /^\d{8}$/);
+  assert.match(hash, /^[a-f0-9]{64}$/);
+  assert.equal(hashPasswordSetupCode(code, 42, "test-session-secret"), hash);
+  assert.notEqual(hashPasswordSetupCode(code, 43, "test-session-secret"), hash);
+  assert.notEqual(hashPasswordSetupCode(code, 42, "another-session-secret"), hash);
 });
 
 test("admin passwords require ten characters, a letter, a number, and a symbol", () => {

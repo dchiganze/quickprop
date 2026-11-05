@@ -723,17 +723,6 @@ router.post("/admin/agencies/:agencyId/agents", agencyAdminOnly, async (req, res
     return;
   }
 
-  const baseUrl = getAdminPasswordResetBaseUrl({
-    runtimeEnvironment: process.env.NODE_ENV,
-    developmentDomain: process.env.REPLIT_DEV_DOMAIN,
-    productionBaseUrl: process.env.QUICKPROP_ADMIN_BASE_URL,
-  });
-  const emailReadiness = await checkAdminPasswordResetEmailReadiness();
-  if (!emailReadiness.ready || !baseUrl) {
-    res.status(503).json({ error: "Agent setup email is not configured. Contact a QuickProp administrator." });
-    return;
-  }
-
   const body = parsed.data;
   const email = body.email.trim().toLowerCase();
   const phone = normalizePhoneNumber(body.phone);
@@ -782,15 +771,15 @@ router.post("/admin/agencies/:agencyId/agents", agencyAdminOnly, async (req, res
     return;
   }
 
-  const setupToken = createAgentSetupToken();
-  const { user, tokenRecord } = await db.transaction(async (tx) => {
+  const user = await db.transaction(async (tx) => {
     const [createdUser] = await tx.insert(usersTable).values({
       name: body.name.trim(),
       email,
       phone,
       role: "agent",
       branchId: branch.id,
-      status: "invited",
+      status: "active",
+      passwordSetupRequired: true,
       password: await hashPassword(randomBytes(32).toString("base64url")),
     }).returning({
       id: usersTable.id,
@@ -799,36 +788,8 @@ router.post("/admin/agencies/:agencyId/agents", agencyAdminOnly, async (req, res
       branchId: usersTable.branchId,
       status: usersTable.status,
     });
-    const [createdToken] = await tx.insert(passwordResetTokensTable).values({
-      userId: createdUser.id,
-      tokenHash: hashAgentSetupToken(setupToken),
-      purpose: "agent_setup",
-      expiresAt: new Date(Date.now() + AGENT_SETUP_TTL_MS),
-    }).returning({ id: passwordResetTokensTable.id });
-    return { user: createdUser, tokenRecord: createdToken };
+    return createdUser;
   });
-
-  try {
-    const delivery = await sendAgentSetupEmail(
-      user.email,
-      user.name,
-      `${baseUrl}/login?setupToken=${encodeURIComponent(setupToken)}`,
-      `quickprop-agent-setup-${tokenRecord.id}`,
-    );
-    if (delivery.status !== "sent") throw new Error(delivery.reason ?? "Email delivery was skipped");
-  } catch (err) {
-    try {
-      await db.delete(usersTable).where(and(
-        eq(usersTable.id, user.id),
-        eq(usersTable.status, "invited"),
-      ));
-    } catch (cleanupError) {
-      req.log.error({ err: cleanupError, userId: user.id }, "Could not remove agent after setup email failure");
-    }
-    req.log.error({ err, userId: user.id }, "Agent setup email delivery failed");
-    res.status(502).json({ error: "The agent account was not created because QuickProp could not send the setup email. Check email settings and retry." });
-    return;
-  }
 
   const actor = await currentUser(req);
   try {
@@ -836,12 +797,12 @@ router.post("/admin/agencies/:agencyId/agents", agencyAdminOnly, async (req, res
       "created",
       "user",
       user.id,
-      `Invited ${user.name} to ${branch.name}`,
+      `Added ${user.name} to ${branch.name}`,
       actor?.id,
       actor?.name,
     );
   } catch (err) {
-    req.log.error({ err, userId: user.id }, "Agent invitation audit logging failed");
+    req.log.error({ err, userId: user.id }, "Agent creation audit logging failed");
   }
   res.status(201).json(CreateAdminAgencyAgentResponse.parse({
     id: user.id,
@@ -849,8 +810,8 @@ router.post("/admin/agencies/:agencyId/agents", agencyAdminOnly, async (req, res
     email: user.email,
     branchId: branch.id,
     branchName: branch.name,
-    status: "invited",
-    setupEmailSent: true,
+    status: "active",
+    passwordSetupRequired: true,
   }));
 });
 
@@ -1057,21 +1018,56 @@ router.put("/admin/branches/:id/members", adminOnly, async (req, res): Promise<v
       return { kind: "invalid-members" as const };
     }
 
+    const pendingSetupRows = requestedIds.length
+      ? await tx.select({ userId: passwordResetTokensTable.userId })
+        .from(passwordResetTokensTable)
+        .where(and(
+          inArray(passwordResetTokensTable.userId, requestedIds),
+          eq(passwordResetTokensTable.purpose, "agent_setup"),
+          isNull(passwordResetTokensTable.usedAt),
+        ))
+      : [];
+    const activeOrInvitedIds = new Set(
+      requestedUsers.filter((user) => ["active", "invited"].includes(user.status)).map((user) => user.id),
+    );
+    const setupRequiredIds = new Set([
+      ...requestedUsers.filter((user) => user.status === "invited").map((user) => user.id),
+      ...pendingSetupRows.filter((row) => activeOrInvitedIds.has(row.userId)).map((row) => row.userId),
+    ]);
+    const setupRequiredIdList = [...setupRequiredIds];
+    const regularMemberIds = requestedIds.filter((userId) => !setupRequiredIds.has(userId));
+
     await tx.update(usersTable)
       .set({ branchId: null })
       .where(and(
         eq(usersTable.branchId, id),
         inArray(usersTable.role, ["agent", "senior_agent"]),
       ));
-    if (requestedIds.length) {
+    if (regularMemberIds.length) {
       await tx.update(usersTable)
         .set({ branchId: id })
-        .where(inArray(usersTable.id, requestedIds));
+        .where(inArray(usersTable.id, regularMemberIds));
+    }
+    if (setupRequiredIdList.length) {
+      await tx.update(usersTable)
+        .set({ branchId: id, status: "active", passwordSetupRequired: true })
+        .where(inArray(usersTable.id, setupRequiredIdList));
+      await tx.update(passwordResetTokensTable)
+        .set({ usedAt: new Date() })
+        .where(and(
+          inArray(passwordResetTokensTable.userId, setupRequiredIdList),
+          eq(passwordResetTokensTable.purpose, "agent_setup"),
+          isNull(passwordResetTokensTable.usedAt),
+        ));
     }
 
     return {
       kind: "updated" as const,
-      users: requestedUsers.map((user) => ({ ...user, branchId: id })),
+      users: requestedUsers.map((user) => ({
+        ...user,
+        status: setupRequiredIds.has(user.id) ? "active" : user.status,
+        branchId: id,
+      })),
     };
   });
 

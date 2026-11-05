@@ -150,6 +150,8 @@ import type {
   PasswordResetCompleteInput,
   PasswordResetRequestInput,
   PasswordResetResult,
+  PasswordSetupCodeCompleteInput,
+  PasswordSetupCodeRequestInput,
   PhoneLoginStartInput,
   PhoneLoginVerifyInput,
   PipelineColumn,
@@ -1220,6 +1222,148 @@ export const useRequestAdminPasswordReset = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getRequestAdminPasswordResetMutationOptions(options));
+    }
+
+export const getRequestPasswordSetupCodeUrl = () => {
+
+
+
+
+  return `/api/auth/password-setup/request`
+}
+
+/**
+ * @summary Email a one-time code to an active account that still needs a password
+ */
+export const requestPasswordSetupCode = async (passwordSetupCodeRequestInput: PasswordSetupCodeRequestInput, options?: RequestInit): Promise<PasswordResetResult> => {
+
+  return customFetch<PasswordResetResult>(getRequestPasswordSetupCodeUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(passwordSetupCodeRequestInput)
+  }
+);}
+
+
+
+
+
+export const getRequestPasswordSetupCodeMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof requestPasswordSetupCode>>, TError,{data: BodyType<PasswordSetupCodeRequestInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof requestPasswordSetupCode>>, TError,{data: BodyType<PasswordSetupCodeRequestInput>}, TContext> => {
+
+const mutationKey = ['requestPasswordSetupCode'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof requestPasswordSetupCode>>, {data: BodyType<PasswordSetupCodeRequestInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  requestPasswordSetupCode(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RequestPasswordSetupCodeMutationResult = NonNullable<Awaited<ReturnType<typeof requestPasswordSetupCode>>>
+    export type RequestPasswordSetupCodeMutationBody = BodyType<PasswordSetupCodeRequestInput>
+    export type RequestPasswordSetupCodeMutationError = ErrorType<void>
+
+    /**
+ * @summary Email a one-time code to an active account that still needs a password
+ */
+export const useRequestPasswordSetupCode = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof requestPasswordSetupCode>>, TError,{data: BodyType<PasswordSetupCodeRequestInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof requestPasswordSetupCode>>,
+        TError,
+        {data: BodyType<PasswordSetupCodeRequestInput>},
+        TContext
+      > => {
+      return useMutation(getRequestPasswordSetupCodeMutationOptions(options));
+    }
+
+export const getCompletePasswordSetupUrl = () => {
+
+
+
+
+  return `/api/auth/password-setup/complete`
+}
+
+/**
+ * @summary Set an initial password using a valid email verification code
+ */
+export const completePasswordSetup = async (passwordSetupCodeCompleteInput: PasswordSetupCodeCompleteInput, options?: RequestInit): Promise<PasswordResetResult> => {
+
+  return customFetch<PasswordResetResult>(getCompletePasswordSetupUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(passwordSetupCodeCompleteInput)
+  }
+);}
+
+
+
+
+
+export const getCompletePasswordSetupMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof completePasswordSetup>>, TError,{data: BodyType<PasswordSetupCodeCompleteInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof completePasswordSetup>>, TError,{data: BodyType<PasswordSetupCodeCompleteInput>}, TContext> => {
+
+const mutationKey = ['completePasswordSetup'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof completePasswordSetup>>, {data: BodyType<PasswordSetupCodeCompleteInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  completePasswordSetup(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CompletePasswordSetupMutationResult = NonNullable<Awaited<ReturnType<typeof completePasswordSetup>>>
+    export type CompletePasswordSetupMutationBody = BodyType<PasswordSetupCodeCompleteInput>
+    export type CompletePasswordSetupMutationError = ErrorType<void>
+
+    /**
+ * @summary Set an initial password using a valid email verification code
+ */
+export const useCompletePasswordSetup = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof completePasswordSetup>>, TError,{data: BodyType<PasswordSetupCodeCompleteInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof completePasswordSetup>>,
+        TError,
+        {data: BodyType<PasswordSetupCodeCompleteInput>},
+        TContext
+      > => {
+      return useMutation(getCompletePasswordSetupMutationOptions(options));
     }
 
 export const getCompleteAdminPasswordResetUrl = () => {

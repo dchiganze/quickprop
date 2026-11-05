@@ -11,8 +11,10 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   useCompleteAgentSetup,
   useCompleteAdminPasswordReset,
+  useCompletePasswordSetup,
   useLogin,
   useRequestAdminPasswordReset,
+  useRequestPasswordSetupCode,
 } from '@workspace/api-client-react';
 
 const schema = z.object({
@@ -24,14 +26,17 @@ export default function Login() {
   const [, setLocation] = useLocation();
   const login = useLogin();
   const requestPasswordReset = useRequestAdminPasswordReset();
+  const requestPasswordSetupCode = useRequestPasswordSetupCode();
+  const completePasswordSetup = useCompletePasswordSetup();
   const completePasswordReset = useCompleteAdminPasswordReset();
   const completeAgentSetup = useCompleteAgentSetup();
   const [err, setErr] = useState('');
   const [notice, setNotice] = useState('');
   const initialResetToken = new URLSearchParams(window.location.search).get('resetToken') || '';
   const initialSetupToken = new URLSearchParams(window.location.search).get('setupToken') || '';
-  const [view, setView] = useState<'login' | 'request' | 'complete'>(initialResetToken || initialSetupToken ? 'complete' : 'login');
+  const [view, setView] = useState<'login' | 'request' | 'complete' | 'setup-request' | 'setup-code'>(initialResetToken || initialSetupToken ? 'complete' : 'login');
   const [resetEmail, setResetEmail] = useState('');
+  const [setupCode, setSetupCode] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const resetToken = new URLSearchParams(window.location.search).get('resetToken') || '';
@@ -48,7 +53,7 @@ export default function Login() {
     setNotice('');
     login.mutate({ data: v }, {
       onSuccess: () => setLocation('/'),
-      onError: (e: any) => setErr(e?.message || 'Invalid credentials'),
+      onError: (e: any) => setErr(e?.message || 'Sign-in failed. Check your credentials, or set up your password if this is your first time.'),
     });
   };
 
@@ -57,6 +62,16 @@ export default function Login() {
     setNotice('');
     setResetEmail(form.getValues('email'));
     setView('request');
+  };
+
+  const startPasswordSetup = () => {
+    setErr('');
+    setNotice('');
+    setResetEmail(form.getValues('email'));
+    setSetupCode('');
+    setNewPassword('');
+    setConfirmPassword('');
+    setView('setup-request');
   };
 
   const returnToSignIn = () => {
@@ -77,6 +92,58 @@ export default function Login() {
           "If this email is eligible, we'll send a one-time password setup link. Check your spam folder if it doesn't arrive.",
         ),
         onError: (e: any) => setErr(e?.message || 'Could not request a reset link. Please try again.'),
+      },
+    );
+  };
+
+  const requestSetupCode = () => {
+    setErr('');
+    setNotice('');
+    requestPasswordSetupCode.mutate(
+      { data: { email: resetEmail.trim().toLowerCase() } },
+      {
+        onSuccess: () => {
+          setView('setup-code');
+          setNotice("If this account needs a password, an eight-digit code has been sent to its email address.");
+        },
+        onError: (e: any) => setErr(e?.message || 'Could not request a code. Please try again.'),
+      },
+    );
+  };
+
+  const submitSetupRequest = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    requestSetupCode();
+  };
+
+  const submitSetupCode = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setErr('');
+    setNotice('');
+    if (!/^\d{8}$/.test(setupCode)) {
+      setErr('Enter the eight-digit code from your email.');
+      return;
+    }
+    if (newPassword.length < 10 || !/[A-Za-z]/.test(newPassword) || !/[0-9]/.test(newPassword) || !/[^A-Za-z0-9\s]/.test(newPassword)) {
+      setErr('Use at least 10 characters, including a letter, a number, and a special character.');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setErr('The passwords do not match.');
+      return;
+    }
+    completePasswordSetup.mutate(
+      { data: { email: resetEmail.trim().toLowerCase(), code: setupCode, newPassword } },
+      {
+        onSuccess: () => {
+          setView('login');
+          setSetupCode('');
+          setNewPassword('');
+          setConfirmPassword('');
+          setNotice('Password created. Sign in with your email and new password.');
+          setLocation('/login');
+        },
+        onError: (e: any) => setErr(e?.message || 'The code may be invalid or expired. Request a new one and try again.'),
       },
     );
   };
@@ -160,13 +227,25 @@ export default function Login() {
         <div className="w-full max-w-sm space-y-7">
           <div className="space-y-1">
             <h2 className="text-2xl font-bold text-foreground">
-              {view === 'login' ? 'Admin sign in' : view === 'request' ? 'Reset your password' : 'Choose a new password'}
+              {view === 'login'
+                ? 'Admin sign in'
+                : view === 'request'
+                  ? 'Reset your password'
+                  : view === 'setup-request'
+                    ? 'Set up your password'
+                    : view === 'setup-code'
+                      ? 'Verify your email'
+                      : 'Choose a new password'}
             </h2>
             <p className="text-sm text-muted-foreground">
               {view === 'login'
                 ? 'Restricted to authorised administrators only.'
                 : view === 'request'
                   ? 'Enter your administrator email and we’ll send a secure, one-time link if the account is eligible.'
+                  : view === 'setup-request'
+                    ? 'Enter the email address added by your administrator. We’ll send a one-time code if the account needs a password.'
+                    : view === 'setup-code'
+                      ? `Enter the eight-digit code sent to ${resetEmail}.`
                   : isAgentSetup
                     ? 'Choose a password for your QuickProp Agent account.'
                     : 'Choose a password for your QuickProp administrator account.'}
@@ -186,8 +265,9 @@ export default function Login() {
           )}
 
           {view === 'login' ? (
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+            <>
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
                 <FormField control={form.control} name="email" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Email</FormLabel>
@@ -218,8 +298,15 @@ export default function Login() {
                 <Button type="submit" className="w-full h-11 font-semibold" disabled={login.isPending}>
                   {login.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <><span>Sign in</span><ArrowRight className="w-4 h-4 ml-2" /></>}
                 </Button>
-              </form>
-            </Form>
+                </form>
+              </Form>
+              <p className="text-center text-sm text-muted-foreground">
+                First time signing in?{' '}
+                <button type="button" onClick={startPasswordSetup} className="font-medium text-primary hover:underline">
+                  Set up your password
+                </button>
+              </p>
+            </>
           ) : view === 'request' ? (
             <form onSubmit={submitResetRequest} className="space-y-5">
               <div className="space-y-2">
@@ -237,6 +324,66 @@ export default function Login() {
               </div>
               <Button type="submit" className="w-full h-11 font-semibold" disabled={requestPasswordReset.isPending}>
                 {requestPasswordReset.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Send reset link'}
+              </Button>
+              <Button type="button" variant="ghost" className="w-full" onClick={returnToSignIn}>
+                Back to sign in
+              </Button>
+            </form>
+          ) : view === 'setup-request' ? (
+            <form onSubmit={submitSetupRequest} className="space-y-5">
+              <div className="space-y-2">
+                <label htmlFor="setup-email" className="text-sm font-medium leading-none">Email</label>
+                <Input
+                  id="setup-email"
+                  type="email"
+                  autoComplete="email"
+                  required
+                  value={resetEmail}
+                  onChange={(event) => setResetEmail(event.target.value)}
+                  placeholder="name@company.com"
+                  className="h-11 bg-card"
+                />
+              </div>
+              <Button type="submit" className="w-full h-11 font-semibold" disabled={requestPasswordSetupCode.isPending}>
+                {requestPasswordSetupCode.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Send email code'}
+              </Button>
+              <Button type="button" variant="ghost" className="w-full" onClick={returnToSignIn}>
+                Back to sign in
+              </Button>
+            </form>
+          ) : view === 'setup-code' ? (
+            <form onSubmit={submitSetupCode} className="space-y-5">
+              <div className="space-y-2">
+                <label htmlFor="setup-code" className="text-sm font-medium leading-none">Eight-digit code</label>
+                <Input
+                  id="setup-code"
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  pattern="[0-9]{8}"
+                  maxLength={8}
+                  required
+                  value={setupCode}
+                  onChange={(event) => setSetupCode(event.target.value.replace(/\D/g, '').slice(0, 8))}
+                  className="h-11 bg-card"
+                />
+              </div>
+              <div className="space-y-2">
+                <label htmlFor="setup-new-password" className="text-sm font-medium leading-none">New password</label>
+                <Input id="setup-new-password" type="password" autoComplete="new-password" required value={newPassword} onChange={(event) => setNewPassword(event.target.value)} className="h-11 bg-card" />
+              </div>
+              <div className="space-y-2">
+                <label htmlFor="setup-confirm-password" className="text-sm font-medium leading-none">Confirm new password</label>
+                <Input id="setup-confirm-password" type="password" autoComplete="new-password" required value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} className="h-11 bg-card" />
+              </div>
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                At least 10 characters, with at least one letter, one number, and one special character.
+              </p>
+              <Button type="submit" className="w-full h-11 font-semibold" disabled={completePasswordSetup.isPending}>
+                {completePasswordSetup.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Create password'}
+              </Button>
+              <Button type="button" variant="ghost" className="w-full" onClick={requestSetupCode} disabled={requestPasswordSetupCode.isPending}>
+                Send a new code
               </Button>
               <Button type="button" variant="ghost" className="w-full" onClick={returnToSignIn}>
                 Back to sign in

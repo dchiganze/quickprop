@@ -180,6 +180,8 @@ export * from './passkeyRegistrationVerificationInputCredential';
 export * from './passwordResetCompleteInput';
 export * from './passwordResetRequestInput';
 export * from './passwordResetResult';
+export * from './passwordSetupCodeCompleteInput';
+export * from './passwordSetupCodeRequestInput';
 export * from './phoneLoginStartInput';
 export * from './phoneLoginVerifyInput';
 export * from './pipelineColumn';

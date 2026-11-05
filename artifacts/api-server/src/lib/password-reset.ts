@@ -1,10 +1,13 @@
-import { createHash, randomBytes } from "node:crypto";
+import { createHash, createHmac, randomBytes, randomInt } from "node:crypto";
 
 export const ADMIN_PASSWORD_RESET_TTL_MS = 15 * 60_000;
 export const AGENT_SETUP_TTL_MS = 24 * 60 * 60_000;
 export const ADMIN_PASSWORD_RESET_COOLDOWN_MS = 60_000;
 export const ADMIN_RECOVERY_COOLDOWN_MS = 15 * 60_000;
 export const ADMIN_RECOVERY_COMPLETED_AUDIT_ACTION = "admin_recovery_completed";
+export const PASSWORD_SETUP_CODE_TTL_MS = 10 * 60_000;
+export const PASSWORD_SETUP_CODE_COOLDOWN_MS = 60_000;
+export const PASSWORD_SETUP_CODE_MAX_ATTEMPTS = 5;
 
 export function normalizeAdminRecoveryEmail(value: string | undefined): string | null {
   const normalized = value?.trim().toLowerCase();
@@ -30,6 +33,16 @@ export function createAgentSetupToken(): string {
 
 export function hashAgentSetupToken(token: string): string {
   return createHash("sha256").update(token, "utf8").digest("hex");
+}
+
+export function createPasswordSetupCode(): string {
+  return randomInt(0, 100_000_000).toString().padStart(8, "0");
+}
+
+export function hashPasswordSetupCode(code: string, userId: number, pepper: string): string {
+  return createHmac("sha256", pepper)
+    .update(`password_setup:${userId}:${code}`, "utf8")
+    .digest("hex");
 }
 
 export function meetsAdminPasswordPolicy(password: string): boolean {

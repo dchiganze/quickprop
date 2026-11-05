@@ -252,6 +252,43 @@ export const RequestAdminPasswordResetResponse = zod.object({
 
 
 /**
+ * @summary Email a one-time code to an active account that still needs a password
+ */
+export const requestPasswordSetupCodeBodyEmailRegExp = new RegExp('^[^@\\s]+@[^\\s@]+\\.[^\\s@]+$');
+
+
+export const RequestPasswordSetupCodeBody = zod.object({
+  "email": zod.string().regex(requestPasswordSetupCodeBodyEmailRegExp)
+})
+
+export const RequestPasswordSetupCodeResponse = zod.object({
+  "ok": zod.boolean()
+})
+
+
+/**
+ * @summary Set an initial password using a valid email verification code
+ */
+export const completePasswordSetupBodyEmailRegExp = new RegExp('^[^@\\s]+@[^\\s@]+\\.[^\\s@]+$');
+export const completePasswordSetupBodyCodeRegExp = new RegExp('^[0-9]{8}$');
+export const completePasswordSetupBodyNewPasswordMin = 10;
+
+
+export const completePasswordSetupBodyNewPasswordRegExp = new RegExp('^(?=.*[A-Za-z])(?=.*[0-9])(?=.*[^A-Za-z0-9\\s]).{10,}$');
+
+
+export const CompletePasswordSetupBody = zod.object({
+  "email": zod.string().regex(completePasswordSetupBodyEmailRegExp),
+  "code": zod.string().regex(completePasswordSetupBodyCodeRegExp),
+  "newPassword": zod.string().min(completePasswordSetupBodyNewPasswordMin).regex(completePasswordSetupBodyNewPasswordRegExp).describe('At least 10 characters with a letter, number, and special character.')
+})
+
+export const CompletePasswordSetupResponse = zod.object({
+  "ok": zod.boolean()
+})
+
+
+/**
  * @summary Set a new admin password using a valid one-time reset token
  */
 export const completeAdminPasswordResetBodyTokenMin = 32;
@@ -6024,8 +6061,8 @@ export const CreateAdminAgencyAgentResponse = zod.object({
   "email": zod.string(),
   "branchId": zod.number(),
   "branchName": zod.string(),
-  "status": zod.enum(['invited']),
-  "setupEmailSent": zod.boolean()
+  "status": zod.enum(['active']),
+  "passwordSetupRequired": zod.boolean()
 })
 
 
