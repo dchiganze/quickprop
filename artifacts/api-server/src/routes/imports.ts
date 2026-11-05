@@ -32,7 +32,7 @@ import { matchImportAgentByName } from "../lib/import-agent-match";
 import { findStalePdfDraftIds } from "../lib/import-reconcile";
 import { jsonify, logAudit } from "../lib/helpers";
 import { logger } from "../lib/logger";
-import { importedPropertyDraft } from "../lib/property-drafts";
+import { importedPropertyDraft, isPhotoRequirementIssue } from "../lib/property-drafts";
 import { flattenPdfPageRows } from "../lib/pdf-import";
 import { parseAiJsonResponse } from "../lib/ai-import";
 
@@ -1437,8 +1437,10 @@ router.post("/imports/sessions/:id/publish", async (req, res): Promise<void> => 
       errors.push(`Record ${record.id}: select an active branch in this agency before publishing.`);
       continue;
     }
-    const issues = validateData(data, "spreadsheet").filter((issue) => !issue.includes("Image needs"));
-    const storedIssues = Array.isArray(record.validationIssues) ? record.validationIssues : [];
+    const issues = validateData(data, "spreadsheet").filter((issue) => !isPhotoRequirementIssue(issue));
+    const storedIssues = Array.isArray(record.validationIssues)
+      ? record.validationIssues.map(String).filter((issue) => !isPhotoRequirementIssue(issue))
+      : [];
     if (record.reviewStatus !== "approved" || issues.length || storedIssues.length > 0 || record.duplicateStatus === "possible" || (record.duplicateStatus === "link_existing" && !record.matchedPropertyId)) {
       errors.push(`Record ${record.id}: approve the record and resolve validation or duplicate issues first.`);
       continue;
@@ -1502,7 +1504,12 @@ router.post("/imports/sessions/:id/publish", async (req, res): Promise<void> => 
           await db.update(importRecordsTable).set({ finalRelationshipId: relationship.id }).where(eq(importRecordsTable.id, record.id));
         }
       }
-      await db.update(importRecordsTable).set({ finalPropertyId: propertyId, reviewStatus: "published", updatedAt: new Date() }).where(eq(importRecordsTable.id, record.id));
+      await db.update(importRecordsTable).set({
+        finalPropertyId: propertyId,
+        reviewStatus: "published",
+        validationIssues: storedIssues,
+        updatedAt: new Date(),
+      }).where(eq(importRecordsTable.id, record.id));
       published += 1;
     } catch (error) {
       errors.push(`Record ${record.id}: ${error instanceof Error ? error.message : "publish failed"}`);

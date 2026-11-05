@@ -226,8 +226,8 @@ export function AddPropertyDialog() {
   };
 
   const submit = async () => {
-    if (!form.title || !form.price || !form.suburb || !photoFiles.length) {
-      toast({ title: 'Title, price, suburb and at least one photo are required', variant: 'destructive' });
+    if (!form.title || !form.price || !form.suburb) {
+      toast({ title: 'Title, price and suburb are required', description: 'Photos can be added to the draft later; at least one is required before publishing.', variant: 'destructive' });
       return;
     }
     if (form.listingType === 'sale' && form.hasTitleDeed === null) {
@@ -541,7 +541,7 @@ export function AddPropertyDialog() {
               <div className="rounded-md bg-primary/10 p-2 text-primary"><ImageIcon className="w-4 h-4" /></div>
               <div className="min-w-0 flex-1">
                 <Label className="text-sm">Property photos</Label>
-                <p className="text-xs text-muted-foreground mt-1">Upload as many local photos as you want. Each photo can be up to 25 MB.</p>
+                <p className="text-xs text-muted-foreground mt-1">Photos are optional for drafts. Add at least one before publishing. Each photo can be up to 25 MB.</p>
               </div>
               <Button type="button" variant="outline" size="sm" onClick={() => photoInputRef.current?.click()} className="gap-2 shrink-0">
                 <Upload className="w-4 h-4" /> Add photos

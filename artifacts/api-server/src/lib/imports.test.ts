@@ -5,6 +5,7 @@ import { parseAiJsonResponse } from "./ai-import";
 import { findImportTitlePriceDuplicate, findDuplicateCandidatesInProperties, type DuplicateProperty } from "./multi-agent";
 import { findImportTitleValue } from "./import-title";
 import { matchImportAgentByName } from "./import-agent-match";
+import { isPhotoRequirementIssue, needsPublicationPhoto } from "./property-drafts";
 import { findStalePdfDraftIds } from "./import-reconcile";
 import { flattenPdfPageRows } from "./pdf-import";
 import { createSessionToken } from "./sessions";
@@ -51,6 +52,15 @@ test("matches normalized full names and rejects names from other branches", () =
 
   assert.equal(matchImportAgentByName("TRISH SACHIKUNDA", agents, 4)?.id, 12);
   assert.equal(matchImportAgentByName("S. Ncube", agents, 4), null);
+});
+
+test("photo requirements do not block draft imports", () => {
+  assert.equal(isPhotoRequirementIssue("Image needs a photo before publishing"), true);
+  assert.equal(isPhotoRequirementIssue("At least one photo is required"), true);
+  assert.equal(isPhotoRequirementIssue("Property title is missing"), false);
+  assert.equal(isPhotoRequirementIssue("Photo appears blurry"), false);
+  assert.equal(needsPublicationPhoto({ status: "draft", pipelineStage: "draft", photos: [] }), false);
+  assert.equal(needsPublicationPhoto({ status: "public", photos: [] }), true);
 });
 
 after(async () => {

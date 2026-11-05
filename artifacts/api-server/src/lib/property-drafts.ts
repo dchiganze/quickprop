@@ -18,3 +18,10 @@ export function needsPublicationPhoto(property: { status?: string; pipelineStage
     || property.pipelineStage === "published";
   return publishing && !hasListingPhotos(property.photos);
 }
+
+export function isPhotoRequirementIssue(issue: unknown): boolean {
+  if (typeof issue !== "string") return false;
+  const normalized = issue.toLowerCase();
+  return /photo|image/.test(normalized)
+    && /required|requirement|need|missing|must|before publish|before publishing/.test(normalized);
+}

@@ -42,7 +42,7 @@ import { queuePrimaryReviewInvitation } from "../lib/agent-reviews";
 import { matchPropertyToAlerts } from "../lib/property-alerts";
 import { logger } from "../lib/logger";
 import { isPublicProperty, syncPropertyToProduction } from "../lib/publication-sync";
-import { hasListingPhotos, needsPublicationPhoto } from "../lib/property-drafts";
+import { needsPublicationPhoto } from "../lib/property-drafts";
 import {
   createPropertySaleConfirmationToken,
   hashPropertySaleConfirmationToken,
@@ -120,8 +120,12 @@ router.post("/properties", async (req, res): Promise<void> => {
     res.status(400).json({ error: "A new property cannot be created as sold. Use the Mark as sold flow to request conveyancer confirmation." });
     return;
   }
-  if (!hasListingPhotos(parsed.data.photos)) {
-    res.status(400).json({ error: "At least one listing photo is required." });
+  if (needsPublicationPhoto({
+    status: parsed.data.status,
+    pipelineStage: parsed.data.pipelineStage,
+    photos: parsed.data.photos,
+  })) {
+    res.status(400).json({ error: "Upload at least one property photo before publishing. You can save this property as a draft without photos." });
     return;
   }
   const user = await currentUser(req);

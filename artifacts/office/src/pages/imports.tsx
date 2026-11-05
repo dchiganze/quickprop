@@ -773,7 +773,7 @@ function ImportDetail({ id }: { id: number }) {
   };
   const publish = async () => {
     const approved = (detail?.records || []).filter((record) => record.reviewStatus === 'approved').map((record) => record.id);
-    if (!approved.length || !window.confirm(`Add ${approved.length} approved record${approved.length === 1 ? '' : 's'} to inventory? New properties will be saved as drafts, not published. Upload at least one photo before publishing each property. Linked existing properties keep their current visibility.`)) return;
+    if (!approved.length || !window.confirm(`Add ${approved.length} approved record${approved.length === 1 ? '' : 's'} to inventory? New properties will be saved as drafts, not published. Photos may be added later; at least one is required before publishing. Linked existing properties keep their current visibility.`)) return;
     setPublishError('');
     try {
       const result = await publishSession.mutateAsync({ id, data: { recordIds: approved } });
@@ -782,7 +782,7 @@ function ImportDetail({ id }: { id: number }) {
       queryClient.invalidateQueries({ queryKey: getGetPipelineQueryKey() });
       await refetch();
       if (result.failed) setPublishError(`${result.failed} record${result.failed === 1 ? '' : 's'} could not be imported. ${result.errors.join(' ')}`);
-      toast({ title: result.failed ? 'Import completed with failures' : 'Drafts saved', description: `${result.created} saved as drafts, ${result.linked} linked, ${result.failed} failed. Add a photo to each draft before publishing.` , variant: result.failed ? 'destructive' : 'default' });
+      toast({ title: result.failed ? 'Import completed with failures' : 'Drafts saved', description: `${result.created} saved as drafts, ${result.linked} linked, ${result.failed} failed. Photos are required only when publishing.` , variant: result.failed ? 'destructive' : 'default' });
     } catch { setPublishError('Import was rejected by the server. Refresh the session before retrying.'); }
   };
   const downloadErrors = async () => {
