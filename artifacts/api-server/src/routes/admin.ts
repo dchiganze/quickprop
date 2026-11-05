@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { randomBytes } from "node:crypto";
 import { eq, and, desc, inArray, or, isNull, type SQL } from "drizzle-orm";
-import { db, usersTable, branchesTable, notificationsTable, auditLogTable } from "@workspace/db";
+import { db, usersTable, branchesTable, businessAgenciesTable, notificationsTable, auditLogTable } from "@workspace/db";
 import {
   ListUsersResponse,
   CreateUserBody,
@@ -91,6 +91,28 @@ router.patch("/users/:id", teamAdminOnly, async (req, res): Promise<void> => {
       .for("update");
     if (!existing || existing.status === "deleted") return { kind: "missing" as const };
 
+    if (parsed.data.branchId != null) {
+      const [branch] = await tx.select({
+        id: branchesTable.id,
+        agencyId: branchesTable.agencyId,
+        status: branchesTable.status,
+      }).from(branchesTable)
+        .where(eq(branchesTable.id, parsed.data.branchId))
+        .limit(1);
+      if (!branch) return { kind: "branch-missing" as const };
+      if (branch.status !== "active" || branch.agencyId == null) {
+        return { kind: "branch-unavailable" as const };
+      }
+
+      const [agency] = await tx.select({ status: businessAgenciesTable.status })
+        .from(businessAgenciesTable)
+        .where(eq(businessAgenciesTable.id, branch.agencyId))
+        .limit(1);
+      if (!agency || agency.status !== "active") {
+        return { kind: "branch-unavailable" as const };
+      }
+    }
+
     const nextRole = parsed.data.role ?? existing.role;
     const nextStatus = parsed.data.status ?? existing.status;
     const wasActiveAdmin = existing.status === "active" && isAdminRole(existing.role);
@@ -101,7 +123,7 @@ router.patch("/users/:id", teamAdminOnly, async (req, res): Promise<void> => {
     }
 
     const [row] = await tx.update(usersTable).set(parsed.data).where(eq(usersTable.id, id)).returning();
-    return row ? { kind: "updated" as const, row } : { kind: "missing" as const };
+    return row ? { kind: "updated" as const, row, previousBranchId: existing.branchId } : { kind: "missing" as const };
   });
 
   if (outcome.kind === "missing") {
@@ -112,7 +134,19 @@ router.patch("/users/:id", teamAdminOnly, async (req, res): Promise<void> => {
     res.status(409).json({ error: "QuickProp must keep at least one active administrator." });
     return;
   }
-  await logAudit("edited", "user", id, `Updated user ${outcome.row.name}`, actor?.id, actor?.name);
+  if (outcome.kind === "branch-missing") {
+    res.status(404).json({ error: "Branch not found." });
+    return;
+  }
+  if (outcome.kind === "branch-unavailable") {
+    res.status(409).json({ error: "Choose an active branch in an active agency." });
+    return;
+  }
+  const branchChanged = Object.prototype.hasOwnProperty.call(parsed.data, "branchId");
+  const description = branchChanged
+    ? `Changed user ${outcome.row.name} branch assignment from ${outcome.previousBranchId ?? "unassigned"} to ${outcome.row.branchId ?? "unassigned"}`
+    : `Updated user ${outcome.row.name}`;
+  await logAudit("edited", "user", id, description, actor?.id, actor?.name);
   res.json(UpdateUserResponse.parse(jsonify(stripUser(outcome.row))));
 });
 

@@ -9,6 +9,12 @@ Agencies group branches for administrative management, logos, and team assignmen
 
 **How to apply:** Keep discovery and collaboration contact details branch-scoped, and restrict contact details to approved requests. Do not expand access across an agency's branches unless explicitly requested.
 
+Changing an existing user's assigned branch changes their branch-scoped access. Admin reassignment must be explicitly confirmed, accept only active branches in active agencies, and update the user's branch without silently moving linked listings or import history.
+
+**Why:** Branch membership determines which business records an account can access, so reassignment is an access-control change rather than a cosmetic profile edit.
+
+**How to apply:** Validate branch status and agency status on the server, audit the previous and next assignment, and explain the access impact before confirming.
+
 Collaboration should work like Hinge: an agent requests to collaborate on another agent's property; the listing agent sees who requested and can accept or decline. Declining must not notify the requester. Only an accepted match sends a match notification to the requesting agent. Both agents gain access to each other's phone numbers after acceptance, not before.
 
 **Why:** The user explicitly specified this collaboration and contact-privacy behaviour.

@@ -467,7 +467,7 @@ function ImportsList() {
             <Card key={label as string} className="border-border/80 shadow-none"><CardContent className="p-4"><p className="text-[10px] font-bold uppercase tracking-[0.13em] text-muted-foreground">{label}</p><p className={cn('mt-2 text-2xl font-extrabold tracking-tight', tone as string)}>{value}</p><p className="mt-1 text-xs text-muted-foreground">{detail}</p></CardContent></Card>
           ))}
         </div>
-        {error && <Alert variant="destructive"><AlertCircle className="h-4 w-4" /><AlertTitle>Could not load import sessions</AlertTitle><AlertDescription className="flex items-center justify-between gap-4"><span>{apiErrorMessage(error) ?? 'The operations feed did not respond.'}</span><Button variant="outline" size="sm" onClick={() => refetch()}>Retry</Button></AlertDescription></Alert>}
+        {error && <Alert variant="destructive"><AlertCircle className="h-4 w-4" /><AlertTitle>Could not load import sessions</AlertTitle><AlertDescription className="flex items-center justify-between gap-4"><span>{apiErrorMessage(error) ?? 'The operations feed did not respond.'}</span>{branchAssignmentRequired ? <Link href="/users" className="shrink-0 font-semibold text-primary underline underline-offset-4">Team &amp; Branches</Link> : <Button variant="outline" size="sm" onClick={() => refetch()}>Retry</Button>}</AlertDescription></Alert>}
         <Card className="overflow-hidden border-border/80 shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between border-b bg-card/70 px-5 py-4">
             <div><CardTitle className="text-base">Import queue</CardTitle><p className="mt-1 text-xs text-muted-foreground">Most recently touched sessions first</p></div>

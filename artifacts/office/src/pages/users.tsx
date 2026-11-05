@@ -2,6 +2,9 @@ import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   getGetAdminAgenciesQueryKey,
+  getGetCurrentUserQueryKey,
+  getGetImportBranchesQueryKey,
+  getListImportSessionsQueryKey,
   getListBranchesQueryKey,
   getListUsersQueryKey,
   useCreateAdminAgencyAgent,
@@ -96,6 +99,13 @@ export default function Users() {
   const [inviteOpen, setInviteOpen] = useState(false);
   const [teamInviteOpen, setTeamInviteOpen] = useState(false);
   const [branchOpen, setBranchOpen] = useState(false);
+  const [branchAssignmentTarget, setBranchAssignmentTarget] = useState<{
+    id: number;
+    name: string;
+    currentBranchName: string;
+    nextBranchId: number;
+    nextBranchName: string;
+  } | null>(null);
   const [deactivationTarget, setDeactivationTarget] = useState<{ id: number; name: string; email: string } | null>(null);
   const [deletionTarget, setDeletionTarget] = useState<{ id: number; name: string; email: string; role: string; status: string } | null>(null);
   const [setupLinkTargetId, setSetupLinkTargetId] = useState<number | null>(null);
@@ -313,6 +323,57 @@ export default function Users() {
     );
   };
 
+  const requestBranchAssignment = (user: { id: number; name: string; branchId?: number | null }, branchId: number) => {
+    const branch = teamBranches.find((item) => item.id === branchId);
+    if (!branch) {
+      toast({
+        title: 'Choose an active branch',
+        description: 'Only branches in active agencies can be assigned.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    if (user.branchId === branch.id) return;
+
+    const currentBranchName = branches?.find((item) => item.id === user.branchId)?.name
+      ?? (user.branchId == null ? 'Unassigned' : 'Unavailable branch');
+    setBranchAssignmentTarget({
+      id: user.id,
+      name: user.name,
+      currentBranchName,
+      nextBranchId: branch.id,
+      nextBranchName: branch.name,
+    });
+  };
+
+  const confirmBranchAssignment = () => {
+    if (!branchAssignmentTarget) return;
+    updateUser.mutate(
+      { id: branchAssignmentTarget.id, data: { branchId: branchAssignmentTarget.nextBranchId } },
+      {
+        onSuccess: (updatedUser) => {
+          void queryClient.invalidateQueries({ queryKey: getListUsersQueryKey() });
+          void queryClient.invalidateQueries({ queryKey: getListBranchesQueryKey() });
+          if (updatedUser.id === currentUser?.id) {
+            void queryClient.invalidateQueries({ queryKey: getGetCurrentUserQueryKey() });
+            void queryClient.invalidateQueries({ queryKey: getGetImportBranchesQueryKey() });
+            void queryClient.invalidateQueries({ queryKey: getListImportSessionsQueryKey() });
+          }
+          toast({
+            title: 'Branch assignment updated',
+            description: `${updatedUser.name} is assigned to ${branchAssignmentTarget.nextBranchName}.`,
+          });
+          setBranchAssignmentTarget(null);
+        },
+        onError: (error) => toast({
+          title: 'Could not update branch assignment',
+          description: errorText(error, 'Choose an active branch and try again.'),
+          variant: 'destructive',
+        }),
+      },
+    );
+  };
+
   return (
     <div className="p-8 max-w-[1400px] mx-auto space-y-6">
       <div className="flex items-center justify-between">
@@ -385,6 +446,8 @@ export default function Users() {
                       const isLastActiveAdmin = isAdmin && activeAdminCount <= 1;
                       const canDeactivate = canManageUsers && user.status === 'active' && !isLastActiveAdmin;
                       const canDelete = canManageUsers && !isCurrentUser && !(isAdmin && user.status === 'active' && isLastActiveAdmin);
+                      const assignedBranch = branches?.find((branch) => branch.id === user.branchId);
+                      const activeBranchIsAssigned = teamBranches.some((branch) => branch.id === user.branchId);
 
                       return (
                         <div
@@ -403,8 +466,40 @@ export default function Users() {
                             </div>
                           </div>
                           <div className="capitalize text-sm">{user.role.replaceAll('_', ' ')}</div>
-                          <div className="text-sm text-muted-foreground truncate">
-                            {branches?.find((branch) => branch.id === user.branchId)?.name || 'Head Office'}
+                          <div className="min-w-0 text-sm text-muted-foreground">
+                            {canManageUsers ? (
+                              <div className="space-y-1">
+                                {user.branchId != null && !activeBranchIsAssigned && (
+                                  <p className="truncate text-xs" title={assignedBranch?.name ?? 'Unavailable branch'}>
+                                    {assignedBranch?.name ?? 'Unavailable branch'}
+                                  </p>
+                                )}
+                                <Select
+                                  value={activeBranchIsAssigned ? String(user.branchId) : ''}
+                                  onValueChange={(value) => requestBranchAssignment(user, Number(value))}
+                                  disabled={!teamBranches.length || updateUser.isPending}
+                                >
+                                  <SelectTrigger
+                                    className="h-8 min-w-[130px] text-xs"
+                                    aria-label={`Assign branch to ${user.name}`}
+                                    data-testid={`select-user-branch-${user.id}`}
+                                  >
+                                    <SelectValue placeholder={user.branchId == null ? 'Unassigned' : 'Choose active branch'} />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {teamBranches.map((branch) => (
+                                      <SelectItem key={branch.id} value={String(branch.id)}>
+                                        {branch.name}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            ) : (
+                              <span className="block truncate" title={assignedBranch?.name ?? 'Unassigned'}>
+                                {assignedBranch?.name ?? 'Unassigned'}
+                              </span>
+                            )}
                           </div>
                           <div>
                             <Badge
@@ -736,6 +831,32 @@ export default function Users() {
             >
               {updateUser.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Deactivate account
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <AlertDialog open={Boolean(branchAssignmentTarget)} onOpenChange={(open) => { if (!open && !updateUser.isPending) setBranchAssignmentTarget(null); }}>
+        <AlertDialogContent data-testid="dialog-assign-user-branch">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Change this account’s branch?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {branchAssignmentTarget
+                ? `${branchAssignmentTarget.name} will move from ${branchAssignmentTarget.currentBranchName} to ${branchAssignmentTarget.nextBranchName}. This changes their branch-scoped access; listings and import history will not be moved.`
+                : 'This changes the account’s branch-scoped access. Listings and import history will not be moved.'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={updateUser.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={!branchAssignmentTarget || updateUser.isPending}
+              onClick={(event) => {
+                event.preventDefault();
+                confirmBranchAssignment();
+              }}
+              data-testid="button-confirm-branch-assignment"
+            >
+              {updateUser.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Assign branch
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
