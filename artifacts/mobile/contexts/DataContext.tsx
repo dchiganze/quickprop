@@ -380,6 +380,9 @@ const LEGACY_DEMO_PROPERTY_IDS = new Set([
   'prop-006',
 ]);
 
+const LEGACY_DEMO_LEAD_IDS = new Set(['lead-001', 'lead-002', 'lead-003', 'lead-004']);
+const LEGACY_DEMO_TASK_IDS = new Set(['task-001', 'task-002', 'task-003', 'task-004', 'task-005']);
+
 function isLegacyDemoPropertyOperation(operation: PendingSync): boolean {
   if (operation.kind === 'property-create') {
     return LEGACY_DEMO_PROPERTY_IDS.has(operation.localId)
@@ -388,33 +391,6 @@ function isLegacyDemoPropertyOperation(operation: PendingSync): boolean {
   return (operation.kind === 'property-update' || operation.kind === 'property-delete')
     && LEGACY_DEMO_PROPERTY_IDS.has(operation.localId);
 }
-
-const MOCK_LEADS: Lead[] = [
-  {
-    id: 'lead-001', propertyId: 'prop-001', propertyAddress: '14 Acacia Avenue, Borrowdale',
-    buyerName: 'David Mupfumi', buyerPhone: '+263 77 888 9999', buyerEmail: 'd.mupfumi@email.com',
-    stage: 'viewing_booked', notes: 'Very interested. Cash buyer. Wants to view Saturday morning.',
-    followUpDate: new Date(Date.now() + 86400000 * 2).toISOString(), createdAt: '2024-12-14T10:00:00Z',
-  },
-  {
-    id: 'lead-002', propertyId: 'prop-002', propertyAddress: '7 Jacaranda Close, Highlands',
-    buyerName: 'Grace Chirau', buyerPhone: '+263 71 777 8888', buyerEmail: 'g.chirau@gmail.com',
-    stage: 'contacted', notes: 'Diaspora buyer. Financing through Standard Chartered. Needs full documentation.',
-    followUpDate: new Date(Date.now() + 86400000).toISOString(), createdAt: '2024-12-16T14:00:00Z',
-  },
-  {
-    id: 'lead-003', propertyId: 'prop-003', propertyAddress: '22 Palm Drive, Greendale',
-    buyerName: 'Emmanuel Sithole', buyerPhone: '+263 73 666 7777', buyerEmail: 'e.sithole@corp.com',
-    stage: 'offer', notes: 'Offered $270k. Seller counter-offered $280k. Negotiation ongoing.',
-    followUpDate: new Date(Date.now() + 86400000 * 3).toISOString(), createdAt: '2024-12-10T09:00:00Z',
-  },
-  {
-    id: 'lead-004', propertyId: 'prop-004', propertyAddress: '5B Mount Pleasant Heights',
-    buyerName: 'Amara Okonkwo', buyerPhone: '+263 77 555 4444', buyerEmail: 'a.okonkwo@ngomain.org',
-    stage: 'new', notes: 'NGO worker relocating from Zambia. Needs by end of January.',
-    createdAt: '2024-12-20T11:00:00Z',
-  },
-];
 
 const MOCK_MATCHES: BuyerMatch[] = [
   {
@@ -440,34 +416,6 @@ const MOCK_MATCHES: BuyerMatch[] = [
     buyerName: 'Victor Chigamba', matchPercentage: 78, budget: 420000, preferredLocation: 'Borrowdale',
     financeType: 'cash', urgency: 'flexible', preferences: ['4 bedrooms', 'Electric fence', 'Generator'],
     responded: false,
-  },
-];
-
-const MOCK_TASKS: Task[] = [
-  {
-    id: 'task-001', title: 'Call Robert re: Borrowdale mandate renewal', type: 'call_seller',
-    dueDate: new Date().toISOString(), propertyId: 'prop-001', propertyAddress: '14 Acacia Avenue',
-    completed: false, createdAt: '2024-12-18T09:00:00Z',
-  },
-  {
-    id: 'task-002', title: 'Viewing with David Mupfumi - 14 Acacia Ave', type: 'viewing',
-    dueDate: new Date(Date.now() + 86400000 * 2).toISOString(), propertyId: 'prop-001',
-    propertyAddress: '14 Acacia Avenue', completed: false, createdAt: '2024-12-19T10:00:00Z',
-  },
-  {
-    id: 'task-003', title: 'Update price for Greendale listing', type: 'price_update',
-    dueDate: new Date().toISOString(), propertyId: 'prop-003', propertyAddress: '22 Palm Drive',
-    completed: false, createdAt: '2024-12-20T08:00:00Z',
-  },
-  {
-    id: 'task-004', title: 'Take additional photos - Highlands property', type: 'take_photos',
-    dueDate: new Date(Date.now() - 86400000).toISOString(), propertyId: 'prop-002',
-    propertyAddress: '7 Jacaranda Close', completed: false, createdAt: '2024-12-15T09:00:00Z',
-  },
-  {
-    id: 'task-005', title: 'Renew sole mandate - Avondale Commercial', type: 'renew_mandate',
-    dueDate: new Date(Date.now() + 86400000 * 7).toISOString(), propertyId: 'prop-005',
-    propertyAddress: '103 Samora Machel Ave', completed: false, createdAt: '2024-12-20T11:00:00Z',
   },
 ];
 
@@ -569,9 +517,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         const loadedProperties = storedProperties.filter(
           property => !LEGACY_DEMO_PROPERTY_IDS.has(property.id),
         );
-        const loadedLeads = parseStoredArray(ls, MOCK_LEADS);
+        const storedLeads = parseStoredArray<Lead>(ls, []);
+        const loadedLeads = storedLeads.filter(lead => !LEGACY_DEMO_LEAD_IDS.has(lead.id));
         const loadedBuyerMatches = parseStoredArray(ms, MOCK_MATCHES);
-        const loadedTasks = parseStoredArray(ts, MOCK_TASKS);
+        const storedTasks = parseStoredArray<Task>(ts, []);
+        const loadedTasks = storedTasks.filter(task => !LEGACY_DEMO_TASK_IDS.has(task.id));
         const loadedAlerts = parseStoredArray(as_, []);
         const loadedViewings = parseStoredArray<ApiViewing>(vs, []);
         const parsedPending = parseStoredArray<PendingSync>(pending, []);
@@ -613,7 +563,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         ) {
           leadsRef.current = loadedLeads;
           setLeads(loadedLeads);
-          if (!ls) await AsyncStorage.setItem(LEADS_KEY, JSON.stringify(leadsRef.current));
+          if (!ls || loadedLeads.length !== storedLeads.length) {
+            await AsyncStorage.setItem(LEADS_KEY, JSON.stringify(leadsRef.current));
+          }
         }
         if (
           generation === resetGenerationRef.current &&
@@ -629,7 +581,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         ) {
           tasksRef.current = loadedTasks;
           setTasks(loadedTasks);
-          if (!ts) await AsyncStorage.setItem(TASKS_KEY, JSON.stringify(tasksRef.current));
+          if (!ts || loadedTasks.length !== storedTasks.length) {
+            await AsyncStorage.setItem(TASKS_KEY, JSON.stringify(tasksRef.current));
+          }
         }
         if (
           generation === resetGenerationRef.current &&
