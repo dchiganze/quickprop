@@ -463,3 +463,17 @@ mtime_ms = 1793865446678
 storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:cf900b3f-04ce-456b-888c-760ecb412036/a5de3836-6398-45c9-b214-5fd32f7d3009/6d61d283-92f6-4219-8935-b09489bda444"
 storage_version_token = "1793865627209279"
 content_type = "video/mp4"
+
+[[outputs]]
+id = "1xjEG7qYGCmCvgvyyt--U"
+uri = "file://artifacts/quickprop-mobile-ui-film/public/QuickProp_Promo8_SpacedChoice_RaisedLabels_1080p_24fps.mp4"
+type = "video"
+title = "QuickProp Promo 8 — corrected 1080p video"
+description = "Updated from your approved MOV: founder credit, spaced owner-choice text, and raised section labels. The original soundtrack and spoken captions are retained."
+logical_id = "652f2782-6295-4754-b95c-b27f1b781dbe"
+content_hash = "sha256:936a9c36df3d8c63f169d9c2cf8cb448bc70b83a5012f3756e018341d831811f"
+size = 18171193
+mtime_ms = 1793869479180
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:cf900b3f-04ce-456b-888c-760ecb412036/652f2782-6295-4754-b95c-b27f1b781dbe/a024cdfb-9b33-442a-821f-7b1b0671cb2c"
+storage_version_token = "1793869673599939"
+content_type = "video/mp4"
