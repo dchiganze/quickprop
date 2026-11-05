@@ -6,12 +6,12 @@ import {
 import { useEffect, useRef, useState } from 'react';
 
 export const SCENE_DURATIONS = {
-  completePromo: 41708,
+  completePromo: 41700,
 };
 
 const VIDEO_ASPECT_RATIO: VideoAspectRatio = '16:9';
-const PROMO_VIDEO_URL = `${import.meta.env.BASE_URL}QuickProp_Promo_5_Founder_Credit_1080p_Captions_AudioFixed.mp4`;
-const PROMO_WEBM_URL = `${import.meta.env.BASE_URL}QuickProp_Promo_5_Founder_Credit_1080p_Captions_AudioFixed_compatible.webm`;
+const PROMO_VIDEO_URL = `${import.meta.env.BASE_URL}QuickProp_UntitledDesign2_Overlays_Audible_1080p_30fps.mp4`;
+const PROMO_WEBM_URL = `${import.meta.env.BASE_URL}QuickProp_UntitledDesign2_Overlays_Audible_1080p_30fps_compatible.webm`;
 
 export default function VideoTemplate({
   durations = SCENE_DURATIONS,

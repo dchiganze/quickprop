@@ -435,3 +435,17 @@ mtime_ms = 1793863342455
 storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:cf900b3f-04ce-456b-888c-760ecb412036/01015d7a-f3c4-47f0-9f3a-4aab98e84eac/8216faf7-2615-4a1f-82e2-140f7dd39dbd"
 storage_version_token = "1793863417723499"
 content_type = "video/mp4"
+
+[[outputs]]
+id = "EAttuES6Hp_tgsIAX5jTr"
+uri = "file://artifacts/quickprop-mobile-ui-film/public/QuickProp_UntitledDesign2_Overlays_Audible_1080p_30fps.mp4"
+type = "video"
+title = "QuickProp promo — corrected 1080p MP4"
+description = "Built from your latest upload. Founder credit appears from 0–9s; the listing and flyer labels are raised as specified; spoken captions and normalized audio are retained."
+logical_id = "1afff6d2-38e1-40a8-a8fb-1ea0a2d4097c"
+content_hash = "sha256:eae75d77b5416e4bd940c58b1646a88f4f691ce7813f57026b1dbd355c45cc05"
+size = 16226425
+mtime_ms = 1793864339898
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:cf900b3f-04ce-456b-888c-760ecb412036/1afff6d2-38e1-40a8-a8fb-1ea0a2d4097c/7fda21b5-61fa-436c-aa2f-6b4143b57dc1"
+storage_version_token = "1793864536309009"
+content_type = "video/mp4"
