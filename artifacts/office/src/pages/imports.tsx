@@ -541,7 +541,36 @@ function RecordRow({ record, selected, onToggle, draft, setDraft, onSave, saving
       ) : branches.length === 1 ? (
         <p className="ml-9 mt-2 text-[11px] text-muted-foreground">Branch: {branches[0].name}</p>
       ) : null}
-      <div className="mt-3 flex items-center gap-3 pl-9 text-[11px] text-muted-foreground"><span className="inline-flex items-center gap-1">{isVision ? <ScanText className="h-3 w-3 text-primary" /> : <FileText className="h-3 w-3" />} {record.sourceFileName || `Source file #${record.sourceFileId}`}</span><span className="text-border">/</span><span>Source location {record.sourceLocation || 'not supplied'}</span>{isVision && <span className="rounded bg-primary/10 px-1.5 py-0.5 font-semibold text-primary">Vision extracted</span>}{record.validationIssues.length > 0 && <span className="inline-flex items-center gap-1 font-semibold text-red-700"><AlertCircle className="h-3 w-3" /> {record.validationIssues.length} validation issue{record.validationIssues.length === 1 ? '' : 's'}</span>}<span className="ml-auto font-mono text-[10px] text-muted-foreground/70">record:{record.id}</span></div>
+      <div className="mt-3 flex flex-wrap items-center gap-3 pl-9 text-[11px] text-muted-foreground">
+        <span className="inline-flex items-center gap-1">
+          {isVision ? <ScanText className="h-3 w-3 text-primary" /> : <FileText className="h-3 w-3" />}
+          {record.sourceFileName || `Source file #${record.sourceFileId}`}
+        </span>
+        <span className="text-border">/</span>
+        <span>Source location {record.sourceLocation || 'not supplied'}</span>
+        {isVision && <span className="rounded bg-primary/10 px-1.5 py-0.5 font-semibold text-primary">Vision extracted</span>}
+        {record.validationIssues.length > 0 && (
+          <span className="inline-flex items-center gap-1 font-semibold text-red-700">
+            <AlertCircle className="h-3 w-3" />
+            {record.validationIssues.length} validation issue{record.validationIssues.length === 1 ? '' : 's'}
+          </span>
+        )}
+        <span className="ml-auto font-mono text-[10px] text-muted-foreground/70">record:{record.id}</span>
+      </div>
+      {record.validationIssues.length > 0 && (
+        <div
+          className="ml-9 mt-2 max-w-3xl rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-950 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-100"
+          role="alert"
+          aria-label={`Validation issues for record ${record.id}`}
+        >
+          <p className="font-semibold">Resolve these before approving:</p>
+          <ul className="mt-1 list-disc space-y-0.5 pl-4">
+            {record.validationIssues.map((issue, index) => (
+              <li key={`${index}-${issue}`}>{issue}</li>
+            ))}
+          </ul>
+        </div>
+      )}
       {isVision && (
         <div className="ml-9 mt-2 rounded-md border border-primary/15 bg-primary/[0.025] p-2.5">
           <div className="flex flex-wrap gap-1.5">
