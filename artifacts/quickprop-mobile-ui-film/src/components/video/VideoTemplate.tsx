@@ -10,8 +10,8 @@ export const SCENE_DURATIONS = {
 };
 
 const VIDEO_ASPECT_RATIO: VideoAspectRatio = '16:9';
-const PROMO_VIDEO_URL = `${import.meta.env.BASE_URL}QuickProp_Promo_5_Founder_Credit_1080p.mp4`;
-const PROMO_WEBM_URL = `${import.meta.env.BASE_URL}QuickProp_Promo_5_Founder_Credit_1080p_compatible.webm`;
+const PROMO_VIDEO_URL = `${import.meta.env.BASE_URL}QuickProp_Promo_5_Founder_Credit_1080p_Captions_AudioFixed.mp4`;
+const PROMO_WEBM_URL = `${import.meta.env.BASE_URL}QuickProp_Promo_5_Founder_Credit_1080p_Captions_AudioFixed_compatible.webm`;
 
 export default function VideoTemplate({
   durations = SCENE_DURATIONS,

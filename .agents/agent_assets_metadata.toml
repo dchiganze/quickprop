@@ -421,3 +421,17 @@ mtime_ms = 1793862655283
 storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:cf900b3f-04ce-456b-888c-760ecb412036/e03c47fe-9ddb-4610-badb-133c818494da/5347f585-7490-4efa-a97e-57d7cec5e912"
 storage_version_token = "1793862864537944"
 content_type = "video/mp4"
+
+[[outputs]]
+id = "kiLcRDfJLas0dEU4EOdzf"
+uri = "file://artifacts/quickprop-mobile-ui-film/public/QuickProp_Promo_5_Founder_Credit_1080p_Captions_AudioFixed.mp4"
+type = "video"
+title = "QuickProp Promo — captions and sound fixed (1080p)"
+description = "Unique corrected MP4 filename to avoid the older same-named export. Spoken captions and both raised section labels are present; normalized AAC audio is included."
+logical_id = "01015d7a-f3c4-47f0-9f3a-4aab98e84eac"
+content_hash = "sha256:1c068c8359ab7ccddf79cedbfe53e940a44b36f7c625d8e678e8abf5c9d24608"
+size = 16210957
+mtime_ms = 1793863342455
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:cf900b3f-04ce-456b-888c-760ecb412036/01015d7a-f3c4-47f0-9f3a-4aab98e84eac/8216faf7-2615-4a1f-82e2-140f7dd39dbd"
+storage_version_token = "1793863417723499"
+content_type = "video/mp4"
