@@ -54,7 +54,7 @@ export function Scene1() {
           animate={{ opacity: [0, 1, 1, 1], scale: [0.88, 1, 1, 0.96], rotate: [2, 0, 0, 1], x: [8, 0, 0, 0] }}
           transition={{ duration: 2.3, delay: 0.63, times: [0, 0.12, 0.8, 1], ease: EASE }}
         >
-          <div style={{ color: '#17362F', fontSize: '4.2vmin', lineHeight: 1, fontWeight: 800, letterSpacing: '-.055em' }}>OR CHOOSE NOT TO</div>
+          <div style={{ color: '#17362F', fontSize: '4.2vmin', lineHeight: 1, fontWeight: 800, letterSpacing: '-.025em', wordSpacing: '.13em' }}>OR CHOOSE NOT TO</div>
           <div style={{ marginTop: '1.65vmin', color: '#64776E', fontSize: '2.8vmin', lineHeight: 1.22, fontWeight: 600 }}>You are in control</div>
           <div style={{ position: 'absolute', right: '4%', top: '12%', width: '2.8vmin', height: '2.8vmin', border: '.4vmin solid #789184', borderRadius: '50%' }} />
         </motion.div>

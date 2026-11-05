@@ -15,7 +15,7 @@
 
 | Time | View | Playback | Handoff |
 | --- | --- | --- | --- |
-| 0.000–9.000s | Founder credit over opening interview | White, black-outlined “Douglas Chiganze, QuickProp Founder” at bottom-left, about one-fifth frame height above the bottom; source picture and subtitles remain visible | Credit ends cleanly at 9 seconds |
+| 0.000–9.000s | Founder credit over opening interview | White, black-outlined “Douglas Chiganze, QuickProp Founder” at bottom-left, enlarged 1.5× as a complete credit while retaining its existing anchor and timing; source picture and subtitles remain visible | Credit ends cleanly at 9 seconds |
 | 9.000–10.000s | Interview continues | Continue the supplied edit without added copy | Cut into listing section |
 | 9.000–12.800s | Listing details | Raise “QuickProp Agent — Listing Details” to one-fifth of frame height above bottom | Original label location is cleared; preserve footage and subtitles |
 | 12.800–16.000s | WhatsApp share | Raise “Property Flyer — Caption Prefilled” to one-quarter of frame height above bottom | Original label location is cleared; preserve footage and subtitles |
@@ -27,7 +27,7 @@
 
 **Purpose:** Present the entire edited promo in the artifact itself, preserving the complete source rather than showing a link, recreating the footage, or assembling a new cut.
 
-**Exact content:** The complete image from `attached_assets/Untitled_design_(2)_1793863940234.mp4`, 1920×1080 H.264 at 30 fps with AAC stereo audio. A white, black-outlined “Douglas Chiganze, QuickProp Founder” credit sits bottom-left, roughly one-fifth of the frame height above the bottom, from 0.000 through 9.000 seconds only. In the listing section, “QuickProp Agent — Listing Details” is raised to roughly one-fifth of the frame height above the bottom; in the WhatsApp share section, “Property Flyer — Caption Prefilled” is raised to roughly one-quarter of the frame height above the bottom. Only the old title positions are cleared; the source's yellow spoken subtitles remain visible and unchanged.
+**Exact content:** The complete image from `attached_assets/Untitled_design_(2)_1793863940234.mp4`, 1920×1080 H.264 at 30 fps with AAC stereo audio. A white, black-outlined “Douglas Chiganze, QuickProp Founder” credit sits bottom-left, roughly one-fifth of the frame height above the bottom, from 0.000 through 9.000 seconds only. Its complete credit is enlarged 1.5× while preserving the bottom-left anchor, white styling, and visibility window. In the listing section, “QuickProp Agent — Listing Details” is raised to roughly one-fifth of the frame height above the bottom; in the WhatsApp share section, “Property Flyer — Caption Prefilled” is raised to roughly one-quarter of the frame height above the bottom. Only the old title positions are cleared; the source's yellow spoken subtitles remain visible and unchanged.
 
 **Composition and artistic idea:** A single 16:9 video surface fills the persisted 16:9 canvas. `object-fit: contain` preserves the complete frame without cropping. The canvas uses a quiet deep-green-black surround only where the browser viewport does not share the source ratio.
 
@@ -46,4 +46,4 @@
 - Runtime clock: `SCENE_DURATIONS.completePromo = 41700` ms. Uploaded source duration: 41.709 seconds; the 30 fps export is 41.700 seconds.
 - Original audio remains in the video; no separate soundtrack is mixed. Its downloadable MP4 and WebM versions are loudness-normalized. Autoplay starts muted, and the workspace control bar can unmute it.
 - Browser playback is inline and autoplay attempted, but stops at the source endpoint rather than looping automatically. The workspace control bar pauses, resumes, mutes, reports the preview duration, and can still explicitly enable its loop-current-scene control.
-- The preview references `QuickProp_UntitledDesign2_Overlays_Audible_1080p_30fps.mp4` first and `QuickProp_UntitledDesign2_Overlays_Audible_1080p_30fps_compatible.webm` second. Both are 41.700-second exports from the latest 41.709-second upload, with normalized audio, unchanged spoken subtitles, the timed founder credit, and raised title labels. Playback does not automatically loop.
+- The preview references `QuickProp_UntitledDesign2_Credit150_1080p_30fps.mp4` first and `QuickProp_UntitledDesign2_Credit150_1080p_30fps_compatible.webm` second. Both are 41.700-second exports from the latest 41.709-second upload, with normalized audio, unchanged spoken subtitles, the 1.5× complete founder credit, and raised title labels. Playback does not automatically loop.

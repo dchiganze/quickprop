@@ -449,3 +449,17 @@ mtime_ms = 1793864339898
 storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:cf900b3f-04ce-456b-888c-760ecb412036/1afff6d2-38e1-40a8-a8fb-1ea0a2d4097c/7fda21b5-61fa-436c-aa2f-6b4143b57dc1"
 storage_version_token = "1793864536309009"
 content_type = "video/mp4"
+
+[[outputs]]
+id = "_pZOp-nn1TxoRdT76xuXI"
+uri = "file://artifacts/quickprop-mobile-ui-film/public/QuickProp_UntitledDesign2_Credit150_1080p_30fps.mp4"
+type = "video"
+title = "QuickProp promo — enlarged founder credit"
+description = "Updated 1080p MP4 using the latest source, with the founder credit enlarged 1.5×. The captions, raised labels, and normalized audio are retained."
+logical_id = "a5de3836-6398-45c9-b214-5fd32f7d3009"
+content_hash = "sha256:22e26777a68e6f05c990d5dad86437d7e3754b067bbbe3342d4a3dfe6768a4fb"
+size = 15882485
+mtime_ms = 1793865446678
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:cf900b3f-04ce-456b-888c-760ecb412036/a5de3836-6398-45c9-b214-5fd32f7d3009/6d61d283-92f6-4219-8935-b09489bda444"
+storage_version_token = "1793865627209279"
+content_type = "video/mp4"
