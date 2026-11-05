@@ -135,7 +135,7 @@ export default function VideoWithControls() {
         key={controls.mountKey}
         durations={controls.durations}
         paused={controls.paused}
-        loop
+        loop={controls.locked}
         muted={muted}
         onSceneChange={controls.onSceneChange}
       />

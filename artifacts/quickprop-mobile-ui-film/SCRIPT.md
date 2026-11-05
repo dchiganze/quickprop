@@ -6,10 +6,10 @@
 - **Identity:** Preserve the supplied QuickProp film's picture, grade, edit, subtitles, and audio; refine only the requested lower-third overlays. The canvas remains 16:9.
 - **Hero:** The supplied complete MP4, shown edge-to-edge inside the 16:9 preview canvas without crop or re-edit.
 - **Motion:** Keep the source footage's original motion and transitions. The founder credit and two section labels remain restrained, fixed lower-thirds.
-- **Arc:** Play the MP4 from its opening frame through its original final frame, then loop in the preview.
-- **Payoff:** The original final image and soundtrack resolve naturally before the preview returns to the untouched opening.
+- **Arc:** Play the MP4 from its opening frame through its original final frame, then stop in the preview.
+- **Payoff:** The original final image and soundtrack resolve naturally and remain at the endpoint.
 - **Runtime:** 41.708 seconds in the source; the preview clock uses one 41,708 ms scene.
-- **Sound:** Preserve the MP4's original AAC audio. Start muted for reliable browser autoplay; the workspace mute control enables the source audio. No added bed, voiceover, or sound effects.
+- **Sound:** Preserve and loudness-normalize the MP4's original AAC audio to a standard audible level. Start muted for reliable browser autoplay; the workspace mute control enables the source audio. No added bed, voiceover, or sound effects.
 
 ## Timeline overview
 
@@ -19,7 +19,7 @@
 | 9.000–10.000s | Interview continues | Continue the supplied edit without added copy | Cut into listing section |
 | 10.000–12.800s | Listing details | Raise “QuickProp Agent — Listing Details” to one-fifth of frame height above bottom | Original label location is cleared; preserve footage and subtitles |
 | 12.800–16.000s | WhatsApp share | Raise “Property Flyer — Caption Prefilled” to one-quarter of frame height above bottom | Original label location is cleared; preserve footage and subtitles |
-| 16.000–41.708s | Complete edited promo | Play the rest of the supplied H.264 video and original audio | At the source endpoint, native looping restarts at the first source frame |
+| 16.000–41.708s | Complete edited promo | Play the rest of the supplied H.264 video and normalized original audio | Hold on the source endpoint; no automatic preview restart |
 
 ## Full shot script
 
@@ -31,19 +31,19 @@
 
 **Composition and artistic idea:** A single 16:9 video surface fills the persisted 16:9 canvas. `object-fit: contain` preserves the complete frame without cropping. The canvas uses a quiet deep-green-black surround only where the browser viewport does not share the source ratio.
 
-**Timed choreography:** 0.000s: begin on the source's own opening frame with the white founder credit in the lower-left, raised from its previous position. 0.000–9.000s: show the credit; it is absent from 9.000s onward. 10.000–12.800s: raise the listing details label. 12.800–16.000s: raise the flyer caption label. 16.000–41.708s: continue through the complete provided edit and original sound without added copy. At 41.708s, return to 0.000s for preview looping.
+**Timed choreography:** 0.000s: begin on the source's own opening frame with the white founder credit in the lower-left, raised from its previous position. 0.000–9.000s: show the credit; it is absent from 9.000s onward. 10.000–12.800s: raise the listing details label. 12.800–16.000s: raise the flyer caption label. 16.000–41.708s: continue through the complete provided edit and normalized original sound without added copy. At 41.708s, hold on the final source frame in preview.
 
-**Transition contract:** The only loop handoff is the source video's own endpoint to its first frame. The supplied video element loops the original file without trimming or splicing it.
+**Transition contract:** There is no automatic preview loop handoff. The supplied video element plays the complete original file without trimming or splicing, then holds at its endpoint unless the viewer explicitly enables the existing loop-current-scene control.
 
 **Assets and technique:** Replace both public media sources with versions of the newly supplied complete H.264/AAC MP4. The H.264 output retains AAC audio and adds the timed founder credit plus the two relocated section labels; the original subtitle track is burned into the image and is unchanged. A VP9/Opus WebM compatibility fallback is encoded from the same revised 1920×1080, 30 fps composition. The embedded preview keeps MP4 first and WebM second. Workspace playback controls sit outside the composition.
 
-**Sound intent:** Preserve the original AAC soundtrack in the source file. The preview starts muted so the video can autoplay reliably; the workspace mute control enables audio without changing the media.
+**Sound intent:** Preserve the original AAC soundtrack and normalize it to approximately -16 LUFS integrated with a -1.5 dBTP ceiling in both downloadable formats. The preview starts muted so the video can autoplay reliably; the workspace mute control enables audio.
 
 ## Review and playback contract
 
 - One continuous source-video shot; there are no new scenes or editorial changes.
 - The complete 1920×1080 source remains 16:9, 30 fps, and is displayed without crop.
 - Runtime clock: `SCENE_DURATIONS.completePromo = 41708` ms. Source duration: 41.709 seconds.
-- Original audio remains in the video; no separate soundtrack is mixed. Autoplay starts muted, and the workspace control bar can unmute it.
-- Browser playback is inline, autoplay attempted, and loops at the source endpoint. The workspace control bar pauses, resumes, mutes, and reports the preview duration.
+- Original audio remains in the video; no separate soundtrack is mixed. Its downloadable MP4 and WebM versions are loudness-normalized. Autoplay starts muted, and the workspace control bar can unmute it.
+- Browser playback is inline and autoplay attempted, but stops at the source endpoint rather than looping automatically. The workspace control bar pauses, resumes, mutes, reports the preview duration, and can still explicitly enable its loop-current-scene control.
 - The preview references the revised H.264/AAC MP4 first and the VP9/Opus compatibility transcode second. Both are complete 41.709-second files with the original audio; only the requested credit and title positions are changed.

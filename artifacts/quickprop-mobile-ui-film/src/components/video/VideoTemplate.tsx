@@ -15,7 +15,7 @@ const PROMO_WEBM_URL = `${import.meta.env.BASE_URL}QuickProp_Promo_5_Founder_Cre
 
 export default function VideoTemplate({
   durations = SCENE_DURATIONS,
-  loop = true,
+  loop = false,
   paused = false,
   muted = true,
   onSceneChange,
@@ -62,7 +62,7 @@ export default function VideoTemplate({
         className="quickprop-promo-video"
         aria-label="Complete QuickProp promotional video"
         autoPlay
-        loop
+        loop={loop}
         playsInline
         preload="auto"
         muted={muted}
