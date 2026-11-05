@@ -505,6 +505,7 @@ function RecordRow({ record, selected, onToggle, draft, setDraft, onSave, saving
   const visionSources = toRecord(sourceMetadata.fieldSources) as Record<string, VisionFieldSource>;
   const reviewFlags = Array.isArray(sourceMetadata.reviewFlags) ? sourceMetadata.reviewFlags.map(String).filter(Boolean) : [];
   const isVision = sourceMetadata.extractionMethod === 'gemini-vision';
+  const sourceAgent = typeof field('agent') === 'string' ? String(field('agent')).trim() : '';
   const draftBranch = String(field('branch') ?? '').trim().toLowerCase();
   const selectedBranch = branches.find((branch) =>
     branch.name.trim().toLowerCase() === draftBranch
@@ -541,6 +542,16 @@ function RecordRow({ record, selected, onToggle, draft, setDraft, onSave, saving
       ) : branches.length === 1 ? (
         <p className="ml-9 mt-2 text-[11px] text-muted-foreground">Branch: {branches[0].name}</p>
       ) : null}
+      <div className="ml-9 mt-2 flex flex-wrap items-center gap-1.5 text-[11px]">
+        <UserRound className="h-3 w-3 text-muted-foreground" />
+        <span className="text-muted-foreground">Assigned agent:</span>
+        <span className={cn('font-semibold', record.agentName ? 'text-foreground' : 'text-amber-800')}>
+          {record.agentName ?? (record.agentId ? `Agent #${record.agentId}` : 'Unassigned')}
+        </span>
+        {!record.agentId && sourceAgent && (
+          <span className="text-muted-foreground">· source lists “{sourceAgent}”, not linked to an agent account</span>
+        )}
+      </div>
       <div className="mt-3 flex flex-wrap items-center gap-3 pl-9 text-[11px] text-muted-foreground">
         <span className="inline-flex items-center gap-1">
           {isVision ? <ScanText className="h-3 w-3 text-primary" /> : <FileText className="h-3 w-3" />}
