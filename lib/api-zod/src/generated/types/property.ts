@@ -21,6 +21,8 @@ export interface Property {
   /** draft | awaiting_photos | ready | published | under_offer | sold | archived */
   pipelineStage: string;
   price: number;
+  /** The asking price is available on application (POA). */
+  priceOnApplication?: boolean;
   negotiable?: boolean;
   /**
      * Completed sale price; asking price remains in price.

@@ -28,6 +28,7 @@ export interface Property {
   suburb: string;
   city?: string;
   price: number;
+  priceOnApplication?: boolean;
   /** Original asking price stays in price; this is populated only after a sale. */
   salePrice?: number;
   soldAt?: string | null;

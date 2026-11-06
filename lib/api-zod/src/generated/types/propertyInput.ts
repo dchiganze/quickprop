@@ -13,8 +13,10 @@ export interface PropertyInput {
   listingType: string;
   status?: string;
   pipelineStage?: string;
-  /** Must be greater than zero before saving a draft. */
+  /** Must be greater than zero before saving a draft unless priceOnApplication is true. */
   price: number;
+  /** Set true to list the price as POA. */
+  priceOnApplication?: boolean;
   negotiable?: boolean;
   salePrice?: number;
   currency?: string;

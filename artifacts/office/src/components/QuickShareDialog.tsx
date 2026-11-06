@@ -34,7 +34,8 @@ type CatalogMode = 'company' | 'agent';
 
 const PUBLIC_STATUSES = ['public', 'under_offer', 'coming_soon'];
 
-function formatPrice(price: number, currency: string, listingType: string) {
+function formatPrice(price: number, currency: string, listingType: string, priceOnApplication = false) {
+  if (priceOnApplication) return 'POA';
   const fmt =
     price >= 1_000_000
       ? `${currency} ${(price / 1_000_000).toFixed(1)}M`
@@ -62,7 +63,7 @@ function buildWhatsAppText(
     forSale.slice(0, 8).forEach(p => {
       const beds = p.bedrooms ? `${p.bedrooms}-bed ` : '';
       const type = p.propertyType.charAt(0).toUpperCase() + p.propertyType.slice(1);
-      lines.push(`• ${beds}${type} in ${p.suburb} — ${formatPrice(p.price, p.currency, p.listingType)}`);
+      lines.push(`• ${beds}${type} in ${p.suburb} — ${formatPrice(p.price, p.currency, p.listingType, p.priceOnApplication)}`);
     });
     if (forSale.length > 8) lines.push(`  _...and ${forSale.length - 8} more_`);
     lines.push('');
@@ -73,7 +74,7 @@ function buildWhatsAppText(
     forRent.slice(0, 5).forEach(p => {
       const beds = p.bedrooms ? `${p.bedrooms}-bed ` : '';
       const type = p.propertyType.charAt(0).toUpperCase() + p.propertyType.slice(1);
-      lines.push(`• ${beds}${type} in ${p.suburb} — ${formatPrice(p.price, p.currency, p.listingType)}`);
+      lines.push(`• ${beds}${type} in ${p.suburb} — ${formatPrice(p.price, p.currency, p.listingType, p.priceOnApplication)}`);
     });
     if (forRent.length > 5) lines.push(`  _...and ${forRent.length - 5} more_`);
     lines.push('');
@@ -300,7 +301,7 @@ export function QuickShareDialog() {
                     {p.bedrooms ? `${p.bedrooms}-bed ` : ''}{p.propertyType} · {p.suburb}
                   </span>
                   <span className="text-primary font-medium ml-2 shrink-0">
-                    {formatPrice(p.price, p.currency, p.listingType)}
+                    {formatPrice(p.price, p.currency, p.listingType, p.priceOnApplication)}
                   </span>
                 </div>
               ))}

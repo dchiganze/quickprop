@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { hasListingPhotos, hasPositiveDraftPrice, importedPropertyDraft, needsPublicationPhoto } from "./property-drafts";
+import { hasListingPhotos, hasPositiveDraftPrice, hasValidListingPrice, importedPropertyDraft, needsPublicationPhoto } from "./property-drafts";
 
 test("all imports start as unpublished drafts, including imports containing photos", () => {
   for (const photos of [undefined, [], ["https://example.com/photo.jpg"]]) {
@@ -32,4 +32,11 @@ test("drafts require a positive finite price", () => {
   assert.equal(hasPositiveDraftPrice(-1), false);
   assert.equal(hasPositiveDraftPrice(Number.NaN), false);
   assert.equal(hasPositiveDraftPrice(null), false);
+});
+
+test("POA is accepted as a valid listing price without accepting unmarked zero", () => {
+  assert.equal(hasValidListingPrice(0, true), true);
+  assert.equal(hasValidListingPrice(275000, false), true);
+  assert.equal(hasValidListingPrice(0, false), false);
+  assert.equal(hasValidListingPrice(-1, true), true);
 });

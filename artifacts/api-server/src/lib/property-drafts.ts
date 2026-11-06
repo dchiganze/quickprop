@@ -17,6 +17,10 @@ export function hasPositiveDraftPrice(price: unknown): boolean {
   return typeof price === "number" && Number.isFinite(price) && price > 0;
 }
 
+export function hasValidListingPrice(price: unknown, priceOnApplication: unknown): boolean {
+  return priceOnApplication === true || hasPositiveDraftPrice(price);
+}
+
 export function hasListingPhotos(photos: unknown): boolean {
   return Array.isArray(photos) && photos.some(photo => typeof photo === "string" && !!photo.trim());
 }

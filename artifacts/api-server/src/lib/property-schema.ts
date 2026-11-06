@@ -10,6 +10,7 @@ export async function ensurePropertySaleColumns(): Promise<void> {
     ALTER TABLE properties
       ADD COLUMN IF NOT EXISTS sale_price double precision,
       ADD COLUMN IF NOT EXISTS sold_at timestamp,
-      ADD COLUMN IF NOT EXISTS sold_by integer REFERENCES users(id)
+      ADD COLUMN IF NOT EXISTS sold_by integer REFERENCES users(id),
+      ADD COLUMN IF NOT EXISTS price_on_application boolean NOT NULL DEFAULT false
   `);
 }

@@ -18,6 +18,8 @@ export interface PublicProperty {
   /** available | under_offer | sold | withdrawn */
   availabilityStatus?: string;
   price: number;
+  /** The asking price is available on application (POA). */
+  priceOnApplication?: boolean;
   currency: string;
   suburb: string;
   city: string;

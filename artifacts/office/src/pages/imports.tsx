@@ -529,11 +529,43 @@ function RecordRow({ record, selected, onToggle, draft, setDraft, onSave, saving
   const assignmentDisabled = agentBusy || branchValue == null || (record.branchId != null && branchValue !== record.branchId);
   return (
     <div className={cn('border-b border-border/80 px-4 py-4 transition-colors', selected && 'bg-primary/[0.035]')}>
-      <div className="grid grid-cols-[24px_minmax(160px,1.25fr)_minmax(150px,1fr)_100px_minmax(140px,0.8fr)_96px_128px] items-end gap-3">
+      <div className="grid grid-cols-[24px_minmax(160px,1.25fr)_minmax(150px,1fr)_132px_minmax(140px,0.8fr)_96px_128px] items-end gap-3">
         <Checkbox checked={selected} onCheckedChange={onToggle} aria-label={`Select record ${record.id}`} />
         <DataField label="Title" value={field('title') || field('name')} onChange={(value) => update('title', value)} />
         <DataField label="Address / suburb" value={field('address') || field('suburb')} onChange={(value) => update(field('address') ? 'address' : 'suburb', value)} />
-        <DataField label="Price" value={field('price')} numeric onChange={(value) => update('price', value, true)} />
+        <div>
+          <span className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Price</span>
+          <div className="flex gap-1">
+            <Select
+              value={field('priceOnApplication') === true ? 'poa' : 'price'}
+              onValueChange={(value) => setDraft({
+                ...draft,
+                priceOnApplication: value === 'poa',
+                ...(value === 'poa' ? { price: 0 } : {}),
+              })}
+            >
+              <SelectTrigger className={cn('h-8 text-xs', field('priceOnApplication') === true ? 'w-full' : 'w-[58px] shrink-0')} aria-label="Price type">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="price">Price</SelectItem>
+                <SelectItem value="poa">POA</SelectItem>
+              </SelectContent>
+            </Select>
+            {field('priceOnApplication') !== true && (
+              <Input
+                aria-label="Listing price"
+                type="number"
+                min="0"
+                step="any"
+                inputMode="decimal"
+                value={field('price') == null ? '' : String(field('price'))}
+                onChange={(event) => update('price', event.target.value, true)}
+                className="h-8 min-w-0 px-2 text-xs"
+              />
+            )}
+          </div>
+        </div>
         <div title={sourceAgent ? `Source agent: ${sourceAgent}` : undefined}>
           <span className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Agent</span>
           <Select
@@ -855,7 +887,7 @@ function ImportDetail({ id }: { id: number }) {
               <div className="flex flex-wrap items-center gap-2"><div className="relative"><Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" /><Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Find title or source" className="h-8 w-44 pl-8 text-xs" /></div><Select value={filter} onValueChange={setFilter}><SelectTrigger className="h-8 w-[130px] text-xs"><Filter className="mr-1.5 h-3.5 w-3.5" /><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All rows</SelectItem><SelectItem value="review">Needs review</SelectItem><SelectItem value="approved">Approved</SelectItem><SelectItem value="rejected">Rejected</SelectItem><SelectItem value="duplicates">Duplicates</SelectItem></SelectContent></Select><Select value={sort} onValueChange={(value) => setSort(value as 'confidence' | 'source')}><SelectTrigger className="h-8 w-[126px] text-xs"><ArrowUpDown className="mr-1.5 h-3.5 w-3.5" /><SelectValue /></SelectTrigger><SelectContent><SelectItem value="confidence">Confidence</SelectItem><SelectItem value="source">Source file</SelectItem></SelectContent></Select></div>
             </CardHeader>
             <div className="flex flex-wrap items-center gap-2 border-b bg-muted/30 px-4 py-2.5"><Checkbox checked={records.length > 0 && selected.size === records.length} onCheckedChange={selectAll} aria-label="Select all visible records" /><span className="text-xs font-semibold">{selected.size} selected</span><span className="mx-1 h-4 border-l border-border" /><Button size="sm" variant="outline" className="h-7 gap-1.5 text-[11px]" disabled={!selected.size || actionBusy} onClick={() => runBulk('approve')}><CheckCircle2 className="h-3 w-3 text-emerald-600" /> Approve</Button><Button size="sm" variant="outline" className="h-7 gap-1.5 text-[11px]" disabled={!selected.size || actionBusy} onClick={() => runBulk('reject')}><XCircle className="h-3 w-3 text-red-600" /> Reject</Button><Button size="sm" variant="outline" className="h-7 gap-1.5 text-[11px]" disabled={!selected.size || actionBusy} onClick={() => runBulk('link_duplicate')}><GitMerge className="h-3 w-3 text-amber-600" /> Link match</Button><Button size="sm" variant="outline" className="h-7 gap-1.5 text-[11px]" disabled={!selected.size || actionBusy} onClick={() => runBulk('clear_duplicate')}><Check className="h-3 w-3 text-primary" /> Keep separate</Button><div className="ml-auto flex items-center gap-1.5"><Input value={agentId} onChange={(event) => setAgentId(event.target.value)} placeholder="Agent ID" inputMode="numeric" className="h-7 w-20 text-[11px]" /><Button size="sm" variant="outline" className="h-7 gap-1.5 text-[11px]" disabled={!selected.size || actionBusy} onClick={() => runBulk('assign')}><UserRound className="h-3 w-3" /> Assign</Button></div></div>
-            <div className="hidden grid-cols-[24px_minmax(160px,1.25fr)_minmax(150px,1fr)_100px_minmax(140px,0.8fr)_96px_128px] gap-3 bg-slate-50/70 px-4 py-2 text-[10px] font-bold uppercase tracking-[0.11em] text-muted-foreground md:grid"><span /><span>Property identity</span><span>Location</span><span>Price</span><span>Agent</span><span>AI signal</span><span>Decision</span></div>
+            <div className="hidden grid-cols-[24px_minmax(160px,1.25fr)_minmax(150px,1fr)_132px_minmax(140px,0.8fr)_96px_128px] gap-3 bg-slate-50/70 px-4 py-2 text-[10px] font-bold uppercase tracking-[0.11em] text-muted-foreground md:grid"><span /><span>Property identity</span><span>Location</span><span>Price</span><span>Agent</span><span>AI signal</span><span>Decision</span></div>
             {records.length ? records.map((record) => <RecordRow key={record.id} record={record} selected={selected.has(record.id)} onToggle={() => toggle(record.id)} draft={drafts[record.id] || toRecord(record.data)} setDraft={(data) => setDraftState((current) => ({ ...current, drafts: { ...current.drafts, [record.id]: data } }))} onSave={() => saveRecord(record)} saving={savingId === record.id} branches={branchOptions?.branches ?? []} agents={branchOptions?.agents ?? []} agentBusy={actionBusy} onAssignAgent={assignRecordAgent} />) : <div className="px-6 py-20 text-center"><SlidersHorizontal className="mx-auto mb-3 h-8 w-8 text-muted-foreground/40" /><p className="text-sm font-semibold">No rows match this view</p><p className="mt-1 text-xs text-muted-foreground">Try clearing the search or changing the review filter.</p></div>}
           </Card>
           <div className="flex flex-col gap-3 rounded-lg border border-primary/20 bg-primary/[0.035] p-4 md:flex-row md:items-center">

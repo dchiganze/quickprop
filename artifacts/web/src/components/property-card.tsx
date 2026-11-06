@@ -48,7 +48,7 @@ export function PropertyCard({ property }: { property: PublicProperty }) {
         <CardContent className="p-5 flex-1 flex flex-col">
           <div className="mb-2">
             <h3 className="font-bold text-xl text-primary tracking-tight">
-              {formatPrice(property.lowestPrice ?? property.price, property.currency)}
+              {property.priceOnApplication ? 'POA' : formatPrice(property.lowestPrice ?? property.price, property.currency)}
             </h3>
             {property.listingType === 'rent' && <span className="text-xs text-gray-500 uppercase tracking-wider font-medium ml-1">/ month</span>}
           </div>

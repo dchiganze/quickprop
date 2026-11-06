@@ -203,7 +203,7 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
   const [listingVisibility, setListingVisibility] = useState<'public' | 'internal_only' | 'draft'>('internal_only');
   const [sellingStatus, setSellingStatus] = useState<SellingStatus>('available');
   const [edit, setEdit] = useState({
-    title: '', propertyType: 'house', listingType: 'sale', price: '', negotiable: false, hasTitleDeed: false,
+    title: '', propertyType: 'house', listingType: 'sale', price: '', priceOnApplication: false, negotiable: false, hasTitleDeed: false,
     suburb: '', city: '', address: '', addressVisible: false, bedrooms: '', bathrooms: '',
     parking: '', landSize: '', buildingSize: '', levies: '', rates: '', description: '',
     photos: '', coverImage: '', videoUrl: '', proposedViewingTimes: [] as string[], features: [] as string[],
@@ -218,6 +218,7 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
       propertyType: property.propertyType,
       listingType: property.listingType,
       price: String(property.price),
+      priceOnApplication: property.priceOnApplication ?? false,
       negotiable: property.negotiable ?? false,
       hasTitleDeed: property.hasTitleDeed ?? false,
       suburb: property.suburb,
@@ -673,7 +674,7 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
   };
 
   const handleEditSave = () => {
-    const price = Number(edit.price);
+    const price = edit.priceOnApplication ? 0 : Number(edit.price);
     const photos = edit.photos.split(/\r?\n|,/).map((value) => value.trim()).filter(Boolean);
     const invalidViewingTime = edit.proposedViewingTimes.some((value) => (
       value && !isViewingDateTimeAllowed(value.slice(0, 10), value.slice(11, 16))
@@ -692,7 +693,7 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
       .filter((value) => !Number.isNaN(value.getTime()))
       .slice(0, 3)
       .map((value) => value.toISOString());
-    if (!edit.title.trim() || !edit.suburb.trim() || !edit.city.trim() || !Number.isFinite(price) || price <= 0) {
+    if (!edit.title.trim() || !edit.suburb.trim() || !edit.city.trim() || (!edit.priceOnApplication && (!Number.isFinite(price) || price <= 0))) {
       toast({ title: 'Title, location and price are required', variant: 'destructive' });
       return;
     }
@@ -707,6 +708,7 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
         propertyType: edit.propertyType,
         listingType: edit.listingType,
         price,
+        priceOnApplication: edit.priceOnApplication,
         negotiable: edit.negotiable,
         hasTitleDeed: edit.listingType === 'sale' && edit.hasTitleDeed,
         suburb: edit.suburb.trim(),
@@ -926,7 +928,16 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
               </div>
             </div>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-              <div className="grid gap-2"><label htmlFor="edit-price" className="text-sm font-medium">Price</label><Input id="edit-price" inputMode="decimal" value={edit.price} onChange={(event) => setEdit({ ...edit, price: event.target.value })} /></div>
+              <div className="grid gap-2">
+                <label htmlFor="edit-price-mode" className="text-sm font-medium">Price</label>
+                <div className="flex gap-2">
+                  <Select value={edit.priceOnApplication ? 'poa' : 'price'} onValueChange={(value) => setEdit({ ...edit, priceOnApplication: value === 'poa' })}>
+                    <SelectTrigger id="edit-price-mode" className={edit.priceOnApplication ? 'w-full' : 'w-28 shrink-0'}><SelectValue /></SelectTrigger>
+                    <SelectContent><SelectItem value="price">Price</SelectItem><SelectItem value="poa">POA</SelectItem></SelectContent>
+                  </Select>
+                  {!edit.priceOnApplication && <Input id="edit-price" inputMode="decimal" value={edit.price} onChange={(event) => setEdit({ ...edit, price: event.target.value })} />}
+                </div>
+              </div>
               <div className="grid gap-2"><label htmlFor="edit-bedrooms" className="text-sm font-medium">Bedrooms</label><Input id="edit-bedrooms" inputMode="numeric" value={edit.bedrooms} onChange={(event) => setEdit({ ...edit, bedrooms: event.target.value })} /></div>
               <div className="grid gap-2"><label htmlFor="edit-bathrooms" className="text-sm font-medium">Bathrooms</label><Input id="edit-bathrooms" inputMode="numeric" value={edit.bathrooms} onChange={(event) => setEdit({ ...edit, bathrooms: event.target.value })} /></div>
             </div>
@@ -1294,7 +1305,7 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
             )}
             <div className="absolute top-4 left-4 flex gap-2">
               <Badge className="bg-background/90 text-foreground backdrop-blur font-bold text-lg px-3 py-1 shadow-sm">
-                {property.currency} {property.price.toLocaleString()}
+                {property.priceOnApplication ? 'POA' : `${property.currency} ${property.price.toLocaleString()}`}
               </Badge>
               <Badge variant="secondary" className="bg-primary/90 text-primary-foreground backdrop-blur font-bold px-3 py-1 capitalize shadow-sm">
                 For {property.listingType}

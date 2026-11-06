@@ -251,7 +251,7 @@ export default function PropertyDetail() {
               </p>
 
               <div className="text-3xl font-bold text-primary mb-8">
-                {formatPrice(property.lowestPrice ?? property.price, property.currency)}
+                {property.priceOnApplication ? 'POA' : formatPrice(property.lowestPrice ?? property.price, property.currency)}
                 {property.listingType === 'rent' && <span className="text-lg text-gray-500 font-normal"> / month</span>}
               </div>
               <div className="mb-8">

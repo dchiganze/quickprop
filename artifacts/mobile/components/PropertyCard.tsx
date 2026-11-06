@@ -77,7 +77,7 @@ export function PropertyCard({ property, onPress }: Props) {
 
       <View style={styles.body}>
         <Text style={[styles.price, { color: colors.primary }]}>
-          {formatPrice(property.price, property.currency, property.type)}
+          {property.priceOnApplication ? 'POA' : formatPrice(property.price, property.currency, property.type)}
           {property.negotiable && <Text style={[styles.neg, { color: colors.accent }]}> • Neg</Text>}
         </Text>
         <Text style={[styles.address, { color: colors.foreground }]} numberOfLines={1}>

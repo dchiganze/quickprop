@@ -31,6 +31,7 @@ export default function PropertyBrochure({ params }: { params: { id: string } })
   const publicPropertyUrl = `https://www.quickprop.melios.co.zw/properties/${property.id}`;
 
   const formatPrice = () => {
+    if (property.priceOnApplication) return 'POA';
     const p = property.price;
     const formatted = p >= 1_000_000
       ? `${(p / 1_000_000).toFixed(2)}M`

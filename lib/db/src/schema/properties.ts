@@ -22,6 +22,7 @@ export const propertiesTable = pgTable("properties", {
   status: text("status").notNull().default("draft"),
   pipelineStage: text("pipeline_stage").notNull().default("draft"),
   price: doublePrecision("price").notNull(),
+  priceOnApplication: boolean("price_on_application").notNull().default(false),
   negotiable: boolean("negotiable").notNull().default(false),
   // Asking price remains in `price`; these fields capture the completed sale
   // without overwriting the original listing amount.

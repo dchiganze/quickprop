@@ -789,7 +789,7 @@ function PropertyCard({ property }: { property: Property }) {
             </Badge>
           </div>
           <div className="absolute bottom-3 left-3 px-2.5 py-1 bg-background/90 backdrop-blur rounded text-sm font-bold shadow-sm">
-            {property.currency} {property.price.toLocaleString()}
+            {property.priceOnApplication ? 'POA' : `${property.currency} ${property.price.toLocaleString()}`}
           </div>
         </div>
         <CardContent className="p-4 flex-1 flex flex-col">

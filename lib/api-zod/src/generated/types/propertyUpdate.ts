@@ -16,6 +16,8 @@ export interface PropertyUpdate {
   availabilityStatus?: string;
   pipelineStage?: string;
   price?: number;
+  /** Set true to list the price as POA. */
+  priceOnApplication?: boolean;
   negotiable?: boolean;
   salePrice?: number;
   soldAt?: Date;

@@ -46,7 +46,7 @@ import { queuePrimaryReviewInvitation } from "../lib/agent-reviews";
 import { matchPropertyToAlerts } from "../lib/property-alerts";
 import { logger } from "../lib/logger";
 import { isPublicProperty, syncPropertyToProduction } from "../lib/publication-sync";
-import { hasPositiveDraftPrice, isDraftPropertyState, needsPublicationPhoto } from "../lib/property-drafts";
+import { hasValidListingPrice, isDraftPropertyState, needsPublicationPhoto } from "../lib/property-drafts";
 import {
   createPropertySaleConfirmationToken,
   hashPropertySaleConfirmationToken,
@@ -278,8 +278,8 @@ router.post("/properties", async (req, res): Promise<void> => {
     parsed.data.status ?? "draft",
     parsed.data.pipelineStage ?? "draft",
   );
-  if (draftState && !hasPositiveDraftPrice(parsed.data.price)) {
-    res.status(400).json({ error: "Enter a price greater than zero before saving this property as a draft." });
+  if (!hasValidListingPrice(parsed.data.price, parsed.data.priceOnApplication)) {
+    res.status(400).json({ error: "Enter a price greater than zero or select POA before saving this property." });
     return;
   }
   const requestedAgentId = parsed.data.agentId
@@ -325,6 +325,7 @@ router.post("/properties", async (req, res): Promise<void> => {
   } = parsed.data;
   const propertyInput = {
     ...propertyData,
+    ...(propertyData.priceOnApplication ? { price: 0 } : {}),
     agentId: assignedAgentId,
     branchId: assignmentBranchId ?? propertyData.branchId,
     proposedViewingTimes: propertyData.proposedViewingTimes?.map((time) => time.toISOString()),
@@ -459,8 +460,9 @@ router.patch("/properties/:id", async (req, res): Promise<void> => {
       : parsed.data.pipelineStage ?? existing.pipelineStage;
   const draftState = isDraftPropertyState(nextStatus, nextPipelineStage);
   const nextPrice = parsed.data.price ?? existing.price;
-  if (draftState && !hasPositiveDraftPrice(nextPrice)) {
-    res.status(400).json({ error: "Enter a price greater than zero before saving this property as a draft." });
+  const nextPriceOnApplication = parsed.data.priceOnApplication ?? existing.priceOnApplication;
+  if (!hasValidListingPrice(nextPrice, nextPriceOnApplication)) {
+    res.status(400).json({ error: "Enter a price greater than zero or select POA before saving this property." });
     return;
   }
   const requestedAgentId = parsed.data.agentId === undefined ? existing.agentId : parsed.data.agentId;
@@ -538,6 +540,7 @@ router.patch("/properties/:id", async (req, res): Promise<void> => {
   }
   const normalizedData = {
     ...propertyData,
+    ...(propertyData.priceOnApplication ? { price: 0 } : {}),
     sellerId,
     proposedViewingTimes: propertyData.proposedViewingTimes?.map((time) => time.toISOString()),
     soldAt: propertyData.soldAt?.toISOString(),

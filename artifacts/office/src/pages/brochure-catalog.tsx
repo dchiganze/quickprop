@@ -1007,7 +1007,7 @@ function PropertyPage({
             <span>{location}</span>
           </div>
           </div>
-          <span className="property-price">{formatPrice(property.price, property.currency, property.listingType)}</span>
+          <span className="property-price">{property.priceOnApplication ? 'POA' : formatPrice(property.price, property.currency, property.listingType)}</span>
         </div>
 
         <div className="property-specs">

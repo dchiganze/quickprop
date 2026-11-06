@@ -720,6 +720,8 @@ export interface Property {
   /** draft | awaiting_photos | ready | published | under_offer | sold | archived */
   pipelineStage: string;
   price: number;
+  /** The asking price is available on application (POA). */
+  priceOnApplication?: boolean;
   negotiable?: boolean;
   /**
      * Completed sale price; asking price remains in price.
@@ -830,8 +832,10 @@ export interface PropertyInput {
   listingType: string;
   status?: string;
   pipelineStage?: string;
-  /** Must be greater than zero before saving a draft. */
+  /** Must be greater than zero before saving a draft unless priceOnApplication is true. */
   price: number;
+  /** Set true to list the price as POA. */
+  priceOnApplication?: boolean;
   negotiable?: boolean;
   salePrice?: number;
   currency?: string;
@@ -884,6 +888,8 @@ export interface PropertyUpdate {
   availabilityStatus?: string;
   pipelineStage?: string;
   price?: number;
+  /** Set true to list the price as POA. */
+  priceOnApplication?: boolean;
   negotiable?: boolean;
   salePrice?: number;
   soldAt?: string;
@@ -1620,6 +1626,8 @@ export interface PublicProperty {
   /** available | under_offer | sold | withdrawn */
   availabilityStatus?: string;
   price: number;
+  /** The asking price is available on application (POA). */
+  priceOnApplication?: boolean;
   currency: string;
   suburb: string;
   city: string;

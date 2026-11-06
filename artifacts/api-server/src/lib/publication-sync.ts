@@ -8,6 +8,7 @@ import {
   sellersTable,
   usersTable,
 } from "@workspace/db";
+import { hasValidListingPrice } from "./property-drafts";
 
 export const QUICKPROP_PUBLIC_ORIGIN = "https://www.quickprop.melios.co.zw";
 const PUBLICATION_SYNC_PATH = "/api/internal/publications/properties";
@@ -28,6 +29,7 @@ const propertyPublicationSchema = z.object({
     status: z.string(),
     pipelineStage: z.string(),
     price: z.number(),
+    priceOnApplication: z.boolean().default(false),
     negotiable: z.boolean(),
     salePrice: nullableNumber,
     currency: z.string(),
@@ -126,6 +128,7 @@ export async function propertyPublicationPayload(
       status: property.status,
       pipelineStage: property.pipelineStage,
       price: property.price,
+      priceOnApplication: property.priceOnApplication,
       negotiable: property.negotiable,
       salePrice: property.salePrice,
       currency: property.currency,

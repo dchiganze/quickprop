@@ -32,7 +32,7 @@ import { matchImportAgentByName } from "../lib/import-agent-match";
 import { findStalePdfDraftIds } from "../lib/import-reconcile";
 import { jsonify, logAudit } from "../lib/helpers";
 import { logger } from "../lib/logger";
-import { hasPositiveDraftPrice, importedPropertyDraft, isPhotoRequirementIssue } from "../lib/property-drafts";
+import { hasValidListingPrice, importedPropertyDraft, isPhotoRequirementIssue } from "../lib/property-drafts";
 import { flattenPdfPageRows } from "../lib/pdf-import";
 import { parseAiJsonResponse } from "../lib/ai-import";
 
@@ -214,7 +214,12 @@ function normaliseRow(row: LooseRecord, mapping: Record<string, string>): LooseR
   for (const field of IMPORT_FIELDS) {
     const value = findSourceValue(row, field, mapping);
     if (value == null || asText(value) === "") continue;
-    if (["price", "bedrooms", "bathrooms"].includes(field)) data[field] = numberValue(value);
+    if (field === "price" && /^(?:poa|price on application)$/i.test(asText(value))) {
+      data.price = 0;
+      data.priceOnApplication = true;
+    } else if (["price", "bedrooms", "bathrooms"].includes(field)) {
+      data[field] = numberValue(value);
+    }
     else if (field === "photos") data[field] = Array.isArray(value)
       ? value.map(asText).filter(Boolean)
       : asText(value).split(/[,\n;]/).map((item) => item.trim()).filter(Boolean);
@@ -586,8 +591,8 @@ function validateData(data: LooseRecord, sourceType: string, confidence: Record<
   if (!data.city) issues.push("City is missing");
   if (!data.propertyType) issues.push("Property type is missing");
   const price = numberValue(data.price);
-  if (price == null) issues.push("Price is missing");
-  else if (!hasPositiveDraftPrice(price)) issues.push("Price must be greater than zero");
+  if (data.priceOnApplication !== true && price == null) issues.push("Price is missing");
+  else if (!hasValidListingPrice(price, data.priceOnApplication)) issues.push("Price must be greater than zero or marked POA");
   if (sourceType === "image") {
     const lowConfidenceFields = Object.entries(confidence)
       .filter(([, score]) => score < VISION_REVIEW_THRESHOLD)
@@ -605,7 +610,7 @@ function confidenceFor(data: LooseRecord, sourceType: string, extracted?: Record
     confidence[field] = extracted?.[field] ?? (sourceType === "spreadsheet" ? 92 : sourceType === "image" ? 24 : 72);
   }
   if (data.address) confidence.address = Math.min(98, (confidence.address ?? 50) + 4);
-  if (data.price != null) confidence.price = Math.min(98, (confidence.price ?? 50) + 3);
+  if (data.price != null || data.priceOnApplication === true) confidence.price = Math.min(98, (confidence.price ?? 50) + 3);
   return confidence;
 }
 
@@ -1327,6 +1332,7 @@ router.patch("/imports/sessions/:id/records/:recordId", async (req, res): Promis
   if (!session || !record) { res.status(404).json({ error: "Import record not found." }); return; }
   if (!req.body?.data || typeof req.body.data !== "object") { res.status(400).json({ error: "Record data is required." }); return; }
   const nextData = req.body.data as LooseRecord;
+  if (nextData.priceOnApplication === true) nextData.price = 0;
   const branchContext = await importBranchOptionsForUser(user);
   const availableBranches = branchContext?.branches ?? [];
   const requestedBranch = asText(nextData.branch);
@@ -1482,8 +1488,8 @@ router.post("/imports/sessions/:id/publish", async (req, res): Promise<void> => 
       errors.push(`Record ${record.id}: select an active branch in this agency before publishing.`);
       continue;
     }
-    if (!hasPositiveDraftPrice(draftPrice)) {
-      errors.push(`Record ${record.id}: enter a price greater than zero before adding this listing to drafts.`);
+    if (!hasValidListingPrice(draftPrice, data.priceOnApplication)) {
+      errors.push(`Record ${record.id}: enter a price greater than zero or select POA before adding this listing to drafts.`);
       continue;
     }
     const issues = validateData(data, "spreadsheet").filter((issue) => !isPhotoRequirementIssue(issue));
@@ -1523,6 +1529,7 @@ router.post("/imports/sessions/:id/publish", async (req, res): Promise<void> => 
           listingType: "sale",
           ...importedPropertyDraft(data.photos),
           price: draftPrice ?? 0,
+          priceOnApplication: data.priceOnApplication === true,
           currency: asText(data.currency) || "USD",
           suburb: asText(data.suburb),
           city: asText(data.city),

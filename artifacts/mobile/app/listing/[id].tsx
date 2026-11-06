@@ -381,7 +381,7 @@ export default function ListingDetailScreen() {
     }
   };
 
-  const price = property.price >= 1000000
+  const price = property.priceOnApplication ? 'POA' : property.price >= 1000000
     ? `${property.currency} ${(property.price / 1000000).toFixed(2)}M`
     : `${property.currency} ${property.price.toLocaleString()}`;
   const priceDisplay = property.type === 'rent' ? `${price}/mo` : price;

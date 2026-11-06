@@ -11,7 +11,7 @@ import {
   propertyPublicationSchema,
   verifyPublicationRequest,
 } from "../lib/publication-sync";
-import { hasPositiveDraftPrice } from "../lib/property-drafts";
+import { hasValidListingPrice } from "../lib/property-drafts";
 
 const router: IRouter = Router();
 
@@ -34,8 +34,8 @@ router.post("/internal/publications/properties", async (req, res): Promise<void>
 
   const payload = parsed.data;
   const property = payload.property;
-  if (!payload.isPublic && !hasPositiveDraftPrice(property.price)) {
-    res.status(400).json({ error: "Enter a price greater than zero before syncing this property as a draft." });
+  if (!hasValidListingPrice(property.price, property.priceOnApplication)) {
+    res.status(400).json({ error: "Enter a price greater than zero or mark it POA before syncing this property." });
     return;
   }
   const [agent] = payload.agent
@@ -119,7 +119,8 @@ router.post("/internal/publications/properties", async (req, res): Promise<void>
       listingType: property.listingType,
       status: publicStatus,
       pipelineStage: publicPipelineStage,
-      price: property.price,
+      price: property.priceOnApplication ? 0 : property.price,
+      priceOnApplication: property.priceOnApplication,
       negotiable: property.negotiable,
       salePrice: property.salePrice ?? null,
       currency: property.currency,
@@ -167,6 +168,7 @@ router.post("/internal/publications/properties", async (req, res): Promise<void>
           status: values.status,
           pipelineStage: values.pipelineStage,
           price: values.price,
+          priceOnApplication: values.priceOnApplication,
           negotiable: values.negotiable,
           salePrice: values.salePrice,
           currency: values.currency,

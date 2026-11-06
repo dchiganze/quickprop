@@ -112,7 +112,7 @@ export default function PublicListingDetailScreen() {
 
         <View style={styles.details}>
           <Text style={[styles.price, { color: colors.primary }]}>
-            {formatPrice(property.price, property.currency)}
+            {property.priceOnApplication ? 'POA' : formatPrice(property.price, property.currency)}
           </Text>
           <Text style={[styles.title, { color: colors.foreground }]}>{property.title}</Text>
           <View style={styles.locationRow}>

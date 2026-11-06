@@ -3348,6 +3348,7 @@ components:
         status: { type: string, description: "draft | internal_only | public | under_offer | sold | rented | archived | withdrawn | coming_soon | private_listing" }
         pipelineStage: { type: string, description: "draft | awaiting_photos | ready | published | under_offer | sold | archived" }
         price: { type: number }
+        priceOnApplication: { type: boolean, description: "The asking price is available on application (POA)." }
         negotiable: { type: boolean }
         salePrice: { type: ["number", "null"], description: "Completed sale price; asking price remains in price." }
         soldAt: { type: ["string", "null"] }
@@ -3418,7 +3419,8 @@ components:
         listingType: { type: string }
         status: { type: string }
         pipelineStage: { type: string }
-        price: { type: number, description: "Must be greater than zero before saving a draft." }
+        price: { type: number, description: "Must be greater than zero before saving a draft unless priceOnApplication is true." }
+        priceOnApplication: { type: boolean, description: "Set true to list the price as POA." }
         negotiable: { type: boolean }
         salePrice: { type: number }
         currency: { type: string }
@@ -3473,6 +3475,7 @@ components:
         availabilityStatus: { type: string, description: "available | under_offer | sold | withdrawn" }
         pipelineStage: { type: string }
         price: { type: number }
+        priceOnApplication: { type: boolean, description: "Set true to list the price as POA." }
         negotiable: { type: boolean }
         salePrice: { type: number }
         soldAt: { type: string, format: date-time }
@@ -4116,6 +4119,7 @@ components:
         status: { type: string }
         availabilityStatus: { type: string, description: "available | under_offer | sold | withdrawn" }
         price: { type: number }
+        priceOnApplication: { type: boolean, description: "The asking price is available on application (POA)." }
         currency: { type: string }
         suburb: { type: string }
         city: { type: string }
