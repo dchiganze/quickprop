@@ -95,26 +95,27 @@ function minimumViewingCalendarDate() {
   return dateFromLocalValue(minimumViewingDate()) ?? new Date();
 }
 
-function formatTimeOption(value: string) {
-  const [hours, minutes] = value.split(':').map(Number);
-  if (![hours, minutes].every(Number.isFinite)) return value;
-  return new Date(2000, 0, 1, hours, minutes).toLocaleTimeString(undefined, {
-    hour: 'numeric',
-    minute: '2-digit',
-  });
-}
-
 function isViewingDateTimeAllowed(dateValue: string, timeValue: string) {
   if (!dateValue || !timeValue || dateValue < minimumViewingDate()) return false;
+  const [hours, minutes] = timeValue.split(':').map(Number);
+  if (
+    !Number.isInteger(hours) || hours < 0 || hours > 23
+    || !Number.isInteger(minutes) || minutes < 0 || minutes > 59
+    || minutes % 30 !== 0
+  ) return false;
   const selected = new Date(`${dateValue}T${timeValue}:00`);
   if (Number.isNaN(selected.getTime())) return false;
   return dateValue !== minimumViewingDate() || selected.getTime() >= Date.now() + 60 * 60 * 1000;
 }
 
-const VIEWING_TIME_OPTIONS = Array.from({ length: 49 }, (_, index) => {
-  const totalMinutes = index * 30;
-  return `${String(Math.floor(totalMinutes / 60)).padStart(2, '0')}:${String(totalMinutes % 60).padStart(2, '0')}`;
-});
+function minimumViewingTimeOption() {
+  const earliest = new Date(Date.now() + 60 * 60 * 1000);
+  const minute = earliest.getHours() * 60 + earliest.getMinutes()
+    + (earliest.getSeconds() || earliest.getMilliseconds() ? 1 : 0);
+  const firstSlot = Math.ceil(minute / 30) * 30;
+  if (firstSlot >= 24 * 60) return undefined;
+  return `${String(Math.floor(firstSlot / 60)).padStart(2, '0')}:${String(firstSlot % 60).padStart(2, '0')}`;
+}
 
 function formatViewingSlot(value: string) {
   if (!value) return 'Select date and time';
@@ -269,6 +270,8 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
 
   const coverPhoto = property.coverImage || property.photos?.[0];
   const editPhotoUrls = edit.photos.split(/\r?\n|,/).map((value) => value.trim()).filter(Boolean);
+  const isViewingDateToday = viewingPickerDate === minimumViewingDate();
+  const minimumTimeForToday = isViewingDateToday ? minimumViewingTimeOption() : undefined;
 
   const handleVisibilityChange = (newStatus: string) => {
     const nextStatus = newStatus === 'public' ? 'public' : newStatus === 'draft' ? 'draft' : 'internal_only';
@@ -860,18 +863,25 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
             </div>
             <div className="grid gap-2">
               <label htmlFor="viewing-picker-time" className="text-sm font-medium">Time</label>
-              <Select value={viewingPickerTime} onValueChange={setViewingPickerTime}>
-                <SelectTrigger id="viewing-picker-time">
-                  <SelectValue placeholder="Choose a time" />
-                </SelectTrigger>
-                <SelectContent>
-                  {VIEWING_TIME_OPTIONS
-                    .filter((time) => isViewingDateTimeAllowed(viewingPickerDate, time))
-                    .map((time) => (
-                    <SelectItem key={time} value={time}>{formatTimeOption(time)}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Input
+                id="viewing-picker-time"
+                data-testid="input-viewing-time"
+                type="time"
+                step={30 * 60}
+                min={minimumTimeForToday}
+                value={viewingPickerTime}
+                disabled={!viewingPickerDate || (isViewingDateToday && !minimumTimeForToday)}
+                onChange={(event) => {
+                  const time = event.target.value;
+                  setViewingPickerTime(isViewingDateTimeAllowed(viewingPickerDate, time) ? time : '');
+                }}
+              />
+              <p className="text-xs text-muted-foreground">
+                Choose a morning or afternoon time in 30-minute steps.
+              </p>
+              {isViewingDateToday && !minimumTimeForToday && (
+                <p className="text-xs text-muted-foreground">No viewing times remain today. Choose a future date.</p>
+              )}
             </div>
           </div>
           <DialogFooter className="flex-col-reverse gap-2 sm:flex-row sm:justify-between">
@@ -994,7 +1004,7 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
                <div className="flex items-start justify-between gap-3">
                  <div>
                    <label htmlFor="edit-photos" className="text-sm font-medium">Property photos</label>
-                   <p className="mt-1 text-xs text-muted-foreground">Add photos from your device.</p>
+                    <p className="mt-1 text-xs text-muted-foreground">Choose which photo appears as the cover.</p>
                  </div>
                  <div className="shrink-0">
                    <input ref={editPhotoInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handleEditPhotoUpload} />
@@ -1006,29 +1016,51 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
                </div>
                {editPhotoUrls.length > 0 && (
                  <div className="flex flex-wrap gap-3">
-                   {editPhotoUrls.map((url, index) => (
-                     <div key={`${url}-${index}`} className="group relative h-24 w-32 overflow-hidden rounded-lg border bg-background">
-                       <img src={url} alt={`Property photo ${index + 1}`} className="h-full w-full object-cover" />
-                       {index === 0 && (
-                         <span className="absolute bottom-1 left-1 rounded bg-black/70 px-1.5 py-0.5 text-[10px] text-white">Cover</span>
-                       )}
-                       <button
-                         type="button"
-                         aria-label={`Remove photo ${index + 1}`}
-                         onClick={() => {
-                           const photos = editPhotoUrls.filter((_, photoIndex) => photoIndex !== index);
-                           setEdit({
-                             ...edit,
-                             photos: photos.join('\n'),
-                             coverImage: photos[0] ?? '',
-                           });
-                         }}
-                         className="absolute right-1 top-1 rounded-full bg-black/70 p-1 text-white opacity-0 transition-opacity group-hover:opacity-100"
-                       >
-                         <X className="h-3 w-3" />
-                       </button>
-                     </div>
-                   ))}
+                    {editPhotoUrls.map((url, index) => {
+                      const isCoverPhoto = edit.coverImage === url;
+                      return (
+                        <div key={`${url}-${index}`} className="w-32">
+                          <div className="group relative h-24 w-32 overflow-hidden rounded-lg border bg-background">
+                            <img src={url} alt={`Property photo ${index + 1}`} className="h-full w-full object-cover" />
+                            {isCoverPhoto && (
+                              <span className="absolute bottom-1 left-1 rounded bg-black/70 px-1.5 py-0.5 text-[10px] text-white">Cover</span>
+                            )}
+                            <button
+                              type="button"
+                              aria-label={`Remove photo ${index + 1}`}
+                              data-testid={`button-remove-property-photo-${index + 1}`}
+                              onClick={() => {
+                                setEdit((current) => {
+                                  const photos = current.photos.split(/\r?\n|,/).map((value) => value.trim()).filter(Boolean)
+                                    .filter((_, photoIndex) => photoIndex !== index);
+                                  return {
+                                    ...current,
+                                    photos: photos.join('\n'),
+                                    coverImage: photos.includes(current.coverImage) ? current.coverImage : photos[0] ?? '',
+                                  };
+                                });
+                              }}
+                              className="absolute right-1 top-1 rounded-full bg-black/70 p-1 text-white opacity-0 transition-opacity group-hover:opacity-100"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </div>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant={isCoverPhoto ? 'default' : 'outline'}
+                            className="mt-2 w-full"
+                            aria-pressed={isCoverPhoto}
+                            aria-label={isCoverPhoto ? `Photo ${index + 1} is the cover photo` : `Set photo ${index + 1} as cover`}
+                            data-testid={`button-set-cover-photo-${index + 1}`}
+                            onClick={() => setEdit((current) => ({ ...current, coverImage: url }))}
+                          >
+                            {isCoverPhoto && <CheckCircle2 className="mr-2 h-4 w-4" />}
+                            {isCoverPhoto ? 'Cover photo' : 'Set as cover'}
+                          </Button>
+                        </div>
+                      );
+                    })}
                  </div>
                )}
              </div>

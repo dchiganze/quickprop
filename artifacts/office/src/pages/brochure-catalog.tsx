@@ -1,4 +1,5 @@
 import React from 'react';
+import { useLocation } from 'wouter';
 import {
   ArrowLeft,
   Bath,
@@ -70,6 +71,7 @@ function getPropertyPhotos(property: any): string[] {
 }
 
 export default function BrochureCatalog() {
+  const [, setLocation] = useLocation();
   const params = new URLSearchParams(window.location.search);
   const mode = (params.get('mode') ?? 'company') as 'my' | 'company' | 'custom';
   const propParam = params.get('props') ?? '';
@@ -805,7 +807,9 @@ export default function BrochureCatalog() {
 
       <div className="no-print fixed top-0 left-0 right-0 z-50 flex items-center justify-between border-b border-gray-200 bg-white px-6 py-3 shadow-sm">
         <button
-          onClick={() => window.close()}
+          type="button"
+          data-testid="button-close-brochure-preview"
+          onClick={() => setLocation('/brochure-setup')}
           className="flex items-center gap-2 text-sm text-gray-600 transition-colors hover:text-gray-900"
         >
           <ArrowLeft className="w-4 h-4" />
