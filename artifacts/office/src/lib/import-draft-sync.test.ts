@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { syncImportDraftState, type ImportDraftState } from "./import-draft-sync";
+import { pendingImportDraftUpdates, syncImportDraftState, type ImportDraftState } from "./import-draft-sync";
 
 const emptyState: ImportDraftState = { drafts: {}, serverData: {} };
 
@@ -33,4 +33,21 @@ test("removes editor state for rows no longer returned by the server", () => {
 
   assert.deepEqual(Object.keys(after.drafts), ["27"]);
   assert.deepEqual(Object.keys(after.serverData), ["27"]);
+});
+
+test("includes an unsaved POA selection in the edits to persist before importing", () => {
+  const updates = pendingImportDraftUpdates(
+    [
+      { id: 386, data: { price: 0, priceOnApplication: false } },
+      { id: 411, data: { price: 0, priceOnApplication: true } },
+    ],
+    {
+      386: { price: 0, priceOnApplication: true },
+      411: { price: 0, priceOnApplication: true },
+    },
+  );
+
+  assert.deepEqual(updates, [
+    { recordId: 386, data: { price: 0, priceOnApplication: true } },
+  ]);
 });

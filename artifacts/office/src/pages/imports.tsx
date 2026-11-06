@@ -31,7 +31,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { shouldShowImportDuplicateMatch } from '@/lib/import-duplicate-visibility';
-import { syncImportDraftState, type ImportDraftState } from '@/lib/import-draft-sync';
+import { pendingImportDraftUpdates, syncImportDraftState, type ImportDraftState } from '@/lib/import-draft-sync';
 
 type RouteProps = { params?: { id?: string } };
 type DraftData = Record<string, unknown>;
@@ -702,6 +702,7 @@ function ImportDetail({ id }: { id: number }) {
   const [draftState, setDraftState] = useState<ImportDraftState>({ drafts: {}, serverData: {} });
   const drafts = draftState.drafts;
   const [savingId, setSavingId] = useState<number | null>(null);
+  const [savingApprovedDrafts, setSavingApprovedDrafts] = useState(false);
   const [agentId, setAgentId] = useState('');
   const [actionBusy, setActionBusy] = useState(false);
   const [publishError, setPublishError] = useState('');
@@ -745,7 +746,14 @@ function ImportDetail({ id }: { id: number }) {
   const saveRecord = async (record: ImportRecord) => {
     setSavingId(record.id);
     try {
-      const updated = await updateRecord.mutateAsync({ id, recordId: record.id, data: { data: drafts[record.id] || toRecord(record.data) } });
+      const updated = await updateRecord.mutateAsync({
+        id,
+        recordId: record.id,
+        data: {
+          data: drafts[record.id] || toRecord(record.data),
+          ...(record.reviewStatus === 'approved' ? { reviewStatus: 'approved' } : {}),
+        },
+      });
       if (detail) patchDetail({ ...detail, records: detail.records.map((item) => item.id === record.id ? updated : item) });
       toast({ title: 'Draft row saved', description: `Record ${record.id} remains unpublished.` });
     } catch { toast({ title: 'Could not save row', description: 'The server rejected this correction. Your draft remains on screen.', variant: 'destructive' }); }
@@ -805,10 +813,37 @@ function ImportDetail({ id }: { id: number }) {
     }
   };
   const publish = async () => {
-    const approved = (detail?.records || []).filter((record) => record.reviewStatus === 'approved').map((record) => record.id);
+    const approvedRecords = (detail?.records || []).filter((record) => record.reviewStatus === 'approved');
+    const approved = approvedRecords.map((record) => record.id);
     if (!approved.length || !window.confirm(`Add ${approved.length} approved record${approved.length === 1 ? '' : 's'} to inventory? New properties will be saved as drafts, not published. Photos may be added later; at least one is required before publishing. Linked existing properties keep their current visibility.`)) return;
     setPublishError('');
+    setSavingApprovedDrafts(true);
     try {
+      const pendingEdits = pendingImportDraftUpdates(approvedRecords, drafts);
+      if (pendingEdits.length) {
+        const results = await Promise.allSettled(pendingEdits.map((edit) => updateRecord.mutateAsync({
+          id,
+          recordId: edit.recordId,
+          data: { data: edit.data, reviewStatus: 'approved' },
+        })));
+        const failedRecordIds: number[] = [];
+        const savedRecords: ImportRecord[] = [];
+        results.forEach((result, index) => {
+          if (result.status === 'fulfilled') savedRecords.push(result.value);
+          else failedRecordIds.push(pendingEdits[index].recordId);
+        });
+        if (failedRecordIds.length) {
+          setPublishError(`Could not save edits for records ${failedRecordIds.join(', ')}. No listings were added to inventory; retry after saving those rows.`);
+          return;
+        }
+        if (detail) {
+          const savedById = new Map(savedRecords.map((record) => [record.id, record]));
+          patchDetail({
+            ...detail,
+            records: detail.records.map((record) => savedById.get(record.id) ?? record),
+          });
+        }
+      }
       const result = await publishSession.mutateAsync({ id, data: { recordIds: approved } });
       queryClient.invalidateQueries({ queryKey: getListImportSessionsQueryKey() });
       queryClient.invalidateQueries({ queryKey: getListPropertiesQueryKey() });
@@ -819,7 +854,8 @@ function ImportDetail({ id }: { id: number }) {
         ? ` ${result.errors.slice(0, 2).join(' ')}${result.failed > 2 ? ` And ${result.failed - 2} more failed.` : ''}`
         : ' Photos are required before publishing, not for drafts.';
       toast({ title: result.failed ? 'Import completed with failures' : 'Drafts saved', description: `${result.created} saved as drafts, ${result.linked} linked, ${result.failed} failed.${failureSummary}`, variant: result.failed ? 'destructive' : 'default' });
-    } catch { setPublishError('Import was rejected by the server. Refresh the session before retrying.'); }
+    } catch { setPublishError('Could not confirm the draft import. Refresh the session before retrying to avoid duplicate drafts.'); }
+    finally { setSavingApprovedDrafts(false); }
   };
   const downloadErrors = async () => {
     try {
@@ -938,8 +974,8 @@ function ImportDetail({ id }: { id: number }) {
               <p className="text-sm font-bold">Imported properties start as drafts</p>
               <p className="mt-0.5 text-xs text-muted-foreground">{approvedCount} approved row{approvedCount === 1 ? '' : 's'} will be added to inventory. New properties stay in drafts until you add at least one photo and choose to publish. Linked existing properties keep their current visibility. Rejected, unresolved and unreviewed records stay in this session.</p>
             </div>
-            <Button onClick={publish} disabled={!approvedCount || publishSession.isPending || processing} className="gap-2">
-              {publishSession.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />} Add approved to drafts
+            <Button onClick={publish} disabled={!approvedCount || publishSession.isPending || savingApprovedDrafts || processing} className="gap-2">
+              {publishSession.isPending || savingApprovedDrafts ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />} {savingApprovedDrafts ? 'Saving edits…' : 'Add approved to drafts'}
             </Button>
           </div>
         </main>

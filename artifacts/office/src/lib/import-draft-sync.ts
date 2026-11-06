@@ -80,3 +80,15 @@ export function syncImportDraftState(
 
   return changed ? { drafts, serverData } : current;
 }
+
+export function pendingImportDraftUpdates(
+  records: readonly ImportDraftRecord[],
+  drafts: ImportDraftState["drafts"],
+): Array<{ recordId: number; data: ImportDraftValues }> {
+  return records.flatMap((record) => {
+    const draft = drafts[record.id];
+    return draft && !sameDraftValues(draft, asDraftValues(record.data))
+      ? [{ recordId: record.id, data: draft }]
+      : [];
+  });
+}
