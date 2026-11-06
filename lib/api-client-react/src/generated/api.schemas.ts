@@ -1663,6 +1663,11 @@ export interface PublicPropertyList {
   limit: number;
 }
 
+export interface AgencyPropertiesResponse {
+  agencyName: string;
+  properties: PublicProperty[];
+}
+
 export interface AgentSaleMedian {
   currency: string;
   medianPrice: number;

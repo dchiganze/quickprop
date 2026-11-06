@@ -386,6 +386,54 @@ export const DeleteCurrentUserAccountResponse = zod.object({
 })
 
 
+/**
+ * @summary List public properties from the signed-in user's agency
+ */
+export const GetAgencyPropertiesResponse = zod.object({
+  "agencyName": zod.string(),
+  "properties": zod.array(zod.object({
+  "id": zod.number(),
+  "reference": zod.string(),
+  "title": zod.string(),
+  "description": zod.string().nullish(),
+  "propertyType": zod.string(),
+  "listingType": zod.string(),
+  "status": zod.string().optional(),
+  "availabilityStatus": zod.string().optional().describe('available | under_offer | sold | withdrawn'),
+  "price": zod.number(),
+  "currency": zod.string(),
+  "suburb": zod.string(),
+  "city": zod.string(),
+  "address": zod.string().nullish(),
+  "hasTitleDeed": zod.boolean().describe('Shown only for sale listings that have a title deed.'),
+  "bedrooms": zod.number().nullish(),
+  "bathrooms": zod.number().nullish(),
+  "parking": zod.number().nullish(),
+  "landSize": zod.number().nullish(),
+  "buildingSize": zod.number().nullish(),
+  "features": zod.array(zod.string()),
+  "photos": zod.array(zod.string()),
+  "proposedViewingTimes": zod.array(zod.coerce.date()).optional().describe('Optional proposed viewing slots as ISO 8601 date-time strings.'),
+  "coverImage": zod.string().nullish(),
+  "agentId": zod.number().nullish(),
+  "salePrice": zod.number().nullish(),
+  "soldAt": zod.string().nullish(),
+  "views": zod.number(),
+  "enquiries": zod.number(),
+  "publishedAt": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "canonicalPropertyId": zod.number().nullish(),
+  "agencyCount": zod.number().optional(),
+  "lowestPrice": zod.number().optional(),
+  "lastAvailabilityVerification": zod.string().nullish(),
+  "freshnessStatus": zod.string().optional(),
+  "freshnessLabel": zod.string().optional(),
+  "freshnessScore": zod.number().optional(),
+  "qualityScore": zod.number().optional()
+}))
+})
+
+
 export const ListPropertiesQueryParams = zod.object({
   "status": zod.coerce.string().optional(),
   "pipelineStage": zod.coerce.string().optional(),

@@ -49,6 +49,7 @@ import type {
   AdminPlatformCharts,
   AdminPlatformStats,
   AdminRentalHistory,
+  AgencyPropertiesResponse,
   AgencyRelationship,
   AgencyRelationshipInput,
   AgencySettings,
@@ -1785,6 +1786,83 @@ export const useDeleteCurrentUserAccount = <TError = ErrorType<void>,
       > => {
       return useMutation(getDeleteCurrentUserAccountMutationOptions(options));
     }
+
+export const getGetAgencyPropertiesUrl = () => {
+
+
+
+
+  return `/api/agency/properties`
+}
+
+/**
+ * @summary List public properties from the signed-in user's agency
+ */
+export const getAgencyProperties = async ( options?: RequestInit): Promise<AgencyPropertiesResponse> => {
+
+  return customFetch<AgencyPropertiesResponse>(getGetAgencyPropertiesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAgencyPropertiesQueryKey = () => {
+    return [
+    `/api/agency/properties`
+    ] as const;
+    }
+
+
+export const getGetAgencyPropertiesQueryOptions = <TData = Awaited<ReturnType<typeof getAgencyProperties>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAgencyProperties>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAgencyPropertiesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAgencyProperties>>> = ({ signal }) => getAgencyProperties({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAgencyProperties>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAgencyPropertiesQueryResult = NonNullable<Awaited<ReturnType<typeof getAgencyProperties>>>
+export type GetAgencyPropertiesQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List public properties from the signed-in user's agency
+ */
+
+export function useGetAgencyProperties<TData = Awaited<ReturnType<typeof getAgencyProperties>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAgencyProperties>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAgencyPropertiesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getListPropertiesUrl = (params?: ListPropertiesParams,) => {
   const normalizedParams = new URLSearchParams();

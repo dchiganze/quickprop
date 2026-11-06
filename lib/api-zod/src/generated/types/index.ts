@@ -45,6 +45,7 @@ export * from './adminMyBranchOption';
 export * from './adminPlatformCharts';
 export * from './adminPlatformStats';
 export * from './adminRentalHistory';
+export * from './agencyPropertiesResponse';
 export * from './agencyRelationship';
 export * from './agencyRelationshipInput';
 export * from './agencySettings';

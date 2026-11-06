@@ -1,11 +1,18 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
-  View, Text, FlatList, ScrollView, TouchableOpacity, StyleSheet, Platform, RefreshControl,
+  View, Text, FlatList, ScrollView, TouchableOpacity, StyleSheet, Platform, RefreshControl, ActivityIndicator,
 } from 'react-native';
+import { useInfiniteQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
+import {
+  getGetAgencyPropertiesQueryKey,
+  listPublicProperties,
+  useGetAgencyProperties,
+  type PublicProperty,
+} from '@workspace/api-client-react';
 import { useColors } from '@/hooks/useColors';
 import { useData } from '@/contexts/DataContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -14,20 +21,78 @@ import { SearchBar } from '@/components/SearchBar';
 import { EmptyState } from '@/components/EmptyState';
 import { QuickShareSheet } from '@/components/QuickShareSheet';
 import { AlertsSheet } from '@/components/AlertsSheet';
+import type { Property } from '@/types';
 
-type Filter = 'all' | 'my' | 'agency' | 'offline' | 'draft' | 'pending' | 'sold' | 'rented' | 'archived';
+type ListingScope = 'all' | 'my' | 'agency';
+type MyStatusFilter = 'all' | 'draft' | 'sold' | 'rented' | 'archived';
 
-const STATUS_FILTERS: { key: Filter; label: string }[] = [
+const SCOPE_FILTERS: { key: ListingScope; label: string }[] = [
   { key: 'all', label: 'All' },
   { key: 'my', label: 'My Listings' },
-  // 'alerts' chip is rendered separately between My Listings and Draft
-  { key: 'offline', label: 'Available Offline' },
+  { key: 'agency', label: 'Agency Listings' },
+];
+
+const MY_STATUS_FILTERS: { key: Exclude<MyStatusFilter, 'all'>; label: string }[] = [
   { key: 'draft', label: 'Draft' },
-  { key: 'pending', label: 'Pending' },
   { key: 'sold', label: 'Sold' },
   { key: 'rented', label: 'Rented' },
   { key: 'archived', label: 'Archived' },
 ];
+
+function mapPublicProperty(property: PublicProperty): Property {
+  const normalizedType = property.propertyType.toLowerCase();
+  const type = ['commercial', 'stand', 'farm', 'mine'].includes(normalizedType)
+    ? normalizedType as Property['type']
+    : property.listingType.toLowerCase() === 'rent' ? 'rent' : 'sale';
+  const photos = property.photos.length > 0
+    ? property.photos
+    : property.coverImage ? [property.coverImage] : [];
+
+  return {
+    id: String(property.id),
+    referenceNumber: property.reference,
+    title: property.title,
+    type,
+    propertyType: property.propertyType,
+    listingType: property.listingType === 'rent' ? 'rent' : 'sale',
+    status: 'published',
+    address: property.address ?? property.suburb,
+    showAddress: Boolean(property.address),
+    hasTitleDeed: property.hasTitleDeed,
+    suburb: property.suburb,
+    city: property.city,
+    price: property.price,
+    salePrice: property.salePrice ?? undefined,
+    soldAt: property.soldAt,
+    currency: property.currency,
+    negotiable: false,
+    bedrooms: property.bedrooms ?? undefined,
+    bathrooms: property.bathrooms ?? undefined,
+    garages: property.parking ?? undefined,
+    landSize: property.landSize ?? undefined,
+    floorArea: property.buildingSize ?? undefined,
+    features: property.features,
+    description: property.description ?? '',
+    photos,
+    proposedViewingTimes: property.proposedViewingTimes,
+    seller: {
+      name: '',
+      phone: '',
+      email: '',
+      mandateExpiry: '',
+      mandateType: 'open',
+      notes: '',
+    },
+    agentId: property.agentId == null ? '' : String(property.agentId),
+    createdAt: property.publishedAt ?? property.createdAt,
+    updatedAt: property.publishedAt ?? property.createdAt,
+    freshnessStatus: property.freshnessStatus as Property['freshnessStatus'],
+    availabilityStatus: property.availabilityStatus as Property['availabilityStatus'],
+    lastConfirmedAt: property.lastAvailabilityVerification,
+    freshnessScore: property.freshnessScore,
+    qualityScore: property.qualityScore,
+  };
+}
 
 /** Comprehensive search across every meaningful property field */
 function propertyMatchesQuery(p: {
@@ -85,52 +150,86 @@ function propertyMatchesQuery(p: {
 }
 
 export default function ListingsScreen() {
-  const params = useLocalSearchParams<{ filter?: string }>();
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const {
-    properties, unseenMatchCount, syncNow, offlineListingIds,
+    properties, unseenMatchCount, syncNow,
   } = useData();
   const [query, setQuery] = useState('');
-  const [filter, setFilter] = useState<Filter>('all');
+  const [scope, setScope] = useState<ListingScope>('all');
+  const [statusFilter, setStatusFilter] = useState<MyStatusFilter>('all');
   const [shareOpen, setShareOpen] = useState(false);
   const [alertsOpen, setAlertsOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    if (params.filter === 'offline') setFilter('offline');
-  }, [params.filter]);
+  const publicFeed = useInfiniteQuery({
+    queryKey: ['mobile-public-properties'],
+    initialPageParam: 1,
+    queryFn: ({ pageParam, signal }) => listPublicProperties(
+      { page: pageParam, limit: 20, sort: 'newest' },
+      { signal },
+    ),
+    getNextPageParam: (lastPage) => (
+      lastPage.page * lastPage.limit < lastPage.total ? lastPage.page + 1 : undefined
+    ),
+    enabled: scope === 'all',
+    staleTime: 30_000,
+  });
+  const agencyQuery = useGetAgencyProperties({
+    query: {
+      enabled: Boolean(user?.id),
+      queryKey: getGetAgencyPropertiesQueryKey(),
+    },
+  });
+  const agencyName = agencyQuery.data?.agencyName?.trim() || 'Agency Listings';
+  const publicProperties = useMemo(
+    () => publicFeed.data?.pages.flatMap((page) => page.properties.map(mapPublicProperty)) ?? [],
+    [publicFeed.data?.pages],
+  );
+  const agencyProperties = useMemo(
+    () => agencyQuery.data?.properties.map(mapPublicProperty) ?? [],
+    [agencyQuery.data?.properties],
+  );
 
   const handleRefresh = async () => {
     if (refreshing) return;
     setRefreshing(true);
     try {
-      await syncNow();
+      if (scope === 'all') await publicFeed.refetch();
+      else if (scope === 'agency') await agencyQuery.refetch();
+      else await syncNow();
     } finally {
       setRefreshing(false);
     }
   };
 
   const filtered = useMemo(() => {
-    let list = [...properties];
+    let list = scope === 'all'
+      ? [...publicProperties]
+      : scope === 'agency'
+        ? [...agencyProperties]
+        : properties.filter((property) => property.agentId === user?.id);
 
-    // Status / ownership filter
-    if (filter === 'my') list = list.filter(p => p.agentId === user?.id);
-    else if (filter === 'offline') list = list.filter(p => offlineListingIds.includes(p.id));
-    else if (filter === 'draft') list = list.filter(p => p.status === 'draft');
-    else if (filter === 'pending') list = list.filter(p => p.status === 'pending');
-    else if (filter === 'sold') list = list.filter(p => p.status === 'sold');
-    else if (filter === 'rented') list = list.filter(p => p.status === 'rented');
-    else if (filter === 'archived') list = list.filter(p => p.status === 'archived');
+    if (scope === 'my' && statusFilter !== 'all') {
+      list = list.filter((property) => property.status === statusFilter);
+    }
 
     // Full-text search
     if (query.trim()) {
-      list = list.filter(p => propertyMatchesQuery(p, query));
+      list = list.filter((property) => propertyMatchesQuery(property, query));
     }
 
     return list.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
-  }, [properties, filter, query, user, offlineListingIds]);
+  }, [scope, statusFilter, properties, publicProperties, agencyProperties, query, user?.id]);
+
+  const agencyFilterLabel = agencyName === 'Agency Listings' ? SCOPE_FILTERS[2].label : agencyName;
+  const feedLoading = scope === 'all'
+    ? publicFeed.isLoading
+    : scope === 'agency' && agencyQuery.isLoading;
+  const feedError = scope === 'all'
+    ? publicFeed.isError
+    : scope === 'agency' && agencyQuery.isError;
 
   const openAlerts = async () => {
     await Haptics.selectionAsync();
@@ -172,48 +271,65 @@ export default function ListingsScreen() {
           style={styles.filterList}
           contentContainerStyle={styles.filterContent}
         >
-          {STATUS_FILTERS.map((item, index) => {
-            const active = filter === item.key;
+          {SCOPE_FILTERS.map((item) => {
+            const active = scope === item.key;
+            const label = item.key === 'agency' ? agencyFilterLabel : item.label;
             return (
-              <React.Fragment key={item.key}>
-                <TouchableOpacity
-                  style={[
-                    styles.filterBtn,
-                    { backgroundColor: active ? colors.primary : colors.muted, borderColor: active ? colors.primary : colors.border },
-                  ]}
-                  onPress={async () => { await Haptics.selectionAsync(); setFilter(item.key); }}
-                >
-                  <Text style={[styles.filterText, { color: active ? '#FFF' : colors.mutedForeground }]}>{item.label}</Text>
-                </TouchableOpacity>
-
-                {/* Alerts chip inserted after "My Listings" (index 1) */}
-                {index === 1 && (
-                  <TouchableOpacity
-                    style={[
-                      styles.filterBtn, styles.alertsChip,
-                      {
-                        backgroundColor: unseenMatchCount > 0 ? colors.primary : colors.muted,
-                        borderColor: unseenMatchCount > 0 ? colors.primary : colors.border,
-                      },
-                    ]}
-                    onPress={openAlerts}
-                  >
-                    <Ionicons
-                      name={unseenMatchCount > 0 ? 'notifications' : 'notifications-outline'}
-                      size={13}
-                      color={unseenMatchCount > 0 ? '#FFF' : colors.mutedForeground}
-                    />
-                    <Text style={[styles.filterText, { color: unseenMatchCount > 0 ? '#FFF' : colors.mutedForeground }]}>
-                      Alerts
-                    </Text>
-                    {unseenMatchCount > 0 && (
-                      <View style={styles.badge}>
-                        <Text style={styles.badgeText}>{unseenMatchCount > 9 ? '9+' : unseenMatchCount}</Text>
-                      </View>
-                    )}
-                  </TouchableOpacity>
-                )}
-              </React.Fragment>
+              <TouchableOpacity
+                key={item.key}
+                style={[
+                  styles.filterBtn,
+                  { backgroundColor: active ? colors.primary : colors.muted, borderColor: active ? colors.primary : colors.border },
+                ]}
+                onPress={async () => {
+                  await Haptics.selectionAsync();
+                  setScope(item.key);
+                  setStatusFilter('all');
+                }}
+                accessibilityRole="button"
+                accessibilityState={{ selected: active }}
+              >
+                <Text style={[styles.filterText, { color: active ? '#FFF' : colors.mutedForeground }]}>{label}</Text>
+              </TouchableOpacity>
+            );
+          })}
+          <TouchableOpacity
+            style={[
+              styles.filterBtn, styles.alertsChip,
+              {
+                backgroundColor: unseenMatchCount > 0 ? colors.primary : colors.muted,
+                borderColor: unseenMatchCount > 0 ? colors.primary : colors.border,
+              },
+            ]}
+            onPress={openAlerts}
+          >
+            <Ionicons
+              name={unseenMatchCount > 0 ? 'notifications' : 'notifications-outline'}
+              size={13}
+              color={unseenMatchCount > 0 ? '#FFF' : colors.mutedForeground}
+            />
+            <Text style={[styles.filterText, { color: unseenMatchCount > 0 ? '#FFF' : colors.mutedForeground }]}>
+              Alerts
+            </Text>
+            {unseenMatchCount > 0 && (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>{unseenMatchCount > 9 ? '9+' : unseenMatchCount}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+          {scope === 'my' && MY_STATUS_FILTERS.map((item) => {
+            const active = statusFilter === item.key;
+            return (
+              <TouchableOpacity
+                key={item.key}
+                style={[
+                  styles.filterBtn,
+                  { backgroundColor: active ? colors.primary : colors.muted, borderColor: active ? colors.primary : colors.border },
+                ]}
+                onPress={async () => { await Haptics.selectionAsync(); setStatusFilter(item.key); }}
+              >
+                <Text style={[styles.filterText, { color: active ? '#FFF' : colors.mutedForeground }]}>{item.label}</Text>
+              </TouchableOpacity>
             );
           })}
         </ScrollView>
@@ -229,17 +345,42 @@ export default function ListingsScreen() {
           filtered.length === 0 && { flex: 1 },
         ]}
         renderItem={({ item }) => (
-          <PropertyCard property={item} onPress={() => router.push(`/listing/${item.id}`)} />
-        )}
-        ListEmptyComponent={
-          <EmptyState
-            icon="business-outline"
-            title={query ? 'No results found' : 'No listings yet'}
-            description={query ? 'Try suburb, beds, features or owner name.' : 'Tap the + button to add your first listing.'}
-            actionLabel={query ? undefined : 'Create Listing'}
-            onAction={() => router.push('/new-listing')}
+          <PropertyCard
+            property={item}
+            onPress={() => {
+              if (scope === 'my') router.push(`/listing/${item.id}`);
+              else router.push({ pathname: '/public-listing/[id]', params: { id: item.id } });
+            }}
           />
-        }
+        )}
+        ListEmptyComponent={feedLoading ? (
+          <View style={styles.loadingState}>
+            <ActivityIndicator size="large" color={colors.primary} />
+          </View>
+        ) : (
+          <EmptyState
+            icon={feedError ? 'cloud-offline-outline' : 'business-outline'}
+            title={feedError ? 'Listings unavailable' : query ? 'No results found' : 'No listings yet'}
+            description={feedError
+              ? 'Please check your connection and pull down to try again.'
+              : query
+                ? 'Try suburb, beds, features or owner name.'
+                : scope === 'my' ? 'Tap the + button to add your first listing.' : undefined}
+            actionLabel={scope === 'my' && !query ? 'Create Listing' : undefined}
+            onAction={scope === 'my' ? () => router.push('/new-listing') : undefined}
+          />
+        )}
+        ListFooterComponent={scope === 'all' && publicFeed.isFetchingNextPage ? (
+          <View style={styles.loadingFooter}>
+            <ActivityIndicator size="small" color={colors.primary} />
+          </View>
+        ) : undefined}
+        onEndReached={() => {
+          if (scope === 'all' && publicFeed.hasNextPage && !publicFeed.isFetchingNextPage) {
+            void publicFeed.fetchNextPage();
+          }
+        }}
+        onEndReachedThreshold={0.45}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -281,6 +422,8 @@ const styles = StyleSheet.create({
   filterBtn: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, borderWidth: 1 },
   alertsChip: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   filterText: { fontSize: 13, fontWeight: '600' },
+  loadingState: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 48 },
+  loadingFooter: { height: 48, alignItems: 'center', justifyContent: 'center' },
   badge: {
     backgroundColor: '#FFF3', borderRadius: 8, minWidth: 16, height: 16,
     alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3,

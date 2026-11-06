@@ -1,10 +1,11 @@
 import { randomUUID } from "node:crypto";
 import { Router, type IRouter, type Request } from "express";
-import { eq, and, ilike, or, gte, lte, desc, type SQL } from "drizzle-orm";
+import { eq, and, ilike, or, gte, lte, desc, inArray, type SQL } from "drizzle-orm";
 import {
   db,
   propertiesTable,
   branchesTable,
+  businessAgenciesTable,
   usersTable,
   priceHistoryTable,
   activityTable,
@@ -20,6 +21,7 @@ import {
   propertySaleConfirmationsTable,
 } from "@workspace/db";
 import {
+  GetAgencyPropertiesResponse,
   ListPropertiesQueryParams,
   ListPropertiesResponse,
   CreatePropertyBody,
@@ -38,7 +40,7 @@ import {
 } from "@workspace/api-zod";
 import { parseId, logActivity, logAudit, jsonify } from "../lib/helpers";
 import { currentUser } from "./auth";
-import { DEFAULT_HOUSEKEEPING_SETTINGS } from "../lib/housekeeping";
+import { DEFAULT_HOUSEKEEPING_SETTINGS, publicFreshnessLabel } from "../lib/housekeeping";
 import { findDuplicateCandidates, normalizeText } from "../lib/multi-agent";
 import { queuePrimaryReviewInvitation } from "../lib/agent-reviews";
 import { matchPropertyToAlerts } from "../lib/property-alerts";
@@ -64,6 +66,8 @@ const PIPELINE_STAGES = [
   "archived",
 ];
 const SELLING_STATUSES = ["available", "under_offer", "sold", "withdrawn"] as const;
+const AGENCY_PUBLIC_STATUSES = ["public", "under_offer", "coming_soon"];
+const AGENCY_PUBLIC_AVAILABILITY_STATUSES = ["available", "under_offer"];
 
 async function activeAgent(agentId: number) {
   const [agent] = await db.select({
@@ -96,6 +100,116 @@ function mutationKey(req: Request): string | null {
   const value = req.get("Idempotency-Key")?.trim();
   return value && /^[a-z0-9-]{8,80}$/i.test(value) ? value : null;
 }
+
+router.get("/agency/properties", async (req, res): Promise<void> => {
+  const user = await currentUser(req);
+  if (!user?.branchId) {
+    res.status(403).json({ error: "An active agency branch is required to view agency listings." });
+    return;
+  }
+
+  const [memberBranch] = await db.select({
+    agencyId: branchesTable.agencyId,
+  }).from(branchesTable).where(eq(branchesTable.id, user.branchId)).limit(1);
+  if (memberBranch?.agencyId == null) {
+    res.status(404).json({ error: "No agency is assigned to this account." });
+    return;
+  }
+
+  const [agency] = await db.select({
+    id: businessAgenciesTable.id,
+    name: businessAgenciesTable.name,
+    status: businessAgenciesTable.status,
+  }).from(businessAgenciesTable)
+    .where(eq(businessAgenciesTable.id, memberBranch.agencyId))
+    .limit(1);
+  if (!agency || agency.status !== "active") {
+    res.status(404).json({ error: "The assigned agency is not active." });
+    return;
+  }
+
+  const branches = await db.select({
+    id: branchesTable.id,
+  }).from(branchesTable).where(and(
+    eq(branchesTable.agencyId, agency.id),
+    eq(branchesTable.status, "active"),
+  ));
+  const branchIds = branches.map((branch) => branch.id);
+  if (!branchIds.includes(user.branchId)) {
+    res.status(403).json({ error: "An active agency branch is required to view agency listings." });
+    return;
+  }
+
+  const rows = await db.select().from(propertiesTable).where(and(
+    inArray(propertiesTable.branchId, branchIds),
+    inArray(propertiesTable.status, AGENCY_PUBLIC_STATUSES),
+    inArray(propertiesTable.availabilityStatus, AGENCY_PUBLIC_AVAILABILITY_STATUSES),
+  ));
+  const grouped = new Map<number, typeof rows[number]>();
+  for (const row of rows) {
+    const key = row.canonicalPropertyId ?? row.id;
+    const current = grouped.get(key);
+    if (!current || row.id === key || row.updatedAt > current.updatedAt) {
+      grouped.set(key, row);
+    }
+  }
+
+  const listings = [...grouped.values()]
+    .sort((a, b) => {
+      const aDate = a.publishedAt?.getTime() ?? a.createdAt.getTime();
+      const bDate = b.publishedAt?.getTime() ?? b.createdAt.getTime();
+      return bDate - aDate;
+    })
+    .map((property) => ({
+      id: property.id,
+      reference: property.reference,
+      title: property.title,
+      description: property.description,
+      propertyType: property.propertyType,
+      listingType: property.listingType,
+      status: property.status,
+      availabilityStatus: property.availabilityStatus,
+      price: property.price,
+      currency: property.currency,
+      suburb: property.suburb,
+      city: property.city,
+      address: property.addressVisible ? property.address : null,
+      hasTitleDeed: Boolean(property.hasTitleDeed),
+      bedrooms: property.bedrooms,
+      bathrooms: property.bathrooms,
+      parking: property.parking,
+      landSize: property.landSize,
+      buildingSize: property.buildingSize,
+      features: property.features ?? [],
+      photos: property.photos ?? [],
+      proposedViewingTimes: property.proposedViewingTimes ?? [],
+      coverImage: property.coverImage,
+      agentId: property.agentId,
+      salePrice: property.salePrice,
+      soldAt: property.soldAt,
+      views: property.views ?? 0,
+      enquiries: property.enquiries ?? 0,
+      publishedAt: property.publishedAt,
+      createdAt: property.createdAt,
+      canonicalPropertyId: property.canonicalPropertyId ?? property.id,
+      agencyCount: 1,
+      lowestPrice: property.price,
+      lastAvailabilityVerification: property.lastAvailabilityConfirmedAt,
+      freshnessStatus: property.freshnessStatus ?? "new",
+      freshnessLabel: publicFreshnessLabel(
+        property.freshnessStatus,
+        property.lastAvailabilityConfirmedAt,
+        property.updatedAt,
+      ),
+      freshnessScore: property.freshnessScore ?? 0,
+      qualityScore: property.qualityScore ?? 0,
+    }));
+
+  res.json(GetAgencyPropertiesResponse.parse(jsonify({
+    agencyName: agency.name,
+    properties: listings,
+  })));
+});
 
 router.get("/properties", async (req, res): Promise<void> => {
   const q = ListPropertiesQueryParams.safeParse(req.query);
