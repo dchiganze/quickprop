@@ -477,3 +477,17 @@ mtime_ms = 1793869479180
 storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:cf900b3f-04ce-456b-888c-760ecb412036/652f2782-6295-4754-b95c-b27f1b781dbe/a024cdfb-9b33-442a-821f-7b1b0671cb2c"
 storage_version_token = "1793869673599939"
 content_type = "video/mp4"
+
+[[outputs]]
+id = "z7EsBTA5qwVaeqvLmkpth"
+uri = "file://generated-artifacts/QuickProp_Brochure_Mobile_Style.pdf"
+type = "pdf"
+title = "DBT Properties brochure — mobile layout"
+description = "Two-page A4 brochure rebuilt from the attached listing content using the mobile brochure layout."
+logical_id = "e3c13539-d5af-43bd-8279-d3f9bde30970"
+content_hash = "sha256:42bc22a3088f50f71ef6dd34552c437bbfa438dadcbb5698c9e0657208a625ad"
+size = 699163
+mtime_ms = 1793971236635
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:cf900b3f-04ce-456b-888c-760ecb412036/e3c13539-d5af-43bd-8279-d3f9bde30970/fa3bfbce-5d46-40e0-b88c-02bb4ce6ba01"
+storage_version_token = "1793971270839532"
+content_type = "application/pdf"
