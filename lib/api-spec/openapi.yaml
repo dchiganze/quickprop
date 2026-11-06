@@ -393,6 +393,30 @@ paths:
           description: Invalid profile details
         "401":
           description: Not logged in
+  /auth/brochure-agent-link:
+    patch:
+      operationId: updateCurrentUserBrochureAgentLink
+      tags: [auth]
+      summary: Link the signed-in admin profile to an agent profile for brochures
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BrochureAgentLinkUpdate"
+      responses:
+        "200":
+          description: Updated brochure agent link
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "400":
+          description: Invalid agent profile
+        "401":
+          description: Not logged in
+        "403":
+          description: Not allowed to change this link
   /auth/account:
     delete:
       operationId: deleteCurrentUserAccount
@@ -3246,6 +3270,11 @@ components:
         phone:
           type: ["string", "null"]
           maxLength: 40
+    BrochureAgentLinkUpdate:
+      type: object
+      required: [agentId]
+      properties:
+        agentId: { type: ["integer", "null"], minimum: 1 }
     AccountDeletionResult:
       type: object
       required: [ok]
@@ -3261,6 +3290,7 @@ components:
         phone: { type: ["string", "null"] }
         role: { type: string, description: "principal | admin | senior_agent | agent | receptionist | marketing | viewer" }
         branchId: { type: ["integer", "null"] }
+        linkedAgentId: { type: ["integer", "null"] }
         status: { type: string, description: "active | suspended | inactive | deleted (tombstone; excluded from team lists)" }
         avatarUrl: { type: ["string", "null"] }
     UserDeletionResult:

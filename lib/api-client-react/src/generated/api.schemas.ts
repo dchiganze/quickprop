@@ -563,6 +563,8 @@ export interface User {
   role: string;
   /** @nullable */
   branchId?: number | null;
+  /** @nullable */
+  linkedAgentId?: number | null;
   /** active | suspended | inactive | deleted (tombstone; excluded from team lists) */
   status: string;
   /** @nullable */
@@ -647,6 +649,14 @@ export interface CurrentUserProfileUpdate {
      * @nullable
      */
   phone: string | null;
+}
+
+export interface BrochureAgentLinkUpdate {
+  /**
+     * @minimum 1
+     * @nullable
+     */
+  agentId: number | null;
 }
 
 export interface AccountDeletionResult {

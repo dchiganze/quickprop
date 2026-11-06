@@ -75,6 +75,7 @@ export * from './attentionItem';
 export * from './auditEntry';
 export * from './branch';
 export * from './branchInput';
+export * from './brochureAgentLinkUpdate';
 export * from './brochureResult';
 export * from './bulkImportActionInput';
 export * from './bulkListingHousekeepingInput';

@@ -41,6 +41,7 @@ import {
   RequestPasswordSetupCodeResponse,
   UpdateCurrentUserProfileBody,
   UpdateCurrentUserProfileResponse,
+  UpdateCurrentUserBrochureAgentLinkBody,
 } from "@workspace/api-zod";
 import { logAudit, jsonify } from "../lib/helpers";
 import {
@@ -933,6 +934,67 @@ router.patch("/auth/profile", requireAuth, async (req, res): Promise<void> => {
 
   await logAudit("edited", "user", user.id, "Updated personal profile details", user.id, name);
   res.json(UpdateCurrentUserProfileResponse.parse(jsonify(toUser(updatedUser))));
+});
+
+router.patch("/auth/brochure-agent-link", requireAuth, async (req, res): Promise<void> => {
+  const parsed = UpdateCurrentUserBrochureAgentLinkBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+
+  const user = res.locals.user as typeof usersTable.$inferSelect;
+  if (user.role !== "admin" && user.role !== "principal") {
+    res.status(403).json({ error: "Only admins and principals can link an agent profile." });
+    return;
+  }
+
+  const linkedAgentId = parsed.data.agentId;
+  if (linkedAgentId !== null) {
+    if (user.branchId == null) {
+      res.status(400).json({ error: "Assign this account to a branch before linking an agent profile." });
+      return;
+    }
+    const [agent] = await db
+      .select({
+        id: usersTable.id,
+        role: usersTable.role,
+        status: usersTable.status,
+        branchId: usersTable.branchId,
+      })
+      .from(usersTable)
+      .where(eq(usersTable.id, linkedAgentId))
+      .limit(1);
+    if (
+      !agent
+      || (agent.role !== "agent" && agent.role !== "senior_agent")
+      || agent.status !== "active"
+      || agent.branchId !== user.branchId
+    ) {
+      res.status(400).json({ error: "Choose an active agent from your branch." });
+      return;
+    }
+  }
+
+  const [updatedUser] = await db
+    .update(usersTable)
+    .set({ linkedAgentId })
+    .where(eq(usersTable.id, user.id))
+    .returning();
+  if (!updatedUser) {
+    res.status(401).json({ error: "Not logged in" });
+    return;
+  }
+
+  await logAudit(
+    "edited",
+    "user",
+    user.id,
+    linkedAgentId === null ? "Removed brochure agent profile link" : `Linked brochure listings to agent ${linkedAgentId}`,
+    user.id,
+    user.name,
+  );
+  res.json(GetCurrentUserResponse.parse(jsonify(toUser(updatedUser))));
 });
 
 router.delete("/auth/account", requireAuth, async (req, res): Promise<void> => {

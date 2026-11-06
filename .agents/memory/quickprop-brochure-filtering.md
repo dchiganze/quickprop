@@ -33,6 +33,12 @@ Apply approved brochure branding and layout changes to every renderer used by th
 
 **How to apply:** When changing a brochure specification, search for all print/PDF HTML generators and keep agency identity, property-page layout, photos, and footer consistent across them.
 
+An admin or principal may explicitly link their profile to an active agent in the same branch; desktop “My Listings” then uses that agent's portfolio. Never infer this link from a matching name alone.
+
+**Why:** Admin and agent accounts can be separate profiles for the same person, and name-based matching could expose another agent's listings.
+
+**How to apply:** Validate the stored link against the signed-in user's branch and use only that linked agent ID for the desktop brochure's personal scope.
+
 The brochure cover uses the agency's optional tagline in the introductory text area; when no tagline is configured, that area is omitted rather than replaced with default copy.
 
 **Why:** Agency branding should control the cover message without showing generic platform copy when the field is intentionally blank.

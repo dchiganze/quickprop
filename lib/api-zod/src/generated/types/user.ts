@@ -16,6 +16,8 @@ export interface User {
   role: string;
   /** @nullable */
   branchId?: number | null;
+  /** @nullable */
+  linkedAgentId?: number | null;
   /** active | suspended | inactive | deleted (tombstone; excluded from team lists) */
   status: string;
   /** @nullable */

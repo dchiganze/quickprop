@@ -103,12 +103,22 @@ export default function BrochureCatalog() {
   const { data: agencySettings } = useGetAdminAgencySettings();
   const { data: allProperties, isLoading } = useListProperties();
   const { data: users } = useListUsers();
+  const linkedAgent = (users ?? []).find(
+    (user) =>
+      user.id === currentUser?.linkedAgentId &&
+      (user.role === 'agent' || user.role === 'senior_agent') &&
+      user.status === 'active' &&
+      user.branchId === currentUser?.branchId,
+  );
+  const myAgentId = currentUser?.role === 'admin' || currentUser?.role === 'principal'
+    ? linkedAgent?.id
+    : currentUser?.id;
 
   const properties = React.useMemo(() => {
     if (!allProperties) return [];
     const published = allProperties.filter((property) => PUBLIC_STATUSES.includes(property.status));
     const scoped = mode === 'my'
-      ? published.filter((property) => property.agentId === currentUser?.id)
+      ? published.filter((property) => property.agentId === myAgentId)
       : mode === 'custom'
         ? published.filter((property) => selectedPropIds.has(property.id))
         : published;
@@ -116,7 +126,7 @@ export default function BrochureCatalog() {
       listingTypes.has(property.listingType) &&
       propertyGroups.has(getPropertyGroup(property.propertyType)),
     );
-  }, [allProperties, currentUser?.id, mode, propParam, listingTypesParam, propertyGroupsParam]);
+  }, [allProperties, myAgentId, mode, propParam, listingTypesParam, propertyGroupsParam]);
 
   const agentMap = React.useMemo(() => {
     const map: Record<string, AgentContact> = {};
@@ -137,8 +147,9 @@ export default function BrochureCatalog() {
   }, [agentMap, mode, properties]);
 
   const agencyName = 'DBT Properties';
+  const myAgentName = myAgentId != null ? agentMap[String(myAgentId)]?.name : undefined;
   const titleLine = mode === 'my'
-    ? `${currentUser?.name ?? 'Agent'}'s Property Brochure`
+    ? `${myAgentName ?? currentUser?.name ?? 'Agent'}'s Property Brochure`
     : mode === 'custom' && customAgentNames.length > 0
       ? `${customAgentNames.join(', ')} — Property Brochure`
       : `${agencyName} Brochure`;

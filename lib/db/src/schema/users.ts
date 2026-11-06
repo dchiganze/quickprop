@@ -25,6 +25,7 @@ export const usersTable = pgTable("users", {
   phone: text("phone"),
   role: text("role").notNull().default("agent"),
   branchId: integer("branch_id").references(() => branchesTable.id),
+  linkedAgentId: integer("linked_agent_id"),
   status: text("status").notNull().default("active"),
   passwordSetupRequired: boolean("password_setup_required").notNull().default(false),
   avatarUrl: text("avatar_url"),

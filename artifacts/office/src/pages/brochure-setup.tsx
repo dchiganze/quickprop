@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { useLocation } from 'wouter';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   ArrowRight,
   Building2,
@@ -19,6 +20,8 @@ import {
 import {
   getListPropertiesQueryKey,
   getListUsersQueryKey,
+  getGetCurrentUserQueryKey,
+  useUpdateCurrentUserBrochureAgentLink,
   useGetCurrentUser,
   useListProperties,
   useListUsers,
@@ -85,6 +88,10 @@ export default function BrochureSetup() {
   const { data: allPropsData, isLoading: propertiesLoading, isError: propertiesError } = useListProperties(undefined, {
     query: { queryKey: getListPropertiesQueryKey(), enabled: true },
   });
+  const queryClient = useQueryClient();
+  const linkAgentMutation = useUpdateCurrentUserBrochureAgentLink();
+  const [selectedLinkedAgentId, setSelectedLinkedAgentId] = useState('');
+  const [linkMessage, setLinkMessage] = useState('');
 
   const publicProperties = useMemo(
     () => (allPropsData ?? []).filter((property) => PUBLIC_STATUSES.includes(property.status)),
@@ -98,6 +105,36 @@ export default function BrochureSetup() {
     ),
     [publicProperties, users],
   );
+  const linkableAgents = useMemo(
+    () => (users ?? []).filter((user) =>
+      (user.role === 'agent' || user.role === 'senior_agent') &&
+      user.status === 'active' &&
+      currentUser?.branchId != null &&
+      user.branchId === currentUser.branchId,
+    ),
+    [currentUser?.branchId, users],
+  );
+  const matchingAgentProfiles = useMemo(
+    () => linkableAgents.filter((user) =>
+      user.name.trim().toLocaleLowerCase() === currentUser?.name.trim().toLocaleLowerCase(),
+    ),
+    [currentUser?.name, linkableAgents],
+  );
+  React.useEffect(() => {
+    if (currentUser?.linkedAgentId != null) {
+      setSelectedLinkedAgentId(String(currentUser.linkedAgentId));
+    } else if (matchingAgentProfiles.length === 1) {
+      setSelectedLinkedAgentId(String(matchingAgentProfiles[0].id));
+    } else {
+      setSelectedLinkedAgentId('');
+    }
+    setLinkMessage('');
+  }, [currentUser?.id, currentUser?.linkedAgentId, matchingAgentProfiles]);
+
+  const linkedAgentIsEligible = linkableAgents.some((agent) => agent.id === currentUser?.linkedAgentId);
+  const myListingAgentId = currentUser?.role === 'admin' || currentUser?.role === 'principal'
+    ? linkedAgentIsEligible ? currentUser.linkedAgentId : undefined
+    : currentUser?.id;
   const propsByAgent = useMemo(() => {
     const map = new Map<number, typeof publicProperties>();
     agents.forEach((agent) => map.set(agent.id, publicProperties.filter((property) => property.agentId === agent.id)));
@@ -105,10 +142,10 @@ export default function BrochureSetup() {
   }, [agents, publicProperties]);
 
   const baseProperties = useMemo(() => {
-    if (mode === 'my') return publicProperties.filter((property) => property.agentId === currentUser?.id);
+    if (mode === 'my') return publicProperties.filter((property) => property.agentId === myListingAgentId);
     if (mode === 'custom') return publicProperties.filter((property) => selectedPropIds.has(property.id));
     return publicProperties;
-  }, [currentUser?.id, mode, publicProperties, selectedPropIds]);
+  }, [mode, myListingAgentId, publicProperties, selectedPropIds]);
 
   const filteredProperties = useMemo(
     () => baseProperties.filter((property) =>
@@ -170,6 +207,24 @@ export default function BrochureSetup() {
     });
     if (mode === 'custom') params.set('props', [...selectedPropIds].join(','));
     setLocation(`/brochure-catalog?${params.toString()}`);
+  };
+  const handleSaveAgentLink = () => {
+    if (!currentUser || (currentUser.role !== 'admin' && currentUser.role !== 'principal')) return;
+    const agentId = selectedLinkedAgentId ? Number(selectedLinkedAgentId) : null;
+    if (agentId !== null && !Number.isInteger(agentId)) return;
+    setLinkMessage('');
+    linkAgentMutation.mutate(
+      { data: { agentId } },
+      {
+        onSuccess: (updatedUser) => {
+          queryClient.setQueryData(getGetCurrentUserQueryKey(), updatedUser);
+          setLinkMessage(agentId === null ? 'Agent profile unlinked.' : 'Agent profile linked. My Listings is updated.');
+        },
+        onError: (error) => {
+          setLinkMessage(error instanceof Error ? error.message : 'Could not update the linked agent profile.');
+        },
+      },
+    );
   };
 
   const isLoading = currentUserLoading || usersLoading || propertiesLoading;
@@ -288,7 +343,7 @@ export default function BrochureSetup() {
                   icon={User}
                   label="My Listings"
                   description="Your published properties"
-                  count={publicProperties.filter((property) => property.agentId === currentUser?.id).length}
+                  count={publicProperties.filter((property) => property.agentId === myListingAgentId).length}
                   onClick={() => setMode('my')}
                 />
                 <ModeCard
@@ -310,6 +365,48 @@ export default function BrochureSetup() {
                   onClick={() => setMode('company')}
                 />
               </div>
+              {mode === 'my' && (currentUser?.role === 'admin' || currentUser?.role === 'principal') && (
+                <div className="mt-4 rounded-xl border border-border bg-card p-4 sm:p-5">
+                  <div className="mb-3">
+                    <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-muted-foreground">My Listings profile</p>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Link this admin account to an active agent in your branch. Their published listings will appear in this brochure.
+                    </p>
+                  </div>
+                  <div className="flex flex-col gap-3 sm:flex-row">
+                    <select
+                      aria-label="Agent profile for My Listings"
+                      className="h-10 min-w-0 flex-1 rounded-md border border-input bg-background px-3 text-sm"
+                      value={selectedLinkedAgentId}
+                      onChange={(event) => {
+                        setSelectedLinkedAgentId(event.target.value);
+                        setLinkMessage('');
+                      }}
+                    >
+                      <option value="">No linked agent profile</option>
+                      {currentUser?.linkedAgentId != null && !linkableAgents.some((user) => user.id === currentUser.linkedAgentId) && (
+                        <option value={String(currentUser.linkedAgentId)}>Current linked profile (unavailable)</option>
+                      )}
+                      {linkableAgents.map((agent) => (
+                        <option key={agent.id} value={String(agent.id)}>{agent.name} · {agent.email}</option>
+                      ))}
+                    </select>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleSaveAgentLink}
+                      disabled={
+                        linkAgentMutation.isPending ||
+                        selectedLinkedAgentId === String(currentUser?.linkedAgentId ?? '') ||
+                        (!selectedLinkedAgentId && currentUser?.linkedAgentId == null)
+                      }
+                    >
+                      {linkAgentMutation.isPending ? 'Saving…' : selectedLinkedAgentId ? 'Save link' : 'Unlink profile'}
+                    </Button>
+                  </div>
+                  {linkMessage && <p role="status" className="mt-2 text-sm text-muted-foreground">{linkMessage}</p>}
+                </div>
+              )}
             </div>}
 
             {activeStep !== 'personnel' && <div className="rounded-xl border border-border bg-card shadow-sm">

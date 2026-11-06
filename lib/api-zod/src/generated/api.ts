@@ -148,6 +148,7 @@ export const LoginResponse = zod.object({
   "phone": zod.string().nullish(),
   "role": zod.string().describe('principal | admin | senior_agent | agent | receptionist | marketing | viewer'),
   "branchId": zod.number().nullish(),
+  "linkedAgentId": zod.number().nullish(),
   "status": zod.string().describe('active | suspended | inactive | deleted (tombstone; excluded from team lists)'),
   "avatarUrl": zod.string().nullish()
 }).and(zod.object({
@@ -190,6 +191,7 @@ export const VerifyPhoneLoginResponse = zod.object({
   "phone": zod.string().nullish(),
   "role": zod.string().describe('principal | admin | senior_agent | agent | receptionist | marketing | viewer'),
   "branchId": zod.number().nullish(),
+  "linkedAgentId": zod.number().nullish(),
   "status": zod.string().describe('active | suspended | inactive | deleted (tombstone; excluded from team lists)'),
   "avatarUrl": zod.string().nullish()
 }).and(zod.object({
@@ -229,6 +231,7 @@ export const VerifyPasskeyAuthenticationResponse = zod.object({
   "phone": zod.string().nullish(),
   "role": zod.string().describe('principal | admin | senior_agent | agent | receptionist | marketing | viewer'),
   "branchId": zod.number().nullish(),
+  "linkedAgentId": zod.number().nullish(),
   "status": zod.string().describe('active | suspended | inactive | deleted (tombstone; excluded from team lists)'),
   "avatarUrl": zod.string().nullish()
 }).and(zod.object({
@@ -342,6 +345,7 @@ export const GetCurrentUserResponse = zod.object({
   "phone": zod.string().nullish(),
   "role": zod.string().describe('principal | admin | senior_agent | agent | receptionist | marketing | viewer'),
   "branchId": zod.number().nullish(),
+  "linkedAgentId": zod.number().nullish(),
   "status": zod.string().describe('active | suspended | inactive | deleted (tombstone; excluded from team lists)'),
   "avatarUrl": zod.string().nullish()
 })
@@ -368,6 +372,30 @@ export const UpdateCurrentUserProfileResponse = zod.object({
   "phone": zod.string().nullish(),
   "role": zod.string().describe('principal | admin | senior_agent | agent | receptionist | marketing | viewer'),
   "branchId": zod.number().nullish(),
+  "linkedAgentId": zod.number().nullish(),
+  "status": zod.string().describe('active | suspended | inactive | deleted (tombstone; excluded from team lists)'),
+  "avatarUrl": zod.string().nullish()
+})
+
+
+/**
+ * @summary Link the signed-in admin profile to an agent profile for brochures
+ */
+
+
+
+export const UpdateCurrentUserBrochureAgentLinkBody = zod.object({
+  "agentId": zod.number().min(1).nullable()
+})
+
+export const UpdateCurrentUserBrochureAgentLinkResponse = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "email": zod.string(),
+  "phone": zod.string().nullish(),
+  "role": zod.string().describe('principal | admin | senior_agent | agent | receptionist | marketing | viewer'),
+  "branchId": zod.number().nullish(),
+  "linkedAgentId": zod.number().nullish(),
   "status": zod.string().describe('active | suspended | inactive | deleted (tombstone; excluded from team lists)'),
   "avatarUrl": zod.string().nullish()
 })
@@ -2452,6 +2480,7 @@ export const ListUsersResponseItem = zod.object({
   "phone": zod.string().nullish(),
   "role": zod.string().describe('principal | admin | senior_agent | agent | receptionist | marketing | viewer'),
   "branchId": zod.number().nullish(),
+  "linkedAgentId": zod.number().nullish(),
   "status": zod.string().describe('active | suspended | inactive | deleted (tombstone; excluded from team lists)'),
   "avatarUrl": zod.string().nullish()
 })
@@ -2474,6 +2503,7 @@ export const CreateUserResponse = zod.object({
   "phone": zod.string().nullish(),
   "role": zod.string().describe('principal | admin | senior_agent | agent | receptionist | marketing | viewer'),
   "branchId": zod.number().nullish(),
+  "linkedAgentId": zod.number().nullish(),
   "status": zod.string().describe('active | suspended | inactive | deleted (tombstone; excluded from team lists)'),
   "avatarUrl": zod.string().nullish()
 })
@@ -2499,6 +2529,7 @@ export const UpdateUserResponse = zod.object({
   "phone": zod.string().nullish(),
   "role": zod.string().describe('principal | admin | senior_agent | agent | receptionist | marketing | viewer'),
   "branchId": zod.number().nullish(),
+  "linkedAgentId": zod.number().nullish(),
   "status": zod.string().describe('active | suspended | inactive | deleted (tombstone; excluded from team lists)'),
   "avatarUrl": zod.string().nullish()
 })

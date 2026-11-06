@@ -72,6 +72,7 @@ import type {
   AuditEntry,
   Branch,
   BranchInput,
+  BrochureAgentLinkUpdate,
   BrochureResult,
   BulkImportActionInput,
   BulkListingHousekeepingInput,
@@ -1714,6 +1715,77 @@ export const useUpdateCurrentUserProfile = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getUpdateCurrentUserProfileMutationOptions(options));
+    }
+
+export const getUpdateCurrentUserBrochureAgentLinkUrl = () => {
+
+
+
+
+  return `/api/auth/brochure-agent-link`
+}
+
+/**
+ * @summary Link the signed-in admin profile to an agent profile for brochures
+ */
+export const updateCurrentUserBrochureAgentLink = async (brochureAgentLinkUpdate: BrochureAgentLinkUpdate, options?: RequestInit): Promise<User> => {
+
+  return customFetch<User>(getUpdateCurrentUserBrochureAgentLinkUrl(),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(brochureAgentLinkUpdate)
+  }
+);}
+
+
+
+
+
+export const getUpdateCurrentUserBrochureAgentLinkMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateCurrentUserBrochureAgentLink>>, TError,{data: BodyType<BrochureAgentLinkUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateCurrentUserBrochureAgentLink>>, TError,{data: BodyType<BrochureAgentLinkUpdate>}, TContext> => {
+
+const mutationKey = ['updateCurrentUserBrochureAgentLink'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateCurrentUserBrochureAgentLink>>, {data: BodyType<BrochureAgentLinkUpdate>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  updateCurrentUserBrochureAgentLink(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateCurrentUserBrochureAgentLinkMutationResult = NonNullable<Awaited<ReturnType<typeof updateCurrentUserBrochureAgentLink>>>
+    export type UpdateCurrentUserBrochureAgentLinkMutationBody = BodyType<BrochureAgentLinkUpdate>
+    export type UpdateCurrentUserBrochureAgentLinkMutationError = ErrorType<void>
+
+    /**
+ * @summary Link the signed-in admin profile to an agent profile for brochures
+ */
+export const useUpdateCurrentUserBrochureAgentLink = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateCurrentUserBrochureAgentLink>>, TError,{data: BodyType<BrochureAgentLinkUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateCurrentUserBrochureAgentLink>>,
+        TError,
+        {data: BodyType<BrochureAgentLinkUpdate>},
+        TContext
+      > => {
+      return useMutation(getUpdateCurrentUserBrochureAgentLinkMutationOptions(options));
     }
 
 export const getDeleteCurrentUserAccountUrl = () => {
