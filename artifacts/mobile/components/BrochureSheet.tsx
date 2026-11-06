@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View, Text, Modal, TouchableOpacity, StyleSheet, ActivityIndicator,
   Pressable, Alert, Share,
@@ -16,7 +16,13 @@ import { Property } from '@/types';
 import { singlePropertyBrochureHtml, catalogueBrochureHtml } from '@/utils/brochureHtml';
 import { buildPropertyShareMessage } from '@/utils/shareContent';
 import { openWhatsAppMessage } from '@/utils/whatsapp';
-import { useGetAdminAgencySettings } from '@workspace/api-client-react';
+import {
+  getGetAgencyPropertiesQueryKey,
+  useGetAdminAgencySettings,
+  useGetAgencyProperties,
+  useGetStoredMediaUrl,
+} from '@workspace/api-client-react';
+import { getStoredMediaObjectPath } from '@/utils/listingPhoto';
 
 type CatalogMode = 'my' | 'company';
 
@@ -32,6 +38,37 @@ export function PropertyBrochureSheet({ visible, onClose, property }: PropertyBr
   const colors = useColors();
   const { user } = useAuth();
   const { data: agencySettings } = useGetAdminAgencySettings();
+  const agencyQuery = useGetAgencyProperties({
+    query: { enabled: visible && Boolean(user?.id), queryKey: getGetAgencyPropertiesQueryKey() },
+  });
+  const agencyLogoUrl = agencyQuery.data?.agencyLogoUrl ?? null;
+  const agencyLogoObjectPath = useMemo(
+    () => agencyLogoUrl ? getStoredMediaObjectPath(agencyLogoUrl) : undefined,
+    [agencyLogoUrl],
+  );
+  const agencyLogoMedia = useGetStoredMediaUrl(
+    { objectPath: agencyLogoObjectPath ?? '' },
+    {
+      query: {
+        queryKey: ['brochure-agency-logo', user?.id, agencyLogoObjectPath],
+        enabled: visible && Boolean(agencyLogoObjectPath),
+        staleTime: 10 * 60 * 1000,
+        retry: 1,
+      },
+    },
+  );
+  const agencyName = agencyQuery.data?.agencyName?.trim()
+    || (user?.agency && user.agency !== 'QuickProp' ? user.agency : 'Agency');
+  const agencyBranding = {
+    agencyName,
+    logoUrl: agencyLogoObjectPath ? agencyLogoMedia.data?.url : agencyLogoUrl,
+    tagline: agencySettings?.tagline?.trim()
+      || (agencyName === 'DBT Properties' ? 'Property is what we know best!' : ''),
+    primaryColor: agencySettings?.primaryColor,
+    logoColors: agencySettings?.logoColors,
+  };
+  const brandingLoading = agencyQuery.isLoading
+    || Boolean(agencyLogoObjectPath && agencyLogoMedia.isLoading);
   const [loading, setLoading] = useState(false);
 
   const handleShareAsText = () => {
@@ -56,8 +93,14 @@ export function PropertyBrochureSheet({ visible, onClose, property }: PropertyBr
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
     setLoading(true);
     try {
+      if (!agencyQuery.data?.agencyName) {
+        throw new Error('Could not load your agency branding. Check your connection and try again.');
+      }
+      if (agencyLogoObjectPath && !agencyLogoMedia.data?.url) {
+        throw new Error('Could not load the agency logo. Please retry the brochure.');
+      }
       const Print: PrintModule = await import('expo-print');
-      const html = singlePropertyBrochureHtml(property, user, agencySettings);
+      const html = singlePropertyBrochureHtml(property, user, agencyBranding);
       await Print.printAsync({ html });
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : 'Could not generate brochure. Please try again.';
@@ -74,9 +117,15 @@ export function PropertyBrochureSheet({ visible, onClose, property }: PropertyBr
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
     setLoading(true);
     try {
+      if (!agencyQuery.data?.agencyName) {
+        throw new Error('Could not load your agency branding. Check your connection and try again.');
+      }
+      if (agencyLogoObjectPath && !agencyLogoMedia.data?.url) {
+        throw new Error('Could not load the agency logo. Please retry the brochure.');
+      }
       const Print: PrintModule = await import('expo-print');
       const Sharing: SharingModule = await import('expo-sharing');
-      const html = singlePropertyBrochureHtml(property, user, agencySettings);
+      const html = singlePropertyBrochureHtml(property, user, agencyBranding);
       const { uri } = await Print.printToFileAsync({ html });
       if (!(await Sharing.isAvailableAsync())) {
         throw new Error('PDF sharing is not available on this device.');
@@ -125,7 +174,7 @@ export function PropertyBrochureSheet({ visible, onClose, property }: PropertyBr
             description="Opens print dialog — save as PDF or send to printer"
             onPress={handlePrint}
             primary
-            loading={loading}
+            loading={loading || brandingLoading}
             colors={colors}
           />
           <ActionCard
@@ -133,15 +182,17 @@ export function PropertyBrochureSheet({ visible, onClose, property }: PropertyBr
             label="Share PDF File"
             description="Generates a PDF file and opens the share sheet"
             onPress={handleShare}
-            loading={loading}
+            loading={loading || brandingLoading}
             colors={colors}
           />
         </View>
 
-        {loading && (
+        {(loading || brandingLoading) && (
           <View style={styles.loadingRow}>
             <ActivityIndicator size="small" color={colors.primary} />
-            <Text style={[styles.loadingText, { color: colors.mutedForeground }]}>Generating brochure…</Text>
+            <Text style={[styles.loadingText, { color: colors.mutedForeground }]}>
+              {loading ? 'Generating brochure…' : 'Loading agency branding…'}
+            </Text>
           </View>
         )}
       </View>
@@ -161,6 +212,37 @@ export function CatalogueBrochureSheet({ visible, onClose }: CatalogueBrochureSh
   const { user } = useAuth();
   const { properties } = useData();
   const { data: agencySettings } = useGetAdminAgencySettings();
+  const agencyQuery = useGetAgencyProperties({
+    query: { enabled: visible && Boolean(user?.id), queryKey: getGetAgencyPropertiesQueryKey() },
+  });
+  const agencyLogoUrl = agencyQuery.data?.agencyLogoUrl ?? null;
+  const agencyLogoObjectPath = useMemo(
+    () => agencyLogoUrl ? getStoredMediaObjectPath(agencyLogoUrl) : undefined,
+    [agencyLogoUrl],
+  );
+  const agencyLogoMedia = useGetStoredMediaUrl(
+    { objectPath: agencyLogoObjectPath ?? '' },
+    {
+      query: {
+        queryKey: ['brochure-agency-logo', user?.id, agencyLogoObjectPath],
+        enabled: visible && Boolean(agencyLogoObjectPath),
+        staleTime: 10 * 60 * 1000,
+        retry: 1,
+      },
+    },
+  );
+  const agencyName = agencyQuery.data?.agencyName?.trim()
+    || (user?.agency && user.agency !== 'QuickProp' ? user.agency : 'Agency');
+  const agencyBranding = {
+    agencyName,
+    logoUrl: agencyLogoObjectPath ? agencyLogoMedia.data?.url : agencyLogoUrl,
+    tagline: agencySettings?.tagline?.trim()
+      || (agencyName === 'DBT Properties' ? 'Property is what we know best!' : ''),
+    primaryColor: agencySettings?.primaryColor,
+    logoColors: agencySettings?.logoColors,
+  };
+  const brandingLoading = agencyQuery.isLoading
+    || Boolean(agencyLogoObjectPath && agencyLogoMedia.isLoading);
   const [mode, setMode] = useState<CatalogMode>('my');
   const [loading, setLoading] = useState(false);
 
@@ -172,8 +254,14 @@ export function CatalogueBrochureSheet({ visible, onClose }: CatalogueBrochureSh
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
     setLoading(true);
     try {
+      if (!agencyQuery.data?.agencyName) {
+        throw new Error('Could not load your agency branding. Check your connection and try again.');
+      }
+      if (agencyLogoObjectPath && !agencyLogoMedia.data?.url) {
+        throw new Error('Could not load the agency logo. Please retry the brochure.');
+      }
       const Print: PrintModule = await import('expo-print');
-      const html = catalogueBrochureHtml(activeProps, user, mode, [], agencySettings);
+      const html = catalogueBrochureHtml(activeProps, user, mode, [], agencyBranding);
       if (action === 'print') {
         await Print.printAsync({ html });
       } else {
@@ -243,7 +331,7 @@ export function CatalogueBrochureSheet({ visible, onClose }: CatalogueBrochureSh
             description="Opens print dialog — save as PDF or send to printer"
             onPress={() => generate('print')}
             primary
-            loading={loading}
+            loading={loading || brandingLoading}
             colors={colors}
           />
           <ActionCard
@@ -251,15 +339,17 @@ export function CatalogueBrochureSheet({ visible, onClose }: CatalogueBrochureSh
             label="Share PDF File"
             description="Generates a PDF and opens the share sheet"
             onPress={() => generate('share')}
-            loading={loading}
+            loading={loading || brandingLoading}
             colors={colors}
           />
         </View>
 
-        {loading && (
+        {(loading || brandingLoading) && (
           <View style={styles.loadingRow}>
             <ActivityIndicator size="small" color={colors.primary} />
-            <Text style={[styles.loadingText, { color: colors.mutedForeground }]}>Generating brochure…</Text>
+            <Text style={[styles.loadingText, { color: colors.mutedForeground }]}>
+              {loading ? 'Generating brochure…' : 'Loading agency branding…'}
+            </Text>
           </View>
         )}
       </View>

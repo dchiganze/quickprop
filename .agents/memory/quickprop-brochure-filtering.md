@@ -27,6 +27,12 @@ Every property entry in a generated brochure should identify its handling agent 
 
 **How to apply:** Resolve the property's `agentId` against the user directory in Office and Mobile, and render the contact block on each property entry.
 
+Apply approved brochure branding and layout changes to every renderer used by the product, including the Office print view and the separate Mobile PDF HTML.
+
+**Why:** Updating only one renderer leaves brochures generated from the other app using the old layout, even though both are called brochures.
+
+**How to apply:** When changing a brochure specification, search for all print/PDF HTML generators and keep agency identity, property-page layout, photos, and footer consistent across them.
+
 The brochure cover uses the agency's optional tagline in the introductory text area; when no tagline is configured, that area is omitted rather than replaced with default copy.
 
 **Why:** Agency branding should control the cover message without showing generic platform copy when the field is intentionally blank.

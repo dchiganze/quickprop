@@ -1,8 +1,13 @@
-import { Property, User } from '@/types';
-import { catalogueShareLinks, propertyShareLinks } from '@/utils/shareLinks';
+import type { Property, User } from '@/types';
 import { resolveAgencyBrandColors } from '@/utils/propertyFlyer';
 
-type AgencyBranding = { primaryColor?: string | null; logoColors?: string[] | null };
+type AgencyBranding = {
+  agencyName?: string | null;
+  logoUrl?: string | null;
+  tagline?: string | null;
+  primaryColor?: string | null;
+  logoColors?: string[] | null;
+};
 
 export type BrochureAgent = {
   id: string | number;
@@ -11,376 +16,288 @@ export type BrochureAgent = {
   phone?: string | null;
 };
 
-// ─── Helpers ────────────────────────────────────────────────────────────────
+const ICONS = {
+  bedroom: '<path d="M3 20v-8h18v8M3 16h18M5 12V7a2 2 0 0 1 2-2h4v7M11 8h7a3 3 0 0 1 3 3v1"/>',
+  bathroom: '<path d="M9 6 7.5 4.5a2.1 2.1 0 0 0-3 3L6 9M3 12h18v2a7 7 0 0 1-7 7h-4a7 7 0 0 1-7-7v-2ZM7 21v-1M17 21v-1"/>',
+  parking: '<path d="M5 17h14l-1.5-6h-11L5 17ZM4 17v2h2v-2m12 0v2h2v-2M7 11l1-4h8l1 4M7 14h.01M17 14h.01"/>',
+  land: '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/>',
+  map: '<path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/>',
+  home: '<path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-6v-7h-4v7H4a1 1 0 0 1-1-1V10Z"/>',
+};
 
-function fmtPrice(p: Property): string {
-  const val =
-    p.price >= 1_000_000
-      ? `${p.currency} ${(p.price / 1_000_000).toFixed(2)}M`
-      : `${p.currency} ${p.price.toLocaleString()}`;
-  return isRental(p) ? `${val}/mo` : val;
+function escapeHtml(value: unknown): string {
+  return String(value ?? '').replace(/[&<>"']/g, (character) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;',
+  })[character] ?? character);
 }
 
-function isRental(p: Property): boolean {
-  return p.listingType === 'rent' || p.type === 'rent';
+function isRental(property: Property): boolean {
+  return property.listingType === 'rent' || property.type === 'rent';
 }
 
-function fmtDate(): string {
-  return new Date().toLocaleDateString('en-ZW', { day: 'numeric', month: 'long', year: 'numeric' });
+function formatPrice(property: Property): string {
+  const amount = property.price >= 1_000_000
+    ? `${(property.price / 1_000_000).toFixed(2)}M`
+    : property.price.toLocaleString();
+  return `${escapeHtml(property.currency)} ${amount}${isRental(property) ? '/month' : ''}`;
 }
 
-function statusLabel(p: Property, accent: string): { text: string; color: string } {
-  if (p.status === 'sold') return { text: 'Sold', color: '#dc2626' };
-  if (p.status === 'rented') return { text: 'Rented', color: '#7c3aed' };
-  if (isRental(p)) return { text: 'To Rent', color: accent };
-  return { text: 'For Sale', color: accent };
+function formatPropertyType(property: Property): string {
+  return escapeHtml((property.propertyType ?? property.type).replace(/_/g, ' '));
 }
 
-const LOGO_SVG = `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="22" height="22" stroke="white" stroke-width="2"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/><path d="M9 21V12h6v9"/></svg>`;
+function getPropertyPhotos(property: Property): string[] {
+  return [...new Set((property.photos ?? [])
+    .filter((photo) => typeof photo === 'string' && photo.trim().length > 0)
+    .map((photo) => photo.trim()))].slice(0, 4);
+}
 
-const BASE_STYLES = `
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif; background: #ffffff; color: #111827; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  @media print {
-    body { background: white; }
-    @page { size: A4; margin: 0; }
-  }
-`;
+function icon(name: keyof typeof ICONS): string {
+  return `<svg viewBox="0 0 24 24" aria-hidden="true">${ICONS[name]}</svg>`;
+}
 
-// ─── Single Property Brochure ────────────────────────────────────────────────
+function photoSlot(uri: string | undefined, label: string, className: string): string {
+  return `<div class="${className}">
+    ${uri
+      ? `<img src="${escapeHtml(uri)}" alt="${escapeHtml(label)}"/>`
+      : `<div class="photo-placeholder">${icon('home')}<span>Photo not available</span></div>`}
+  </div>`;
+}
 
-export function singlePropertyBrochureHtml(property: Property, agent: User | null, agency?: AgencyBranding | null): string {
-  const { primaryColor: accent } = resolveAgencyBrandColors(agency);
-  const st = statusLabel(property, accent);
-  const price = fmtPrice(property);
-  const coverImg = property.photos?.[0];
-  const propertyLinks = propertyShareLinks(property);
+function propertyStatus(property: Property, accent: string): { label: string; color: string } {
+  if (property.status === 'sold') return { label: 'Sold', color: '#B64444' };
+  if (property.status === 'rented') return { label: 'Rented', color: '#7C3AED' };
+  if (property.status === 'pending') return { label: 'Under Offer', color: '#B7791F' };
+  return { label: isRental(property) ? 'To Rent' : 'For Sale', color: accent };
+}
 
-  const specsHtml = [
-    property.bedrooms != null ? `<div class="spec"><span class="spec-val">${property.bedrooms}</span><span class="spec-lbl">Bedrooms</span></div>` : '',
-    property.bathrooms != null ? `<div class="spec"><span class="spec-val">${property.bathrooms}</span><span class="spec-lbl">Bathrooms</span></div>` : '',
-    property.garages != null ? `<div class="spec"><span class="spec-val">${property.garages}</span><span class="spec-lbl">Garages</span></div>` : '',
-    property.landSize != null ? `<div class="spec"><span class="spec-val">${property.landSize} m²</span><span class="spec-lbl">Stand Size</span></div>` : '',
-    property.floorArea != null ? `<div class="spec"><span class="spec-val">${property.floorArea} m²</span><span class="spec-lbl">Floor Area</span></div>` : '',
+function propertyPage(
+  property: Property,
+  agents: BrochureAgent[],
+  fallbackAgent: BrochureAgent | null,
+  agencyName: string,
+  agencyLogo: string,
+  tagline: string,
+  accent: string,
+  pageIndex: number,
+  pageCount: number,
+): string {
+  const photos = getPropertyPhotos(property);
+  const title = property.title?.trim() || [property.address, property.suburb].filter(Boolean).join(', ') || 'Property listing';
+  const address = property.showAddress === false ? '' : property.address?.trim() ?? '';
+  const location = [address, property.suburb, property.city].filter(Boolean).map(escapeHtml).join(', ');
+  const status = propertyStatus(property, accent);
+  const agent = agents.find((candidate) => String(candidate.id) === String(property.agentId))
+    ?? (fallbackAgent && String(fallbackAgent.id) === String(property.agentId) ? fallbackAgent : null);
+
+  const specs = [
+    property.bedrooms != null ? `<div class="spec">${icon('bedroom')}<strong>${property.bedrooms}</strong><span>Bedrooms</span></div>` : '',
+    property.bathrooms != null ? `<div class="spec">${icon('bathroom')}<strong>${property.bathrooms}</strong><span>Bathrooms</span></div>` : '',
+    property.garages != null ? `<div class="spec">${icon('parking')}<strong>${property.garages}</strong><span>Garages</span></div>` : '',
+    property.landSize != null ? `<div class="spec">${icon('land')}<strong>${Number(property.landSize).toLocaleString()} m²</strong><span>Land area</span></div>` : '',
+    property.floorArea != null ? `<div class="spec">${icon('home')}<strong>${Number(property.floorArea).toLocaleString()} m²</strong><span>Floor area</span></div>` : '',
   ].filter(Boolean).join('');
 
-  const featuresHtml = property.features.length > 0
-    ? `<div class="section">
-        <div class="section-title">Features &amp; Amenities</div>
-        <div class="features-grid">
-          ${property.features.map(f => `<div class="feature-item"><span class="feature-dot"></span>${f}</div>`).join('')}
+  const features = property.features.length
+    ? `<section class="features">
+        <h2>Property features</h2>
+        <div class="feature-grid">${property.features.map((feature) =>
+          `<div class="feature"><span></span>${escapeHtml(feature)}</div>`).join('')}
         </div>
-      </div>`
+      </section>`
     : '';
+
+  const contact = agent
+    ? `<section class="contact">
+        <h2>Handling agent</h2>
+        <strong>${escapeHtml(agent.name)}</strong>
+        ${agent.email ? `<span>${escapeHtml(agent.email)}</span>` : ''}
+        ${agent.phone ? `<span>${escapeHtml(agent.phone)}</span>` : ''}
+      </section>`
+    : '';
+
+  const brand = agencyLogo
+    ? `<img class="agency-logo" src="${escapeHtml(agencyLogo)}" alt="${escapeHtml(agencyName)} logo"/>`
+    : '';
+
+  return `<section class="brochure-page${pageIndex === pageCount ? ' last-page' : ''}">
+    <header class="page-header">
+      <div class="brand">
+        ${brand}
+        <div class="brand-copy">
+          <strong>${escapeHtml(agencyName)}</strong>
+          ${tagline ? `<span>${escapeHtml(tagline)}</span>` : ''}
+        </div>
+      </div>
+      <div class="page-meta">
+        <span>Property listing</span>
+        <strong>Ref ${escapeHtml(property.referenceNumber)}</strong>
+      </div>
+    </header>
+
+    <div class="gallery">
+      ${photoSlot(photos[0], `${title} main photo`, 'main-photo')}
+      <div class="side-photos">
+        ${[1, 2, 3].map((index) => photoSlot(photos[index], `${title} supporting photo ${index}`, 'side-photo')).join('')}
+      </div>
+    </div>
+
+    <div class="property-heading">
+      <div class="heading-copy">
+        <h1>${escapeHtml(title)}</h1>
+        <div class="location">${icon('map')}<span>${location || escapeHtml(property.suburb)}</span></div>
+      </div>
+      <div class="price-status">
+        <strong>${formatPrice(property)}</strong>
+        <span style="color:${status.color}">${status.label}</span>
+      </div>
+    </div>
+
+    ${specs ? `<div class="specs">${specs}<div class="spec property-type">${icon('home')}<strong>${formatPropertyType(property)}</strong><span>Property type</span></div></div>` : `<div class="specs"><div class="spec property-type">${icon('home')}<strong>${formatPropertyType(property)}</strong><span>Property type</span></div></div>`}
+
+    <div class="details">
+      <div class="description">
+        <h2>Property details</h2>
+        <p>${escapeHtml(property.description || 'Contact the handling agent for further information.')}</p>
+        ${features}
+      </div>
+      ${contact}
+    </div>
+
+    <footer class="page-footer">
+      <span>Powered by quickprop.co.zw</span>
+      <span>${escapeHtml(agencyName)} · ${escapeHtml(property.referenceNumber)} · ${pageIndex} / ${pageCount}</span>
+    </footer>
+  </section>`;
+}
+
+function renderBrochure(
+  properties: Property[],
+  fallbackAgent: BrochureAgent | null,
+  agents: BrochureAgent[],
+  agency?: AgencyBranding | null,
+): string {
+  const colors = resolveAgencyBrandColors(agency);
+  const agencyName = agency?.agencyName?.trim() || 'Agency';
+  const agencyLogo = agency?.logoUrl?.trim() ?? '';
+  const tagline = agency?.tagline?.trim()
+    || (agencyName === 'DBT Properties' ? 'Property is what we know best!' : '');
+  const pages = properties.length
+    ? properties.map((property, index) => propertyPage(
+      property,
+      agents,
+      fallbackAgent,
+      agencyName,
+      agencyLogo,
+      tagline,
+      colors.primaryColor,
+      index + 1,
+      properties.length,
+    )).join('')
+    : `<section class="brochure-page">
+        <header class="page-header">
+          <div class="brand">${agencyLogo ? `<img class="agency-logo" src="${escapeHtml(agencyLogo)}" alt="${escapeHtml(agencyName)} logo"/>` : ''}<div class="brand-copy"><strong>${escapeHtml(agencyName)}</strong>${tagline ? `<span>${escapeHtml(tagline)}</span>` : ''}</div></div>
+          <div class="page-meta"><span>Property brochure</span></div>
+        </header>
+        <div class="empty">No published listings are available for this brochure.</div>
+        <footer class="page-footer"><span>Powered by quickprop.co.zw</span><span>${escapeHtml(agencyName)}</span></footer>
+      </section>`;
 
   return `<!DOCTYPE html>
 <html>
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1"/>
-<style>
-${BASE_STYLES}
-.page { background: white; max-width: 210mm; min-height: 297mm; margin: 0 auto; box-shadow: 0 4px 24px rgba(0,0,0,.12); }
-.header { display: flex; align-items: center; justify-content: space-between; padding: 20px 36px; border-bottom: 4px solid ${accent}; }
-.brand { display: flex; align-items: center; gap: 12px; }
-.brand-icon { width: 40px; height: 40px; border-radius: 10px; background: ${accent}; display: flex; align-items: center; justify-content: center; }
-.brand-name { font-size: 18px; font-weight: 700; color: #111827; }
-.brand-sub { font-size: 11px; color: #6b7280; }
-.header-right { text-align: right; }
-.header-label { font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px; color: #9ca3af; font-weight: 600; }
-.header-ref { font-size: 11px; color: #6b7280; margin-top: 2px; }
-
-.hero { position: relative; height: 220px; background: #e5e7eb; overflow: hidden; }
-.hero img { width: 100%; height: 100%; object-fit: cover; }
-.hero-placeholder { width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #9ca3af; font-size: 13px; gap: 8px; }
-.hero-overlay { position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(to top, rgba(0,0,0,.75), transparent); padding: 32px 36px 20px; }
-.hero-price { font-size: 28px; font-weight: 700; color: white; letter-spacing: -0.5px; }
-.hero-address { font-size: 13px; color: rgba(255,255,255,.8); margin-top: 4px; }
-.hero-badge { position: absolute; top: 16px; right: 16px; padding: 5px 12px; border-radius: 6px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: white; }
-
-.prop-title { padding: 20px 36px 16px; border-bottom: 1px solid #f3f4f6; }
-.prop-title h1 { font-size: 22px; font-weight: 700; color: #111827; }
-
-.specs-bar { display: flex; gap: 28px; flex-wrap: wrap; padding: 16px 36px; background: #f9fafb; border-bottom: 1px solid #f3f4f6; }
-.spec { display: flex; flex-direction: column; gap: 2px; }
-.spec-val { font-size: 17px; font-weight: 700; color: #111827; }
-.spec-lbl { font-size: 10px; text-transform: uppercase; letter-spacing: 0.8px; color: #6b7280; font-weight: 600; }
-
-.body { display: flex; gap: 28px; padding: 24px 36px; }
-.body-main { flex: 1; min-width: 0; }
-.body-side { width: 180px; flex-shrink: 0; display: flex; flex-direction: column; gap: 12px; }
-
-.section { margin-bottom: 20px; }
-.section-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: ${accent}; margin-bottom: 10px; }
-.description { font-size: 12px; color: #374151; line-height: 1.7; white-space: pre-wrap; }
-
-.features-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 20px; }
-.feature-item { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #374151; }
-.feature-dot { width: 6px; height: 6px; border-radius: 50%; background: ${accent}; flex-shrink: 0; }
-
-.card { border: 1px solid #e5e7eb; border-radius: 10px; overflow: hidden; }
-.card-head { padding: 10px 14px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
-.card-head-green { background: ${accent}; color: white; }
-.card-head-gray { background: #f9fafb; color: #374151; border-bottom: 1px solid #e5e7eb; }
-.card-body { padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
-.agent-name { font-size: 13px; font-weight: 600; color: #111827; }
-.contact-row { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #4b5563; }
-.info-row { display: flex; justify-content: space-between; font-size: 11px; }
-.info-label { color: #6b7280; }
-.info-val { font-weight: 600; color: #111827; text-align: right; }
-
-.cta-card { border: 1px solid ${accent}55; border-radius: 10px; background: ${accent}12; padding: 14px; text-align: center; }
-.cta-label { font-size: 11px; font-weight: 600; color: ${accent}; margin-bottom: 4px; }
-.cta-url { font-size: 10px; color: ${accent}; word-break: break-all; }
-
-.footer { margin-top: auto; padding: 14px 36px; background: #111827; display: flex; align-items: center; justify-content: space-between; }
-.footer-left { font-size: 12px; font-weight: 600; color: white; }
-.footer-right { font-size: 10px; color: #6b7280; }
-</style>
-</head>
-<body>
-<div class="page">
-  <!-- Header -->
-  <div class="header">
-    <div class="brand">
-      <div class="brand-icon">${LOGO_SVG}</div>
-      <div>
-        <div class="brand-name">QuickProp</div>
-        <div class="brand-sub">Zimbabwe's Property Marketplace</div>
-      </div>
-    </div>
-    <div class="header-right">
-      <div class="header-label">Property Brochure</div>
-      <div class="header-ref">Ref: ${property.referenceNumber}</div>
-    </div>
-  </div>
-
-  <!-- Hero -->
-  <div class="hero">
-    ${coverImg
-      ? `<img src="${coverImg}" alt="${property.address}" />`
-      : `<div class="hero-placeholder"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" stroke-width="1.5"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/><path d="M9 21V12h6v9"/></svg><span>No photo available</span></div>`
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <style>
+    * { box-sizing: border-box; }
+    @page { size: A4; margin: 0; }
+    html, body { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif; color: #102a2a; background: #eef2f1; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .brochure-page { width: 210mm; height: 297mm; margin: 0 auto 16px; padding: 11mm 13mm 9mm; display: flex; flex-direction: column; overflow: hidden; background: #fff; page-break-after: always; break-after: page; }
+    .brochure-page.last-page { page-break-after: auto; break-after: auto; }
+    .page-header { min-height: 25mm; display: flex; align-items: center; justify-content: space-between; gap: 10mm; padding-bottom: 5mm; border-bottom: 2px solid ${colors.primaryColor}; }
+    .brand { display: flex; min-width: 0; align-items: center; gap: 4mm; }
+    .agency-logo { display: block; width: 36mm; height: 22mm; object-fit: contain; object-position: left center; }
+    .brand-copy { display: flex; min-width: 0; flex-direction: column; gap: 2mm; }
+    .brand-copy strong { color: #102a2a; font-size: 18px; line-height: 1.08; }
+    .brand-copy span { color: #687b77; font-size: 9px; line-height: 1.25; }
+    .page-meta { display: flex; flex-shrink: 0; flex-direction: column; gap: 2mm; text-align: right; color: #71827f; font-size: 8px; text-transform: uppercase; letter-spacing: .12em; }
+    .page-meta strong { color: #35504e; font-size: 9px; letter-spacing: .05em; }
+    .gallery { display: grid; grid-template-columns: minmax(0, 1.8fr) minmax(38mm, .82fr); gap: 4mm; height: 88mm; margin-top: 6mm; flex: 0 0 auto; }
+    .main-photo, .side-photo { position: relative; min-width: 0; min-height: 0; overflow: hidden; background: #e7efeb; }
+    .main-photo img, .side-photo img { display: block; width: 100%; height: 100%; object-fit: cover; }
+    .side-photos { display: grid; grid-template-rows: repeat(3, minmax(0, 1fr)); gap: 3mm; min-height: 0; }
+    .photo-placeholder { display: flex; width: 100%; height: 100%; flex-direction: column; align-items: center; justify-content: center; gap: 2mm; color: #879691; background: #f5f8f7; font-size: 8px; }
+    .photo-placeholder svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+    .property-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 10mm; margin-top: 7mm; }
+    .heading-copy { min-width: 0; }
+    .property-heading h1 { margin: 0; color: #102a2a; font-size: 25px; font-weight: 800; line-height: 1.08; letter-spacing: -.04em; }
+    .location { display: flex; align-items: flex-start; gap: 2mm; margin-top: 2.5mm; color: #71827f; font-size: 10px; line-height: 1.35; }
+    .location svg { width: 14px; height: 14px; flex: 0 0 auto; fill: none; stroke: ${colors.primaryColor}; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+    .price-status { flex: 0 0 auto; text-align: right; }
+    .price-status strong { display: block; color: ${colors.primaryColor}; font-size: 19px; font-weight: 800; white-space: nowrap; }
+    .price-status span { display: block; margin-top: 2mm; font-size: 8px; font-weight: 800; text-transform: uppercase; letter-spacing: .1em; }
+    .specs { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 2mm; margin-top: 6mm; padding: 4mm 0; border-top: 1px solid #dce8e4; border-bottom: 1px solid #dce8e4; }
+    .spec { display: flex; min-width: 0; flex-direction: column; align-items: center; gap: 1.3mm; text-align: center; }
+    .spec svg { width: 18px; height: 18px; fill: none; stroke: ${colors.primaryColor}; stroke-width: 1.65; stroke-linecap: round; stroke-linejoin: round; }
+    .spec strong { max-width: 100%; color: #102a2a; font-size: 12px; font-weight: 800; line-height: 1.1; overflow-wrap: anywhere; }
+    .spec span { color: #71827f; font-size: 7px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; }
+    .details { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, .85fr); gap: 7mm; margin-top: 6mm; min-height: 0; }
+    .description h2, .features h2, .contact h2 { margin: 0 0 2.5mm; color: ${colors.primaryColor}; font-size: 9px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+    .description p { margin: 0; color: #35504e; font-size: 9px; line-height: 1.45; white-space: pre-wrap; }
+    .features { margin-top: 4mm; }
+    .feature-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.6mm 3mm; }
+    .feature { display: flex; align-items: flex-start; gap: 1.8mm; color: #35504e; font-size: 8px; line-height: 1.25; }
+    .feature span { width: 1.5mm; height: 1.5mm; margin-top: 1mm; flex: 0 0 auto; border-radius: 50%; background: ${colors.primaryColor}; }
+    .contact { align-self: start; padding: 4mm; border: 1px solid #dce8e4; background: #f7faf9; }
+    .contact strong { display: block; color: #102a2a; font-size: 11px; }
+    .contact span { display: block; margin-top: 1.5mm; color: #526662; font-size: 8px; overflow-wrap: anywhere; }
+    .empty { flex: 1; display: flex; align-items: center; justify-content: center; color: #71827f; font-size: 15px; }
+    .page-footer { display: flex; align-items: center; justify-content: space-between; gap: 8mm; margin-top: auto; padding-top: 3mm; border-top: 1px solid #dce8e4; color: #71827f; font-size: 7px; }
+    .page-footer span:first-child { color: #526662; font-weight: 700; }
+    @media print {
+      html, body { background: #fff; }
+      .brochure-page { margin: 0; box-shadow: none; }
     }
-    <div class="hero-overlay">
-      <div class="hero-price">${price}</div>
-      <div class="hero-address">${property.address}, ${property.suburb}</div>
-    </div>
-    <div class="hero-badge" style="background:${st.color}">${st.text}</div>
-  </div>
-
-  <!-- Title -->
-  <div class="prop-title">
-    <h1>${property.address}, ${property.suburb}</h1>
-  </div>
-
-  <!-- Specs -->
-  ${specsHtml ? `<div class="specs-bar">${specsHtml}</div>` : ''}
-
-  <!-- Body -->
-  <div class="body">
-    <div class="body-main">
-      <div class="section">
-        <div class="section-title">Description</div>
-        <div class="description">${property.description || 'Contact us for full property details.'}</div>
-      </div>
-      ${featuresHtml}
-    </div>
-    <div class="body-side">
-      <!-- Agent card -->
-      <div class="card">
-        <div class="card-head card-head-green">Your Agent</div>
-        <div class="card-body">
-          <div class="agent-name">${agent?.name ?? 'QuickProp Agent'}</div>
-          ${agent?.email ? `<div class="contact-row">${agent.email}</div>` : ''}
-          <div class="contact-row">${agent?.phone ?? '+263 77 000 0000'}</div>
-          ${agent?.agency ? `<div class="contact-row">${agent.agency}</div>` : ''}
-        </div>
-      </div>
-      <!-- Property info card -->
-      <div class="card">
-        <div class="card-head card-head-gray">Property Info</div>
-        <div class="card-body">
-          <div class="info-row"><span class="info-label">Reference</span><span class="info-val">${property.referenceNumber}</span></div>
-          <div class="info-row"><span class="info-label">Type</span><span class="info-val" style="text-transform:capitalize">${property.type}</span></div>
-          <div class="info-row"><span class="info-label">Suburb</span><span class="info-val">${property.suburb}</span></div>
-          ${property.landSize != null ? `<div class="info-row"><span class="info-label">Stand</span><span class="info-val">${property.landSize} m²</span></div>` : ''}
-          ${property.floorArea != null ? `<div class="info-row"><span class="info-label">Floor</span><span class="info-val">${property.floorArea} m²</span></div>` : ''}
-        </div>
-      </div>
-      <div class="cta-card">
-        <div class="cta-label">View online</div>
-        <div class="cta-url">${propertyLinks.webUrl}</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Footer -->
-  <div class="footer">
-    <div class="footer-left">QuickProp — Zimbabwe's Property Marketplace</div>
-    <div class="footer-right">${propertyLinks.webUrl} · Ref: ${property.referenceNumber}</div>
-  </div>
-</div>
-</body>
+    @media screen {
+      body { padding: 14px 0; }
+      .brochure-page { box-shadow: 0 12px 40px rgba(16,42,42,.12); }
+    }
+  </style>
+</head>
+<body>${pages}</body>
 </html>`;
 }
 
-// ─── Catalogue ───────────────────────────────────────────────────────────────
-
-function propertyCardHtml(p: Property, agents: BrochureAgent[], fallbackAgent: BrochureAgent | null, accent: string): string {
-  const st = statusLabel(p, accent);
-  const price = fmtPrice(p);
-  const coverImg = p.photos?.[0];
-  const agent = agents.find(candidate => String(candidate.id) === String(p.agentId)) ??
-    (fallbackAgent && String(fallbackAgent.id) === String(p.agentId) ? fallbackAgent : null);
-
-  const specs = [
-    p.bedrooms != null ? `${p.bedrooms} bed` : '',
-    p.bathrooms != null ? `${p.bathrooms} bath` : '',
-    p.garages != null ? `${p.garages} gar` : '',
-    p.landSize != null ? `${p.landSize} m²` : '',
-  ].filter(Boolean).join(' &nbsp;·&nbsp; ');
-
-  return `<div class="prop-card">
-    <div class="prop-thumb">
-      ${coverImg
-        ? `<img src="${coverImg}" alt="${p.address}" style="width:100%;height:100%;object-fit:cover;position:absolute;inset:0"/>`
-        : `<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#d1d5db"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/></svg></div>`
-      }
-      <div class="prop-badge" style="background:${st.color}">${st.text}</div>
-    </div>
-    <div class="prop-info">
-      <div class="prop-header">
-        <div class="prop-addr">${p.address}, ${p.suburb}</div>
-        <div class="prop-price">${price}</div>
-      </div>
-      ${specs ? `<div class="prop-specs">${specs}</div>` : ''}
-      ${p.description ? `<div class="prop-desc">${p.description.slice(0, 160)}${p.description.length > 160 ? '…' : ''}</div>` : ''}
-      <div class="prop-ref">${p.referenceNumber}</div>
-       ${agent ? `
-         <div class="prop-agent">
-           <span class="prop-agent-label">Handling agent</span>
-           <strong>${agent.name}</strong>
-           ${agent.email ? `<span class="prop-agent-contact">${agent.email}</span>` : ''}
-           ${agent.phone ? `<span class="prop-agent-contact">${agent.phone}</span>` : ''}
-         </div>
-       ` : ''}
-    </div>
-  </div>`;
+export function singlePropertyBrochureHtml(
+  property: Property,
+  agent: User | null,
+  agency?: AgencyBranding | null,
+): string {
+  const agentContact = agent ? [{
+    id: agent.id,
+    name: agent.name,
+    email: agent.email,
+    phone: agent.phone,
+  }] : [];
+  return renderBrochure([property], agentContact[0] ?? null, agentContact, agency);
 }
 
 export function catalogueBrochureHtml(
   properties: Property[],
   agent: User | null,
-  mode: 'my' | 'company' | 'custom',
+  _mode: 'my' | 'company' | 'custom',
   agents: BrochureAgent[] = [],
   agency?: AgencyBranding | null,
 ): string {
-  const { primaryColor: accent, secondaryColor: accentSecondary } = resolveAgencyBrandColors(agency);
-  const titleLine = mode === 'my'
-    ? `${agent?.name ?? 'Agent'}'s Property Brochure`
-    : mode === 'custom'
-      ? 'Custom Property Brochure'
-      : `${agent?.agency ?? 'Company'} Property Brochure`;
-  const catalogueUrl = catalogueShareLinks(mode === 'my' ? agent?.id : undefined).webUrl;
-
-  const forSale = properties.filter(p => !isRental(p));
-  const forRent = properties.filter(isRental);
-
-  const sectionHtml = (title: string, color: string, props: Property[]) =>
-    props.length === 0 ? '' : `
-    <div class="section-header">
-      <div class="section-bar" style="background:${color}"></div>
-      <span class="section-title">${title}</span>
-      <span class="section-count">${props.length} ${props.length === 1 ? 'property' : 'properties'}</span>
-    </div>
-    <div class="props-list">
-       ${props.map(property => propertyCardHtml(property, agents, agent, accent)).join('')}
-    </div>`;
-
-  return `<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1"/>
-<style>
-${BASE_STYLES}
-.page { background: white; max-width: 210mm; margin: 0 auto; padding-bottom: 40px; box-shadow: 0 4px 24px rgba(0,0,0,.12); }
-
-.cover { padding: 32px 36px 28px; border-bottom: 4px solid ${accent}; }
-.cover-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
-.brand { display: flex; align-items: center; gap: 12px; }
-.brand-icon { width: 44px; height: 44px; border-radius: 12px; background: ${accent}; display: flex; align-items: center; justify-content: center; }
-.brand-name { font-size: 20px; font-weight: 700; color: #111827; }
-.brand-sub { font-size: 11px; color: #6b7280; }
-.cover-label { font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px; color: #9ca3af; font-weight: 600; text-align: right; }
-.cover-date { font-size: 11px; color: #6b7280; margin-top: 2px; text-align: right; }
-.cover-title { font-size: 28px; font-weight: 700; color: #111827; line-height: 1.2; }
-.cover-sub { font-size: 13px; color: #6b7280; margin-top: 6px; }
-
-.body { padding: 28px 36px 0; }
-
-.section-header { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; margin-top: 28px; }
-.section-bar { width: 4px; height: 22px; border-radius: 2px; }
-.section-title { font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #111827; }
-.section-count { font-size: 12px; color: #9ca3af; margin-left: 4px; }
-
-.props-list { display: flex; flex-direction: column; gap: 12px; }
-.prop-card { display: flex; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; page-break-inside: avoid; }
-.prop-thumb { width: 148px; flex-shrink: 0; background: #f3f4f6; position: relative; min-height: 110px; }
-.prop-badge { position: absolute; top: 8px; left: 8px; padding: 3px 8px; border-radius: 4px; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: white; }
-.prop-info { flex: 1; padding: 14px 16px; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
-.prop-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
-.prop-addr { font-size: 13px; font-weight: 600; color: #111827; line-height: 1.3; }
-.prop-price { font-size: 15px; font-weight: 700; color: ${accent}; white-space: nowrap; flex-shrink: 0; }
-.prop-specs { font-size: 11px; color: #6b7280; }
-.prop-desc { font-size: 11px; color: #4b5563; line-height: 1.55; }
-.prop-ref { font-size: 10px; color: #9ca3af; font-weight: 600; font-family: monospace; margin-top: 2px; }
-.prop-agent { margin-top: 4px; padding-top: 6px; border-top: 1px solid #f3f4f6; font-size: 10px; color: #4b5563; line-height: 1.45; }
-.prop-agent-label { display: block; margin-bottom: 2px; color: ${accent}; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .7px; }
-.prop-agent-contact { display: inline-block; margin-right: 10px; }
-
-.footer { margin: 28px 36px 0; padding-top: 16px; border-top: 1px solid #e5e7eb; display: flex; justify-content: space-between; font-size: 10px; color: #9ca3af; }
-
-.empty { padding: 40px 36px; text-align: center; color: #9ca3af; font-size: 14px; }
-</style>
-</head>
-<body>
-<div class="page">
-  <!-- Cover -->
-  <div class="cover">
-    <div class="cover-top">
-      <div class="brand">
-        <div class="brand-icon">${LOGO_SVG}</div>
-        <div>
-          <div class="brand-name">QuickProp</div>
-          <div class="brand-sub">Zimbabwe's Property Marketplace</div>
-        </div>
-      </div>
-      <div>
-        <div class="cover-label">Property Brochure</div>
-        <div class="cover-date">${fmtDate()}</div>
-      </div>
-    </div>
-    <div class="cover-title">${titleLine}</div>
-    <div class="cover-sub">
-      ${forSale.length > 0 ? `${forSale.length} for sale` : ''}${forSale.length > 0 && forRent.length > 0 ? ' · ' : ''}${forRent.length > 0 ? `${forRent.length} to rent` : ''}${properties.length === 0 ? 'No published listings' : ''}
-    </div>
-  </div>
-
-  <!-- Property sections -->
-  <div class="body">
-    ${properties.length === 0
-      ? `<div class="empty">No published listings to show in this brochure.</div>`
-      : sectionHtml('For Sale', accent, forSale) + sectionHtml('To Rent', accentSecondary, forRent)
-    }
-  </div>
-
-  <!-- Footer -->
-  <div class="footer">
-     <span>QuickProp · Zimbabwe's Property Marketplace · ${catalogueUrl}</span>
-    <span>Generated ${fmtDate()}</span>
-  </div>
-</div>
-</body>
-</html>`;
+  const fallbackAgent = agent ? {
+    id: agent.id,
+    name: agent.name,
+    email: agent.email,
+    phone: agent.phone,
+  } : null;
+  return renderBrochure(properties, fallbackAgent, agents, agency);
 }

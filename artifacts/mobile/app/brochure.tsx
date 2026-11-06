@@ -17,7 +17,15 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
 import { Property } from '@/types';
 import { catalogueBrochureHtml, BrochureAgent } from '@/utils/brochureHtml';
-import { getListUsersQueryKey, useGetAdminAgencySettings, useListUsers } from '@workspace/api-client-react';
+import {
+  getGetAgencyPropertiesQueryKey,
+  getListUsersQueryKey,
+  useGetAdminAgencySettings,
+  useGetAgencyProperties,
+  useGetStoredMediaUrl,
+  useListUsers,
+} from '@workspace/api-client-react';
+import { getStoredMediaObjectPath } from '@/utils/listingPhoto';
 
 type BrochureMode = 'my' | 'company' | 'custom';
 type ListingFilter = 'sale' | 'rent';
@@ -129,6 +137,37 @@ export default function BrochureSetupScreen() {
     query: { enabled: true, queryKey: getListUsersQueryKey() },
   });
   const { data: agencySettings } = useGetAdminAgencySettings();
+  const agencyQuery = useGetAgencyProperties({
+    query: { enabled: Boolean(user?.id), queryKey: getGetAgencyPropertiesQueryKey() },
+  });
+  const agencyLogoUrl = agencyQuery.data?.agencyLogoUrl ?? null;
+  const agencyLogoObjectPath = useMemo(
+    () => agencyLogoUrl ? getStoredMediaObjectPath(agencyLogoUrl) : undefined,
+    [agencyLogoUrl],
+  );
+  const agencyLogoMedia = useGetStoredMediaUrl(
+    { objectPath: agencyLogoObjectPath ?? '' },
+    {
+      query: {
+        queryKey: ['brochure-agency-logo', user?.id, agencyLogoObjectPath],
+        enabled: Boolean(agencyLogoObjectPath),
+        staleTime: 10 * 60 * 1000,
+        retry: 1,
+      },
+    },
+  );
+  const agencyName = agencyQuery.data?.agencyName?.trim()
+    || (user?.agency && user.agency !== 'QuickProp' ? user.agency : 'Agency');
+  const agencyBranding = {
+    agencyName,
+    logoUrl: agencyLogoObjectPath ? agencyLogoMedia.data?.url : agencyLogoUrl,
+    tagline: agencySettings?.tagline?.trim()
+      || (agencyName === 'DBT Properties' ? 'Property is what we know best!' : ''),
+    primaryColor: agencySettings?.primaryColor,
+    logoColors: agencySettings?.logoColors,
+  };
+  const brandingLoading = agencyQuery.isLoading
+    || Boolean(agencyLogoObjectPath && agencyLogoMedia.isLoading);
   const [mode, setMode] = useState<BrochureMode>('my');
   const [activeStep, setActiveStep] = useState<SetupStep>('personnel');
   const [listingFilters, setListingFilters] = useState<Set<ListingFilter>>(new Set(['sale', 'rent']));
@@ -207,6 +246,12 @@ export default function BrochureSetupScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
     setLoading(true);
     try {
+      if (!agencyQuery.data?.agencyName) {
+        throw new Error('Could not load your agency branding. Check your connection and try again.');
+      }
+      if (agencyLogoObjectPath && !agencyLogoMedia.data?.url) {
+        throw new Error('Could not load the agency logo. Please retry the brochure.');
+      }
       const refreshedDirectory = await refetchDirectoryUsers();
       const availableUsers = refreshedDirectory.data ?? directoryUsers;
       const agents: BrochureAgent[] = availableUsers.map((directoryUser) => ({
@@ -224,7 +269,7 @@ export default function BrochureSetupScreen() {
         });
       }
       const Print: typeof import('expo-print') = await import('expo-print');
-      const html = catalogueBrochureHtml(filteredProperties, user, mode, agents, agencySettings);
+      const html = catalogueBrochureHtml(filteredProperties, user, mode, agents, agencyBranding);
       if (action === 'print') {
         await Print.printAsync({ html });
       } else {
@@ -244,7 +289,7 @@ export default function BrochureSetupScreen() {
     }
   };
 
-  if (isLoading) {
+  if (isLoading || brandingLoading) {
     return (
       <View style={[styles.center, { backgroundColor: colors.background }]}>
         <ActivityIndicator color={colors.primary} />
@@ -380,10 +425,10 @@ export default function BrochureSetupScreen() {
             {filteredProperties.filter((property) => listingType(property) === 'sale').length} for sale · {filteredProperties.filter((property) => listingType(property) === 'rent').length} to rent
           </Text>
           <View style={styles.actions}>
-            <TouchableOpacity style={[styles.generateButton, { backgroundColor: colors.primaryForeground }]} onPress={() => generate('print')} disabled={loading || filteredProperties.length === 0}>
+            <TouchableOpacity style={[styles.generateButton, { backgroundColor: colors.primaryForeground }]} onPress={() => generate('print')} disabled={loading || brandingLoading || filteredProperties.length === 0}>
               {loading ? <ActivityIndicator color={colors.primary} /> : <><Ionicons name="print-outline" size={18} color={colors.primary} /><Text style={[styles.generateText, { color: colors.primary }]}>Print / Save PDF</Text></>}
             </TouchableOpacity>
-            <TouchableOpacity style={[styles.generateButton, { borderColor: colors.primaryForeground }]} onPress={() => generate('share')} disabled={loading || filteredProperties.length === 0}>
+            <TouchableOpacity style={[styles.generateButton, { borderColor: colors.primaryForeground }]} onPress={() => generate('share')} disabled={loading || brandingLoading || filteredProperties.length === 0}>
               <Ionicons name="share-outline" size={18} color={colors.primaryForeground} />
               <Text style={styles.generateTextSecondary}>Share PDF</Text>
             </TouchableOpacity>
