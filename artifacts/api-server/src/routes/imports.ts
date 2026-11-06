@@ -32,7 +32,12 @@ import { matchImportAgentByName } from "../lib/import-agent-match";
 import { findStalePdfDraftIds } from "../lib/import-reconcile";
 import { jsonify, logAudit } from "../lib/helpers";
 import { logger } from "../lib/logger";
-import { hasValidListingPrice, importedPropertyDraft, isPhotoRequirementIssue } from "../lib/property-drafts";
+import {
+  hasValidListingPrice,
+  importedPropertyDraft,
+  isDraftBlockingImportIssue,
+  isPhotoRequirementIssue,
+} from "../lib/property-drafts";
 import { flattenPdfPageRows } from "../lib/pdf-import";
 import { parseAiJsonResponse } from "../lib/ai-import";
 
@@ -1492,13 +1497,13 @@ router.post("/imports/sessions/:id/publish", async (req, res): Promise<void> => 
       errors.push(`Record ${record.id}: enter a price greater than zero or select POA before adding this listing to drafts.`);
       continue;
     }
-    const issues = validateData(data, "spreadsheet").filter((issue) => !isPhotoRequirementIssue(issue));
     const storedIssues = Array.isArray(record.validationIssues)
       ? record.validationIssues.map(String).filter((issue) =>
         !isPhotoRequirementIssue(issue)
-        && (record.duplicateStatus !== "link_existing" || issue !== DRAFT_AGENT_ISSUE)
+        && issue !== DRAFT_AGENT_ISSUE
       )
       : [];
+    const blockingIssues = storedIssues.filter(isDraftBlockingImportIssue);
     if (record.duplicateStatus !== "link_existing") {
       if (record.agentId == null) {
         errors.push(`Record ${record.id}: assign an active agent before adding this listing to drafts.`);
@@ -1514,8 +1519,13 @@ router.post("/imports/sessions/:id/publish", async (req, res): Promise<void> => 
         continue;
       }
     }
-    if (record.reviewStatus !== "approved" || issues.length || storedIssues.length > 0 || record.duplicateStatus === "possible" || (record.duplicateStatus === "link_existing" && !record.matchedPropertyId)) {
-      errors.push(`Record ${record.id}: approve the record and resolve validation or duplicate issues first.`);
+    if (record.reviewStatus !== "approved" || blockingIssues.length > 0 || record.duplicateStatus === "possible" || (record.duplicateStatus === "link_existing" && !record.matchedPropertyId)) {
+      const reason = blockingIssues.length
+        ? ` ${blockingIssues.join(" ")}`
+        : record.duplicateStatus === "possible" || (record.duplicateStatus === "link_existing" && !record.matchedPropertyId)
+          ? " Resolve the duplicate decision first."
+          : "";
+      errors.push(`Record ${record.id}: approve the record and resolve branch or duplicate-check issues before adding it to drafts.${reason}`);
       continue;
     }
     try {

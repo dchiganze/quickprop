@@ -932,6 +932,17 @@ test(
         { data: correctedData, reviewStatus: "approved" },
       );
       assert.equal(corrected.status, 200);
+      const incompletePhotoFreeDraft = await api(
+        `/imports/sessions/${decisionSessionId}/records/${recordByReference("DEC-D").id}`,
+        agent.id,
+        "PATCH",
+        {
+          data: { title: "Photo-free draft home", reference: "DEC-D", price: 280000 },
+          agentId: agent.id,
+          reviewStatus: "needs_review",
+        },
+      );
+      assert.equal(incompletePhotoFreeDraft.status, 200);
       const publishApproval = await api(
         `/imports/sessions/${decisionSessionId}/bulk-action`,
         agent.id,

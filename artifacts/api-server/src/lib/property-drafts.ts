@@ -37,3 +37,11 @@ export function isPhotoRequirementIssue(issue: unknown): boolean {
   return /photo|image/.test(normalized)
     && /required|requirement|need|missing|must|before publish|before publishing/.test(normalized);
 }
+
+export function isDraftBlockingImportIssue(issue: unknown): boolean {
+  if (typeof issue !== "string") return false;
+  const normalized = issue.toLowerCase();
+  return normalized.includes("does not match an active branch")
+    || normalized.includes("choose an active branch")
+    || normalized.includes("duplicate check unavailable");
+}

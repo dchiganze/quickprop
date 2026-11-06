@@ -1,6 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { hasListingPhotos, hasPositiveDraftPrice, hasValidListingPrice, importedPropertyDraft, needsPublicationPhoto } from "./property-drafts";
+import {
+  hasListingPhotos,
+  hasPositiveDraftPrice,
+  hasValidListingPrice,
+  importedPropertyDraft,
+  isDraftBlockingImportIssue,
+  needsPublicationPhoto,
+} from "./property-drafts";
 
 test("all imports start as unpublished drafts, including imports containing photos", () => {
   for (const photos of [undefined, [], ["https://example.com/photo.jpg"]]) {
@@ -24,6 +31,13 @@ test("draft edits can have no photos but publishing requires a nonblank photo", 
   }
   assert.equal(needsPublicationPhoto({ status: "draft", pipelineStage: "published", photos: [] }), true);
   assert.equal(hasListingPhotos([null, 0, " "]), false);
+});
+
+test("draft imports allow incomplete listing details but retain branch and duplicate-check blockers", () => {
+  assert.equal(isDraftBlockingImportIssue("Address is missing"), false);
+  assert.equal(isDraftBlockingImportIssue("Property type is missing"), false);
+  assert.equal(isDraftBlockingImportIssue("Choose an active branch before approving this listing."), true);
+  assert.equal(isDraftBlockingImportIssue("Exact title-and-price duplicate check unavailable."), true);
 });
 
 test("drafts require a positive finite price", () => {

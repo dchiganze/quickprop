@@ -19,7 +19,7 @@ Every new property must have an assigned agent and a positive price before it ca
 
 **Why:** The user requires each draft property to have a responsible agent and a price.
 
-**How to apply:** Enforce both requirements on direct creation, imports, transitions into draft, automatic draft transitions, and offline sync. Imported rows may be reviewed while incomplete, but must not create inventory drafts until an active agent in the listing branch is selected and a positive price is present.
+**How to apply:** Enforce both requirements on direct creation, imports, transitions into draft, automatic draft transitions, and offline sync. For import drafts, missing descriptive fields may be completed later; require an active agent in the selected branch and a positive price or POA, while preserving branch-mapping and duplicate-check safeguards. Photos are required only when publishing.
 
 Import processing must wait for the Office user to review and explicitly confirm source-column mappings. Preserve the confirmed mapping on retries.
 

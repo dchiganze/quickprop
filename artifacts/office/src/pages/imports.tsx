@@ -845,7 +845,10 @@ function ImportDetail({ id }: { id: number }) {
       queryClient.invalidateQueries({ queryKey: getGetPipelineQueryKey() });
       await refetch();
       if (result.failed) setPublishError(`${result.failed} record${result.failed === 1 ? '' : 's'} could not be imported. ${result.errors.join(' ')}`);
-      toast({ title: result.failed ? 'Import completed with failures' : 'Drafts saved', description: `${result.created} saved as drafts, ${result.linked} linked, ${result.failed} failed. Photos are required only when publishing.` , variant: result.failed ? 'destructive' : 'default' });
+      const failureSummary = result.failed
+        ? ` ${result.errors.slice(0, 2).join(' ')}${result.failed > 2 ? ` And ${result.failed - 2} more failed.` : ''}`
+        : ' Photos are required before publishing, not for drafts.';
+      toast({ title: result.failed ? 'Import completed with failures' : 'Drafts saved', description: `${result.created} saved as drafts, ${result.linked} linked, ${result.failed} failed.${failureSummary}`, variant: result.failed ? 'destructive' : 'default' });
     } catch { setPublishError('Import was rejected by the server. Refresh the session before retrying.'); }
   };
   const downloadErrors = async () => {
@@ -911,7 +914,7 @@ function ImportDetail({ id }: { id: number }) {
             {[['Sources', detail.totalFiles, 'Files received', 'text-foreground'], ['Extracted', detail.totalRecords, 'Candidate rows', 'text-foreground'], ['Ready', detail.recordsReady, 'High confidence', 'text-emerald-700'], ['Review', detail.recordsNeedingReview, 'Human decision', 'text-amber-700'], ['Published', detail.recordsPublished, 'Marketplace records', 'text-primary']].map(([label, value, detailText, tone]) => <Card key={label as string} className="border-border/80 shadow-none"><CardContent className="p-3.5"><p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">{label}</p><p className={cn('mt-1 text-xl font-extrabold tabular-nums', tone as string)}>{value}</p><p className="mt-0.5 text-[10px] text-muted-foreground">{detailText}</p></CardContent></Card>)}
           </div>
           {detail.lastError && <Alert variant="destructive"><AlertCircle className="h-4 w-4" /><AlertTitle>Processing reported an error</AlertTitle><AlertDescription>{detail.lastError}</AlertDescription></Alert>}
-          {publishError && <Alert variant="destructive"><AlertCircle className="h-4 w-4" /><AlertTitle>Publish needs attention</AlertTitle><AlertDescription>{publishError}</AlertDescription></Alert>}
+          {publishError && <Alert variant="destructive"><AlertCircle className="h-4 w-4" /><AlertTitle>Draft import needs attention</AlertTitle><AlertDescription>{publishError}</AlertDescription></Alert>}
           <Card className="overflow-hidden border-border/80 shadow-sm">
             <CardHeader className="gap-4 border-b bg-card px-4 py-4 md:flex-row md:items-center md:justify-between">
               <div><CardTitle className="text-base">Review ledger</CardTitle><p className="mt-1 text-xs text-muted-foreground">Edit extracted values, verify provenance, then apply a decision.</p></div>
