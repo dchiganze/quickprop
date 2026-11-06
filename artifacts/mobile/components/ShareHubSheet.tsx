@@ -10,7 +10,7 @@ import { useData } from '@/contexts/DataContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Property } from '@/types';
 import { catalogueShareLinks, getFacebookShareUrl, propertyShareLinks } from '@/utils/shareLinks';
-import { buildCatalogueShareMessage, buildPropertyFlyerCaption, buildPropertyShareMessage, formatSharePrice } from '@/utils/shareContent';
+import { buildCatalogueShareMessage, buildCatalogueWhatsAppCaption, buildPropertyShareMessage, formatSharePrice } from '@/utils/shareContent';
 import {
   PropertySocialDestination,
   shareCatalogueToSocial,
@@ -154,7 +154,7 @@ export function ShareHubSheet({ visible, onClose }: Props) {
     setSharing(true);
     try {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      const text = buildPropertyFlyerCaption();
+      const text = buildCatalogueWhatsAppCaption(user?.name);
       await shareCatalogueToWhatsApp(
         text,
         () => catalogueCardRef.current?.capture()

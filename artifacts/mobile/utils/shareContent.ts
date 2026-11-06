@@ -5,6 +5,16 @@ export function buildPropertyFlyerCaption(): string {
   return 'Follow this link to see all my properties www.quickprop.co.zw/douglaschiganze';
 }
 
+export function buildCatalogueWhatsAppCaption(agentName?: string): string {
+  const agentSlug = agentName
+    ?.normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '')
+    || 'agent';
+  return `Keep up to date with all my new listings at www.quickprop.co.zw/${agentSlug}`;
+}
+
 export type CatalogueMode = 'agent' | 'company';
 
 export function formatSharePrice(property: Pick<Property, 'price' | 'currency' | 'type'>): string {
