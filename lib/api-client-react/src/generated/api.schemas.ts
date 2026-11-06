@@ -1665,6 +1665,7 @@ export interface PublicPropertyList {
 
 export interface AgencyPropertiesResponse {
   agencyName: string;
+  agencyLogoUrl?: string | null;
   properties: PublicProperty[];
 }
 

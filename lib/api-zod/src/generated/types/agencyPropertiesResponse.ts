@@ -9,5 +9,6 @@ import type { PublicProperty } from './publicProperty';
 
 export interface AgencyPropertiesResponse {
   agencyName: string;
+  agencyLogoUrl?: string | null;
   properties: PublicProperty[];
 }

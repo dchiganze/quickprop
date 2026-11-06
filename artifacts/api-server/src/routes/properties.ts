@@ -119,6 +119,7 @@ router.get("/agency/properties", async (req, res): Promise<void> => {
   const [agency] = await db.select({
     id: businessAgenciesTable.id,
     name: businessAgenciesTable.name,
+    logoUrl: businessAgenciesTable.logoUrl,
     status: businessAgenciesTable.status,
   }).from(businessAgenciesTable)
     .where(eq(businessAgenciesTable.id, memberBranch.agencyId))
@@ -207,6 +208,7 @@ router.get("/agency/properties", async (req, res): Promise<void> => {
 
   res.json(GetAgencyPropertiesResponse.parse(jsonify({
     agencyName: agency.name,
+    agencyLogoUrl: agency.logoUrl,
     properties: listings,
   })));
 });

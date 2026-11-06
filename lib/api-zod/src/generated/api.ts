@@ -391,6 +391,7 @@ export const DeleteCurrentUserAccountResponse = zod.object({
  */
 export const GetAgencyPropertiesResponse = zod.object({
   "agencyName": zod.string(),
+  "agencyLogoUrl": zod.string().nullish(),
   "properties": zod.array(zod.object({
   "id": zod.number(),
   "reference": zod.string(),

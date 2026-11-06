@@ -4137,6 +4137,7 @@ components:
       required: [agencyName, properties]
       properties:
         agencyName: { type: string }
+        agencyLogoUrl: { type: string, nullable: true }
         properties:
           type: array
           items: { $ref: "#/components/schemas/PublicProperty" }
