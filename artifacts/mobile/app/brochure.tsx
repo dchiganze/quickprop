@@ -17,6 +17,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
 import { Property } from '@/types';
 import { catalogueBrochureHtml, BrochureAgent } from '@/utils/brochureHtml';
+import { prepareBrochureMedia } from '@/utils/brochureMedia';
 import {
   getGetAgencyPropertiesQueryKey,
   getListUsersQueryKey,
@@ -137,11 +138,12 @@ export default function BrochureSetupScreen() {
   const { data: directoryUsers = [], refetch: refetchDirectoryUsers } = useListUsers({
     query: { enabled: true, queryKey: getListUsersQueryKey() },
   });
-  const { data: agencySettings } = useGetAdminAgencySettings();
+  const agencySettingsQuery = useGetAdminAgencySettings();
+  const agencySettings = agencySettingsQuery.data;
   const agencyQuery = useGetAgencyProperties({
     query: { enabled: Boolean(user?.id), queryKey: getGetAgencyPropertiesQueryKey() },
   });
-  const agencyLogoUrl = agencyQuery.data?.agencyLogoUrl ?? null;
+  const agencyLogoUrl = agencySettings?.logoUrl?.trim() || agencyQuery.data?.agencyLogoUrl || null;
   const agencyLogoObjectPath = useMemo(
     () => agencyLogoUrl ? getStoredMediaObjectPath(agencyLogoUrl) : undefined,
     [agencyLogoUrl],
@@ -164,10 +166,13 @@ export default function BrochureSetupScreen() {
     logoUrl: agencyLogoObjectPath ? agencyLogoMedia.data?.url : agencyLogoUrl,
     tagline: agencySettings?.tagline?.trim()
       || (agencyName === 'DBT Properties' ? 'Property is what we know best!' : ''),
+    aboutText: agencySettings?.aboutText,
+    website: agencySettings?.website,
     primaryColor: agencySettings?.primaryColor,
     logoColors: agencySettings?.logoColors,
   };
-  const brandingLoading = agencyQuery.isLoading
+  const brandingLoading = agencySettingsQuery.isLoading
+    || agencyQuery.isLoading
     || Boolean(agencyLogoObjectPath && agencyLogoMedia.isLoading);
   const [mode, setMode] = useState<BrochureMode>('my');
   const [activeStep, setActiveStep] = useState<SetupStep>('personnel');
@@ -269,8 +274,19 @@ export default function BrochureSetupScreen() {
           phone: user.phone,
         });
       }
+      const preparedMedia = await prepareBrochureMedia(
+        filteredProperties,
+        agencyBranding.logoUrl,
+        user?.id,
+      );
       const Print: typeof import('expo-print') = await import('expo-print');
-      const html = catalogueBrochureHtml(filteredProperties, user, mode, agents, agencyBranding);
+      const html = catalogueBrochureHtml(
+        preparedMedia.properties,
+        user,
+        mode,
+        agents,
+        { ...agencyBranding, logoUrl: preparedMedia.logoUrl },
+      );
       if (action === 'print') {
         await Print.printAsync({ html });
       } else {

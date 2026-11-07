@@ -13,14 +13,17 @@ import { useColors } from '@/hooks/useColors';
 import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
 import { Property } from '@/types';
-import { singlePropertyBrochureHtml, catalogueBrochureHtml } from '@/utils/brochureHtml';
+import { singlePropertyBrochureHtml, catalogueBrochureHtml, type BrochureAgent } from '@/utils/brochureHtml';
+import { prepareBrochureMedia } from '@/utils/brochureMedia';
 import { buildPropertyShareMessage } from '@/utils/shareContent';
 import { openWhatsAppMessage } from '@/utils/whatsapp';
 import {
   getGetAgencyPropertiesQueryKey,
+  getListUsersQueryKey,
   useGetAdminAgencySettings,
   useGetAgencyProperties,
   useGetStoredMediaUrl,
+  useListUsers,
 } from '@workspace/api-client-react';
 import { getStoredMediaObjectPath } from '@/utils/listingPhoto';
 import { isPrintCancellation } from '@/utils/printCancellation';
@@ -38,11 +41,15 @@ interface PropertyBrochureSheetProps {
 export function PropertyBrochureSheet({ visible, onClose, property }: PropertyBrochureSheetProps) {
   const colors = useColors();
   const { user } = useAuth();
-  const { data: agencySettings } = useGetAdminAgencySettings();
+  const agencySettingsQuery = useGetAdminAgencySettings();
+  const agencySettings = agencySettingsQuery.data;
   const agencyQuery = useGetAgencyProperties({
     query: { enabled: visible && Boolean(user?.id), queryKey: getGetAgencyPropertiesQueryKey() },
   });
-  const agencyLogoUrl = agencyQuery.data?.agencyLogoUrl ?? null;
+  const { data: directoryUsers = [], refetch: refetchDirectoryUsers } = useListUsers({
+    query: { enabled: visible && Boolean(user?.id), queryKey: getListUsersQueryKey() },
+  });
+  const agencyLogoUrl = agencySettings?.logoUrl?.trim() || agencyQuery.data?.agencyLogoUrl || null;
   const agencyLogoObjectPath = useMemo(
     () => agencyLogoUrl ? getStoredMediaObjectPath(agencyLogoUrl) : undefined,
     [agencyLogoUrl],
@@ -65,10 +72,13 @@ export function PropertyBrochureSheet({ visible, onClose, property }: PropertyBr
     logoUrl: agencyLogoObjectPath ? agencyLogoMedia.data?.url : agencyLogoUrl,
     tagline: agencySettings?.tagline?.trim()
       || (agencyName === 'DBT Properties' ? 'Property is what we know best!' : ''),
+    aboutText: agencySettings?.aboutText,
+    website: agencySettings?.website,
     primaryColor: agencySettings?.primaryColor,
     logoColors: agencySettings?.logoColors,
   };
-  const brandingLoading = agencyQuery.isLoading
+  const brandingLoading = agencySettingsQuery.isLoading
+    || agencyQuery.isLoading
     || Boolean(agencyLogoObjectPath && agencyLogoMedia.isLoading);
   const [loading, setLoading] = useState(false);
 
@@ -100,8 +110,21 @@ export function PropertyBrochureSheet({ visible, onClose, property }: PropertyBr
       if (agencyLogoObjectPath && !agencyLogoMedia.data?.url) {
         throw new Error('Could not load the agency logo. Please retry the brochure.');
       }
+      const refreshedDirectory = await refetchDirectoryUsers();
+      const agents: BrochureAgent[] = (refreshedDirectory.data ?? directoryUsers).map((directoryUser) => ({
+        id: String(directoryUser.id),
+        name: directoryUser.name,
+        email: directoryUser.email,
+        phone: directoryUser.phone,
+      }));
       const Print: PrintModule = await import('expo-print');
-      const html = singlePropertyBrochureHtml(property, user, agencyBranding);
+      const preparedMedia = await prepareBrochureMedia([property], agencyBranding.logoUrl, user?.id);
+      const html = singlePropertyBrochureHtml(
+        preparedMedia.properties[0],
+        user,
+        { ...agencyBranding, logoUrl: preparedMedia.logoUrl },
+        agents,
+      );
       await Print.printAsync({ html });
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : 'Could not generate brochure. Please try again.';
@@ -124,9 +147,22 @@ export function PropertyBrochureSheet({ visible, onClose, property }: PropertyBr
       if (agencyLogoObjectPath && !agencyLogoMedia.data?.url) {
         throw new Error('Could not load the agency logo. Please retry the brochure.');
       }
+      const refreshedDirectory = await refetchDirectoryUsers();
+      const agents: BrochureAgent[] = (refreshedDirectory.data ?? directoryUsers).map((directoryUser) => ({
+        id: String(directoryUser.id),
+        name: directoryUser.name,
+        email: directoryUser.email,
+        phone: directoryUser.phone,
+      }));
       const Print: PrintModule = await import('expo-print');
       const Sharing: SharingModule = await import('expo-sharing');
-      const html = singlePropertyBrochureHtml(property, user, agencyBranding);
+      const preparedMedia = await prepareBrochureMedia([property], agencyBranding.logoUrl, user?.id);
+      const html = singlePropertyBrochureHtml(
+        preparedMedia.properties[0],
+        user,
+        { ...agencyBranding, logoUrl: preparedMedia.logoUrl },
+        agents,
+      );
       const { uri } = await Print.printToFileAsync({ html });
       if (!(await Sharing.isAvailableAsync())) {
         throw new Error('PDF sharing is not available on this device.');
@@ -212,11 +248,15 @@ export function CatalogueBrochureSheet({ visible, onClose }: CatalogueBrochureSh
   const colors = useColors();
   const { user } = useAuth();
   const { properties } = useData();
-  const { data: agencySettings } = useGetAdminAgencySettings();
+  const agencySettingsQuery = useGetAdminAgencySettings();
+  const agencySettings = agencySettingsQuery.data;
   const agencyQuery = useGetAgencyProperties({
     query: { enabled: visible && Boolean(user?.id), queryKey: getGetAgencyPropertiesQueryKey() },
   });
-  const agencyLogoUrl = agencyQuery.data?.agencyLogoUrl ?? null;
+  const { data: directoryUsers = [], refetch: refetchDirectoryUsers } = useListUsers({
+    query: { enabled: visible && Boolean(user?.id), queryKey: getListUsersQueryKey() },
+  });
+  const agencyLogoUrl = agencySettings?.logoUrl?.trim() || agencyQuery.data?.agencyLogoUrl || null;
   const agencyLogoObjectPath = useMemo(
     () => agencyLogoUrl ? getStoredMediaObjectPath(agencyLogoUrl) : undefined,
     [agencyLogoUrl],
@@ -239,10 +279,13 @@ export function CatalogueBrochureSheet({ visible, onClose }: CatalogueBrochureSh
     logoUrl: agencyLogoObjectPath ? agencyLogoMedia.data?.url : agencyLogoUrl,
     tagline: agencySettings?.tagline?.trim()
       || (agencyName === 'DBT Properties' ? 'Property is what we know best!' : ''),
+    aboutText: agencySettings?.aboutText,
+    website: agencySettings?.website,
     primaryColor: agencySettings?.primaryColor,
     logoColors: agencySettings?.logoColors,
   };
-  const brandingLoading = agencyQuery.isLoading
+  const brandingLoading = agencySettingsQuery.isLoading
+    || agencyQuery.isLoading
     || Boolean(agencyLogoObjectPath && agencyLogoMedia.isLoading);
   const [mode, setMode] = useState<CatalogMode>('my');
   const [loading, setLoading] = useState(false);
@@ -261,8 +304,22 @@ export function CatalogueBrochureSheet({ visible, onClose }: CatalogueBrochureSh
       if (agencyLogoObjectPath && !agencyLogoMedia.data?.url) {
         throw new Error('Could not load the agency logo. Please retry the brochure.');
       }
+      const refreshedDirectory = await refetchDirectoryUsers();
+      const agents: BrochureAgent[] = (refreshedDirectory.data ?? directoryUsers).map((directoryUser) => ({
+        id: String(directoryUser.id),
+        name: directoryUser.name,
+        email: directoryUser.email,
+        phone: directoryUser.phone,
+      }));
       const Print: PrintModule = await import('expo-print');
-      const html = catalogueBrochureHtml(activeProps, user, mode, [], agencyBranding);
+      const preparedMedia = await prepareBrochureMedia(activeProps, agencyBranding.logoUrl, user?.id);
+      const html = catalogueBrochureHtml(
+        preparedMedia.properties,
+        user,
+        mode,
+        agents,
+        { ...agencyBranding, logoUrl: preparedMedia.logoUrl },
+      );
       if (action === 'print') {
         await Print.printAsync({ html });
       } else {
