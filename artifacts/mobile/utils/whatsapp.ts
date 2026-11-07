@@ -12,6 +12,7 @@ import {
   runPropertyFlyerShare,
 } from '@/utils/socialShareFlow';
 import {
+  buildCatalogueWhatsAppCaption,
   buildPropertyFlyerCaption,
 } from '@/utils/shareContent';
 
@@ -149,6 +150,39 @@ export async function shareCatalogueToWhatsApp(
   }
 
   return { caption, sharedPhoto: true };
+}
+
+export async function shareCataloguePdfToWhatsApp(
+  pdfUri: string,
+  agentName?: string,
+): Promise<{ caption: string }> {
+  const caption = buildCatalogueWhatsAppCaption(agentName);
+
+  if (Platform.OS === 'web') {
+    throw new Error('Sharing a brochure PDF with its WhatsApp caption requires the installed QuickProp Agent app.');
+  }
+  if (isExpoGo) {
+    throw new Error(
+      'Brochure PDF and caption sharing requires the installed QuickProp Agent app. Expo Go cannot attach both together.',
+    );
+  }
+
+  try {
+    const { default: NativeShare } = await import('react-native-share');
+    await NativeShare.open({
+      url: pdfUri,
+      type: 'application/pdf',
+      message: caption,
+      title: 'QuickProp Property Brochure',
+      filename: 'quickprop-property-brochure.pdf',
+      failOnCancel: false,
+      useInternalStorage: true,
+    });
+  } catch (error: unknown) {
+    if (!isShareCancellation(error)) throw error;
+  }
+
+  return { caption };
 }
 
 export type PropertySocialDestination = 'facebook' | 'instagram' | 'linkedin' | 'tiktok';

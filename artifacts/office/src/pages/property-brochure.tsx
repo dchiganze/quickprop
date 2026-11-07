@@ -96,7 +96,7 @@ export default function PropertyBrochure({ params }: { params: { id: string } })
       {/* Brochure — A4 layout */}
       <div className="min-h-screen bg-gray-100 pt-16 pb-12 no-print-bg">
         <div
-          className="brochure-page mx-auto bg-white shadow-2xl"
+          className="brochure-page mx-auto flex flex-col bg-white shadow-2xl"
           style={{ width: '210mm', minHeight: '297mm' }}
         >
           {/* ── HEADER BAND ── */}
@@ -114,12 +114,6 @@ export default function PropertyBrochure({ params }: { params: { id: string } })
               </div>
               <div>
                 <div className="text-lg font-bold text-gray-900 leading-tight">{agencyName}</div>
-                <div className="text-[10px] text-gray-400 leading-tight">
-                  powered by{' '}
-                  <a href="https://www.quickprop.co.zw" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2">
-                    quickprop.co.zw
-                  </a>
-                </div>
               </div>
             </div>
             <div className="text-right">
@@ -281,9 +275,9 @@ export default function PropertyBrochure({ params }: { params: { id: string } })
           {/* ── FOOTER ── */}
           <div className="mt-auto px-10 py-4 bg-gray-900 flex items-center justify-between">
             <div className="text-white text-sm font-semibold">{agencyName}</div>
-            <div className="text-gray-400 text-xs text-right">
-              <div>Powered by www.quickprop.co.zw</div>
-              <div>Ref: {property.reference}</div>
+            <div className="text-gray-400 text-right">
+              <div className="text-lg font-semibold">Powered by quickprop.co.zw</div>
+              <div className="text-xs">Ref: {property.reference}</div>
             </div>
           </div>
         </div>

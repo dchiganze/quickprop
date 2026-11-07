@@ -11,10 +11,10 @@ import {
   useListProperties,
   useGetCurrentUser,
   useGetAdminAgencySettings,
-  Property,
   getListPropertiesQueryKey,
 } from '@workspace/api-client-react';
 import {
+  buildCatalogueWhatsAppCaption,
   buildCatalogueShareCaption,
   createCatalogueShareCard,
   openShareWindow,
@@ -36,53 +36,10 @@ const PUBLIC_STATUSES = ['public', 'under_offer', 'coming_soon'];
 
 function formatPrice(price: number, currency: string, listingType: string, priceOnApplication = false) {
   if (priceOnApplication) return 'POA';
-  const fmt =
-    price >= 1_000_000
-      ? `${currency} ${(price / 1_000_000).toFixed(1)}M`
-      : `${currency} ${price.toLocaleString()}`;
-  return listingType === 'rent' ? `${fmt}/mo` : fmt;
-}
-
-function buildWhatsAppText(
-  properties: Property[],
-  mode: CatalogMode,
-  agentName: string | undefined,
-  catalogUrl: string,
-) {
-  const lines: string[] = [];
-  lines.push('*QuickProp — Property Brochure*');
-  lines.push('_Your trusted Harare estate agency_');
-  if (mode === 'agent' && agentName) lines.push(`_Agent: ${agentName}_`);
-  lines.push('');
-
-  const forSale = properties.filter(p => p.listingType === 'sale');
-  const forRent = properties.filter(p => p.listingType === 'rent');
-
-  if (forSale.length > 0) {
-    lines.push(`*For Sale (${forSale.length} properties):*`);
-    forSale.slice(0, 8).forEach(p => {
-      const beds = p.bedrooms ? `${p.bedrooms}-bed ` : '';
-      const type = p.propertyType.charAt(0).toUpperCase() + p.propertyType.slice(1);
-      lines.push(`• ${beds}${type} in ${p.suburb} — ${formatPrice(p.price, p.currency, p.listingType, p.priceOnApplication)}`);
-    });
-    if (forSale.length > 8) lines.push(`  _...and ${forSale.length - 8} more_`);
-    lines.push('');
-  }
-
-  if (forRent.length > 0) {
-    lines.push(`*To Rent (${forRent.length} properties):*`);
-    forRent.slice(0, 5).forEach(p => {
-      const beds = p.bedrooms ? `${p.bedrooms}-bed ` : '';
-      const type = p.propertyType.charAt(0).toUpperCase() + p.propertyType.slice(1);
-      lines.push(`• ${beds}${type} in ${p.suburb} — ${formatPrice(p.price, p.currency, p.listingType, p.priceOnApplication)}`);
-    });
-    if (forRent.length > 5) lines.push(`  _...and ${forRent.length - 5} more_`);
-    lines.push('');
-  }
-
-  lines.push(`See full details on QuickProp: ${catalogUrl}`);
-  lines.push('_Reply to enquire about any property_');
-  return lines.join('\n');
+  const formatted = price >= 1_000_000
+    ? `${currency} ${(price / 1_000_000).toFixed(1)}M`
+    : `${currency} ${price.toLocaleString()}`;
+  return listingType === 'rent' ? `${formatted}/mo` : formatted;
 }
 
 export function QuickShareDialog() {
@@ -123,12 +80,11 @@ export function QuickShareDialog() {
   const forRent = publicProps.filter(p => p.listingType === 'rent');
 
   const shareToWhatsApp = useCallback(async () => {
-    const text = buildWhatsAppText(publicProps, mode, user?.name, catalogUrl);
-    const cardText = buildCatalogueShareCaption(publicProps, mode, user?.name, catalogUrl);
+    const caption = buildCatalogueWhatsAppCaption(user?.name);
     const blob = await createCatalogueShareCard(publicProps, mode, user?.name, agencyColors.primaryColor, agencyColors.secondaryColor);
     const result = await shareCardWithCaption(
       blob,
-      cardText || text,
+      caption,
       'QuickProp Property Brochure',
       'quickprop-brochure.jpg',
     );

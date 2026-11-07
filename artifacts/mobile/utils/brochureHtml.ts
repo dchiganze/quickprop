@@ -365,7 +365,7 @@ function renderBrochure(
     .empty { flex: 1; display: flex; align-items: center; justify-content: center; color: #71827f; font-size: 15px; }
     .page-footer { position: absolute; right: 15mm; bottom: 9mm; left: 15mm; display: flex; align-items: flex-end; justify-content: space-between; gap: 18px; padding-top: 9px; color: #71827f; border-top: 1px solid #dce8e4; font-size: 8px; }
     .page-footer-meta { display: flex; flex-direction: column; gap: 3px; font-size: 8px; line-height: 1.2; }
-    .page-footer-meta strong { color: #35504e; font-size: 9px; }
+    .page-footer-meta strong { color: #35504e; font-size: 13.5px; }
     .page-footer-meta a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
     .page-footer-logo { display: flex; width: 42mm; min-height: 12mm; align-items: center; justify-content: flex-end; }
     .page-footer-logo img { display: block; max-width: 42mm; max-height: 13mm; object-fit: contain; object-position: right bottom; }

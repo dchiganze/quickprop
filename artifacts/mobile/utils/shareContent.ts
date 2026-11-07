@@ -12,7 +12,7 @@ export function buildCatalogueWhatsAppCaption(agentName?: string): string {
     .toLowerCase()
     .replace(/[^a-z0-9]/g, '')
     || 'agent';
-  return `Keep up to date with all my new listings at www.quickprop.co.zw/${agentSlug}`;
+  return `Click this link to keep up to date with all my listings www.quickprop.co.zw/${agentSlug}`;
 }
 
 export type CatalogueMode = 'agent' | 'company';

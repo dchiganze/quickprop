@@ -724,7 +724,7 @@ export default function BrochureCatalog() {
 
         .page-footer-meta strong {
           color: var(--brochure-ink-soft);
-          font-size: 9px;
+          font-size: 13.5px;
         }
 
         .page-footer-meta a {

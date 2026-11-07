@@ -248,6 +248,16 @@ export function buildCatalogueShareCaption(
   return lines.join('\n');
 }
 
+export function buildCatalogueWhatsAppCaption(agentName?: string): string {
+  const agentSlug = agentName
+    ?.normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '')
+    || 'agent';
+  return `Click this link to keep up to date with all my listings www.quickprop.co.zw/${agentSlug}`;
+}
+
 export async function createPropertyShareCard(property: Property, accentColor = DEFAULT_ACCENT): Promise<Blob> {
   const canvas = makeCanvas();
   const ctx = canvas.getContext('2d');
