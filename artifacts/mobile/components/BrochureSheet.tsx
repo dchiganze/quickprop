@@ -23,6 +23,7 @@ import {
   useGetStoredMediaUrl,
 } from '@workspace/api-client-react';
 import { getStoredMediaObjectPath } from '@/utils/listingPhoto';
+import { isPrintCancellation } from '@/utils/printCancellation';
 
 type CatalogMode = 'my' | 'company';
 
@@ -104,7 +105,7 @@ export function PropertyBrochureSheet({ visible, onClose, property }: PropertyBr
       await Print.printAsync({ html });
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : 'Could not generate brochure. Please try again.';
-      if (!message.toLowerCase().includes('cancel')) {
+      if (!isPrintCancellation(e)) {
         Alert.alert('Brochure unavailable', message);
       }
     } finally {
@@ -133,7 +134,7 @@ export function PropertyBrochureSheet({ visible, onClose, property }: PropertyBr
       await Sharing.shareAsync(uri, { mimeType: 'application/pdf', dialogTitle: 'Share Property Brochure' });
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : 'Could not generate PDF. Please try again.';
-      if (!message.toLowerCase().includes('cancel')) {
+      if (!isPrintCancellation(e)) {
         Alert.alert('PDF unavailable', message);
       }
     } finally {
@@ -274,7 +275,7 @@ export function CatalogueBrochureSheet({ visible, onClose }: CatalogueBrochureSh
       }
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : 'Could not generate brochure. Please try again.';
-      if (!message.toLowerCase().includes('cancel')) {
+      if (!isPrintCancellation(e)) {
         Alert.alert('Brochure unavailable', message);
       }
     } finally {

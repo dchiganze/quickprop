@@ -134,3 +134,9 @@ Keep Sentry runtime event reporting separate from build-time source-map and symb
 **Why:** Expo Launch's iOS archive fails when Sentry upload scripts lack organization metadata, even though the app's runtime DSN is configured and can still report events.
 
 **How to apply:** If Sentry organization, project, and upload credentials are not configured for release builds, disable the Sentry plugin's automatic uploads rather than inventing account details or disabling runtime Sentry initialization.
+
+On iOS, dismissing Expo's native print sheet rejects with “Printing did not complete”; handle this as user cancellation, not a brochure failure.
+
+**Why:** The print controller reports a rejected promise when the user closes the print options without starting a print job.
+
+**How to apply:** Suppress failure alerts for the `PrintIncompleteException`/`ERR_PRINT_INCOMPLETE` cancellation while still clearing the loading state.

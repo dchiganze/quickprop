@@ -26,6 +26,7 @@ import {
   useListUsers,
 } from '@workspace/api-client-react';
 import { getStoredMediaObjectPath } from '@/utils/listingPhoto';
+import { isPrintCancellation } from '@/utils/printCancellation';
 
 type BrochureMode = 'my' | 'company' | 'custom';
 type ListingFilter = 'sale' | 'rent';
@@ -280,7 +281,7 @@ export default function BrochureSetupScreen() {
       }
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Could not generate brochure. Please try again.';
-      if (!message.toLowerCase().includes('cancel')) {
+      if (!isPrintCancellation(error)) {
         const { Alert } = await import('react-native');
         Alert.alert('Brochure unavailable', message);
       }
