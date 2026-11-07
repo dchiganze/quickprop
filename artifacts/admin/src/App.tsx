@@ -11,6 +11,7 @@ import Login from '@/pages/login';
 import Dashboard from '@/pages/dashboard';
 import Properties from '@/pages/properties';
 import Agencies from '@/pages/agencies';
+import AgencyDetail from '@/pages/agency-detail';
 import Agents from '@/pages/agents';
 import Buyers from '@/pages/buyers';
 import Leads from '@/pages/leads';
@@ -60,6 +61,7 @@ function AppRouter() {
       <ProtectedRoute path="/" component={Dashboard} />
       <ProtectedRoute path="/properties" component={Properties} />
       <ProtectedRoute path="/agencies" component={Agencies} />
+      <ProtectedRoute path="/agencies/:id" component={AgencyDetail} />
       <ProtectedRoute path="/agents" component={Agents} />
       <ProtectedRoute path="/buyers" component={Buyers} />
       <ProtectedRoute path="/leads" component={Leads} />

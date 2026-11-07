@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useLocation } from 'wouter';
 import {
   useArchiveAdminAgency,
   useArchiveAdminAgencyBranch,
@@ -47,6 +48,7 @@ function getErrorMessage(error: unknown): string {
 
 export default function Agencies() {
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   const [search, setSearch] = useState('');
   const [showArchived, setShowArchived] = useState(false);
   const [agencyDialog, setAgencyDialog] = useState<{ agency: AdminAgency | null } | null>(null);
@@ -415,6 +417,7 @@ export default function Agencies() {
                   allAgencies={agencies}
                   searchQuery={query}
                   onEdit={() => setAgencyDialog({ agency })}
+                  onView={() => setLocation(`/agencies/${agency.id}`)}
                   onArchive={() => handleAgencyArchive(agency)}
                   onAddBranch={() => setBranchDialog({ agencyId: agency.id, branch: null })}
                   onAddAgent={() => setAgentDialog({ agency, defaultBranchId: null })}
@@ -543,6 +546,7 @@ function AgencyCard({
   allAgencies,
   searchQuery,
   onEdit,
+  onView,
   onArchive,
   onAddBranch,
   onAddAgent,
@@ -558,6 +562,7 @@ function AgencyCard({
   allAgencies: AdminAgency[];
   searchQuery: string;
   onEdit: () => void;
+  onView: () => void;
   onArchive: () => void;
   onAddBranch: () => void;
   onAddAgent: () => void;
@@ -577,7 +582,16 @@ function AgencyCard({
           </div>
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <h2 className="truncate text-base font-semibold">{agency.name}</h2>
+              <h2 className="truncate text-base font-semibold">
+                <button
+                  type="button"
+                  onClick={onView}
+                  className="text-left hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  data-testid={`link-agency-${agency.id}`}
+                >
+                  {agency.name}
+                </button>
+              </h2>
               <Badge variant={agency.status === 'active' ? 'secondary' : 'outline'}>{agency.status}</Badge>
             </div>
             <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
@@ -589,6 +603,9 @@ function AgencyCard({
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Button size="sm" variant="outline" onClick={onView} data-testid={`button-view-agency-${agency.id}`}>
+            View details
+          </Button>
           <Button size="sm" variant="outline" onClick={onEdit}><Pencil className="mr-2 h-3.5 w-3.5" /> Edit</Button>
           {agency.status === 'active' && (
             <>
