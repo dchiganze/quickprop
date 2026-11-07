@@ -40,6 +40,8 @@ _Populate as you build — explicit user instructions worth remembering across s
 
 _Populate as you build — sharp edges, "always run X before Y" rules._
 
+- Always save video renders, exports, and promo files in the top-level `attached_assets/` folder (including subfolders); never store them in artifact `public/` folders or `generated-artifacts/`.
+
 ## Pointers
 
 - See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details
