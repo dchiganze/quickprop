@@ -33,6 +33,12 @@ Apply approved brochure branding and layout changes to every renderer used by th
 
 **How to apply:** When changing a brochure specification, search for all print/PDF HTML generators and keep agency identity, property-page layout, photos, and footer consistent across them.
 
+For Expo mobile brochure PDFs, keep each A4 page within its print box and anchor the footer inside that page.
+
+**Why:** A mobile brochure with a page-height section and a flowing footer produced a separate footer-only page after each listing.
+
+**How to apply:** Use zero print margins, avoid extra page margins, position the footer within the page, and verify the exported PDF page count as well as the HTML preview.
+
 An admin or principal may explicitly link their profile to an active agent in the same branch; desktop “My Listings” then uses that agent's portfolio. Never infer this link from a matching name alone.
 
 **Why:** Admin and agent accounts can be separate profiles for the same person, and name-based matching could expose another agent's listings.

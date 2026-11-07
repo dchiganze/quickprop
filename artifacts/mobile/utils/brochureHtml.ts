@@ -25,6 +25,10 @@ const ICONS = {
   land: '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/>',
   map: '<path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/>',
   home: '<path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-6v-7h-4v7H4a1 1 0 0 1-1-1V10Z"/>',
+  agency: '<path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-5h6v5M9 9h.01M15 9h.01M9 12h.01M15 12h.01"/>',
+  email: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>',
+  phone: '<path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.4 19.4 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 2 .7 2.9a2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.2-1.3a2 2 0 0 1 2.1-.5c.9.3 1.9.6 2.9.7a2 2 0 0 1 1.8 2.1Z"/>',
+  globe: '<circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10Z"/>',
 };
 
 function escapeHtml(value: unknown): string {
@@ -118,10 +122,10 @@ function propertyPage(
   const contact = agent
     ? `<section class="contact">
         <span class="contact-label">Handling agent</span>
-        ${agent.name ? `<span class="contact-item"><strong>${escapeHtml(agent.name)}</strong></span>` : ''}
-        ${agent.email ? `<span class="contact-item">${escapeHtml(agent.email)}</span>` : ''}
-        ${agent.phone ? `<span class="contact-item">${escapeHtml(agent.phone)}</span>` : ''}
-        ${agencyWebsite ? `<span class="contact-item">${escapeHtml(agencyWebsite.replace(/^https?:\/\//, '').replace(/\/$/, ''))}</span>` : ''}
+        ${agent.name ? `<span class="contact-item">${icon('agency')}${escapeHtml(agent.name)}</span>` : ''}
+        ${agent.email ? `<span class="contact-item">${icon('email')}${escapeHtml(agent.email)}</span>` : ''}
+        ${agent.phone ? `<span class="contact-item">${icon('phone')}${escapeHtml(agent.phone)}</span>` : ''}
+        ${agencyWebsite ? `<span class="contact-item">${icon('globe')}${escapeHtml(agencyWebsite.replace(/^https?:\/\//, '').replace(/\/$/, ''))}</span>` : ''}
       </section>`
     : '';
 
@@ -139,7 +143,7 @@ function propertyPage(
     <header class="property-page-header">
       <div class="property-brand">
         ${brand}
-        <div class="brand-copy">
+        <div class="property-brand-copy">
           <strong class="property-brand-name">${escapeHtml(agencyName)}</strong>
           ${tagline ? `<span class="property-brand-tagline">${escapeHtml(tagline)}</span>` : ''}
         </div>
@@ -357,6 +361,7 @@ function renderBrochure(
     .contact { display: flex; flex-wrap: wrap; gap: 7px 18px; margin-top: 6mm; padding: 12px 14px; color: #35504e; background: #fff; border: 1px solid #dce8e4; font-size: 9px; }
     .contact-label { width: 100%; color: ${colors.primaryColor}; font-size: 9px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
     .contact-item { display: inline-flex; align-items: center; gap: 5px; }
+    .contact-item svg { width: 12px; height: 12px; flex: 0 0 auto; fill: none; stroke: ${colors.primaryColor}; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
     .empty { flex: 1; display: flex; align-items: center; justify-content: center; color: #71827f; font-size: 15px; }
     .page-footer { position: absolute; right: 15mm; bottom: 9mm; left: 15mm; display: flex; align-items: flex-end; justify-content: space-between; gap: 18px; padding-top: 9px; color: #71827f; border-top: 1px solid #dce8e4; font-size: 8px; }
     .page-footer-meta { display: flex; flex-direction: column; gap: 3px; font-size: 8px; line-height: 1.2; }
