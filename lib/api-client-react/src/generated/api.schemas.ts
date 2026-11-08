@@ -544,6 +544,24 @@ export interface PhoneLoginStartInput {
   androidAppHash?: string;
 }
 
+export interface PhoneLoginStartResult {
+  message: string;
+  /** @minimum 1 */
+  retryAfterSeconds: number;
+}
+
+export interface PhoneLoginRateLimitError {
+  error: string;
+  /** @minimum 1 */
+  retryAfterSeconds: number;
+}
+
+export interface PhoneLoginUnavailableError {
+  error: string;
+  /** @minimum 1 */
+  retryAfterSeconds?: number;
+}
+
 export interface PhoneLoginVerifyInput {
   phone: string;
   /**

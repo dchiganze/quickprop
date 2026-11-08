@@ -69,6 +69,8 @@ export default function LoginScreen() {
   const [countrySearch, setCountrySearch] = useState('');
   const [phoneCode, setPhoneCode] = useState('');
   const [phoneCodeSent, setPhoneCodeSent] = useState(false);
+  const [phoneOtpCooldowns, setPhoneOtpCooldowns] = useState<Record<string, number>>({});
+  const [cooldownClock, setCooldownClock] = useState(Date.now());
   const phoneRef = useRef(phone);
   const phoneCodeSentRef = useRef(phoneCodeSent);
   const autoVerifyingRef = useRef(false);
@@ -76,6 +78,33 @@ export default function LoginScreen() {
   const verifyOtpRef = useRef<(code: string) => Promise<void>>(async () => {});
   phoneRef.current = phone;
   phoneCodeSentRef.current = phoneCodeSent;
+  const fullPhoneNumber = toInternationalPhone(phone, phoneCountry);
+  const phoneOtpCooldownUntil = phoneOtpCooldowns[fullPhoneNumber] ?? 0;
+  const phoneOtpRetrySeconds = Math.max(0, Math.ceil((phoneOtpCooldownUntil - cooldownClock) / 1000));
+
+  useEffect(() => {
+    if (!Object.values(phoneOtpCooldowns).some((deadline) => deadline > Date.now())) return;
+    const timer = setInterval(() => {
+      const now = Date.now();
+      setCooldownClock(now);
+      setPhoneOtpCooldowns((current) => {
+        const activeEntries = Object.entries(current).filter(([, deadline]) => deadline > now);
+        return activeEntries.length === Object.keys(current).length
+          ? current
+          : Object.fromEntries(activeEntries);
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [phoneOtpCooldowns]);
+
+  const setPhoneOtpCooldown = (number: string, seconds: number, replace = false) => {
+    const deadline = Date.now() + Math.max(0, seconds) * 1000;
+    setCooldownClock(Date.now());
+    setPhoneOtpCooldowns((current) => ({
+      ...current,
+      [number]: replace ? deadline : Math.max(current[number] ?? 0, deadline),
+    }));
+  };
 
   const fade = useRef(new Animated.Value(1)).current;
   const rise = useRef(new Animated.Value(0)).current;
@@ -114,15 +143,13 @@ export default function LoginScreen() {
   }, []);
 
   const handleSendPhoneCode = async () => {
-    const fullPhoneNumber = toInternationalPhone(phone, phoneCountry);
     if (fullPhoneNumber === phoneCountry.dialCode) { Alert.alert('Mobile number required', 'Enter your mobile number.'); return; }
+    if (phoneOtpRetrySeconds > 0 || loading) return;
     setLoading(true);
+    setPhoneOtpCooldown(fullPhoneNumber, 60);
     let androidAppHash: string | undefined;
     if (androidOtpAutofill) {
       try {
-        setPhoneCode('');
-        phoneCodeSentRef.current = false;
-        retrievedOtpRef.current = null;
         await androidOtpAutofill.startSmsRetrieverAsync();
         androidAppHash = await androidOtpAutofill.getAppHashAsync();
       } catch (error) {
@@ -131,6 +158,9 @@ export default function LoginScreen() {
     }
     const result = await startPhoneLogin(fullPhoneNumber, androidAppHash);
     setLoading(false);
+    if (result.retryAfterSeconds !== undefined) {
+      setPhoneOtpCooldown(fullPhoneNumber, result.retryAfterSeconds, true);
+    }
     if (result.success) {
       phoneCodeSentRef.current = true;
       setPhoneCodeSent(true);
@@ -186,12 +216,25 @@ export default function LoginScreen() {
 
   const inputBox = [styles.inputWrap, { backgroundColor: colors.input, borderColor: colors.border }];
 
-  const Primary = ({ label, onPress, icon }: { label: string; onPress: () => void; icon?: keyof typeof Ionicons.glyphMap }) => (
+  const Primary = ({
+    label,
+    onPress,
+    icon,
+    disabled = false,
+    testID,
+  }: {
+    label: string;
+    onPress: () => void;
+    icon?: keyof typeof Ionicons.glyphMap;
+    disabled?: boolean;
+    testID?: string;
+  }) => (
     <TouchableOpacity
       accessibilityRole="button"
-      style={[styles.bigBtn, { backgroundColor: emerald, opacity: loading ? 0.7 : 1 }]}
+      testID={testID}
+      style={[styles.bigBtn, { backgroundColor: emerald, opacity: loading || disabled ? 0.55 : 1 }]}
       onPress={onPress}
-      disabled={loading}
+      disabled={loading || disabled}
       activeOpacity={0.85}
     >
       {loading ? <ActivityIndicator color={onEmerald} /> : (
@@ -348,12 +391,23 @@ export default function LoginScreen() {
                   </View>
                 )}
                 <Primary
-                  label={phoneCodeSent ? 'Verify code' : 'Next'}
+                  label={phoneCodeSent ? 'Verify code' : phoneOtpRetrySeconds > 0 ? `Wait ${phoneOtpRetrySeconds}s` : 'Next'}
                   onPress={phoneCodeSent ? () => handleVerifyPhoneCode() : handleSendPhoneCode}
+                  disabled={!phoneCodeSent && phoneOtpRetrySeconds > 0}
+                  testID={phoneCodeSent ? 'phone-verify-code' : 'phone-send-code'}
                 />
                 {phoneCodeSent && (
-                  <TouchableOpacity accessibilityRole="button" onPress={handleSendPhoneCode} disabled={loading} style={styles.textBtn}>
-                    <Text style={[styles.textBtnLabel, { color: colors.foreground }]}>Resend code</Text>
+                  <TouchableOpacity
+                    accessibilityRole="button"
+                    accessibilityState={{ disabled: loading || phoneOtpRetrySeconds > 0 }}
+                    testID="phone-resend-code"
+                    onPress={handleSendPhoneCode}
+                    disabled={loading || phoneOtpRetrySeconds > 0}
+                    style={[styles.textBtn, (loading || phoneOtpRetrySeconds > 0) && { opacity: 0.55 }]}
+                  >
+                    <Text style={[styles.textBtnLabel, { color: colors.foreground }]}>
+                      {phoneOtpRetrySeconds > 0 ? `Resend code in ${phoneOtpRetrySeconds}s` : 'Resend code'}
+                    </Text>
                   </TouchableOpacity>
                 )}
               </View>

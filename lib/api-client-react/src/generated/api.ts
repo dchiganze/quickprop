@@ -154,7 +154,10 @@ import type {
   PasswordResetResult,
   PasswordSetupCodeCompleteInput,
   PasswordSetupCodeRequestInput,
+  PhoneLoginRateLimitError,
   PhoneLoginStartInput,
+  PhoneLoginStartResult,
+  PhoneLoginUnavailableError,
   PhoneLoginVerifyInput,
   PipelineColumn,
   PriceHistoryEntry,
@@ -764,9 +767,9 @@ export const getStartPhoneLoginUrl = () => {
 /**
  * @summary Send a Twilio Verify SMS code to an active QuickProp account phone
  */
-export const startPhoneLogin = async (phoneLoginStartInput: PhoneLoginStartInput, options?: RequestInit): Promise<void> => {
+export const startPhoneLogin = async (phoneLoginStartInput: PhoneLoginStartInput, options?: RequestInit): Promise<PhoneLoginStartResult> => {
 
-  return customFetch<void>(getStartPhoneLoginUrl(),
+  return customFetch<PhoneLoginStartResult>(getStartPhoneLoginUrl(),
   {
     ...options,
     method: 'POST',
@@ -779,7 +782,7 @@ export const startPhoneLogin = async (phoneLoginStartInput: PhoneLoginStartInput
 
 
 
-export const getStartPhoneLoginMutationOptions = <TError = ErrorType<void>,
+export const getStartPhoneLoginMutationOptions = <TError = ErrorType<void | PhoneLoginRateLimitError | PhoneLoginUnavailableError>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof startPhoneLogin>>, TError,{data: BodyType<PhoneLoginStartInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof startPhoneLogin>>, TError,{data: BodyType<PhoneLoginStartInput>}, TContext> => {
 
@@ -808,12 +811,12 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type StartPhoneLoginMutationResult = NonNullable<Awaited<ReturnType<typeof startPhoneLogin>>>
     export type StartPhoneLoginMutationBody = BodyType<PhoneLoginStartInput>
-    export type StartPhoneLoginMutationError = ErrorType<void>
+    export type StartPhoneLoginMutationError = ErrorType<void | PhoneLoginRateLimitError | PhoneLoginUnavailableError>
 
     /**
  * @summary Send a Twilio Verify SMS code to an active QuickProp account phone
  */
-export const useStartPhoneLogin = <TError = ErrorType<void>,
+export const useStartPhoneLogin = <TError = ErrorType<void | PhoneLoginRateLimitError | PhoneLoginUnavailableError>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof startPhoneLogin>>, TError,{data: BodyType<PhoneLoginStartInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof startPhoneLogin>>,

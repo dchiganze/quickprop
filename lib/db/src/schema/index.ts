@@ -18,3 +18,4 @@ export * from "./password-reset";
 export * from "./passkeys";
 export * from "./agent-past-sales";
 export * from "./property-sale-confirmations";
+export * from "./phone-otp-send-attempts";

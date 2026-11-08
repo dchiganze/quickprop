@@ -16,3 +16,4 @@
 - [QuickProp Password-Reset Email](quickprop-password-reset-email.md) — use a Resend sending-only key directly; verify the sender domain separately without full-access-only domain APIs.
 - [QuickProp sales history](quickprop-sales-history.md) — historical sales stay separate; new listing sales need conveyancer confirmation before appearing on public profiles.
 - [QuickProp Rental Applications](quickprop-rental-applications.md) — EAC-only agency contacts, four-question references, and listing-scoped applicant access.
+- [QuickProp Phone OTP Limits](quickprop-phone-otp-limits.md) — per-environment OTP counters are separate; shared Twilio Verify services can therefore have additive limits across environments.

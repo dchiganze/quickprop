@@ -144,10 +144,32 @@ paths:
       responses:
         "202":
           description: Generic response that does not reveal whether a number is registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PhoneLoginStartResult"
         "400":
           description: Invalid phone number
+        "429":
+          description: Phone-specific send limit reached
+          headers:
+            Retry-After:
+              description: Seconds until another code can be requested
+              schema: { type: integer, minimum: 1 }
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PhoneLoginRateLimitError"
         "503":
           description: Phone verification service unavailable
+          headers:
+            Retry-After:
+              description: Seconds until another code can be requested
+              schema: { type: integer, minimum: 1 }
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PhoneLoginUnavailableError"
   /auth/phone/verify:
     post:
       operationId: verifyPhoneLogin
@@ -3188,6 +3210,24 @@ components:
           type: string
           pattern: '^[A-Za-z0-9+/]{11}$'
           description: Optional Android SMS Retriever hash from the installed app build.
+    PhoneLoginStartResult:
+      type: object
+      required: [message, retryAfterSeconds]
+      properties:
+        message: { type: string }
+        retryAfterSeconds: { type: integer, minimum: 1 }
+    PhoneLoginRateLimitError:
+      type: object
+      required: [error, retryAfterSeconds]
+      properties:
+        error: { type: string }
+        retryAfterSeconds: { type: integer, minimum: 1 }
+    PhoneLoginUnavailableError:
+      type: object
+      required: [error]
+      properties:
+        error: { type: string }
+        retryAfterSeconds: { type: integer, minimum: 1 }
     PhoneLoginVerifyInput:
       type: object
       required: [phone, code]

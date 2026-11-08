@@ -39,6 +39,7 @@ import {
   RequestAdminPasswordResetResponse,
   RequestPasswordSetupCodeBody,
   RequestPasswordSetupCodeResponse,
+  StartPhoneLoginResponse,
   UpdateCurrentUserProfileBody,
   UpdateCurrentUserProfileResponse,
   UpdateCurrentUserBrochureAgentLinkBody,
@@ -76,6 +77,11 @@ import {
   readSessionToken,
   SESSION_TOKEN_TTL_SECONDS,
 } from "../lib/sessions";
+import { reservePhoneOtpSend } from "../lib/phone-otp-rate-limit";
+import {
+  isPhoneOtpApproved,
+  runPhoneOtpStart,
+} from "../lib/phone-otp";
 
 const router: IRouter = Router();
 
@@ -110,9 +116,9 @@ async function requestTwilioVerify(path: "Verifications" | "VerificationCheck", 
     },
     body: new URLSearchParams(values),
   });
-  const result = await response.json().catch(() => null) as { status?: string; message?: string } | null;
+  const result = await response.json().catch(() => null) as { status?: string } | null;
   if (!response.ok) {
-    console.error("Twilio Verify request failed", { status: response.status, message: result?.message });
+    console.error("Twilio Verify request failed", { status: response.status });
     throw new Error("Twilio Verify request failed");
   }
   return result;
@@ -152,18 +158,34 @@ router.post("/auth/phone/start", async (req, res): Promise<void> => {
     return;
   }
   try {
-    const user = await findPhoneLoginUser(phone);
-    if (user) {
-       await logAudit("sms_otp_requested", "user", user.id, "User requested an SMS sign-in code", user.id, user.name);
-      await requestTwilioVerify("Verifications", {
-        To: phone,
-        Channel: "sms",
-        ...(androidAppHash ? { AppHash: androidAppHash } : {}),
+    const outcome = await runPhoneOtpStart({
+      reserveAttempt: () => reservePhoneOtpSend(phone),
+      findEligibleAccount: () => findPhoneLoginUser(phone),
+      sendCode: async (user) => {
+        await logAudit("sms_otp_requested", "user", user.id, "User requested an SMS sign-in code", user.id, user.name);
+        await requestTwilioVerify("Verifications", {
+          To: phone,
+          Channel: "sms",
+          ...(androidAppHash ? { AppHash: androidAppHash } : {}),
+        });
+      },
+    });
+
+    if (outcome.kind === "rate_limited") {
+      res.setHeader("Retry-After", String(outcome.retryAfterSeconds));
+      res.status(429).json({
+        error: "Please wait before requesting another verification code.",
+        retryAfterSeconds: outcome.retryAfterSeconds,
       });
+      return;
     }
-    res.status(202).json({ message: "If the number belongs to an active QuickProp account, a code has been sent." });
-  } catch (error) {
-    console.error("Unable to start phone sign-in", error);
+
+    res.status(202).json(StartPhoneLoginResponse.parse({
+      message: "If this number is eligible, a code may arrive shortly. You can request another after the countdown.",
+      retryAfterSeconds: outcome.retryAfterSeconds,
+    }));
+  } catch {
+    req.log.error("Unable to start phone sign-in");
     res.status(503).json({ error: "Phone sign-in is temporarily unavailable." });
   }
 });
@@ -177,7 +199,7 @@ router.post("/auth/phone/verify", async (req, res): Promise<void> => {
   }
   try {
     const result = await requestTwilioVerify("VerificationCheck", { To: phone, Code: code });
-    if (result?.status !== "approved") { res.status(401).json({ error: "That verification code is invalid or expired." }); return; }
+    if (!isPhoneOtpApproved(result?.status)) { res.status(401).json({ error: "That verification code is invalid or expired." }); return; }
     let user = await findPhoneLoginUser(phone);
     if (!user) { res.status(401).json({ error: "This number is not linked to an eligible QuickProp account." }); return; }
     if (user.status === "invited") {
@@ -207,8 +229,8 @@ router.post("/auth/phone/verify", async (req, res): Promise<void> => {
     const accessToken = createSessionToken(user.id, sessionSecret());
     await logAudit("login", "user", user.id, `${user.name} signed in with verified phone`, user.id, user.name);
     res.json({ ...jsonify(toUser(user)), accessToken });
-  } catch (error) {
-    console.error("Unable to verify phone sign-in", error);
+  } catch {
+    req.log.error("Unable to verify phone sign-in");
     res.status(503).json({ error: "Phone sign-in is temporarily unavailable." });
   }
 });

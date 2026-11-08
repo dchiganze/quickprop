@@ -5,12 +5,17 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 import { User } from '@/types';
 import { clearDataContextMemory } from './dataReset';
+import {
+  ApiError,
+  startPhoneLogin as sendPhoneLoginCode,
+  verifyPhoneLogin as verifyPhoneLoginCode,
+} from '@workspace/api-client-react';
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
-  startPhoneLogin: (phone: string, androidAppHash?: string) => Promise<{ success: boolean; error?: string }>;
+  startPhoneLogin: (phone: string, androidAppHash?: string) => Promise<{ success: boolean; error?: string; retryAfterSeconds?: number }>;
   verifyPhoneLogin: (phone: string, code: string) => Promise<{ success: boolean; error?: string }>;
   signInWithPasskey: () => Promise<{ success: boolean; error?: string }>;
   registerPasskey: () => Promise<{ success: boolean; error?: string }>;
@@ -119,6 +124,24 @@ type ApiUser = {
 };
 
 type LoginResult = ApiUser & { accessToken: string };
+
+type PhoneLoginApiError = { error?: unknown; retryAfterSeconds?: unknown };
+
+function phoneLoginErrorResult(error: unknown, fallback: string) {
+  if (!(error instanceof ApiError)) return { error: 'Unable to reach the QuickProp server.' };
+  const body = error.data as PhoneLoginApiError | null;
+  const bodyRetry = typeof body?.retryAfterSeconds === 'number' && Number.isFinite(body.retryAfterSeconds)
+    ? Math.ceil(body.retryAfterSeconds)
+    : undefined;
+  const headerRetry = Number(error.headers.get('Retry-After'));
+  const retryAfterSeconds = bodyRetry ?? (
+    Number.isFinite(headerRetry) && headerRetry > 0 ? Math.ceil(headerRetry) : undefined
+  );
+  return {
+    error: typeof body?.error === 'string' ? body.error : fallback,
+    ...(retryAfterSeconds ? { retryAfterSeconds } : {}),
+  };
+}
 
 function apiUrl(path: string): string {
   return `${apiBaseUrl!.replace(/\/$/, '')}${path}`;
@@ -311,31 +334,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const startPhoneLogin = async (phone: string, androidAppHash?: string) => {
     if (!apiBaseUrl) return { success: false, error: 'Phone sign-in needs a server connection.' };
     try {
-      const response = await fetch(apiUrl('/auth/phone/start'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone, ...(androidAppHash ? { androidAppHash } : {}) }),
+      const result = await sendPhoneLoginCode({
+        phone,
+        smsConsent: true,
+        ...(androidAppHash ? { androidAppHash } : {}),
       });
-      const result = await response.json().catch(() => null) as { error?: string } | null;
-      return response.ok
-        ? { success: true }
-        : { success: false, error: result?.error ?? 'Could not send a verification code.' };
-    } catch {
-      return { success: false, error: 'Unable to reach the QuickProp server.' };
+      return { success: true, retryAfterSeconds: result.retryAfterSeconds };
+    } catch (error) {
+      return { success: false, ...phoneLoginErrorResult(error, 'Could not send a verification code.') };
     }
   };
 
   const verifyPhoneLogin = async (phone: string, code: string) => {
     if (!apiBaseUrl) return { success: false, error: 'Phone sign-in needs a server connection.' };
     try {
-      const response = await fetch(apiUrl('/auth/phone/verify'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone, code }),
-      });
-      const result = await response.json().catch(() => null) as (LoginResult & { error?: string }) | null;
-      if (!response.ok || !result?.accessToken) {
-        return { success: false, error: result?.error ?? 'That code could not be verified.' };
+      const result = await verifyPhoneLoginCode({ phone, code });
+      if (!result?.accessToken) {
+        return { success: false, error: 'That code could not be verified.' };
       }
       const loggedInUser = await withLocalProfilePhoto(toMobileUser(result));
       const currentStoredIdentity = storedUserIdentity(await AsyncStorage.getItem(AUTH_KEY));
@@ -347,8 +362,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       ]);
       setUser(loggedInUser);
       return { success: true };
-    } catch {
-      return { success: false, error: 'Unable to reach the QuickProp server.' };
+    } catch (error) {
+      return { success: false, ...phoneLoginErrorResult(error, 'That code could not be verified.') };
     }
   };
 

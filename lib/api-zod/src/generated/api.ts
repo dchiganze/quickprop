@@ -168,7 +168,13 @@ export const StartPhoneLoginBody = zod.object({
   "androidAppHash": zod.string().regex(startPhoneLoginBodyAndroidAppHashRegExp).optional().describe('Optional Android SMS Retriever hash from the installed app build.')
 })
 
-export const StartPhoneLoginResponse = zod.void()
+
+
+
+export const StartPhoneLoginResponse = zod.object({
+  "message": zod.string(),
+  "retryAfterSeconds": zod.number().min(1)
+})
 
 
 /**
