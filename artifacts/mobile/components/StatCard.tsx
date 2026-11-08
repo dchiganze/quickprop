@@ -10,9 +10,10 @@ interface Props {
   color?: string;
   subtitle?: string;
   onPress?: () => void;
+  testID?: string;
 }
 
-export function StatCard({ label, value, icon, color, subtitle, onPress }: Props) {
+export function StatCard({ label, value, icon, color, subtitle, onPress, testID }: Props) {
   const colors = useColors();
   const iconColor = color || colors.primary;
 
@@ -24,6 +25,10 @@ export function StatCard({ label, value, icon, color, subtitle, onPress }: Props
         pressed && onPress ? { opacity: 0.7 } : undefined,
       ]}
       onPress={onPress}
+      disabled={!onPress}
+      accessibilityRole={onPress ? 'button' : undefined}
+      accessibilityLabel={`${label}: ${value}`}
+      testID={testID}
     >
       <View style={[styles.iconWrap, { backgroundColor: iconColor + '15' }]}>
         <Ionicons name={icon} size={22} color={iconColor} />

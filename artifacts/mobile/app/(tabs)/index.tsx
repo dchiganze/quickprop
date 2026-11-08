@@ -197,7 +197,18 @@ export default function DashboardScreen() {
       <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Today's Overview</Text>
       <View style={styles.statsRow}>
         <StatCard label="Active Listings" value={activeListings} icon="business-outline" color={colors.primary} subtitle={draftListings > 0 ? `${draftListings} drafts` : undefined} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}); router.push('/(tabs)/listings'); }} />
-        <StatCard label="Active Leads" value={activeLeads} icon="people-outline" color="#8B5CF6" subtitle={newLeads > 0 ? `${newLeads} new` : undefined} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}); router.push('/(tabs)/leads'); }} />
+        <StatCard
+          label="Active Leads"
+          value={activeLeads}
+          icon="people-outline"
+          color="#8B5CF6"
+          subtitle={newLeads > 0 ? `${newLeads} new` : undefined}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+            router.push('/leads');
+          }}
+          testID="dashboard-active-leads"
+        />
       </View>
       <View style={[styles.statsRow, { marginTop: 10 }]}>
         <StatCard label="Sellers" value={sellers?.length ?? 0} icon="briefcase-outline" color={colors.accent} onPress={() => {
