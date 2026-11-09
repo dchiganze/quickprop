@@ -1178,6 +1178,11 @@ test(
         await db.delete(propertiesTable).where(inArray(propertiesTable.id, fixture.propertyIds));
       }
       if (fixture.userIds.length) {
+        await db.delete(propertyAgentRelationshipsTable).where(inArray(
+          propertyAgentRelationshipsTable.agentId,
+          fixture.userIds,
+        ));
+        await db.delete(propertiesTable).where(inArray(propertiesTable.agentId, fixture.userIds));
         await db.delete(auditLogTable).where(inArray(auditLogTable.userId, fixture.userIds));
         await db.delete(usersTable).where(inArray(usersTable.id, fixture.userIds));
       }
