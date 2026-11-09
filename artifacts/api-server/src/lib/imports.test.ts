@@ -638,6 +638,7 @@ test(
           fieldConfidence: {
             title: record.titleConfidence ?? record.confidence ?? 95,
             reference: record.confidence ?? 95,
+            agent: 95,
             address: record.confidence ?? 95,
             suburb: record.confidence ?? 95,
             city: record.confidence ?? 95,
