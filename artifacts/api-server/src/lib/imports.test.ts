@@ -970,7 +970,7 @@ test(
         created: 1,
         failed: 1,
         errors: [
-          `Record ${recordByReference("DEC-B").id}: approve the record and resolve validation or duplicate issues first.`,
+          `Record ${recordByReference("DEC-B").id}: approve the record and resolve branch or duplicate-check issues before adding it to drafts.`,
         ],
       });
       const [publishedBeforeRetry] = await db.select({
