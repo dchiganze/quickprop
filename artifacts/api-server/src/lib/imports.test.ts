@@ -1019,7 +1019,11 @@ test(
       assert.equal(afterRetryByReference.get("DEC-B")?.reviewStatus, "rejected");
       assert.equal(afterRetryByReference.get("DEC-C")?.reviewStatus, "approved");
       assert.equal(afterRetryByReference.get("DEC-C")?.id, initialIds.get("DEC-C"));
-      assert.deepEqual(afterRetryByReference.get("DEC-C")?.data, { ...correctedData, branch: branch.name });
+      assert.deepEqual(afterRetryByReference.get("DEC-C")?.data, {
+        ...correctedData,
+        agent: `Image import test agent ${suffix}`,
+        branch: branch.name,
+      });
       assert.equal(afterRetryByReference.get("DEC-D")?.reviewStatus, "published");
       assert.equal(afterRetryByReference.get("DEC-D")?.id, initialIds.get("DEC-D"));
       assert.equal(afterRetryByReference.get("DEC-D")?.data.address, "13 Decision Street");

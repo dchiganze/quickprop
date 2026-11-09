@@ -620,7 +620,17 @@ function confidenceFor(data: LooseRecord, sourceType: string, extracted?: Record
 }
 
 function effectiveData(record: typeof importRecordsTable.$inferSelect): LooseRecord {
-  return (record.correctedData ?? record.extractedData) as LooseRecord;
+  const extractedData = record.extractedData
+    && typeof record.extractedData === "object"
+    && !Array.isArray(record.extractedData)
+    ? record.extractedData as LooseRecord
+    : {};
+  const correctedData = record.correctedData
+    && typeof record.correctedData === "object"
+    && !Array.isArray(record.correctedData)
+    ? record.correctedData as LooseRecord
+    : {};
+  return { ...extractedData, ...correctedData };
 }
 
 async function sessionFor(id: number, agencyId: number) {
