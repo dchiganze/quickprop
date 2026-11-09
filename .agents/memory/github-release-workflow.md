@@ -32,3 +32,11 @@ Keep any Expo native modules manually copied into the mobile app pinned to the v
 **Why:** A release build using older copied authentication modules failed minification with missing Kotlin type-provider classes after the app moved to Expo SDK 58.
 
 **How to apply:** Whenever the Expo SDK changes, update or remove the workflow's manual module-install step in the same change and validate through R8.
+
+## Manual workflow dispatch source
+
+GitHub manual dispatch runs use the workflow definition on the repository's default branch, even when the selected run ref is a release branch. Keep required build and submit jobs on the default branch, or dispatch a dedicated submit workflow there with the release run ID and intended track.
+
+**Why:** A release-branch workflow definition included a submit job that was absent from the default-branch definition; the build artifact was produced, but the release run did not schedule that branch-only job. The dedicated submit workflow ran when dispatched from the default branch.
+
+**How to apply:** After building, confirm the signed AAB artifact exists, then dispatch the default-branch submit workflow with its exact run ID and track. Verify the upload job result before recording the version code as submitted.
