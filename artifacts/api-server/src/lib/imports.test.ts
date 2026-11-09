@@ -398,7 +398,7 @@ test(
         created: 0,
         failed: 1,
         errors: [
-          `Record ${blocked.recordId}: approve the record and resolve validation or duplicate issues first.`,
+          `Record ${blocked.recordId}: approve the record and resolve branch or duplicate-check issues before adding it to drafts. Resolve the duplicate decision first.`,
         ],
       });
       const [blockedAfterPublish] = await db.select({
@@ -624,6 +624,7 @@ test(
           fields: {
             title: record.title,
             reference: record.reference,
+            agent: `Image import test agent ${suffix}`,
             address: record.address,
             suburb: "Avondale",
             city: "Harare",
