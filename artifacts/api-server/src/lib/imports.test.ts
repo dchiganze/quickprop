@@ -591,6 +591,7 @@ test(
       importFilesTable,
       importRecordsTable,
       importSessionsTable,
+      propertyAgentRelationshipsTable,
       propertiesTable,
       usersTable,
     } = database;
@@ -1170,6 +1171,10 @@ test(
         await db.delete(importSessionsTable).where(inArray(importSessionsTable.id, fixture.sessionIds));
       }
       if (fixture.propertyIds.length) {
+        await db.delete(propertyAgentRelationshipsTable).where(inArray(
+          propertyAgentRelationshipsTable.propertyId,
+          fixture.propertyIds,
+        ));
         await db.delete(propertiesTable).where(inArray(propertiesTable.id, fixture.propertyIds));
       }
       if (fixture.userIds.length) {
