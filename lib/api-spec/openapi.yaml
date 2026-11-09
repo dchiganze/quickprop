@@ -1511,6 +1511,27 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/AgencyRelationship" }
         "409": { description: Agency already associated }
+  /properties/{id}/relationships/{relationshipId}/price:
+    patch:
+      operationId: updateAgencyRelationshipPrice
+      tags: [properties]
+      summary: Update the asking price for an agency's property offer
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+        - { name: relationshipId, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AgencyRelationshipPriceUpdate" }
+      responses:
+        "200":
+          description: Updated agency relationship
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AgencyRelationship" }
+        "403": { description: Not authorized to update this agency offer }
+        "404": { description: Relationship not found }
   /properties/{id}/health:
     post:
       operationId: updatePropertyHealth
@@ -4356,6 +4377,7 @@ components:
       required: [id, agentId, agentName, agencyName, askingPrice, currency, mandateType, relationshipStatus, verificationStatus]
       properties:
         id: { type: integer }
+        relationshipId: { type: ["integer", "null"] }
         agentId: { type: integer }
         agentName: { type: string }
         agencyName: { type: string }
@@ -4466,6 +4488,11 @@ components:
         contactPhone: { type: string }
         contactEmail: { type: string }
         verificationStatus: { type: string }
+    AgencyRelationshipPriceUpdate:
+      type: object
+      required: [askingPrice]
+      properties:
+        askingPrice: { type: number, exclusiveMinimum: 0 }
     AgencyRelationship:
       type: object
       required: [id, propertyId, agentId, askingPrice, currency, mandateType, relationshipStatus, verificationStatus]

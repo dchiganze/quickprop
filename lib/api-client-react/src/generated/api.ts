@@ -52,6 +52,7 @@ import type {
   AgencyPropertiesResponse,
   AgencyRelationship,
   AgencyRelationshipInput,
+  AgencyRelationshipPriceUpdate,
   AgencySettings,
   AgencySettingsInput,
   AgentContact,
@@ -7001,6 +7002,80 @@ export const useAddPropertyAgencyRelationship = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getAddPropertyAgencyRelationshipMutationOptions(options));
+    }
+
+export const getUpdateAgencyRelationshipPriceUrl = (id: number,
+    relationshipId: number,) => {
+
+
+
+
+  return `/api/properties/${id}/relationships/${relationshipId}/price`
+}
+
+/**
+ * @summary Update the asking price for an agency's property offer
+ */
+export const updateAgencyRelationshipPrice = async (id: number,
+    relationshipId: number,
+    agencyRelationshipPriceUpdate: AgencyRelationshipPriceUpdate, options?: RequestInit): Promise<AgencyRelationship> => {
+
+  return customFetch<AgencyRelationship>(getUpdateAgencyRelationshipPriceUrl(id,relationshipId),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(agencyRelationshipPriceUpdate)
+  }
+);}
+
+
+
+
+
+export const getUpdateAgencyRelationshipPriceMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAgencyRelationshipPrice>>, TError,{id: number;relationshipId: number;data: BodyType<AgencyRelationshipPriceUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateAgencyRelationshipPrice>>, TError,{id: number;relationshipId: number;data: BodyType<AgencyRelationshipPriceUpdate>}, TContext> => {
+
+const mutationKey = ['updateAgencyRelationshipPrice'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateAgencyRelationshipPrice>>, {id: number;relationshipId: number;data: BodyType<AgencyRelationshipPriceUpdate>}> = (props) => {
+          const {id,relationshipId,data} = props ?? {};
+
+          return  updateAgencyRelationshipPrice(id,relationshipId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateAgencyRelationshipPriceMutationResult = NonNullable<Awaited<ReturnType<typeof updateAgencyRelationshipPrice>>>
+    export type UpdateAgencyRelationshipPriceMutationBody = BodyType<AgencyRelationshipPriceUpdate>
+    export type UpdateAgencyRelationshipPriceMutationError = ErrorType<void>
+
+    /**
+ * @summary Update the asking price for an agency's property offer
+ */
+export const useUpdateAgencyRelationshipPrice = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAgencyRelationshipPrice>>, TError,{id: number;relationshipId: number;data: BodyType<AgencyRelationshipPriceUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateAgencyRelationshipPrice>>,
+        TError,
+        {id: number;relationshipId: number;data: BodyType<AgencyRelationshipPriceUpdate>},
+        TContext
+      > => {
+      return useMutation(getUpdateAgencyRelationshipPriceMutationOptions(options));
     }
 
 export const getUpdatePropertyHealthUrl = (id: number,) => {

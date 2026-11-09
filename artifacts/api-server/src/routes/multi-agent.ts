@@ -19,11 +19,14 @@ import { currentUser, requireRole } from "./auth";
 import { jsonify, logActivity, logAudit, parseId } from "../lib/helpers";
 import {
   canonicalPropertyId,
+  canUpdateAgencyOfferPrice,
+  isValidAgencyOfferPrice,
   findDuplicateCandidates,
   getCanonicalProperty,
   getPropertyOffers,
   type DuplicateInput,
 } from "../lib/multi-agent";
+import { UpdateAgencyRelationshipPriceBody } from "@workspace/api-zod";
 import { queuePrimaryReviewInvitation, queueRelationshipReviewInvitation } from "../lib/agent-reviews";
 
 const router: IRouter = Router();
@@ -127,6 +130,10 @@ router.post("/properties/:id/relationships", async (req, res): Promise<void> => 
     res.status(400).json({ error: parsed.error.message });
     return;
   }
+  if (!isValidAgencyOfferPrice(parsed.data.askingPrice)) {
+    res.status(400).json({ error: "Asking price must be a finite number greater than zero." });
+    return;
+  }
   const user = await currentUser(req);
   if (!user) {
     res.status(401).json({ error: "Not authenticated" });
@@ -158,6 +165,61 @@ router.post("/properties/:id/relationships", async (req, res): Promise<void> => 
   await logActivity("agency_added", `${user.name} added an agency relationship to ${property.reference}`, "property", property.id, user.name);
   await logAudit("agency_added", "property", property.id, `${user.name} added an agency relationship`, user.id, user.name);
   res.status(201).json(jsonify(relationship));
+});
+
+router.patch("/properties/:id/relationships/:relationshipId/price", async (req, res): Promise<void> => {
+  const propertyId = parseId(req);
+  const relationshipId = Number(req.params.relationshipId);
+  if (!Number.isSafeInteger(relationshipId) || relationshipId <= 0) {
+    res.status(400).json({ error: "Invalid relationship ID" });
+    return;
+  }
+  const parsed = UpdateAgencyRelationshipPriceBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+  if (!isValidAgencyOfferPrice(parsed.data.askingPrice)) {
+    res.status(400).json({ error: "Asking price must be a finite number greater than zero." });
+    return;
+  }
+  const user = await currentUser(req);
+  if (!user) {
+    res.status(401).json({ error: "Not authenticated" });
+    return;
+  }
+  const property = await getCanonicalProperty(propertyId);
+  if (!property) {
+    res.status(404).json({ error: "Property not found" });
+    return;
+  }
+  const relatedRows = await db.select({ id: propertiesTable.id }).from(propertiesTable).where(or(
+    eq(propertiesTable.id, property.id),
+    eq(propertiesTable.canonicalPropertyId, property.id),
+  ));
+  const [relationship] = await db.select().from(propertyAgentRelationshipsTable).where(and(
+    eq(propertyAgentRelationshipsTable.id, relationshipId),
+    inArray(propertyAgentRelationshipsTable.propertyId, relatedRows.map((row) => row.id)),
+    eq(propertyAgentRelationshipsTable.relationshipStatus, "active"),
+  )).limit(1);
+  if (!relationship) {
+    res.status(404).json({ error: "Agency offer not found" });
+    return;
+  }
+  if (!canUpdateAgencyOfferPrice(user, relationship.agentId)) {
+    res.status(403).json({ error: "You can only update your agency's asking price." });
+    return;
+  }
+  const now = new Date();
+  const [updated] = await db.update(propertyAgentRelationshipsTable).set({
+    askingPrice: parsed.data.askingPrice,
+    priceStatus: "current",
+    lastUpdate: now,
+    updatedAt: now,
+  }).where(eq(propertyAgentRelationshipsTable.id, relationship.id)).returning();
+  await logActivity("price_updated", `${user.name} updated an agency offer price for ${property.reference}`, "property", property.id, user.name);
+  await logAudit("agency_offer_price_updated", "property", property.id, `${user.name} updated an agency offer price`, user.id, user.name);
+  res.json(jsonify(updated));
 });
 
 router.post("/properties/:id/health", async (req, res): Promise<void> => {

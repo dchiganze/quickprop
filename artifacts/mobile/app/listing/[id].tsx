@@ -8,6 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as Haptics from 'expo-haptics';
+import { useQueryClient } from '@tanstack/react-query';
 import { useColors } from '@/hooks/useColors';
 import { propertyShareLinks } from '@/utils/shareLinks';
 import { sharePropertyGeneric } from '@/utils/whatsapp';
@@ -29,6 +30,7 @@ import {
   useGetAgentContacts,
   useGetMultiAgentProperty,
   useListRentalApplications,
+  useUpdateAgencyRelationshipPrice,
 } from '@workspace/api-client-react';
 import type { RentalApplicationInvite } from '@workspace/api-client-react';
 import * as Clipboard from 'expo-clipboard';
@@ -84,6 +86,8 @@ export default function ListingDetailScreen() {
   const { isOnline } = useNetworkStatus();
   const property = properties.find(p => p.id === id);
   const { user, loading: authLoading } = useAuth();
+  const queryClient = useQueryClient();
+  const updateAgencyOfferPrice = useUpdateAgencyRelationshipPrice();
   const remoteAgentId = user?.id && /^\d+$/.test(user.id) ? user.id : null;
   const remotePropertyId = Number(id);
   const { data: multiAgent } = useGetMultiAgentProperty(remotePropertyId, {
@@ -133,6 +137,8 @@ export default function ListingDetailScreen() {
   const [videoPlayerVisible, setVideoPlayerVisible] = useState(false);
   const [sharingProperty, setSharingProperty] = useState(false);
   const [saleModalVisible, setSaleModalVisible] = useState(false);
+  const [editingOfferId, setEditingOfferId] = useState<number | null>(null);
+  const [offerPriceInput, setOfferPriceInput] = useState('');
   const [salePriceInput, setSalePriceInput] = useState('');
   const [conveyancerNameInput, setConveyancerNameInput] = useState('');
   const [conveyancerEmailInput, setConveyancerEmailInput] = useState('');
@@ -381,6 +387,30 @@ export default function ListingDetailScreen() {
     }
   };
 
+  const handleSaveOfferPrice = () => {
+    if (editingOfferId == null) return;
+    const askingPrice = Number(offerPriceInput.replace(/[,\s]/g, ''));
+    if (!Number.isFinite(askingPrice) || askingPrice <= 0) {
+      Alert.alert('Enter a valid price', 'The asking price must be greater than zero.');
+      return;
+    }
+    updateAgencyOfferPrice.mutate({
+      id: remotePropertyId,
+      relationshipId: editingOfferId,
+      data: { askingPrice },
+    }, {
+      onSuccess: () => {
+        void queryClient.invalidateQueries({
+          queryKey: getGetMultiAgentPropertyQueryKey(remotePropertyId),
+        });
+        setEditingOfferId(null);
+        setOfferPriceInput('');
+        Alert.alert('Price updated', 'Your agency offer price has been updated.');
+      },
+      onError: () => Alert.alert('Could not update price', 'Please try again.'),
+    });
+  };
+
   const price = property.priceOnApplication ? 'POA' : property.price >= 1000000
     ? `${property.currency} ${(property.price / 1000000).toFixed(2)}M`
     : `${property.currency} ${property.price.toLocaleString()}`;
@@ -573,7 +603,22 @@ export default function ListingDetailScreen() {
                     <Text style={[styles.offerAgency, { color: colors.foreground }]}>{offer.agencyName}</Text>
                     <Text style={{ color: colors.mutedForeground }}>{offer.agentName} · {offer.verificationStatus}</Text>
                   </View>
-                  <Text style={[styles.offerPrice, { color: colors.primary }]}>{offer.currency} {offer.askingPrice.toLocaleString()}</Text>
+                  <View style={{ alignItems: 'flex-end', gap: 4 }}>
+                    <Text style={[styles.offerPrice, { color: colors.primary }]}>{offer.currency} {offer.askingPrice.toLocaleString()}</Text>
+                    {offer.relationshipId != null && Number(remoteAgentId) === offer.agentId && (
+                      <TouchableOpacity
+                        onPress={() => {
+                          setOfferPriceInput(String(offer.askingPrice));
+                          setEditingOfferId(offer.relationshipId!);
+                        }}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Edit ${offer.agencyName} offer price`}
+                        testID={`edit-agency-offer-price-${offer.id}`}
+                      >
+                        <Text style={{ color: colors.primary, fontSize: 12, fontWeight: '700' }}>Edit price</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
                 </View>
               ))}
             </Section>
@@ -972,6 +1017,59 @@ export default function ListingDetailScreen() {
           <Text style={styles.bottomBtnPrimaryText}>Edit</Text>
         </TouchableOpacity>
       </View>
+
+      <Modal
+        visible={editingOfferId !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => {
+          if (updateAgencyOfferPrice.isPending) return;
+          setEditingOfferId(null);
+          setOfferPriceInput('');
+        }}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={[styles.saleModal, { backgroundColor: colors.card, borderColor: colors.border, gap: 12 }]}>
+            <Text style={[styles.saleModalTitle, { color: colors.foreground }]}>Update agency offer price</Text>
+            <Text style={[styles.saleModalCopy, { color: colors.mutedForeground }]}>
+              Enter the current asking price. This updates only your agency’s offer.
+            </Text>
+            <Text style={[styles.saleModalLabel, { color: colors.mutedForeground }]}>ASKING PRICE</Text>
+            <TextInput
+              autoFocus
+              value={offerPriceInput}
+              onChangeText={setOfferPriceInput}
+              keyboardType="decimal-pad"
+              placeholder="Enter price"
+              placeholderTextColor={colors.mutedForeground}
+              style={[styles.salePriceInput, { color: colors.foreground, backgroundColor: colors.input, borderColor: colors.border }]}
+              accessibilityLabel="Agency offer asking price"
+              testID="agency-offer-price-input"
+            />
+            <View style={styles.saleModalActions}>
+              <TouchableOpacity
+                style={[styles.saleModalButton, { borderColor: colors.border }]}
+                onPress={() => { setEditingOfferId(null); setOfferPriceInput(''); }}
+                disabled={updateAgencyOfferPrice.isPending}
+                accessibilityRole="button"
+              >
+                <Text style={[styles.saleModalButtonText, { color: colors.foreground }]}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.saleModalButton, { backgroundColor: colors.primary, borderColor: colors.primary, opacity: updateAgencyOfferPrice.isPending ? 0.7 : 1 }]}
+                onPress={handleSaveOfferPrice}
+                disabled={updateAgencyOfferPrice.isPending}
+                accessibilityRole="button"
+                testID="save-agency-offer-price"
+              >
+                {updateAgencyOfferPrice.isPending
+                  ? <ActivityIndicator size="small" color="#FFF" />
+                  : <Text style={[styles.saleModalButtonText, { color: '#FFF' }]}>Save price</Text>}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       <Modal
         visible={applicationInviteVisible}

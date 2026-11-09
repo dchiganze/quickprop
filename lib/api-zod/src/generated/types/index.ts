@@ -48,6 +48,7 @@ export * from './adminRentalHistory';
 export * from './agencyPropertiesResponse';
 export * from './agencyRelationship';
 export * from './agencyRelationshipInput';
+export * from './agencyRelationshipPriceUpdate';
 export * from './agencySettings';
 export * from './agencySettingsInput';
 export * from './agentContact';

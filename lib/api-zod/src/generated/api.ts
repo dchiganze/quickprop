@@ -2970,6 +2970,7 @@ export const GetMultiAgentPropertyResponse = zod.object({
   "propertyId": zod.number(),
   "offers": zod.array(zod.object({
   "id": zod.number(),
+  "relationshipId": zod.number().nullish(),
   "agentId": zod.number(),
   "agentName": zod.string(),
   "agencyName": zod.string(),
@@ -3019,6 +3020,42 @@ export const AddPropertyAgencyRelationshipBody = zod.object({
 })
 
 export const AddPropertyAgencyRelationshipResponse = zod.object({
+  "id": zod.number(),
+  "propertyId": zod.number(),
+  "agentId": zod.number(),
+  "branchId": zod.number().nullish(),
+  "askingPrice": zod.number(),
+  "currency": zod.string(),
+  "mandateType": zod.string(),
+  "relationshipStatus": zod.string(),
+  "verificationStatus": zod.string(),
+  "terms": zod.string().nullish(),
+  "description": zod.string().nullish(),
+  "contactName": zod.string().nullish(),
+  "contactPhone": zod.string().nullish(),
+  "contactEmail": zod.string().nullish(),
+  "lastAvailabilityConfirmation": zod.string().nullish(),
+  "lastUpdate": zod.string().optional()
+})
+
+
+/**
+ * @summary Update the asking price for an agency's property offer
+ */
+export const UpdateAgencyRelationshipPriceParams = zod.object({
+  "id": zod.coerce.number(),
+  "relationshipId": zod.coerce.number()
+})
+
+export const updateAgencyRelationshipPriceBodyAskingPriceExclusiveMin = 0;
+
+
+
+export const UpdateAgencyRelationshipPriceBody = zod.object({
+  "askingPrice": zod.number().gt(updateAgencyRelationshipPriceBodyAskingPriceExclusiveMin)
+})
+
+export const UpdateAgencyRelationshipPriceResponse = zod.object({
   "id": zod.number(),
   "propertyId": zod.number(),
   "agentId": zod.number(),
@@ -3194,6 +3231,7 @@ export const GetPublicPropertyResponse = zod.object({
 }).optional(),
   "offers": zod.array(zod.object({
   "id": zod.number(),
+  "relationshipId": zod.number().nullish(),
   "agentId": zod.number(),
   "agentName": zod.string(),
   "agencyName": zod.string(),
@@ -5621,6 +5659,7 @@ export const GetDuplicateReviewResponse = zod.object({
 }),
   "sourceOffers": zod.array(zod.object({
   "id": zod.number(),
+  "relationshipId": zod.number().nullish(),
   "agentId": zod.number(),
   "agentName": zod.string(),
   "agencyName": zod.string(),
@@ -5646,6 +5685,7 @@ export const GetDuplicateReviewResponse = zod.object({
 })),
   "candidateOffers": zod.array(zod.object({
   "id": zod.number(),
+  "relationshipId": zod.number().nullish(),
   "agentId": zod.number(),
   "agentName": zod.string(),
   "agencyName": zod.string(),

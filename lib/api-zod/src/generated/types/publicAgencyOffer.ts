@@ -9,6 +9,8 @@ import type { MarketingAsset } from './marketingAsset';
 
 export interface PublicAgencyOffer {
   id: number;
+  /** @nullable */
+  relationshipId?: number | null;
   agentId: number;
   agentName: string;
   agencyName: string;

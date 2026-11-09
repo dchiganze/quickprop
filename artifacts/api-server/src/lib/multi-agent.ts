@@ -26,6 +26,14 @@ export type DuplicateInput = {
   photos?: string[] | null;
 };
 
+export function canUpdateAgencyOfferPrice(actor: { id: number; role: string }, agentId: number): boolean {
+  return actor.id === agentId || actor.role === "admin" || actor.role === "principal";
+}
+
+export function isValidAgencyOfferPrice(askingPrice: number): boolean {
+  return Number.isFinite(askingPrice) && askingPrice > 0;
+}
+
 export type DuplicateProperty = Pick<
   typeof propertiesTable.$inferSelect,
   | "id"
@@ -314,6 +322,7 @@ export async function getPropertyOffers(propertyId: number) {
     const branch = branches.find((item) => item.id === relationship.branchId);
     return {
       id: relationship.id,
+      relationshipId: relationship.id,
       agentId: relationship.agentId,
       agentName: agent?.name ?? relationship.contactName ?? "QuickProp Agent",
       agencyName: branch?.name ?? "Independent Agent",
@@ -339,6 +348,7 @@ export async function getPropertyOffers(propertyId: number) {
     const branch = branches.find((item) => item.id === row.branchId);
     return {
       id: row.id,
+      relationshipId: null,
       agentId: row.agentId!,
       agentName: agent?.name ?? "QuickProp Agent",
       agencyName: branch?.name ?? "Independent Agent",

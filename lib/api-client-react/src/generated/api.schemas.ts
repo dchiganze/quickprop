@@ -1871,6 +1871,8 @@ export interface MarketingAsset {
 
 export interface PublicAgencyOffer {
   id: number;
+  /** @nullable */
+  relationshipId?: number | null;
   agentId: number;
   agentName: string;
   agencyName: string;
@@ -1985,6 +1987,11 @@ export interface AgencyRelationshipInput {
   contactPhone?: string;
   contactEmail?: string;
   verificationStatus?: string;
+}
+
+export interface AgencyRelationshipPriceUpdate {
+  /** @exclusiveMinimum 0 */
+  askingPrice: number;
 }
 
 export interface AgencyRelationship {

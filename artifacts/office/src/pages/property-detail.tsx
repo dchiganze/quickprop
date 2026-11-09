@@ -3,8 +3,9 @@ import { useLocation } from 'wouter';
 import { 
   useGetProperty, getGetPropertyQueryKey, useUpdateProperty, useMarkPropertySold, useGetPropertyPriceHistory, 
   useGetPropertyActivity, useGetSeller, getGetSellerQueryKey, useListViewings, useListDocuments,
-  useGenerateBrochure, useShareProperty, useListUsers
-  , useGetMultiAgentProperty, useUpdatePropertyHealth, useGetAdminAgencySettings
+  useGenerateBrochure, useShareProperty, useListUsers, useGetCurrentUser,
+  useGetMultiAgentProperty, getGetMultiAgentPropertyQueryKey, useUpdateAgencyRelationshipPrice,
+  useUpdatePropertyHealth, useGetAdminAgencySettings
 } from '@workspace/api-client-react';
 import { 
   ArrowLeft, MapPin, Bed, Bath, Car, Square, Building2, Calendar, 
@@ -169,6 +170,7 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
   const { data: documents } = useListDocuments({ propertyId });
   const { data: multiAgent } = useGetMultiAgentProperty(propertyId);
   const { data: officeUsers, isLoading: isLoadingUsers } = useListUsers();
+  const { data: currentUser } = useGetCurrentUser();
   const { data: agencySettings } = useGetAdminAgencySettings();
   const agencyColors = getAgencyBrandColors(agencySettings);
   const sellerId = property?.sellerId;
@@ -176,6 +178,7 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
   const assignedAgent = officeUsers?.find((user) => user.id === property?.agentId);
 
   const updateProperty = useUpdateProperty();
+  const updateAgencyOfferPrice = useUpdateAgencyRelationshipPrice();
   const markPropertySold = useMarkPropertySold();
   const generateBrochure = useGenerateBrochure();
   const shareProperty = useShareProperty();
@@ -199,6 +202,8 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
   const [viewingPickerDate, setViewingPickerDate] = useState('');
   const [viewingPickerTime, setViewingPickerTime] = useState('');
   const [photoUploadPending, setPhotoUploadPending] = useState(false);
+  const [editingOfferId, setEditingOfferId] = useState<number | null>(null);
+  const [offerPriceDraft, setOfferPriceDraft] = useState('');
   const photoInputRef = useRef<HTMLInputElement>(null);
   const editPhotoInputRef = useRef<HTMLInputElement>(null);
   const editVideoInputRef = useRef<HTMLInputElement>(null);
@@ -340,6 +345,28 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
       onError: () => {
         toast({ title: 'Could not update mandate', description: 'Please try again.', variant: 'destructive' });
       },
+    });
+  };
+
+  const handleSaveOfferPrice = () => {
+    if (editingOfferId == null) return;
+    const askingPrice = Number(offerPriceDraft.replace(/[,\s]/g, ''));
+    if (!Number.isFinite(askingPrice) || askingPrice <= 0) {
+      toast({ title: 'Enter a valid price', description: 'The asking price must be greater than zero.', variant: 'destructive' });
+      return;
+    }
+    updateAgencyOfferPrice.mutate({
+      id: propertyId,
+      relationshipId: editingOfferId,
+      data: { askingPrice },
+    }, {
+      onSuccess: () => {
+        void queryClient.invalidateQueries({ queryKey: getGetMultiAgentPropertyQueryKey(propertyId) });
+        setEditingOfferId(null);
+        setOfferPriceDraft('');
+        toast({ title: 'Offer price updated' });
+      },
+      onError: () => toast({ title: 'Could not update offer price', description: 'Please try again.', variant: 'destructive' }),
     });
   };
 
@@ -1367,7 +1394,50 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
                             <p className="font-semibold text-sm">{offer.agencyName}</p>
                             {offer.mandateType === 'sole' && <p className="text-xs text-muted-foreground">{offer.agentName} · Sole mandate</p>}
                           </div>
-                          <p className="font-bold text-sm">{offer.currency} {offer.askingPrice.toLocaleString()}</p>
+                          <div className="flex items-center gap-2">
+                            {editingOfferId === offer.relationshipId ? (
+                              <>
+                                <span className="text-xs text-muted-foreground">{offer.currency}</span>
+                                <Input
+                                  aria-label={`${offer.agencyName} asking price`}
+                                  className="h-8 w-36 text-right"
+                                  type="text"
+                                  inputMode="decimal"
+                                  value={offerPriceDraft}
+                                  onChange={(event) => setOfferPriceDraft(event.target.value)}
+                                  disabled={updateAgencyOfferPrice.isPending}
+                                />
+                                <Button size="sm" onClick={handleSaveOfferPrice} disabled={updateAgencyOfferPrice.isPending}>
+                                  {updateAgencyOfferPrice.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Save'}
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => { setEditingOfferId(null); setOfferPriceDraft(''); }}
+                                  disabled={updateAgencyOfferPrice.isPending}
+                                >
+                                  Cancel
+                                </Button>
+                              </>
+                            ) : (
+                              <>
+                                <p className="font-bold text-sm">{offer.currency} {offer.askingPrice.toLocaleString()}</p>
+                                {offer.relationshipId != null && (offer.agentId === currentUser?.id || currentUser?.role === 'admin' || currentUser?.role === 'principal') && (
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    aria-label={`Edit ${offer.agencyName} offer price`}
+                                    onClick={() => {
+                                      setEditingOfferId(offer.relationshipId!);
+                                      setOfferPriceDraft(String(offer.askingPrice));
+                                    }}
+                                  >
+                                    <PenLine className="h-4 w-4" />
+                                  </Button>
+                                )}
+                              </>
+                            )}
+                          </div>
                         </div>
                         <p className="mt-2 text-xs text-muted-foreground capitalize">{offer.verificationStatus} verification · {offer.priceStatus ?? 'current'} price</p>
                          {offer.assets?.[0]?.attributionName && (
