@@ -491,3 +491,17 @@ mtime_ms = 1793971236635
 storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:cf900b3f-04ce-456b-888c-760ecb412036/e3c13539-d5af-43bd-8279-d3f9bde30970/fa3bfbce-5d46-40e0-b88c-02bb4ce6ba01"
 storage_version_token = "1793971270839532"
 content_type = "application/pdf"
+
+[[outputs]]
+id = "ofqPsmyKPLtHYeip3euAy"
+uri = "file://attached_assets/Brochure_without_blank_pages.pdf"
+type = "pdf"
+title = "Brochure without blank pages"
+description = "Three-page copy with the footers restored to the bottom of each content page; the original PDF remains unchanged."
+logical_id = "8bc31ce1-3da7-49e6-9231-3a681f2438dd"
+content_hash = "sha256:38113dec5f301fbb6d3031e383bd1a56cf7e6fade4ed62f6dbd37f91e10a8f4c"
+size = 1613275
+mtime_ms = 1794252214141
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:cf900b3f-04ce-456b-888c-760ecb412036/8bc31ce1-3da7-49e6-9231-3a681f2438dd/130d3250-c345-4728-a6b0-d337a97f8cc0"
+storage_version_token = "1794252346585594"
+content_type = "application/pdf"

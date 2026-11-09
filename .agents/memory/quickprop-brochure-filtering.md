@@ -39,6 +39,12 @@ For Expo mobile brochure PDFs, keep each A4 page within its print box and anchor
 
 **How to apply:** Use zero print margins, avoid extra page margins, position the footer within the page, and verify the exported PDF page count as well as the HTML preview.
 
+Expo's native print APIs default to US Letter (612 × 792 pt); `@page size: A4` alone does not set the PDF page box. Pass A4 width and height in 72-PPI points to every brochure `printAsync` and `printToFileAsync` call.
+
+**Why:** A 297 mm HTML page overflows the default Letter output, moving the footer onto a separate page.
+
+**How to apply:** Use `width: (210 / 25.4) * 72` and `height: (297 / 25.4) * 72`, keep print margins at zero, and verify the generated PDF page count.
+
 An admin or principal may explicitly link their profile to an active agent in the same branch; desktop “My Listings” then uses that agent's portfolio. Never infer this link from a matching name alone.
 
 **Why:** Admin and agent accounts can be separate profiles for the same person, and name-based matching could expose another agent's listings.

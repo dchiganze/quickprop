@@ -1,6 +1,11 @@
 import type { Property, User } from '@/types';
 import { resolveAgencyBrandColors } from '@/utils/propertyFlyer';
 
+export const BROCHURE_PRINT_OPTIONS = {
+  width: (210 / 25.4) * 72,
+  height: (297 / 25.4) * 72,
+} as const;
+
 type AgencyBranding = {
   agencyName?: string | null;
   logoUrl?: string | null;

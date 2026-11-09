@@ -13,7 +13,12 @@ import { useColors } from '@/hooks/useColors';
 import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
 import { Property } from '@/types';
-import { singlePropertyBrochureHtml, catalogueBrochureHtml, type BrochureAgent } from '@/utils/brochureHtml';
+import {
+  BROCHURE_PRINT_OPTIONS,
+  singlePropertyBrochureHtml,
+  catalogueBrochureHtml,
+  type BrochureAgent,
+} from '@/utils/brochureHtml';
 import { prepareBrochureMedia } from '@/utils/brochureMedia';
 import { buildPropertyShareMessage } from '@/utils/shareContent';
 import { openWhatsAppMessage } from '@/utils/whatsapp';
@@ -125,7 +130,7 @@ export function PropertyBrochureSheet({ visible, onClose, property }: PropertyBr
         { ...agencyBranding, logoUrl: preparedMedia.logoUrl },
         agents,
       );
-      await Print.printAsync({ html });
+      await Print.printAsync({ html, ...BROCHURE_PRINT_OPTIONS });
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : 'Could not generate brochure. Please try again.';
       if (!isPrintCancellation(e)) {
@@ -163,7 +168,7 @@ export function PropertyBrochureSheet({ visible, onClose, property }: PropertyBr
         { ...agencyBranding, logoUrl: preparedMedia.logoUrl },
         agents,
       );
-      const { uri } = await Print.printToFileAsync({ html });
+      const { uri } = await Print.printToFileAsync({ html, ...BROCHURE_PRINT_OPTIONS });
       if (!(await Sharing.isAvailableAsync())) {
         throw new Error('PDF sharing is not available on this device.');
       }
@@ -321,10 +326,10 @@ export function CatalogueBrochureSheet({ visible, onClose }: CatalogueBrochureSh
         { ...agencyBranding, logoUrl: preparedMedia.logoUrl },
       );
       if (action === 'print') {
-        await Print.printAsync({ html });
+        await Print.printAsync({ html, ...BROCHURE_PRINT_OPTIONS });
       } else {
         const Sharing: SharingModule = await import('expo-sharing');
-        const { uri } = await Print.printToFileAsync({ html });
+        const { uri } = await Print.printToFileAsync({ html, ...BROCHURE_PRINT_OPTIONS });
         if (!(await Sharing.isAvailableAsync())) {
           throw new Error('PDF sharing is not available on this device.');
         }

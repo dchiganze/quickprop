@@ -16,7 +16,7 @@ import { useColors } from '@/hooks/useColors';
 import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
 import { Property } from '@/types';
-import { catalogueBrochureHtml, BrochureAgent } from '@/utils/brochureHtml';
+import { BROCHURE_PRINT_OPTIONS, catalogueBrochureHtml, type BrochureAgent } from '@/utils/brochureHtml';
 import { prepareBrochureMedia } from '@/utils/brochureMedia';
 import {
   getGetAgencyPropertiesQueryKey,
@@ -289,9 +289,9 @@ export default function BrochureSetupScreen() {
         { ...agencyBranding, logoUrl: preparedMedia.logoUrl },
       );
       if (action === 'print') {
-        await Print.printAsync({ html });
+        await Print.printAsync({ html, ...BROCHURE_PRINT_OPTIONS });
       } else {
-        const { uri } = await Print.printToFileAsync({ html });
+        const { uri } = await Print.printToFileAsync({ html, ...BROCHURE_PRINT_OPTIONS });
         if (action === 'whatsapp') {
           await shareCataloguePdfToWhatsApp(uri, user?.name);
         } else {
