@@ -3,7 +3,7 @@ import { useLocation } from 'wouter';
 import { 
   useGetProperty, getGetPropertyQueryKey, useUpdateProperty, useMarkPropertySold, useGetPropertyPriceHistory, 
   useGetPropertyActivity, useGetSeller, getGetSellerQueryKey, useListViewings, useListDocuments,
-  useGenerateBrochure, useShareProperty 
+  useGenerateBrochure, useShareProperty, useListUsers
   , useGetMultiAgentProperty, useUpdatePropertyHealth, useGetAdminAgencySettings
 } from '@workspace/api-client-react';
 import { 
@@ -11,7 +11,7 @@ import {
   Tag, Download, Share2, PenLine, CheckCircle2, FileText, Eye, 
   Activity, ArrowUpRight, ArrowDownRight, Loader2, Image as ImageIcon,
   MessageCircle, Facebook, Linkedin, Mail, Link as LinkIcon, Copy, ChevronRight,
-  Upload, Video, X
+  Upload, Video, X, UserRound
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -168,10 +168,12 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
   const { data: viewings } = useListViewings({ propertyId });
   const { data: documents } = useListDocuments({ propertyId });
   const { data: multiAgent } = useGetMultiAgentProperty(propertyId);
+  const { data: officeUsers, isLoading: isLoadingUsers } = useListUsers();
   const { data: agencySettings } = useGetAdminAgencySettings();
   const agencyColors = getAgencyBrandColors(agencySettings);
   const sellerId = property?.sellerId;
   const { data: seller } = useGetSeller(sellerId || 0, { query: { enabled: !!sellerId, queryKey: getGetSellerQueryKey(sellerId || 0) }});
+  const assignedAgent = officeUsers?.find((user) => user.id === property?.agentId);
 
   const updateProperty = useUpdateProperty();
   const markPropertySold = useMarkPropertySold();
@@ -321,6 +323,22 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
       onError: () => {
         setSellingStatus(previousStatus);
         toast({ title: 'Could not update selling status', description: 'Please try again.', variant: 'destructive' });
+      },
+    });
+  };
+
+  const handleMandateTypeChange = (newMandateType: string) => {
+    if (newMandateType !== 'open' && newMandateType !== 'sole') return;
+    updateProperty.mutate({ id: propertyId, data: { mandateType: newMandateType } }, {
+      onSuccess: () => {
+        void queryClient.invalidateQueries({ queryKey: getGetPropertyQueryKey(propertyId) });
+        toast({
+          title: 'Mandate updated',
+          description: `This listing is now marked as a ${newMandateType === 'sole' ? 'sole' : 'open'} mandate.`,
+        });
+      },
+      onError: () => {
+        toast({ title: 'Could not update mandate', description: 'Please try again.', variant: 'destructive' });
       },
     });
   };
@@ -1572,34 +1590,67 @@ export default function PropertyDetail({ params }: { params: { id: string } }) {
           <Card>
             <CardHeader className="bg-muted/30 border-b border-border pb-4">
               <CardTitle className="text-sm font-bold uppercase tracking-wider text-muted-foreground flex justify-between items-center">
-                <span>Seller Info</span>
+                <span>Seller &amp; Agent</span>
                 {property.mandateType === 'sole' && <Badge variant="secondary" className="text-[10px]">Sole Mandate</Badge>}
               </CardTitle>
             </CardHeader>
             <CardContent className="p-4">
-              {seller ? (
-                <div className="space-y-3">
-                  <div>
-                    <div className="text-sm font-semibold">{seller.name}</div>
-                    <div className="text-xs text-muted-foreground">{seller.email || 'No email'}</div>
-                    <div className="text-xs text-muted-foreground">{seller.phone || 'No phone'}</div>
+              <div className="space-y-4">
+                <div className="flex items-start gap-3 rounded-md border bg-muted/20 p-3">
+                  <UserRound className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                  <div className="min-w-0">
+                    <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Assigned agent</div>
+                    <div className="truncate text-sm font-semibold">
+                      {assignedAgent?.name
+                        ?? (property.agentId == null ? 'No agent assigned' : isLoadingUsers ? 'Loading agent…' : `Agent #${property.agentId}`)}
+                    </div>
+                    {assignedAgent?.email && <div className="truncate text-xs text-muted-foreground">{assignedAgent.email}</div>}
+                    {assignedAgent && assignedAgent.status !== 'active' && (
+                      <div className="mt-1 text-xs text-destructive">Agent profile is {assignedAgent.status}.</div>
+                    )}
                   </div>
-                  {property.mandateExpiry && (
-                    <div className="pt-3 border-t text-xs flex justify-between items-center">
-                      <span className="text-muted-foreground">Mandate Expires:</span>
-                      <span className="font-medium text-destructive">{format(new Date(property.mandateExpiry), 'MMM d, yyyy')}</span>
-                    </div>
-                  )}
-                  {property.commissionPercent && (
-                    <div className="text-xs flex justify-between items-center">
-                      <span className="text-muted-foreground">Commission:</span>
-                      <span className="font-medium">{property.commissionPercent}%</span>
-                    </div>
-                  )}
                 </div>
-              ) : (
-                <div className="text-sm text-muted-foreground text-center py-4">No seller assigned.</div>
-              )}
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-xs font-medium text-muted-foreground">Listing mandate</span>
+                  <Select
+                    value={property.mandateType === 'open' ? 'open' : 'sole'}
+                    onValueChange={handleMandateTypeChange}
+                    disabled={updateProperty.isPending}
+                  >
+                    <SelectTrigger className="h-8 w-[150px] bg-background" aria-label="Listing mandate">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="open">Open mandate</SelectItem>
+                      <SelectItem value="sole">Sole mandate</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                {seller ? (
+                  <div className="space-y-3 border-t pt-3">
+                    <div>
+                      <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Seller</div>
+                      <div className="text-sm font-semibold">{seller.name}</div>
+                      <div className="text-xs text-muted-foreground">{seller.email || 'No email'}</div>
+                      <div className="text-xs text-muted-foreground">{seller.phone || 'No phone'}</div>
+                    </div>
+                    {property.mandateExpiry && (
+                      <div className="pt-3 border-t text-xs flex justify-between items-center">
+                        <span className="text-muted-foreground">Mandate Expires:</span>
+                        <span className="font-medium text-destructive">{format(new Date(property.mandateExpiry), 'MMM d, yyyy')}</span>
+                      </div>
+                    )}
+                    {property.commissionPercent && (
+                      <div className="text-xs flex justify-between items-center">
+                        <span className="text-muted-foreground">Commission:</span>
+                        <span className="font-medium">{property.commissionPercent}%</span>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="border-t pt-3 text-sm text-muted-foreground">No seller assigned.</div>
+                )}
+              </div>
             </CardContent>
           </Card>
           
