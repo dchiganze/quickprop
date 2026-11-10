@@ -99,6 +99,12 @@ Standard property sharing should generate a branded flyer, with template choices
 
 **How to apply:** WhatsApp gets the flyer plus “For my full catalogue on QuickProp click this link” and the sharing agent's catalogue URL. Facebook, LinkedIn, TikTok and Instagram get the flyer only, with no caption or automatic browser composer. This supersedes the earlier link-only LinkedIn workaround. Keep the WhatsApp caption copied when an external app drops attachment text; do not promise platform-controlled caption prefilling or direct app handoff without device verification.
 
+Catalogue brochures should have one “Share PDF” action, not a separate WhatsApp button. The native share sheet sends the PDF with the dynamic agent-catalogue caption; copy the caption as a fallback in Expo Go.
+
+**Why:** The user chose a single PDF-sharing flow while keeping the WhatsApp caption available when WhatsApp is selected.
+
+**How to apply:** Use the agent's normalized name in the catalogue URL and pass both the PDF and caption to the system share sheet. In Expo Go, share the PDF and copy the caption because its native share module cannot attach both together.
+
 Configured branding logos are staff-shared assets, unlike private listing media. Check media authorisation before treating a missing logo as a layout problem.
 
 **Why:** An admin-uploaded logo existed in live Office branding settings, but owner-only media rules prevented other agents from loading it. The separate agency profile had no logo, so checking only that record would also give the wrong diagnosis.

@@ -28,7 +28,7 @@ import {
 } from '@workspace/api-client-react';
 import { getStoredMediaObjectPath } from '@/utils/listingPhoto';
 import { isPrintCancellation } from '@/utils/printCancellation';
-import { shareCataloguePdfToWhatsApp } from '@/utils/whatsapp';
+import { shareCataloguePdfWithCaption } from '@/utils/whatsapp';
 
 type BrochureMode = 'my' | 'company' | 'custom';
 type ListingFilter = 'sale' | 'rent';
@@ -249,7 +249,7 @@ export default function BrochureSetupScreen() {
     });
   };
 
-  const generate = async (action: 'print' | 'share' | 'whatsapp') => {
+  const generate = async (action: 'print' | 'share') => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
     setLoading(true);
     try {
@@ -292,13 +292,7 @@ export default function BrochureSetupScreen() {
         await Print.printAsync({ html, ...BROCHURE_PRINT_OPTIONS });
       } else {
         const { uri } = await Print.printToFileAsync({ html, ...BROCHURE_PRINT_OPTIONS });
-        if (action === 'whatsapp') {
-          await shareCataloguePdfToWhatsApp(uri, user?.name);
-        } else {
-          const Sharing: typeof import('expo-sharing') = await import('expo-sharing');
-          if (!(await Sharing.isAvailableAsync())) throw new Error('PDF sharing is not available on this device.');
-          await Sharing.shareAsync(uri, { mimeType: 'application/pdf', dialogTitle: 'Share Property Brochure' });
-        }
+        await shareCataloguePdfWithCaption(uri, user?.name);
       }
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Could not generate brochure. Please try again.';
@@ -453,17 +447,6 @@ export default function BrochureSetupScreen() {
             <TouchableOpacity style={[styles.generateButton, { borderColor: colors.primaryForeground }]} onPress={() => generate('share')} disabled={loading || brandingLoading || filteredProperties.length === 0}>
               <Ionicons name="share-outline" size={18} color={colors.primaryForeground} />
               <Text style={styles.generateTextSecondary}>Share PDF</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.generateButton, { borderColor: colors.primaryForeground }]}
-              onPress={() => generate('whatsapp')}
-              disabled={loading || brandingLoading || filteredProperties.length === 0}
-              accessibilityRole="button"
-              accessibilityLabel="Share brochure PDF with WhatsApp caption"
-              testID="brochure-whatsapp-share"
-            >
-              <Ionicons name="logo-whatsapp" size={18} color={colors.primaryForeground} />
-              <Text style={styles.generateTextSecondary}>Share to WhatsApp</Text>
             </TouchableOpacity>
           </View>
         </View>

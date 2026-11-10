@@ -152,19 +152,25 @@ export async function shareCatalogueToWhatsApp(
   return { caption, sharedPhoto: true };
 }
 
-export async function shareCataloguePdfToWhatsApp(
+export async function shareCataloguePdfWithCaption(
   pdfUri: string,
   agentName?: string,
 ): Promise<{ caption: string }> {
   const caption = buildCatalogueWhatsAppCaption(agentName);
+  await Clipboard.setStringAsync(caption).catch(() => {});
 
   if (Platform.OS === 'web') {
-    throw new Error('Sharing a brochure PDF with its WhatsApp caption requires the installed QuickProp Agent app.');
+    throw new Error('Sharing a brochure PDF with its caption requires the installed QuickProp Agent app.');
   }
   if (isExpoGo) {
-    throw new Error(
-      'Brochure PDF and caption sharing requires the installed QuickProp Agent app. Expo Go cannot attach both together.',
-    );
+    if (!(await Sharing.isAvailableAsync())) {
+      throw new Error('PDF sharing is not available on this device.');
+    }
+    await Sharing.shareAsync(pdfUri, {
+      mimeType: 'application/pdf',
+      dialogTitle: 'Share Property Brochure',
+    });
+    return { caption };
   }
 
   try {
