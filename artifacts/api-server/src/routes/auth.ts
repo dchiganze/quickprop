@@ -50,6 +50,7 @@ import {
   ADMIN_PASSWORD_RESET_TTL_MS,
   ADMIN_RECOVERY_COMPLETED_AUDIT_ACTION,
   ADMIN_RECOVERY_COOLDOWN_MS,
+  canUseEmailPasswordSetup,
   createPasswordSetupCode,
   hashAgentSetupToken,
   createAdminPasswordResetToken,
@@ -263,12 +264,7 @@ router.post("/auth/password-setup/request", async (req, res): Promise<void> => {
       .where(eq(usersTable.email, email))
       .limit(1)
       .for("update");
-    if (
-      !lockedUser
-      || lockedUser.status !== "active"
-      || !lockedUser.passwordSetupRequired
-      || !PHONE_LOGIN_ROLES.has(lockedUser.role)
-    ) {
+    if (!lockedUser || !canUseEmailPasswordSetup(lockedUser)) {
       return null;
     }
 
@@ -351,12 +347,7 @@ router.post("/auth/password-setup/complete", async (req, res): Promise<void> => 
       .where(eq(usersTable.email, email))
       .limit(1)
       .for("update");
-    if (
-      !user
-      || user.status !== "active"
-      || !user.passwordSetupRequired
-      || !PHONE_LOGIN_ROLES.has(user.role)
-    ) {
+    if (!user || !canUseEmailPasswordSetup(user)) {
       return { kind: "invalid" as const };
     }
 

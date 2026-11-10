@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
+  canUseEmailPasswordSetup,
   createAdminPasswordResetToken,
   createAgentSetupToken,
   createPasswordSetupCode,
@@ -42,6 +43,47 @@ test("first-time password codes are eight digits and are HMAC-bound to the user"
   assert.equal(hashPasswordSetupCode(code, 42, "test-session-secret"), hash);
   assert.notEqual(hashPasswordSetupCode(code, 43, "test-session-secret"), hash);
   assert.notEqual(hashPasswordSetupCode(code, 42, "another-session-secret"), hash);
+});
+
+test("active agents can request and verify email setup codes without an admin-set flag", () => {
+  assert.equal(canUseEmailPasswordSetup({
+    role: "agent",
+    status: "active",
+    passwordSetupRequired: false,
+  }), true);
+  assert.equal(canUseEmailPasswordSetup({
+    role: "senior_agent",
+    status: "active",
+    passwordSetupRequired: false,
+  }), true);
+});
+
+test("email-code password setup preserves role and account-status gates", () => {
+  assert.equal(canUseEmailPasswordSetup({
+    role: "principal",
+    status: "active",
+    passwordSetupRequired: false,
+  }), false);
+  assert.equal(canUseEmailPasswordSetup({
+    role: "admin",
+    status: "active",
+    passwordSetupRequired: true,
+  }), true);
+  assert.equal(canUseEmailPasswordSetup({
+    role: "agent",
+    status: "invited",
+    passwordSetupRequired: false,
+  }), false);
+  assert.equal(canUseEmailPasswordSetup({
+    role: "agent",
+    status: "inactive",
+    passwordSetupRequired: false,
+  }), false);
+  assert.equal(canUseEmailPasswordSetup({
+    role: "buyer",
+    status: "active",
+    passwordSetupRequired: false,
+  }), false);
 });
 
 test("admin passwords require ten characters, a letter, a number, and a symbol", () => {

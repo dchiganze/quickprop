@@ -9,6 +9,19 @@ export const PASSWORD_SETUP_CODE_TTL_MS = 10 * 60_000;
 export const PASSWORD_SETUP_CODE_COOLDOWN_MS = 60_000;
 export const PASSWORD_SETUP_CODE_MAX_ATTEMPTS = 5;
 
+const PASSWORD_SETUP_SUPPORTED_ROLES = new Set(["agent", "senior_agent", "principal", "admin"]);
+const SELF_SERVICE_AGENT_PASSWORD_ROLES = new Set(["agent", "senior_agent"]);
+
+export function canUseEmailPasswordSetup(account: {
+  role: string;
+  status: string;
+  passwordSetupRequired: boolean;
+}): boolean {
+  return account.status === "active"
+    && PASSWORD_SETUP_SUPPORTED_ROLES.has(account.role)
+    && (account.passwordSetupRequired || SELF_SERVICE_AGENT_PASSWORD_ROLES.has(account.role));
+}
+
 export function normalizeAdminRecoveryEmail(value: string | undefined): string | null {
   const normalized = value?.trim().toLowerCase();
   return normalized && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized) ? normalized : null;
