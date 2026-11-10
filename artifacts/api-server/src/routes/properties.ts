@@ -47,6 +47,7 @@ import { matchPropertyToAlerts } from "../lib/property-alerts";
 import { logger } from "../lib/logger";
 import { isPublicProperty, syncPropertyToProduction } from "../lib/publication-sync";
 import { hasValidListingPrice, isDraftPropertyState, needsPublicationPhoto } from "../lib/property-drafts";
+import { canAssignPropertyToAgent } from "../lib/property-assignment";
 import {
   createPropertySaleConfirmationToken,
   hashPropertySaleConfirmationToken,
@@ -287,8 +288,8 @@ router.post("/properties", async (req, res): Promise<void> => {
   let assignedAgentId: number | null = null;
   let assignmentBranchId = parsed.data.branchId ?? user?.branchId ?? null;
   if (requestedAgentId != null) {
-    if ((user?.role === "agent" || user?.role === "senior_agent") && requestedAgentId !== user.id) {
-      res.status(403).json({ error: "Agents can only assign their own properties." });
+    if (!canAssignPropertyToAgent(user, requestedAgentId)) {
+      res.status(403).json({ error: "Administrator access is required to assign a listing to another agent." });
       return;
     }
     const agent = await activeAgent(requestedAgentId);

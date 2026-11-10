@@ -99,9 +99,10 @@ export function AddPropertyDialog() {
   const { data: currentUser } = useGetCurrentUser();
   const { data: branchOptions } = useGetImportBranches();
   const isAgentUser = currentUser?.role === 'agent' || currentUser?.role === 'senior_agent';
+  const hasAgentAssignmentAccess = currentUser?.role === 'admin' || currentUser?.role === 'principal';
   const selectedAgentId = assignedAgentId || (isAgentUser && currentUser ? String(currentUser.id) : '');
   const availableAgents = (branchOptions?.agents ?? []).filter((agent) =>
-    isAgentUser ? agent.id === currentUser?.id : true
+    isAgentUser ? agent.id === currentUser?.id : hasAgentAssignmentAccess
   );
   const selectedAgent = availableAgents.find((agent) => String(agent.id) === selectedAgentId)
     ?? (isAgentUser && currentUser?.branchId != null
@@ -467,30 +468,29 @@ export function AddPropertyDialog() {
               <Input id="np-city" value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} />
             </div>
           </div>
-          <div className="grid gap-2">
-            <Label htmlFor="np-assigned-agent">Assigned agent</Label>
-            <Select
-              value={selectedAgentId || 'unassigned'}
-              onValueChange={(value) => setAssignedAgentId(value === 'unassigned' ? '' : value)}
-              disabled={isAgentUser || availableAgents.length === 0}
-            >
-              <SelectTrigger id="np-assigned-agent"><SelectValue placeholder="Choose an active agent" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="unassigned">Choose an active agent</SelectItem>
-                {selectedAgent && !availableAgents.some((agent) => agent.id === selectedAgent.id) && (
-                  <SelectItem value={String(selectedAgent.id)}>{selectedAgent.name}</SelectItem>
-                )}
-                {availableAgents.map((agent) => (
-                  <SelectItem key={agent.id} value={String(agent.id)}>
-                    {agent.name}{branchNameById.has(agent.branchId) ? ` · ${branchNameById.get(agent.branchId)}` : ''}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-muted-foreground">
-              Every new draft must be assigned to an active agent in its branch.
-            </p>
-          </div>
+          {hasAgentAssignmentAccess && (
+            <div className="grid gap-2">
+              <Label htmlFor="np-assigned-agent">Agent for this listing</Label>
+              <Select
+                value={selectedAgentId || 'unassigned'}
+                onValueChange={(value) => setAssignedAgentId(value === 'unassigned' ? '' : value)}
+                disabled={availableAgents.length === 0}
+              >
+                <SelectTrigger id="np-assigned-agent" data-testid="select-assigned-agent"><SelectValue placeholder="Choose an active agent" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="unassigned">Choose an active agent</SelectItem>
+                  {availableAgents.map((agent) => (
+                    <SelectItem key={agent.id} value={String(agent.id)}>
+                      {agent.name}{branchNameById.has(agent.branchId) ? ` · ${branchNameById.get(agent.branchId)}` : ''}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Admins can assign this listing to an active agent in their agency.
+              </p>
+            </div>
+          )}
           <div className="grid gap-3 rounded-lg border border-border bg-muted/30 p-4">
             <div className="grid gap-2">
               <Label htmlFor="np-address">Property address <span className="font-normal text-muted-foreground">(optional)</span></Label>

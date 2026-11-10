@@ -61,6 +61,7 @@ export interface Property {
     notes: string;
   };
   agentId: string;
+  branchId?: number;
   createdAt: string;
   updatedAt: string;
   freshnessStatus?: 'new' | 'fresh' | 'due' | 'update_required' | 'potentially_stale' | 'stale' | 'inactive';

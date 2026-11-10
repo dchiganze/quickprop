@@ -21,6 +21,12 @@ Changing an existing user's assigned branch changes their branch-scoped access. 
 
 **How to apply:** Validate branch status and agency status on the server, audit the previous and next assignment, and explain the access impact before confirming.
 
+Administrator access allows assigning a new property to another active agent; ordinary agents remain self-assigned, and the existing agency/branch boundary still applies.
+
+**Why:** The user requested that an agent account with administrator access be able to create listings for other agents.
+
+**How to apply:** Restrict agent selection to administrator-access accounts in Office and mobile, carry the selected agent and branch through mobile offline sync, and enforce assignment authorization on the server.
+
 Collaboration should work like Hinge: an agent requests to collaborate on another agent's property; the listing agent sees who requested and can accept or decline. Declining must not notify the requester. Only an accepted match sends a match notification to the requesting agent. Both agents gain access to each other's phone numbers after acceptance, not before.
 
 **Why:** The user explicitly specified this collaboration and contact-privacy behaviour.

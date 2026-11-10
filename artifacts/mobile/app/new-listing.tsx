@@ -12,6 +12,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { useColors } from '@/hooks/useColors';
 import { useData } from '@/contexts/DataContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { getGetImportBranchesQueryKey, useGetImportBranches } from '@workspace/api-client-react';
 import { FeatureChip } from '@/components/FeatureChip';
 import { StepIndicator } from '@/components/StepIndicator';
 import { PROPERTY_FEATURES, Property } from '@/types';
@@ -185,11 +186,27 @@ export default function NewListingScreen() {
   const { user } = useAuth();
   const { addProperty } = useData();
   const { isOnline } = useNetworkStatus();
+  const isAdminAccess = user?.role === 'administrator';
+  const agentRoster = useGetImportBranches({
+    query: {
+      enabled: isAdminAccess,
+      queryKey: getGetImportBranchesQueryKey(),
+      staleTime: 5 * 60 * 1000,
+    },
+  });
   const [step, setStep] = useState(0);
   const [form, setForm] = useState<FormData>(defaultForm);
+  const [assignedAgentId, setAssignedAgentId] = useState('');
+  const [agentNameSearch, setAgentNameSearch] = useState('');
   const [saving, setSaving] = useState(false);
   const [validationAttempted, setValidationAttempted] = useState(false);
   const [viewingDate, setViewingDate] = useState(dateKey(viewingDates()[0]));
+  const activeAgents = agentRoster.data?.agents ?? [];
+  const selectedAgent = activeAgents.find(agent => String(agent.id) === assignedAgentId);
+  const branchesById = new Map((agentRoster.data?.branches ?? []).map(branch => [branch.id, branch.name]));
+  const matchingAgents = activeAgents
+    .filter(agent => !agentNameSearch.trim() || agent.name.toLowerCase().includes(agentNameSearch.trim().toLowerCase()))
+    .slice(0, 6);
 
   const set = (key: keyof FormData, value: any) => setForm(f => ({
     ...f,
@@ -375,8 +392,11 @@ export default function NewListingScreen() {
         mandateType: normalizeMandateType(form.mandateType),
         notes: form.sellerNotes,
       },
-        agentId: user?.id ?? 'agent-001',
+         agentId: selectedAgent ? String(selectedAgent.id) : user?.id ?? 'agent-001',
+         branchId: isAdminAccess ? selectedAgent?.branchId : undefined,
       });
+       setAssignedAgentId('');
+       setAgentNameSearch('');
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       const waitingToSync = property.syncStatus === 'queued';
       const waitingToPublish = waitingToSync && property.pendingStatus === 'published';
@@ -410,6 +430,7 @@ export default function NewListingScreen() {
     if (form.bathrooms < 0) missing.push('bathrooms');
     if (form.garages < 0) missing.push('garages');
     if (!form.referenceNumber.trim()) missing.push('reference number');
+    if (isAdminAccess && !selectedAgent) missing.push('assigned agent');
     return missing;
   };
 
@@ -423,7 +444,7 @@ export default function NewListingScreen() {
       4: ['valid price', 'bedrooms', 'bathrooms', 'garages', 'reference number', 'title deed status'],
       5: [],
       6: [],
-      7: [],
+      7: ['assigned agent'],
       8: [],
       9: missing,
     };
@@ -793,6 +814,73 @@ export default function NewListingScreen() {
             <Ionicons name="lock-closed-outline" size={14} color={colors.primary} />
             <Text style={[styles.privateNoteText, { color: colors.mutedForeground }]}>This information is private and never visible to the public.</Text>
           </View>
+          {isAdminAccess && (
+            <Field label="AGENT FOR THIS LISTING *" error={fieldError('assigned agent')}>
+              <>
+                <TextInput
+                  style={[inputStyle, fieldError('assigned agent') && { borderColor: colors.destructive }]}
+                  value={selectedAgent?.name ?? agentNameSearch}
+                  onChangeText={value => {
+                    setAssignedAgentId('');
+                    setAgentNameSearch(value);
+                  }}
+                  placeholder={agentRoster.isLoading ? 'Loading active agents…' : 'Search by agent name'}
+                  placeholderTextColor={colors.mutedForeground}
+                  editable={!agentRoster.isLoading && !agentRoster.isError}
+                  accessibilityLabel="Search for the agent assigned to this listing"
+                  testID="input-assigned-agent"
+                />
+                {agentRoster.isLoading && (
+                  <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>Loading active agents…</Text>
+                )}
+                {agentRoster.isError && (
+                  <TouchableOpacity
+                    onPress={() => { void agentRoster.refetch(); }}
+                    accessibilityRole="button"
+                    testID="button-retry-agent-list"
+                  >
+                    <Text style={{ color: colors.destructive, fontSize: 12 }}>Could not load agents. Tap to retry.</Text>
+                  </TouchableOpacity>
+                )}
+                {!agentRoster.isLoading && !agentRoster.isError && !selectedAgent && matchingAgents.length > 0 && (
+                  <View style={{ gap: 6 }}>
+                    {matchingAgents.map(agent => (
+                      <TouchableOpacity
+                        key={agent.id}
+                        onPress={() => {
+                          setAssignedAgentId(String(agent.id));
+                          setAgentNameSearch(agent.name);
+                          Haptics.selectionAsync();
+                        }}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Assign this listing to ${agent.name}`}
+                        style={{
+                          borderWidth: 1,
+                          borderColor: colors.border,
+                          borderRadius: 10,
+                          paddingHorizontal: 12,
+                          paddingVertical: 10,
+                          backgroundColor: colors.card,
+                        }}
+                        testID={`button-assign-agent-${agent.id}`}
+                      >
+                        <Text style={{ color: colors.foreground, fontWeight: '600' }}>{agent.name}</Text>
+                        <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>
+                          {branchesById.get(agent.branchId) ?? 'Active agent'}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
+                {!agentRoster.isLoading && !agentRoster.isError && matchingAgents.length === 0 && !selectedAgent && (
+                  <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>No active agents match that name.</Text>
+                )}
+                <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>
+                  Choose an active agent in your agency. Only administrator accounts can assign listings to other agents.
+                </Text>
+              </>
+            </Field>
+          )}
           <Field label={`${form.type === 'rent' ? 'LANDLORD' : 'SELLER'} NAME *`} error={fieldError('seller name')}><TextInput style={[inputStyle, fieldError('seller name') && { borderColor: colors.destructive }]} value={form.sellerName} onChangeText={v => set('sellerName', v)} placeholder="Robert Chikwanda" placeholderTextColor={colors.mutedForeground} /></Field>
           <Field label="PHONE *" error={fieldError('seller phone')}><TextInput style={[inputStyle, fieldError('seller phone') && { borderColor: colors.destructive }]} value={form.sellerPhone} onChangeText={v => set('sellerPhone', v)} placeholder="+263 77 123 4567" placeholderTextColor={colors.mutedForeground} keyboardType="phone-pad" /></Field>
           <Field label="EMAIL *" error={fieldError('seller email')}><TextInput style={[inputStyle, fieldError('seller email') && { borderColor: colors.destructive }]} value={form.sellerEmail} onChangeText={v => set('sellerEmail', v)} placeholder="seller@email.com" placeholderTextColor={colors.mutedForeground} keyboardType="email-address" autoCapitalize="none" /></Field>
