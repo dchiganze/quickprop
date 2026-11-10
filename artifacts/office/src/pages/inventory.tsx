@@ -852,8 +852,16 @@ export default function Inventory() {
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [status, setStatus] = useState<string>('all');
+  const [agentFilter, setAgentFilter] = useState<string>('all');
   const [listingType, setListingType] = useState<string>('all');
   const [viewMode, setViewMode] = useState('grid');
+  const { data: branchOptions, isLoading: agentOptionsLoading } = useGetImportBranches();
+  const branchNameById = new Map((branchOptions?.branches ?? []).map((branch) => [branch.id, branch.name]));
+  const propertyFilters = {
+    status: status !== 'all' ? status : undefined,
+    listingType: listingType !== 'all' ? listingType : undefined,
+    agentId: agentFilter !== 'all' ? Number(agentFilter) : undefined,
+  };
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search.trim()), 350);
@@ -863,17 +871,11 @@ export default function Inventory() {
   const searching = debouncedSearch.length > 0;
 
   const { data: listData, isLoading: listLoading } = useListProperties(
-    {
-      status: status !== 'all' ? status : undefined,
-      listingType: listingType !== 'all' ? listingType : undefined,
-    },
+    propertyFilters,
     {
       query: {
         enabled: !searching,
-        queryKey: getListPropertiesQueryKey({
-          status: status !== 'all' ? status : undefined,
-          listingType: listingType !== 'all' ? listingType : undefined,
-        }),
+        queryKey: getListPropertiesQueryKey(propertyFilters),
       },
     },
   );
@@ -886,6 +888,7 @@ export default function Inventory() {
   const properties = searching
     ? searchData?.properties?.filter(
         (p) =>
+          (agentFilter === 'all' || String(p.agentId ?? '') === agentFilter) &&
           (status === 'all' || p.status === status) &&
           (listingType === 'all' || p.listingType === listingType),
       )
@@ -914,6 +917,27 @@ export default function Inventory() {
         </div>
         
         <div className="flex items-center gap-3 w-full md:w-auto">
+          <Select value={agentFilter} onValueChange={setAgentFilter}>
+            <SelectTrigger className="w-[160px] h-11 bg-background" data-testid="filter-inventory-agent">
+              <SelectValue placeholder="All Agents" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Agents</SelectItem>
+              {branchOptions?.agents?.map((agent) => {
+                const branchName = agent.branchId == null ? undefined : branchNameById.get(agent.branchId);
+                return (
+                  <SelectItem key={agent.id} value={String(agent.id)}>
+                    {branchName ? `${agent.name} · ${branchName}` : agent.name}
+                  </SelectItem>
+                );
+              })}
+              {agentOptionsLoading && <SelectItem value="loading" disabled>Loading agents…</SelectItem>}
+              {!agentOptionsLoading && (branchOptions?.agents?.length ?? 0) === 0 && (
+                <SelectItem value="none" disabled>No active agents</SelectItem>
+              )}
+            </SelectContent>
+          </Select>
+
           <Select value={status} onValueChange={setStatus}>
             <SelectTrigger className="w-[140px] h-11 bg-background">
               <SelectValue placeholder="Status" />

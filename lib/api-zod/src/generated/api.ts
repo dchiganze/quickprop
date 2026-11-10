@@ -3096,8 +3096,12 @@ export const UpdatePropertyHealthResponse = zod.object({
 /**
  * @summary Public property listings (no auth required)
  */
+
+
+
 export const ListPublicPropertiesQueryParams = zod.object({
   "listingType": zod.coerce.string().optional(),
+  "agentId": zod.coerce.number().min(1).optional(),
   "propertyType": zod.coerce.string().optional(),
   "suburb": zod.coerce.string().optional(),
   "city": zod.coerce.string().optional(),

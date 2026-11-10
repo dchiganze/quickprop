@@ -3382,6 +3382,10 @@ q: string;
 
 export type ListPublicPropertiesParams = {
 listingType?: string;
+/**
+ * @minimum 1
+ */
+agentId?: number;
 propertyType?: string;
 suburb?: string;
 city?: string;

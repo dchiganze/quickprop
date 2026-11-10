@@ -92,16 +92,22 @@ router.get("/public/stats", async (_req, res): Promise<void> => {
 /* ─── GET /public/properties ───────────────────────────────────────────── */
 router.get("/public/properties", async (req, res): Promise<void> => {
   const {
-    listingType, propertyType, suburb, city, q,
+    listingType, agentId, propertyType, suburb, city, q,
     minPrice, maxPrice, minBeds, minBaths,
     page = "1", limit = "12", sort = "newest",
   } = req.query as Record<string, string>;
+  const agentFilterId = agentId === undefined ? undefined : Number(agentId);
+  if (agentId !== undefined && (!Number.isSafeInteger(agentFilterId) || agentFilterId! < 1)) {
+    res.status(400).json({ error: "Choose a valid agent." });
+    return;
+  }
 
   const conditions = [
     inArray(propertiesTable.status, PUBLIC_STATUSES),
     inArray(propertiesTable.availabilityStatus, PUBLIC_AVAILABILITY_STATUSES),
   ];
   if (listingType) conditions.push(eq(propertiesTable.listingType, listingType));
+  if (agentFilterId !== undefined) conditions.push(eq(propertiesTable.agentId, agentFilterId));
   if (propertyType) conditions.push(eq(propertiesTable.propertyType, propertyType));
   if (suburb) {
     const suburbs = suburb.split(",").map((value) => value.trim()).filter(Boolean);
@@ -146,7 +152,9 @@ router.get("/public/properties", async (req, res): Promise<void> => {
   const groupedRows = (await Promise.all(
     [...grouped.values()].map(async (row) => getCanonicalProperty(row.id)),
   )).filter((property): property is NonNullable<typeof property> => (
-    property != null && PUBLIC_STATUSES.includes(property.status)
+    property != null
+    && PUBLIC_STATUSES.includes(property.status)
+    && (agentFilterId === undefined || property.agentId === agentFilterId)
   ));
   if (sort === "price_asc") groupedRows.sort((a, b) => a.price - b.price);
   else if (sort === "price_desc") groupedRows.sort((a, b) => b.price - a.price);

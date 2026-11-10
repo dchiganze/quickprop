@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import {
-  View, Text, FlatList, ScrollView, TouchableOpacity, StyleSheet, Platform, RefreshControl, ActivityIndicator,
+  View, Text, TextInput, FlatList, ScrollView, TouchableOpacity, StyleSheet, Platform, RefreshControl, ActivityIndicator,
 } from 'react-native';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
@@ -9,8 +9,10 @@ import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import {
   getGetAgencyPropertiesQueryKey,
+  getListPublicAgentsQueryKey,
   listPublicProperties,
   useGetAgencyProperties,
+  useListPublicAgents,
   type PublicProperty,
 } from '@workspace/api-client-react';
 import { useColors } from '@/hooks/useColors';
@@ -159,15 +161,45 @@ export default function ListingsScreen() {
   const [query, setQuery] = useState('');
   const [scope, setScope] = useState<ListingScope>('all');
   const [statusFilter, setStatusFilter] = useState<MyStatusFilter>('all');
+  const [agentFilter, setAgentFilter] = useState('');
+  const [agentMenuOpen, setAgentMenuOpen] = useState(false);
+  const [agentSearch, setAgentSearch] = useState('');
   const [shareOpen, setShareOpen] = useState(false);
   const [alertsOpen, setAlertsOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
+  const publicAgentsQuery = useListPublicAgents({
+    query: {
+      enabled: agentMenuOpen,
+      queryKey: getListPublicAgentsQueryKey(),
+      staleTime: 5 * 60_000,
+    },
+  });
+  const agentOptions = useMemo(() => {
+    const options = (publicAgentsQuery.data ?? []).map((agent) => ({
+      id: String(agent.id),
+      name: agent.name,
+      detail: agent.branchName || agent.agencyName || '',
+    }));
+    if (user && !options.some((agent) => agent.id === String(user.id))) {
+      options.push({ id: String(user.id), name: user.name, detail: '' });
+    }
+    return options.sort((a, b) => a.name.localeCompare(b.name));
+  }, [publicAgentsQuery.data, user]);
+  const visibleAgentOptions = useMemo(() => {
+    const term = agentSearch.trim().toLowerCase();
+    return term
+      ? agentOptions.filter((agent) => agent.name.toLowerCase().includes(term) || agent.detail.toLowerCase().includes(term))
+      : agentOptions;
+  }, [agentOptions, agentSearch]);
+  const selectedAgent = agentOptions.find((agent) => agent.id === agentFilter);
+  const publicAgentId = /^\d+$/.test(agentFilter) ? Number(agentFilter) : undefined;
+
   const publicFeed = useInfiniteQuery({
-    queryKey: ['mobile-public-properties'],
+    queryKey: ['mobile-public-properties', agentFilter || 'all'],
     initialPageParam: 1,
     queryFn: ({ pageParam, signal }) => listPublicProperties(
-      { page: pageParam, limit: 20, sort: 'newest' },
+      { page: pageParam, limit: 20, sort: 'newest', agentId: publicAgentId },
       { signal },
     ),
     getNextPageParam: (lastPage) => (
@@ -211,6 +243,10 @@ export default function ListingsScreen() {
         ? [...agencyProperties]
         : properties.filter((property) => property.agentId === user?.id);
 
+    if (agentFilter) {
+      list = list.filter((property) => property.agentId === agentFilter);
+    }
+
     if (scope === 'my' && statusFilter !== 'all') {
       list = list.filter((property) => property.status === statusFilter);
     }
@@ -221,7 +257,7 @@ export default function ListingsScreen() {
     }
 
     return list.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
-  }, [scope, statusFilter, properties, publicProperties, agencyProperties, query, user?.id]);
+  }, [scope, statusFilter, properties, publicProperties, agencyProperties, query, user?.id, agentFilter]);
 
   const agencyFilterLabel = agencyName === 'Agency Listings' ? SCOPE_FILTERS[2].label : agencyName;
   const feedLoading = scope === 'all'
@@ -263,6 +299,108 @@ export default function ListingsScreen() {
           onChangeText={setQuery}
           placeholder="Search suburb, beds, solar, owner, ref…"
         />
+
+        <View style={styles.agentFilterWrap}>
+          <TouchableOpacity
+            style={[styles.agentFilterButton, { backgroundColor: colors.muted, borderColor: colors.border }]}
+            onPress={() => {
+              setAgentMenuOpen((open) => !open);
+              setAgentSearch('');
+            }}
+            accessibilityRole="button"
+            accessibilityLabel={selectedAgent ? `Filter by agent, ${selectedAgent.name}` : 'Filter by agent, all agents'}
+            accessibilityState={{ expanded: agentMenuOpen }}
+            testID="mobile-agent-filter"
+          >
+            <Ionicons name="people-outline" size={17} color={colors.mutedForeground} />
+            <Text numberOfLines={1} style={[styles.agentFilterButtonText, { color: colors.foreground }]}>
+              {selectedAgent ? selectedAgent.name : 'All agents'}
+            </Text>
+            <Ionicons name={agentMenuOpen ? 'chevron-up' : 'chevron-down'} size={16} color={colors.mutedForeground} />
+          </TouchableOpacity>
+
+          {agentMenuOpen && (
+            <View style={[styles.agentDropdown, { backgroundColor: colors.background, borderColor: colors.border }]}>
+              <View style={[styles.agentSearch, { backgroundColor: colors.input, borderColor: colors.border }]}>
+                <Ionicons name="search-outline" size={16} color={colors.mutedForeground} />
+                <TextInput
+                  value={agentSearch}
+                  onChangeText={setAgentSearch}
+                  placeholder="Search agents"
+                  placeholderTextColor={colors.mutedForeground}
+                  style={[styles.agentSearchInput, { color: colors.foreground }]}
+                  autoCapitalize="words"
+                  testID="mobile-agent-search"
+                />
+              </View>
+
+              <ScrollView style={styles.agentMenuScroll} nestedScrollEnabled keyboardShouldPersistTaps="handled">
+                <TouchableOpacity
+                  style={[styles.agentOption, !agentFilter && { backgroundColor: `${colors.primary}14` }]}
+                  onPress={async () => {
+                    await Haptics.selectionAsync();
+                    setAgentFilter('');
+                    setAgentMenuOpen(false);
+                    setAgentSearch('');
+                  }}
+                  accessibilityRole="button"
+                  testID="mobile-agent-filter-all"
+                >
+                  <Text style={[styles.agentOptionName, { color: !agentFilter ? colors.primary : colors.foreground }]}>All agents</Text>
+                  {!agentFilter && <Ionicons name="checkmark" size={17} color={colors.primary} />}
+                </TouchableOpacity>
+
+                {publicAgentsQuery.isLoading ? (
+                  <View style={styles.agentLoading}>
+                    <ActivityIndicator size="small" color={colors.primary} />
+                    <Text style={[styles.agentOptionDetail, { color: colors.mutedForeground }]}>Loading agents…</Text>
+                  </View>
+                ) : publicAgentsQuery.isError ? (
+                  <TouchableOpacity
+                    style={styles.agentLoading}
+                    onPress={() => { void publicAgentsQuery.refetch(); }}
+                    accessibilityRole="button"
+                    testID="mobile-agent-filter-retry"
+                  >
+                    <Text style={[styles.agentOptionName, { color: colors.primary }]}>Couldn’t load agents — tap to retry</Text>
+                  </TouchableOpacity>
+                ) : visibleAgentOptions.length > 0 ? (
+                  visibleAgentOptions.map((agent) => (
+                    <TouchableOpacity
+                      key={agent.id}
+                      style={[styles.agentOption, agentFilter === agent.id && { backgroundColor: `${colors.primary}14` }]}
+                      onPress={async () => {
+                        await Haptics.selectionAsync();
+                        setAgentFilter(agent.id);
+                        setAgentMenuOpen(false);
+                        setAgentSearch('');
+                      }}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: agentFilter === agent.id }}
+                      testID={`mobile-agent-option-${agent.id}`}
+                    >
+                      <View style={styles.agentOptionLabel}>
+                        <Text numberOfLines={1} style={[styles.agentOptionName, { color: agentFilter === agent.id ? colors.primary : colors.foreground }]}>
+                          {agent.name}
+                        </Text>
+                        {agent.detail ? (
+                          <Text numberOfLines={1} style={[styles.agentOptionDetail, { color: colors.mutedForeground }]}>
+                            {agent.detail}
+                          </Text>
+                        ) : null}
+                      </View>
+                      {agentFilter === agent.id && <Ionicons name="checkmark" size={17} color={colors.primary} />}
+                    </TouchableOpacity>
+                  ))
+                ) : (
+                  <Text style={[styles.agentOptionDetail, styles.agentNoResults, { color: colors.mutedForeground }]}>
+                    No agents match that search.
+                  </Text>
+                )}
+              </ScrollView>
+            </View>
+          )}
+        </View>
 
         {/* Filter chips — ScrollView so we can insert Alerts between My Listings and Draft */}
         <ScrollView
@@ -360,13 +498,13 @@ export default function ListingsScreen() {
         ) : (
           <EmptyState
             icon={feedError ? 'cloud-offline-outline' : 'business-outline'}
-            title={feedError ? 'Listings unavailable' : query ? 'No results found' : 'No listings yet'}
+            title={feedError ? 'Listings unavailable' : query || agentFilter ? 'No results found' : 'No listings yet'}
             description={feedError
               ? 'Please check your connection and pull down to try again.'
-              : query
-                ? 'Try suburb, beds, features or owner name.'
+              : query || agentFilter
+                ? 'Try a different search or agent.'
                 : scope === 'my' ? 'Tap the + button to add your first listing.' : undefined}
-            actionLabel={scope === 'my' && !query ? 'Create Listing' : undefined}
+            actionLabel={scope === 'my' && !query && !agentFilter ? 'Create Listing' : undefined}
             onAction={scope === 'my' ? () => router.push('/new-listing') : undefined}
           />
         )}
@@ -417,6 +555,19 @@ const styles = StyleSheet.create({
   title: { fontSize: 28, fontWeight: '800', letterSpacing: -0.5 },
   count: { fontSize: 14, fontWeight: '500', marginBottom: 2 },
   shareIconBtn: { width: 34, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
+  agentFilterWrap: { gap: 8 },
+  agentFilterButton: { minHeight: 42, borderRadius: 12, borderWidth: 1, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', gap: 9 },
+  agentFilterButtonText: { flex: 1, fontSize: 14, fontWeight: '600' },
+  agentDropdown: { borderWidth: 1, borderRadius: 12, padding: 8, gap: 8 },
+  agentSearch: { height: 40, borderRadius: 9, borderWidth: 1, paddingHorizontal: 10, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  agentSearchInput: { flex: 1, height: '100%', fontSize: 14 },
+  agentMenuScroll: { maxHeight: 210 },
+  agentOption: { minHeight: 42, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
+  agentOptionLabel: { flex: 1, minWidth: 0 },
+  agentOptionName: { fontSize: 14, fontWeight: '600' },
+  agentOptionDetail: { fontSize: 12 },
+  agentLoading: { minHeight: 40, paddingHorizontal: 10, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  agentNoResults: { paddingHorizontal: 10, paddingVertical: 14 },
   filterList: { marginHorizontal: -16 },
   filterContent: { paddingHorizontal: 16, gap: 8 },
   filterBtn: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, borderWidth: 1 },

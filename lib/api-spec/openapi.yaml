@@ -1557,6 +1557,7 @@ paths:
       summary: Public property listings (no auth required)
       parameters:
         - { name: listingType, in: query, schema: { type: string } }
+        - { name: agentId, in: query, schema: { type: integer, minimum: 1 } }
         - { name: propertyType, in: query, schema: { type: string } }
         - { name: suburb, in: query, schema: { type: string } }
         - { name: city, in: query, schema: { type: string } }
