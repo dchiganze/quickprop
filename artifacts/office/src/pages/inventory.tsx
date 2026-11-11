@@ -861,6 +861,7 @@ export default function Inventory() {
     status: status !== 'all' ? status : undefined,
     listingType: listingType !== 'all' ? listingType : undefined,
     agentId: agentFilter !== 'all' ? Number(agentFilter) : undefined,
+    agencyInventory: 'agency' as const,
   };
 
   useEffect(() => {

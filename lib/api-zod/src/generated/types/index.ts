@@ -162,6 +162,7 @@ export * from './listingHousekeepingResponse';
 export * from './listingHousekeepingResponseSummary';
 export * from './listingHousekeepingSettings';
 export * from './listLeadsParams';
+export * from './listPropertiesAgencyInventory';
 export * from './listPropertiesParams';
 export * from './listPublicPropertiesParams';
 export * from './listRentalApplicationsParams';

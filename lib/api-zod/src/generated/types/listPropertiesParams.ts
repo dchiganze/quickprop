@@ -5,6 +5,7 @@
  * QuickProp Office API
  * OpenAPI spec version: 0.1.0
  */
+import type { ListPropertiesAgencyInventory } from './listPropertiesAgencyInventory';
 
 export type ListPropertiesParams = {
 status?: string;
@@ -13,6 +14,10 @@ listingType?: string;
 propertyType?: string;
 suburb?: string;
 agentId?: number;
+/**
+ * Set to agency for the Office view; agents remain scoped to active branches in their own active agency.
+ */
+agencyInventory?: ListPropertiesAgencyInventory;
 /**
  * Supports phrases such as "3 bedroom in Highlands under $300,000".
  */

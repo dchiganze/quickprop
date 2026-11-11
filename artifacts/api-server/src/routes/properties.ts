@@ -48,6 +48,7 @@ import { logger } from "../lib/logger";
 import { isPublicProperty, syncPropertyToProduction } from "../lib/publication-sync";
 import { hasValidListingPrice, isDraftPropertyState, needsPublicationPhoto } from "../lib/property-drafts";
 import { canAssignPropertyToAgent } from "../lib/property-assignment";
+import { getActiveAgencyBranchIdsForUser } from "../lib/office-inventory-scope";
 import {
   createPropertySaleConfirmationToken,
   hashPropertySaleConfirmationToken,
@@ -228,10 +229,18 @@ router.get("/properties", async (req, res): Promise<void> => {
   if (f.propertyType) conds.push(eq(propertiesTable.propertyType, f.propertyType));
   if (f.suburb) conds.push(ilike(propertiesTable.suburb, f.suburb));
   const user = await currentUser(req);
-  // Agent mobile sessions only ever see their own portfolio. Principals and
-  // admins retain the broader office query behaviour used by the web apps.
+  // The Office explicitly requests agency inventory; mobile callers keep the
+  // existing own-portfolio behavior unless they opt into that Office scope.
   if (user?.role === "agent" || user?.role === "senior_agent") {
-    conds.push(eq(propertiesTable.agentId, user.id));
+    const agencyBranchIds = f.agencyInventory === "agency"
+      ? await getActiveAgencyBranchIdsForUser(user.branchId)
+      : undefined;
+    if (agencyBranchIds?.length) {
+      conds.push(inArray(propertiesTable.branchId, agencyBranchIds));
+      if (f.agentId != null) conds.push(eq(propertiesTable.agentId, f.agentId));
+    } else {
+      conds.push(eq(propertiesTable.agentId, user.id));
+    }
   } else if (f.agentId != null) {
     conds.push(eq(propertiesTable.agentId, f.agentId));
   }

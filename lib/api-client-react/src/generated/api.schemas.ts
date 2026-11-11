@@ -3267,12 +3267,23 @@ propertyType?: string;
 suburb?: string;
 agentId?: number;
 /**
+ * Set to agency for the Office view; agents remain scoped to active branches in their own active agency.
+ */
+agencyInventory?: ListPropertiesAgencyInventory;
+/**
  * Supports phrases such as "3 bedroom in Highlands under $300,000".
  */
 q?: string;
 minPrice?: number;
 maxPrice?: number;
 };
+
+export type ListPropertiesAgencyInventory = typeof ListPropertiesAgencyInventory[keyof typeof ListPropertiesAgencyInventory];
+
+
+export const ListPropertiesAgencyInventory = {
+  agency: 'agency',
+} as const;
 
 export type ListRentalApplicationsParams = {
 propertyId?: number;

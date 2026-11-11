@@ -483,6 +483,7 @@ paths:
         - { name: propertyType, in: query, schema: { type: string } }
         - { name: suburb, in: query, schema: { type: string } }
         - { name: agentId, in: query, schema: { type: integer } }
+        - { name: agencyInventory, in: query, description: "Set to agency for the Office view; agents remain scoped to active branches in their own active agency.", schema: { type: string, enum: [agency] } }
         - { name: q, in: query, description: 'Supports phrases such as "3 bedroom in Highlands under $300,000".', schema: { type: string } }
         - { name: minPrice, in: query, schema: { type: number } }
         - { name: maxPrice, in: query, schema: { type: number } }

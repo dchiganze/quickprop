@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq, ilike, or, desc, count, sql } from "drizzle-orm";
+import { eq, ilike, or, desc, count, sql, inArray } from "drizzle-orm";
 import {
   db,
   propertiesTable,
@@ -24,6 +24,8 @@ import {
 import { parseSearchQuery } from "../lib/matching";
 import { jsonify } from "../lib/helpers";
 import { matchProperties } from "../lib/matching";
+import { currentUser } from "./auth";
+import { getActiveAgencyBranchIdsForUser } from "../lib/office-inventory-scope";
 
 const router: IRouter = Router();
 
@@ -223,7 +225,15 @@ router.get("/search", async (req, res): Promise<void> => {
     return;
   }
   const parsed = parseSearchQuery(q.data.q);
-  const props = await db.select().from(propertiesTable);
+  const user = await currentUser(req);
+  const agencyBranchIds = ["agent", "senior_agent"].includes(user?.role ?? "")
+    ? await getActiveAgencyBranchIdsForUser(user?.branchId)
+    : undefined;
+  const props = agencyBranchIds?.length
+    ? await db.select().from(propertiesTable).where(inArray(propertiesTable.branchId, agencyBranchIds))
+    : user && ["agent", "senior_agent"].includes(user.role)
+      ? await db.select().from(propertiesTable).where(eq(propertiesTable.agentId, user.id))
+      : await db.select().from(propertiesTable);
   const keyword = parsed.keywords.join(" ").toLowerCase();
 
   const properties = props
