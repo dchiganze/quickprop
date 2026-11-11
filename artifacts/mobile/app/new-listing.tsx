@@ -298,6 +298,13 @@ export default function NewListingScreen() {
   };
 
   const handlePublish = async (status: 'published' | 'draft') => {
+    if (status === 'published' && form.photos.length === 0) {
+      Alert.alert(
+        'Add a Photo to Publish',
+        'You can save this listing as a draft now. Add at least one photo before publishing it.',
+      );
+      return;
+    }
     const missing = getMissingFields();
     if (missing.length > 0) {
       setValidationAttempted(true);
@@ -420,7 +427,6 @@ export default function NewListingScreen() {
 
   const getMissingFields = () => {
     const missing: string[] = [];
-    if (form.photos.length === 0) missing.push('at least one photo');
     if (!form.title.trim()) missing.push('title');
     if (!form.suburb.trim()) missing.push('suburb');
     if (!form.type) missing.push('listing type');
@@ -437,7 +443,7 @@ export default function NewListingScreen() {
   const getStepMissingFields = (stepNumber: number) => {
     const missing = getMissingFields();
     const byStep: Record<number, string[]> = {
-      0: ['at least one photo'],
+      0: [],
       1: [],
       2: ['title', 'suburb'],
       3: ['listing type'],
@@ -513,9 +519,17 @@ export default function NewListingScreen() {
               </ScrollView>
             </View>
           ) : (
-            <View style={[styles.photoEmpty, { backgroundColor: colors.muted, borderColor: fieldError('at least one photo') ? colors.destructive : colors.border }]}>
+            <View style={[styles.photoEmpty, { backgroundColor: colors.muted, borderColor: colors.border }]}>
               <Ionicons name="images-outline" size={36} color={colors.mutedForeground} />
               <Text style={[styles.photoEmptyText, { color: colors.mutedForeground }]}>No photos yet</Text>
+            </View>
+          )}
+          {form.photos.length === 0 && (
+            <View style={[styles.skipInfo, { backgroundColor: colors.secondary, borderColor: colors.border }]}>
+              <Ionicons name="information-circle-outline" size={18} color={colors.primary} />
+              <Text style={[styles.skipInfoText, { color: colors.mutedForeground }]}>
+                You can continue without photos, but this listing will stay a draft until you add at least one photo.
+              </Text>
             </View>
           )}
         </View>
@@ -1041,6 +1055,14 @@ export default function NewListingScreen() {
         <ScrollView showsVerticalScrollIndicator={false}>
           <Text style={[styles.stepHeading, { color: colors.foreground }]}>Review & Publish</Text>
           <Text style={[styles.stepSub, { color: colors.mutedForeground }]}>Confirm your listing details before publishing.</Text>
+          {form.photos.length === 0 && (
+            <View style={[styles.skipInfo, { backgroundColor: colors.secondary, borderColor: colors.border }]}>
+              <Ionicons name="information-circle-outline" size={18} color={colors.primary} />
+              <Text style={[styles.skipInfoText, { color: colors.mutedForeground }]}>
+                This listing can only be saved as a draft until at least one photo is added.
+              </Text>
+            </View>
+          )}
           <View style={[styles.reviewCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
             {[
               { label: 'Reference', value: form.referenceNumber },
@@ -1064,11 +1086,18 @@ export default function NewListingScreen() {
           </View>
           <View style={styles.publishButtons}>
             <TouchableOpacity
-              style={[styles.publishBtn, { backgroundColor: colors.primary }]}
+              testID="publish-listing-button"
+              style={[styles.publishBtn, { backgroundColor: form.photos.length === 0 ? colors.muted : colors.primary }]}
               onPress={() => handlePublish('published')}
-              disabled={saving}
+              disabled={saving || form.photos.length === 0}
+              accessibilityState={{ disabled: saving || form.photos.length === 0 }}
             >
-              {saving ? <ActivityIndicator color="#FFF" /> : (
+              {saving ? <ActivityIndicator color="#FFF" /> : form.photos.length === 0 ? (
+                <>
+                  <Ionicons name="lock-closed-outline" size={18} color={colors.mutedForeground} />
+                  <Text style={[styles.publishBtnText, { color: colors.mutedForeground }]}>Add a Photo to Publish</Text>
+                </>
+              ) : (
                 <>
                   <Ionicons name="globe-outline" size={18} color="#FFF" />
                   <Text style={styles.publishBtnText}>Publish Now</Text>
@@ -1135,6 +1164,7 @@ export default function NewListingScreen() {
         )}
         {step < TOTAL_STEPS - 1 && (
           <TouchableOpacity
+            testID="new-listing-continue"
             style={[styles.nextBtn, { backgroundColor: canNext() ? colors.primary : colors.muted }]}
              onPress={handleNext}
           >
