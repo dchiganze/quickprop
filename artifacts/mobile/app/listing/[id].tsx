@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, Alert, Linking, Image, Modal, TextInput, ActivityIndicator,
 } from 'react-native';
@@ -19,7 +19,7 @@ import { KeyboardAwareScrollViewCompat } from '@/components/KeyboardAwareScrollV
 import { PropertyFlyer, PropertyFlyerHandle } from '@/components/PropertyFlyer';
 import { FlyerCustomizer } from '@/components/FlyerCustomizer';
 import { useFlyerSettings } from '@/hooks/useFlyerSettings';
-import { parsePrivateContactNotes, useData } from '@/contexts/DataContext';
+import { parsePrivateContactNotes, toMobileProperty, useData } from '@/contexts/DataContext';
 import { Property } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
 import {
@@ -27,6 +27,7 @@ import {
   getGetMultiAgentPropertyQueryKey,
   getListRentalApplicationsQueryKey,
   useCreateRentalApplicationInvite,
+  useCreateOfflinePropertySnapshot,
   useGetAgentContacts,
   useGetMultiAgentProperty,
   useListRentalApplications,
@@ -35,7 +36,14 @@ import {
 import type { RentalApplicationInvite } from '@workspace/api-client-react';
 import * as Clipboard from 'expo-clipboard';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { offlineListingsCacheKey, parseOfflineListingsCache } from '@/lib/offline-listings-cache';
+import {
+  enqueueOfflineListingsCacheTask,
+  offlineListingsCacheKey,
+  parseOfflineListingsCache,
+  removeOfflineListing,
+  upsertOfflineListing,
+} from '@/lib/offline-listings-cache';
+import { cacheMediaForOffline, cancelOfflineMediaDownload, removePinnedOfflineMedia } from '@/utils/offlineMedia';
 
 function VideoPlayerModal({ uri, onClose }: { uri: string; onClose: () => void }) {
   const player = useVideoPlayer(uri, p => { p.loop = false; p.play(); });
@@ -92,6 +100,8 @@ export default function ListingDetailScreen() {
     property: Property;
   } | null>(null);
   const [offlineCacheChecked, setOfflineCacheChecked] = useState(false);
+  const [offlineDownloadInProgress, setOfflineDownloadInProgress] = useState(false);
+  const offlineDownloadCancelledRef = useRef(false);
   useEffect(() => {
     let cancelled = false;
     const accountId = user?.id;
@@ -120,6 +130,133 @@ export default function ListingDetailScreen() {
       ? offlinePropertyRecord.property
       : undefined);
   const queryClient = useQueryClient();
+  const offlineSnapshotMutation = useCreateOfflinePropertySnapshot();
+  const isOfflineListingSaved = Boolean(
+    offlinePropertyRecord?.userId === user?.id
+    && offlinePropertyRecord?.property.id === id,
+  );
+  const canShowOfflinePriceAction = Boolean(
+    property && user?.id
+    && (user.role === 'agent' || user.role === 'administrator' || user.role === 'quickprop_admin'),
+  );
+  const handleOfflinePriceAction = useCallback(async () => {
+    if (!property || !user?.id || !id) return;
+    const accountId = user.id;
+    const cacheKey = offlineListingsCacheKey(accountId);
+    const downloadId = `${accountId}:${id}`;
+
+    if (offlineDownloadInProgress) {
+      offlineDownloadCancelledRef.current = true;
+      void cancelOfflineMediaDownload(downloadId);
+      return;
+    }
+
+    if (isOfflineListingSaved) {
+      try {
+        await enqueueOfflineListingsCacheTask(async () => {
+          const serialized = await AsyncStorage.getItem(cacheKey);
+          const current = parseOfflineListingsCache(serialized, accountId);
+          const { cache, removed } = removeOfflineListing(current, accountId, id, new Date().toISOString());
+          await AsyncStorage.setItem(cacheKey, JSON.stringify(cache));
+          if (!removed) return;
+          setOfflinePropertyRecord(null);
+          const referencedMedia = new Set(cache.properties.flatMap((item) => item.photos));
+          await Promise.all(removed.photos
+            .filter((uri) => !referencedMedia.has(uri))
+            .map((uri) => removePinnedOfflineMedia(uri, accountId).catch(() => undefined)));
+        });
+      } catch (error) {
+        Alert.alert(
+          'Could not remove offline listing',
+          error instanceof Error ? error.message : 'Try again.',
+        );
+      }
+      return;
+    }
+
+    if (!offlineCacheChecked) {
+      Alert.alert('Offline library is loading', 'Try again shortly.');
+      return;
+    }
+    if (/^\d+$/.test(id) && !isOnline) {
+      Alert.alert('Connect to the internet', 'Connect before saving this listing offline.');
+      return;
+    }
+
+    offlineDownloadCancelledRef.current = false;
+    setOfflineDownloadInProgress(true);
+    const downloadedMedia: string[] = [];
+    try {
+      let snapshot = property;
+      if (/^\d+$/.test(id)) {
+        const records = await offlineSnapshotMutation.mutateAsync({
+          data: {
+            scope: String(property.agentId) === String(accountId) ? 'my' : 'agency',
+            propertyIds: [Number(id)],
+          },
+        });
+        if (offlineDownloadCancelledRef.current) throw new Error('The listing download was cancelled.');
+        const record = records.find((entry) => String(entry.id) === id);
+        if (!record) throw new Error('This listing is no longer available to your account.');
+        snapshot = toMobileProperty(record);
+      }
+
+      const localPhotos: string[] = [];
+      for (const photo of snapshot.photos) {
+        if (offlineDownloadCancelledRef.current) throw new Error('The listing download was cancelled.');
+        const localUri = await cacheMediaForOffline(photo, accountId, {
+          durable: true,
+          downloadId,
+          isCancelled: () => offlineDownloadCancelledRef.current,
+        });
+        downloadedMedia.push(localUri);
+        localPhotos.push(localUri);
+      }
+      if (offlineDownloadCancelledRef.current) throw new Error('The listing download was cancelled.');
+
+      const savedProperty = { ...snapshot, photos: localPhotos };
+      await enqueueOfflineListingsCacheTask(async () => {
+        if (user?.id !== accountId) throw new Error('Sign in again before saving this listing.');
+        const serialized = await AsyncStorage.getItem(cacheKey);
+        const current = parseOfflineListingsCache(serialized, accountId);
+        const previous = current?.properties.find((item) => item.id === id);
+        const cache = upsertOfflineListing(current, accountId, savedProperty, new Date().toISOString());
+        await AsyncStorage.setItem(cacheKey, JSON.stringify(cache));
+        setOfflinePropertyRecord({ userId: accountId, property: savedProperty });
+        const referencedMedia = new Set(cache.properties.flatMap((item) => item.photos));
+        await Promise.all((previous?.photos ?? [])
+          .filter((uri) => !referencedMedia.has(uri))
+          .map((uri) => removePinnedOfflineMedia(uri, accountId).catch(() => undefined)));
+      });
+    } catch (error) {
+      await enqueueOfflineListingsCacheTask(async () => {
+        const serialized = await AsyncStorage.getItem(cacheKey).catch(() => null);
+        const current = parseOfflineListingsCache(serialized, accountId);
+        const referencedMedia = new Set(current?.properties.flatMap((item) => item.photos) ?? []);
+        await Promise.all([...new Set(downloadedMedia)]
+          .filter((uri) => !referencedMedia.has(uri))
+          .map((uri) => removePinnedOfflineMedia(uri, accountId).catch(() => undefined)));
+      }).catch(() => undefined);
+      if (!offlineDownloadCancelledRef.current) {
+        Alert.alert(
+          'Could not save this listing',
+          error instanceof Error ? error.message : 'Check your connection and device storage, then try again.',
+        );
+      }
+    } finally {
+      offlineDownloadCancelledRef.current = false;
+      setOfflineDownloadInProgress(false);
+    }
+  }, [
+    id,
+    isOfflineListingSaved,
+    isOnline,
+    offlineCacheChecked,
+    offlineDownloadInProgress,
+    offlineSnapshotMutation,
+    property,
+    user?.id,
+  ]);
   const updateAgencyOfferPrice = useUpdateAgencyRelationshipPrice();
   const remoteAgentId = user?.id && /^\d+$/.test(user.id) ? user.id : null;
   const remotePropertyId = Number(id);
@@ -594,8 +731,41 @@ export default function ListingDetailScreen() {
         <View style={styles.body}>
           {/* Price & Address */}
           <View style={styles.priceRow}>
-            <Text style={[styles.price, { color: colors.primary }]}>{priceDisplay}</Text>
-            {property.negotiable && <View style={[styles.negBadge, { backgroundColor: colors.accent + '20' }]}><Text style={[styles.negText, { color: colors.accent }]}>Negotiable</Text></View>}
+            <View style={styles.priceContent}>
+              <Text style={[styles.price, { color: colors.primary }]}>{priceDisplay}</Text>
+              {property.negotiable && <View style={[styles.negBadge, { backgroundColor: colors.accent + '20' }]}><Text style={[styles.negText, { color: colors.accent }]}>Negotiable</Text></View>}
+            </View>
+            {canShowOfflinePriceAction && (
+              <TouchableOpacity
+                onPress={() => { void handleOfflinePriceAction(); }}
+                disabled={!offlineCacheChecked && !isOfflineListingSaved && !offlineDownloadInProgress}
+                accessibilityRole="button"
+                accessibilityLabel={
+                  offlineDownloadInProgress
+                    ? 'Cancel offline download'
+                    : isOfflineListingSaved
+                      ? 'Remove listing from offline library'
+                      : 'Save listing offline'
+                }
+                testID={`listing-offline-download-${id}`}
+                style={[
+                  styles.offlineDownloadButton,
+                  {
+                    borderColor: isOfflineListingSaved || offlineDownloadInProgress ? colors.accent : colors.border,
+                    backgroundColor: isOfflineListingSaved ? colors.accent + '18' : colors.card,
+                    opacity: !offlineCacheChecked && !isOfflineListingSaved && !offlineDownloadInProgress ? 0.55 : 1,
+                  },
+                ]}
+              >
+                {offlineDownloadInProgress
+                  ? <ActivityIndicator size="small" color={colors.accent} />
+                  : <Ionicons
+                    name={isOfflineListingSaved ? 'download' : 'download-outline'}
+                    size={18}
+                    color={isOfflineListingSaved ? colors.accent : colors.mutedForeground}
+                  />}
+              </TouchableOpacity>
+            )}
           </View>
           {property.showAddress && <Text style={[styles.address, { color: colors.foreground }]}>{property.address}</Text>}
           <View style={styles.suburbRow}>
@@ -1308,7 +1478,9 @@ const styles = StyleSheet.create({
   offerRow: { flexDirection: 'row', alignItems: 'center', borderBottomWidth: 1, paddingVertical: 12, gap: 12 },
   offerAgency: { fontSize: 14, fontWeight: '700' },
   offerPrice: { fontSize: 14, fontWeight: '800' },
-  priceRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 4 },
+  priceRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 4 },
+  priceContent: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  offlineDownloadButton: { width: 38, height: 38, borderRadius: 19, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   price: { fontSize: 28, fontWeight: '900', letterSpacing: -0.5 },
   negBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
   negText: { fontSize: 12, fontWeight: '700' },

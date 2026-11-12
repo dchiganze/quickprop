@@ -6,7 +6,7 @@ import { useInfiniteQuery } from '@tanstack/react-query';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import {
   getGetAgencyPropertiesQueryKey,
@@ -58,8 +58,8 @@ type MyStatusFilter = 'all' | 'draft' | 'sold' | 'rented' | 'archived';
 type ListingVisibilityFilter = 'all' | 'draft' | 'live';
 
 const SCOPE_FILTERS: { key: ListingScope; label: string }[] = [
-  { key: 'all', label: 'All of QuickProp' },
   { key: 'my', label: 'My Listings' },
+  { key: 'all', label: 'All of QuickProp' },
   { key: 'agency', label: 'Agency Listings' },
 ];
 
@@ -188,6 +188,26 @@ export default function ListingsScreen() {
 
     return () => { cancelled = true; };
   }, [user?.id]);
+
+  useFocusEffect(useCallback(() => {
+    const accountId = user?.id;
+    if (!accountId || offlineCacheReadyForUser !== accountId) return undefined;
+    let cancelled = false;
+    AsyncStorage.getItem(offlineListingsCacheKey(accountId))
+      .then((serialized) => {
+        if (cancelled) return;
+        const cached = parseOfflineListingsCache(serialized, accountId);
+        offlineListingsCacheRef.current = cached;
+        setOfflineListingsCache(cached);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        const empty = emptyOfflineListingsCache(accountId);
+        offlineListingsCacheRef.current = empty;
+        setOfflineListingsCache(empty);
+      });
+    return () => { cancelled = true; };
+  }, [offlineCacheReadyForUser, user?.id]));
 
   useEffect(() => {
     let cancelled = false;
