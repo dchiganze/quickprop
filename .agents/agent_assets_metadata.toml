@@ -505,3 +505,17 @@ mtime_ms = 1794252214141
 storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:cf900b3f-04ce-456b-888c-760ecb412036/8bc31ce1-3da7-49e6-9231-3a681f2438dd/130d3250-c345-4728-a6b0-d337a97f8cc0"
 storage_version_token = "1794252346585594"
 content_type = "application/pdf"
+
+[[outputs]]
+id = "LJhDF1dFvDJe5T_cQsfH_"
+uri = "file://artifacts/mobile/assets/images/quickprop-agent-logo-white.png"
+type = "image"
+title = "QuickProp Agent logo — high-resolution PNG"
+description = "Transparent white logo, 1400 × 192 pixels; this is already the source used in the mobile app."
+logical_id = "83993073-876c-4d61-bbf7-e26bbf62ecee"
+content_hash = "sha256:41ac5017f2e19dc47a651b795f4218432d86a698a1ddd1fe672b729c63617424"
+size = 51469
+mtime_ms = 1794481830743
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:cf900b3f-04ce-456b-888c-760ecb412036/83993073-876c-4d61-bbf7-e26bbf62ecee/fafb796b-ee98-43bd-bf35-de757c2ca9be"
+storage_version_token = "1794495299026793"
+content_type = "image/png"

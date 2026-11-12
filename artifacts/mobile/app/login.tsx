@@ -272,7 +272,7 @@ export default function LoginScreen() {
           </View>
           <View style={[styles.illoWrap, { width: illoSize, height: illoSize, borderRadius: illoSize / 2 }]}>
             <Image
-              source={require('../assets/images/quickprop-agent-illustration.png')}
+              source={require('../assets/images/quickprop-agent-illustration-no-ring.png')}
               style={{ width: illoSize, height: illoSize }}
               resizeMode="cover"
             />
@@ -501,7 +501,7 @@ const styles = StyleSheet.create({
   hero: { alignItems: 'center', paddingHorizontal: 24, paddingBottom: 22, gap: 14 },
   brandRow: { flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'center', justifyContent: 'center' },
   brandLogo: { width: 260, height: 36 },
-  illoWrap: { backgroundColor: 'rgba(15,191,138,0.16)', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  illoWrap: { backgroundColor: 'transparent', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   middleBrand: { color: '#F3F7FF', fontSize: 20, fontWeight: '800', textAlign: 'center', letterSpacing: -0.4 },
   tagline: { color: '#F3F7FF', fontSize: 24, fontWeight: '800', textAlign: 'center', letterSpacing: -0.6, lineHeight: 30, maxWidth: 320 },
   sheet: {
