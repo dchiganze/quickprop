@@ -24,6 +24,7 @@ import { PropertyCard } from '@/components/PropertyCard';
 import { SearchBar } from '@/components/SearchBar';
 import { EmptyState } from '@/components/EmptyState';
 import { QuickShareSheet } from '@/components/QuickShareSheet';
+import { propertyMatchesQuery } from '@/lib/property-search';
 import type { Property } from '@/types';
 
 type ListingScope = 'all' | 'my' | 'agency';
@@ -102,61 +103,6 @@ function mapPublicProperty(property: PublicProperty): Property {
     freshnessScore: property.freshnessScore,
     qualityScore: property.qualityScore,
   };
-}
-
-/** Comprehensive search across every meaningful property field */
-function propertyMatchesQuery(p: {
-  address: string; suburb: string; referenceNumber: string; type: string;
-  status: string; currency: string; description: string; price: number;
-  bedrooms?: number; bathrooms?: number; garages?: number;
-  features: string[]; seller: { name: string; mandateType: string };
-}, q: string): boolean {
-  const lower = q.toLowerCase().trim();
-
-  // Numeric-keyword shortcuts: "3 bed", "3bed", "3bedroom"
-  const bedMatch = lower.match(/^(\d+)\s*bed/);
-  if (bedMatch) return (p.bedrooms ?? 0) === parseInt(bedMatch[1]);
-
-  const bathMatch = lower.match(/^(\d+)\s*bath/);
-  if (bathMatch) return (p.bathrooms ?? 0) === parseInt(bathMatch[1]);
-
-  const garageMatch = lower.match(/^(\d+)\s*gar/);
-  if (garageMatch) return (p.garages ?? 0) === parseInt(garageMatch[1]);
-
-  // "for sale" / "for rent" shorthand
-  if (lower === 'for sale') return p.type === 'sale';
-  if (lower === 'for rent' || lower === 'to rent') return p.type === 'rent';
-
-  // Plain digits: match bedrooms, bathrooms, garages, or price digits
-  if (/^\d+$/.test(lower)) {
-    return (
-      String(p.bedrooms ?? '') === lower ||
-      String(p.bathrooms ?? '') === lower ||
-      String(p.garages ?? '') === lower ||
-      String(p.price).includes(lower) ||
-      p.referenceNumber.toLowerCase().includes(lower)
-    );
-  }
-
-  // Full text search across all fields
-  return (
-    p.address.toLowerCase().includes(lower) ||
-    p.suburb.toLowerCase().includes(lower) ||
-    p.referenceNumber.toLowerCase().includes(lower) ||
-    p.seller.name.toLowerCase().includes(lower) ||
-    p.type.toLowerCase().includes(lower) ||
-    p.status.toLowerCase().includes(lower) ||
-    p.currency.toLowerCase().includes(lower) ||
-    p.description.toLowerCase().includes(lower) ||
-    p.seller.mandateType.toLowerCase().includes(lower) ||
-    String(p.price).includes(lower) ||
-    p.features.some(f => f.toLowerCase().includes(lower)) ||
-    // e.g. "solar", "borehole", "pool"
-    // bedrooms as "3 bed" phrasing within text
-    (p.bedrooms !== undefined && `${p.bedrooms} bed`.includes(lower)) ||
-    (p.bathrooms !== undefined && `${p.bathrooms} bath`.includes(lower)) ||
-    (p.garages !== undefined && `${p.garages} garage`.includes(lower))
-  );
 }
 
 export default function ListingsScreen() {

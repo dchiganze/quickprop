@@ -21,7 +21,7 @@ import {
   OfficeSearchQueryParams,
   OfficeSearchResponse,
 } from "@workspace/api-zod";
-import { parseSearchQuery } from "../lib/matching";
+import { matchesPropertySearchQuery, parseSearchQuery } from "../lib/matching";
 import { jsonify } from "../lib/helpers";
 import { matchProperties } from "../lib/matching";
 import { currentUser } from "./auth";
@@ -237,17 +237,7 @@ router.get("/search", async (req, res): Promise<void> => {
   const keyword = parsed.keywords.join(" ").toLowerCase();
 
   const properties = props
-    .filter((p) => {
-      if (parsed.minPrice != null && p.price < parsed.minPrice) return false;
-      if (parsed.maxPrice != null && p.price > parsed.maxPrice) return false;
-      if (parsed.propertyType && p.propertyType !== parsed.propertyType) return false;
-      if (keyword) {
-        const hay = `${p.title} ${p.reference} ${p.suburb} ${p.address ?? ""} ${p.description ?? ""} ${p.features.join(" ")}`.toLowerCase();
-        const words = keyword.split(" ").filter(Boolean);
-        return words.every((w) => hay.includes(w));
-      }
-      return true;
-    })
+    .filter((property) => matchesPropertySearchQuery(property, parsed))
     .slice(0, 25);
 
   let buyers: (typeof buyersTable.$inferSelect)[] = [];
