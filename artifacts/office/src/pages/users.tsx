@@ -108,6 +108,7 @@ export default function Users() {
   } | null>(null);
   const [deactivationTarget, setDeactivationTarget] = useState<{ id: number; name: string; email: string } | null>(null);
   const [deletionTarget, setDeletionTarget] = useState<{ id: number; name: string; email: string; role: string; status: string } | null>(null);
+  const [promotionTarget, setPromotionTarget] = useState<{ id: number; name: string; email: string } | null>(null);
   const [setupLinkTargetId, setSetupLinkTargetId] = useState<number | null>(null);
   const activeAdminCount = users?.filter((user) => administratorRoles.includes(user.role) && user.status === 'active').length ?? 0;
   const activeAgencies = (agencies?.agencies ?? []).filter((agency) => agency.status === 'active');
@@ -326,6 +327,28 @@ export default function Users() {
     );
   };
 
+  const promoteAgentToAdmin = () => {
+    if (!promotionTarget) return;
+    updateUser.mutate(
+      { id: promotionTarget.id, data: { role: 'admin' } },
+      {
+        onSuccess: (updatedUser) => {
+          void queryClient.invalidateQueries({ queryKey: getListUsersQueryKey() });
+          toast({
+            title: 'Administrator access granted',
+            description: `${updatedUser.name} is now an Admin. Their branch assignment and existing records were not changed.`,
+          });
+          setPromotionTarget(null);
+        },
+        onError: (error) => toast({
+          title: 'Could not make this agent an Admin',
+          description: errorText(error, 'Try again or contact a QuickProp administrator.'),
+          variant: 'destructive',
+        }),
+      },
+    );
+  };
+
   const requestBranchAssignment = (user: { id: number; name: string; branchId?: number | null }, branchId: number) => {
     const branch = teamBranches.find((item) => item.id === branchId);
     if (!branch) {
@@ -409,7 +432,7 @@ export default function Users() {
       {!canManageUsers && currentUser && (
         <Card>
           <CardContent className="p-4 text-sm text-muted-foreground" data-testid="text-user-management-permission">
-            Only Admins can add, deactivate, or delete team profiles. You can still view team members.
+            Only Admins can add, promote, deactivate, or delete team profiles. You can still view team members.
           </CardContent>
         </Card>
       )}
@@ -423,8 +446,8 @@ export default function Users() {
         <TabsContent value="users">
           <div className="bg-card border rounded-lg overflow-hidden shadow-sm">
             <div className="overflow-x-auto">
-              <div className="min-w-[960px]">
-                <div className="grid grid-cols-[minmax(220px,2fr)_minmax(110px,1fr)_minmax(140px,1.2fr)_90px_minmax(320px,2fr)] gap-4 p-4 border-b bg-muted/30 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              <div className="min-w-[1080px]">
+                <div className="grid grid-cols-[minmax(220px,2fr)_minmax(110px,1fr)_minmax(140px,1.2fr)_90px_minmax(400px,2fr)] gap-4 p-4 border-b bg-muted/30 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                   <div>User</div>
                   <div>Role</div>
                   <div>Branch</div>
@@ -434,7 +457,7 @@ export default function Users() {
                 <div className="divide-y">
                   {loadingUsers ? (
                     Array.from({ length: 4 }).map((_, index) => (
-                      <div key={index} className="grid grid-cols-[minmax(220px,2fr)_minmax(110px,1fr)_minmax(140px,1.2fr)_90px_minmax(320px,2fr)] gap-4 p-4 items-center">
+                      <div key={index} className="grid grid-cols-[minmax(220px,2fr)_minmax(110px,1fr)_minmax(140px,1.2fr)_90px_minmax(400px,2fr)] gap-4 p-4 items-center">
                         <Skeleton className="h-10" />
                         <Skeleton className="h-5" />
                         <Skeleton className="h-5" />
@@ -445,6 +468,7 @@ export default function Users() {
                   ) : users?.length ? (
                     users.map((user) => {
                       const isAdmin = administratorRoles.includes(user.role);
+                      const isAgent = user.role === 'agent' || user.role === 'senior_agent';
                       const isCurrentUser = user.id === currentUser?.id;
                       const isLastActiveAdmin = isAdmin && activeAdminCount <= 1;
                       const canDeactivate = canManageUsers && user.status === 'active' && !isLastActiveAdmin;
@@ -455,7 +479,7 @@ export default function Users() {
                       return (
                         <div
                           key={user.id}
-                          className="grid grid-cols-[minmax(220px,2fr)_minmax(110px,1fr)_minmax(140px,1.2fr)_90px_minmax(320px,2fr)] gap-4 p-4 items-center hover:bg-muted/30 transition-colors"
+                          className="grid grid-cols-[minmax(220px,2fr)_minmax(110px,1fr)_minmax(140px,1.2fr)_90px_minmax(400px,2fr)] gap-4 p-4 items-center hover:bg-muted/30 transition-colors"
                           data-testid={`row-user-${user.id}`}
                         >
                           <div className="flex items-center gap-3 min-w-0">
@@ -514,6 +538,18 @@ export default function Users() {
                             </Badge>
                           </div>
                           <div className="flex justify-end gap-2">
+                            {canManageUsers && isAgent && user.status === 'active' && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                disabled={updateUser.isPending}
+                                onClick={() => setPromotionTarget({ id: user.id, name: user.name, email: user.email })}
+                                data-testid={`button-promote-user-${user.id}`}
+                              >
+                                <ShieldCheck className="mr-2 h-4 w-4" />
+                                Make admin
+                              </Button>
+                            )}
                             {canManageUsers && isAdmin && user.status === 'active' && (
                               <Button
                                 variant="outline"
@@ -834,6 +870,32 @@ export default function Users() {
             >
               {updateUser.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Deactivate account
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <AlertDialog open={Boolean(promotionTarget)} onOpenChange={(open) => { if (!open && !updateUser.isPending) setPromotionTarget(null); }}>
+        <AlertDialogContent data-testid="dialog-promote-user">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Give this agent Admin access?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {promotionTarget
+                ? `${promotionTarget.name} (${promotionTarget.email}) will receive Admin access to QuickProp Office. Their branch assignment and existing listings, leads, tasks, and history will stay unchanged.`
+                : 'This agent will receive Admin access to QuickProp Office.'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={updateUser.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={!promotionTarget || updateUser.isPending}
+              onClick={(event) => {
+                event.preventDefault();
+                promoteAgentToAdmin();
+              }}
+              data-testid="button-confirm-promote-user"
+            >
+              {updateUser.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Make Admin
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

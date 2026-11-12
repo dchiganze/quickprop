@@ -125,7 +125,14 @@ router.patch("/users/:id", teamAdminOnly, async (req, res): Promise<void> => {
     }
 
     const [row] = await tx.update(usersTable).set(parsed.data).where(eq(usersTable.id, id)).returning();
-    return row ? { kind: "updated" as const, row, previousBranchId: existing.branchId } : { kind: "missing" as const };
+    return row
+      ? {
+          kind: "updated" as const,
+          row,
+          previousBranchId: existing.branchId,
+          previousRole: existing.role,
+        }
+      : { kind: "missing" as const };
   });
 
   if (outcome.kind === "missing") {
@@ -145,8 +152,16 @@ router.patch("/users/:id", teamAdminOnly, async (req, res): Promise<void> => {
     return;
   }
   const branchChanged = Object.prototype.hasOwnProperty.call(parsed.data, "branchId");
-  const description = branchChanged
-    ? `Changed user ${outcome.row.name} branch assignment from ${outcome.previousBranchId ?? "unassigned"} to ${outcome.row.branchId ?? "unassigned"}`
+  const roleChanged = Object.prototype.hasOwnProperty.call(parsed.data, "role");
+  const changes: string[] = [];
+  if (roleChanged) {
+    changes.push(`role from ${outcome.previousRole} to ${outcome.row.role}`);
+  }
+  if (branchChanged) {
+    changes.push(`branch assignment from ${outcome.previousBranchId ?? "unassigned"} to ${outcome.row.branchId ?? "unassigned"}`);
+  }
+  const description = changes.length
+    ? `Changed user ${outcome.row.name} ${changes.join(" and ")}`
     : `Updated user ${outcome.row.name}`;
   await logAudit("edited", "user", id, description, actor?.id, actor?.name);
   res.json(UpdateUserResponse.parse(jsonify(stripUser(outcome.row))));
