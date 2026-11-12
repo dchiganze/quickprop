@@ -1,11 +1,19 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useLocation } from 'wouter';
-import { useLogout, useGetCurrentUser, useListNotifications, useMarkNotificationRead, getListNotificationsQueryKey } from '@workspace/api-client-react';
+import {
+  getListNotificationsQueryKey,
+  getOfficeSearchQueryKey,
+  useGetCurrentUser,
+  useListNotifications,
+  useLogout,
+  useMarkNotificationRead,
+  useOfficeSearch,
+} from '@workspace/api-client-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { 
   LayoutDashboard, Database, KanbanSquare, Users, Handshake, Home, UserRound,
-  Target, CheckSquare, Calendar, FileText, Briefcase, BarChart3, Settings, 
-  ShieldAlert, UserCircle, Bell, Search, LogOut, Loader2, Sparkles, UploadCloud
+  Target, CheckSquare, Calendar, FileText, Briefcase, BarChart3, Settings,
+  ShieldAlert, UserCircle, Bell, Search, LogOut, Loader2, Sparkles, UploadCloud, Building2
 } from 'lucide-react';
 import { QuickShareDialog } from '@/components/QuickShareDialog';
 
@@ -15,6 +23,10 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
+import {
+  Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList,
+} from '@/components/ui/command';
 import { cn } from '@/lib/utils';
 
 interface NavItemProps {
@@ -111,12 +123,60 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const { data: user } = useGetCurrentUser();
   const logout = useLogout();
   const [, setLocation] = useLocation();
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchText, setSearchText] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedSearch(searchText.trim()), 250);
+    return () => window.clearTimeout(timer);
+  }, [searchText]);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault();
+        setSearchOpen(true);
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
+
+  const { data: searchResults, isFetching: searchLoading, isError: searchError } = useOfficeSearch(
+    { q: debouncedSearch },
+    {
+      query: {
+        enabled: searchOpen && debouncedSearch.length >= 2,
+        queryKey: getOfficeSearchQueryKey({ q: debouncedSearch }),
+        staleTime: 15_000,
+      },
+    },
+  );
 
   const handleLogout = () => {
     logout.mutate(undefined, {
       onSuccess: () => setLocation('/login')
     });
   };
+
+  const closeSearch = () => {
+    setSearchOpen(false);
+    setSearchText('');
+    setDebouncedSearch('');
+  };
+
+  const openSearchResultsPage = (path: string) => {
+    const query = encodeURIComponent(debouncedSearch);
+    closeSearch();
+    setLocation(`${path}?q=${query}`);
+  };
+
+  const hasSearchResults = Boolean(
+    searchResults?.properties.length
+    || searchResults?.buyers.length
+    || searchResults?.leads.length
+  );
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
@@ -204,8 +264,12 @@ export function Layout({ children }: { children: React.ReactNode }) {
         {/* Top Header */}
         <header className="h-16 flex items-center justify-between px-6 bg-card border-b border-border shadow-sm z-10">
           <div className="flex items-center gap-4 flex-1">
-             {/* Global Search stub - will implement fully on pages that need it, or as a global command palette */}
-             <button className="flex items-center gap-2 px-3 py-1.5 text-sm text-muted-foreground bg-muted hover:bg-muted/80 rounded-md border border-border w-64 transition-colors">
+              <button
+                type="button"
+                onClick={() => setSearchOpen(true)}
+                aria-label="Search properties, buyers, and leads"
+                className="flex items-center gap-2 px-3 py-1.5 text-sm text-muted-foreground bg-muted hover:bg-muted/80 rounded-md border border-border w-64 transition-colors"
+              >
                <Search className="w-4 h-4" />
                <span>Search properties, buyers...</span>
                <kbd className="ml-auto pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-background px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">
@@ -242,6 +306,106 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <NotificationsDropdown />
           </div>
         </header>
+
+        <Dialog open={searchOpen} onOpenChange={(open) => open ? setSearchOpen(true) : closeSearch()}>
+          <DialogContent className="overflow-hidden p-0 sm:max-w-xl">
+            <DialogTitle className="sr-only">QuickProp search</DialogTitle>
+            <DialogDescription className="sr-only">
+              Search properties, buyers, and leads across your authorized Office data.
+            </DialogDescription>
+            <Command shouldFilter={false} className="rounded-lg">
+              <CommandInput
+                value={searchText}
+                onValueChange={setSearchText}
+                placeholder="Search properties, buyers, leads..."
+              />
+              <CommandList>
+                {!searchText.trim() ? (
+                  <div className="px-4 py-6 text-center text-sm text-muted-foreground">
+                    Search properties, buyers, and leads across QuickProp Office.
+                  </div>
+                ) : searchText.trim().length < 2 ? (
+                  <div className="px-4 py-6 text-center text-sm text-muted-foreground">
+                    Enter at least 2 characters to search.
+                  </div>
+                ) : debouncedSearch !== searchText.trim() || searchLoading ? (
+                  <div className="flex items-center justify-center gap-2 px-4 py-6 text-sm text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Searching…
+                  </div>
+                ) : searchError ? (
+                  <div className="px-4 py-6 text-center text-sm text-destructive">
+                    Search is unavailable. Please try again.
+                  </div>
+                ) : (
+                  <>
+                    {searchResults?.properties.length ? (
+                      <CommandGroup heading="Properties">
+                        {searchResults.properties.map((property) => (
+                          <CommandItem
+                            key={`property-${property.id}`}
+                            value={`property-${property.id}`}
+                            onSelect={() => openSearchResultsPage('/inventory')}
+                          >
+                            <Building2 className="h-4 w-4 text-muted-foreground" />
+                            <div className="min-w-0 flex-1">
+                              <div className="truncate font-medium">{property.title}</div>
+                              <div className="truncate text-xs text-muted-foreground">
+                                {property.reference} · {property.suburb}, {property.city}
+                              </div>
+                            </div>
+                            <span className="text-xs text-muted-foreground">Inventory</span>
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    ) : null}
+                    {searchResults?.buyers.length ? (
+                      <CommandGroup heading="Buyers">
+                        {searchResults.buyers.map((buyer) => (
+                          <CommandItem
+                            key={`buyer-${buyer.id}`}
+                            value={`buyer-${buyer.id}`}
+                            onSelect={() => openSearchResultsPage('/buyers')}
+                          >
+                            <Users className="h-4 w-4 text-muted-foreground" />
+                            <div className="min-w-0 flex-1">
+                              <div className="truncate font-medium">{buyer.name}</div>
+                              <div className="truncate text-xs text-muted-foreground">
+                                {buyer.email || buyer.phone || buyer.preferredAreas?.join(', ') || 'Buyer'}
+                              </div>
+                            </div>
+                            <span className="text-xs text-muted-foreground">Buyers</span>
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    ) : null}
+                    {searchResults?.leads.length ? (
+                      <CommandGroup heading="Leads">
+                        {searchResults.leads.map((lead) => (
+                          <CommandItem
+                            key={`lead-${lead.id}`}
+                            value={`lead-${lead.id}`}
+                            onSelect={() => openSearchResultsPage('/leads')}
+                          >
+                            <Target className="h-4 w-4 text-muted-foreground" />
+                            <div className="min-w-0 flex-1">
+                              <div className="truncate font-medium">{lead.name}</div>
+                              <div className="truncate text-xs text-muted-foreground">
+                                {lead.email || lead.phone || lead.stage.replace(/_/g, ' ')}
+                              </div>
+                            </div>
+                            <span className="text-xs text-muted-foreground">Leads</span>
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    ) : null}
+                    {!hasSearchResults && <CommandEmpty>No matching properties, buyers, or leads.</CommandEmpty>}
+                  </>
+                )}
+              </CommandList>
+            </Command>
+          </DialogContent>
+        </Dialog>
 
         <ScrollArea className="flex-1">
           {children}

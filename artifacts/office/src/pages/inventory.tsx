@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { Link, useLocation } from 'wouter';
+import { Link, useLocation, useSearch } from 'wouter';
 import { 
   Search, Filter, Plus, Home, MapPin, DollarSign, LayoutGrid, List, ArrowUpDown, ChevronDown, Sparkles, CalendarDays, Clock3, CheckCircle2, Upload, Image as ImageIcon, Video, X, Loader2
 } from 'lucide-react';
@@ -849,7 +849,8 @@ function PropertyCardImage({ property }: { property: Property }) {
 }
 
 export default function Inventory() {
-  const [search, setSearch] = useState('');
+  const searchParams = useSearch();
+  const [search, setSearch] = useState(() => new URLSearchParams(searchParams).get('q') ?? '');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [status, setStatus] = useState<string>('all');
   const [agentFilter, setAgentFilter] = useState<string>('all');
@@ -868,6 +869,16 @@ export default function Inventory() {
     const t = setTimeout(() => setDebouncedSearch(search.trim()), 350);
     return () => clearTimeout(t);
   }, [search]);
+
+  useEffect(() => {
+    const nextSearch = new URLSearchParams(searchParams).get('q') ?? '';
+    setSearch(nextSearch);
+    if (nextSearch) {
+      setStatus('all');
+      setAgentFilter('all');
+      setListingType('all');
+    }
+  }, [searchParams]);
 
   const searching = debouncedSearch.length > 0;
 

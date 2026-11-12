@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Link } from 'wouter';
+import React, { useEffect, useState } from 'react';
+import { Link, useSearch } from 'wouter';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   useListBuyers,
@@ -279,7 +279,11 @@ function BuyerRow({ buyer }: { buyer: Buyer }) {
 }
 
 export default function Buyers() {
-  const [search, setSearch] = useState('');
+  const searchParams = useSearch();
+  const [search, setSearch] = useState(() => new URLSearchParams(searchParams).get('q') ?? '');
+  useEffect(() => {
+    setSearch(new URLSearchParams(searchParams).get('q') ?? '');
+  }, [searchParams]);
   const { data: buyers, isLoading } = useListBuyers({ q: search || undefined });
 
   return (

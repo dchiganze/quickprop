@@ -1,10 +1,12 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { useSearch } from 'wouter';
 import { useListLeads } from '@workspace/api-client-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Phone, Mail, Link as LinkIcon, Target } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Phone, Mail, Link as LinkIcon, Target, Search } from 'lucide-react';
 import { format } from 'date-fns';
 
 const STAGES = [
@@ -51,13 +53,23 @@ function LeadCard({ lead }: { lead: any }) {
 }
 
 export default function Leads() {
+  const searchParams = useSearch();
+  const [search, setSearch] = useState(() => new URLSearchParams(searchParams).get('q') ?? '');
   const { data: leads, isLoading } = useListLeads();
+  useEffect(() => {
+    setSearch(new URLSearchParams(searchParams).get('q') ?? '');
+  }, [searchParams]);
 
   // Group leads by stage
+  const searchTerms = search.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  const visibleLeads = (leads ?? []).filter((lead) => {
+    const searchable = `${lead.name} ${lead.phone ?? ''} ${lead.email ?? ''} ${lead.source ?? ''} ${lead.stage}`.toLowerCase();
+    return searchTerms.every((term) => searchable.includes(term));
+  });
   const groupedLeads = STAGES.reduce((acc, stage) => {
-    acc[stage] = leads?.filter(l => l.stage === stage) || [];
+    acc[stage] = visibleLeads.filter((lead) => lead.stage === stage);
     return acc;
-  }, {} as Record<string, any[]>);
+  }, {} as Record<string, (typeof visibleLeads)[number][]>);
 
   return (
     <div className="h-full flex flex-col p-8 max-w-[1600px] mx-auto overflow-hidden">
@@ -67,6 +79,15 @@ export default function Leads() {
             <Target className="w-8 h-8 text-primary" /> Leads Pipeline
           </h1>
           <p className="text-muted-foreground mt-1">Track and convert incoming leads into deals.</p>
+        </div>
+        <div className="relative w-full max-w-sm">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Search leads..."
+            className="pl-9 bg-background"
+          />
         </div>
       </div>
 
