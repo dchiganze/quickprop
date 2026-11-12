@@ -7,6 +7,7 @@ import {
   Text,
   TouchableOpacity,
   View,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -16,7 +17,12 @@ import { useColors } from '@/hooks/useColors';
 import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
 import { Property } from '@/types';
-import { BROCHURE_PRINT_OPTIONS, catalogueBrochureHtml, type BrochureAgent } from '@/utils/brochureHtml';
+import {
+  BROCHURE_PRINT_OPTIONS,
+  catalogueBrochureHtml,
+  getBrochurePrintHtml,
+  type BrochureAgent,
+} from '@/utils/brochureHtml';
 import { prepareBrochureMedia } from '@/utils/brochureMedia';
 import {
   getGetAgencyPropertiesQueryKey,
@@ -288,10 +294,11 @@ export default function BrochureSetupScreen() {
         agents,
         { ...agencyBranding, logoUrl: preparedMedia.logoUrl },
       );
+      const printHtml = getBrochurePrintHtml(html, Platform.OS);
       if (action === 'print') {
-        await Print.printAsync({ html, ...BROCHURE_PRINT_OPTIONS });
+        await Print.printAsync({ html: printHtml, ...BROCHURE_PRINT_OPTIONS });
       } else {
-        const { uri } = await Print.printToFileAsync({ html, ...BROCHURE_PRINT_OPTIONS });
+        const { uri } = await Print.printToFileAsync({ html: printHtml, ...BROCHURE_PRINT_OPTIONS });
         await shareCataloguePdfWithCaption(uri, user?.name);
       }
     } catch (error: unknown) {

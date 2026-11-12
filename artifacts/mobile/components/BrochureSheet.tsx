@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import {
   View, Text, Modal, TouchableOpacity, StyleSheet, ActivityIndicator,
-  Pressable, Alert, Share,
+  Pressable, Alert, Share, Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -15,6 +15,7 @@ import { useData } from '@/contexts/DataContext';
 import { Property } from '@/types';
 import {
   BROCHURE_PRINT_OPTIONS,
+  getBrochurePrintHtml,
   singlePropertyBrochureHtml,
   catalogueBrochureHtml,
   type BrochureAgent,
@@ -130,7 +131,8 @@ export function PropertyBrochureSheet({ visible, onClose, property }: PropertyBr
         { ...agencyBranding, logoUrl: preparedMedia.logoUrl },
         agents,
       );
-      await Print.printAsync({ html, ...BROCHURE_PRINT_OPTIONS });
+      const printHtml = getBrochurePrintHtml(html, Platform.OS);
+      await Print.printAsync({ html: printHtml, ...BROCHURE_PRINT_OPTIONS });
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : 'Could not generate brochure. Please try again.';
       if (!isPrintCancellation(e)) {
@@ -168,7 +170,8 @@ export function PropertyBrochureSheet({ visible, onClose, property }: PropertyBr
         { ...agencyBranding, logoUrl: preparedMedia.logoUrl },
         agents,
       );
-      const { uri } = await Print.printToFileAsync({ html, ...BROCHURE_PRINT_OPTIONS });
+      const printHtml = getBrochurePrintHtml(html, Platform.OS);
+      const { uri } = await Print.printToFileAsync({ html: printHtml, ...BROCHURE_PRINT_OPTIONS });
       if (!(await Sharing.isAvailableAsync())) {
         throw new Error('PDF sharing is not available on this device.');
       }
@@ -325,11 +328,12 @@ export function CatalogueBrochureSheet({ visible, onClose }: CatalogueBrochureSh
         agents,
         { ...agencyBranding, logoUrl: preparedMedia.logoUrl },
       );
+      const printHtml = getBrochurePrintHtml(html, Platform.OS);
       if (action === 'print') {
-        await Print.printAsync({ html, ...BROCHURE_PRINT_OPTIONS });
+        await Print.printAsync({ html: printHtml, ...BROCHURE_PRINT_OPTIONS });
       } else {
         const Sharing: SharingModule = await import('expo-sharing');
-        const { uri } = await Print.printToFileAsync({ html, ...BROCHURE_PRINT_OPTIONS });
+        const { uri } = await Print.printToFileAsync({ html: printHtml, ...BROCHURE_PRINT_OPTIONS });
         if (!(await Sharing.isAvailableAsync())) {
           throw new Error('PDF sharing is not available on this device.');
         }

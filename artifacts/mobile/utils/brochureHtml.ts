@@ -7,6 +7,30 @@ export const BROCHURE_PRINT_OPTIONS = {
   margins: { top: 0, right: 0, bottom: 0, left: 0 },
 } as const;
 
+export function getBrochurePrintHtml(html: string, platform: string): string {
+  if (platform !== 'ios') return html;
+
+  const iosPaginationStyles = `<style>
+    @media print {
+      .brochure-page {
+        height: 296mm !important;
+        break-after: auto !important;
+        page-break-after: auto !important;
+      }
+      .brochure-page + .brochure-page {
+        break-before: page !important;
+        page-break-before: always !important;
+      }
+      .brochure-page:first-child {
+        break-before: auto !important;
+        page-break-before: auto !important;
+      }
+    }
+  </style>`;
+
+  return html.replace('</head>', `${iosPaginationStyles}</head>`);
+}
+
 type AgencyBranding = {
   agencyName?: string | null;
   logoUrl?: string | null;
