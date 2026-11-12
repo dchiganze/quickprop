@@ -1,8 +1,9 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import {
   View, Text, TextInput, FlatList, ScrollView, TouchableOpacity, StyleSheet, Platform, RefreshControl, ActivityIndicator,
 } from 'react-native';
 import { useInfiniteQuery } from '@tanstack/react-query';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -24,7 +25,17 @@ import { PropertyCard } from '@/components/PropertyCard';
 import { SearchBar } from '@/components/SearchBar';
 import { EmptyState } from '@/components/EmptyState';
 import { QuickShareSheet } from '@/components/QuickShareSheet';
+import { useNetworkStatus } from '@/contexts/ConnectivityContext';
 import { propertyMatchesQuery } from '@/lib/property-search';
+import {
+  agencyListingsCacheKey,
+  emptyAgencyListingsCache,
+  enqueueAgencyListingsCacheTask,
+  mergeAgencyListingsCache,
+  parseAgencyListingsCache,
+  type AgencyListingsCache,
+} from '@/lib/agency-listings-cache';
+import { cacheMediaForOffline } from '@/utils/offlineMedia';
 import type { Property } from '@/types';
 
 type ListingScope = 'all' | 'my' | 'agency';
@@ -109,9 +120,15 @@ export default function ListingsScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
+  const { isOnline, isOffline } = useNetworkStatus();
   const {
     properties, syncNow,
   } = useData();
+  const accountIdRef = useRef<string | null>(user?.id ?? null);
+  accountIdRef.current = user?.id ?? null;
+  const agencyCacheRef = useRef<AgencyListingsCache | null>(null);
+  const [offlineAgencyCache, setOfflineAgencyCache] = useState<AgencyListingsCache | null>(null);
+  const [agencyCacheReadyForUser, setAgencyCacheReadyForUser] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [scope, setScope] = useState<ListingScope>('all');
   const [statusFilter, setStatusFilter] = useState<MyStatusFilter>('all');
@@ -123,24 +140,69 @@ export default function ListingsScreen() {
   const [shareOpen, setShareOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
+  useEffect(() => {
+    let cancelled = false;
+    const accountId = user?.id;
+    agencyCacheRef.current = null;
+    setOfflineAgencyCache(null);
+    setAgencyCacheReadyForUser(null);
+    if (!accountId) return () => { cancelled = true; };
+
+    AsyncStorage.getItem(agencyListingsCacheKey(accountId))
+      .then((serialized) => {
+        if (cancelled) return;
+        const cached = parseAgencyListingsCache(serialized, accountId);
+        agencyCacheRef.current = cached;
+        setOfflineAgencyCache(cached);
+        setAgencyCacheReadyForUser(accountId);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        agencyCacheRef.current = emptyAgencyListingsCache(accountId);
+        setAgencyCacheReadyForUser(accountId);
+      });
+
+    return () => { cancelled = true; };
+  }, [user?.id]);
+
+  const persistAgencyListings = useCallback((
+    accountId: string,
+    update: Partial<Omit<AgencyListingsCache, 'version' | 'userId'>>,
+  ) => {
+    if (accountIdRef.current !== accountId) return;
+    const next = mergeAgencyListingsCache(agencyCacheRef.current, accountId, update);
+    agencyCacheRef.current = next;
+    setOfflineAgencyCache(next);
+    void enqueueAgencyListingsCacheTask(async () => {
+      if (accountIdRef.current !== accountId) return;
+      await AsyncStorage.setItem(agencyListingsCacheKey(accountId), JSON.stringify(next));
+    }).catch(() => {
+      console.warn('Agency listings could not be saved for offline use.');
+    });
+  }, []);
+
   const publicAgentsQuery = useListPublicAgents({
     query: {
-      enabled: agentMenuOpen,
-      queryKey: getListPublicAgentsQueryKey(),
+      enabled: Boolean(user?.id),
+      queryKey: [...getListPublicAgentsQueryKey(), user?.id],
       staleTime: 5 * 60_000,
     },
   });
   const agencyQuery = useGetAgencyProperties({
     query: {
       enabled: Boolean(user?.id),
-      queryKey: getGetAgencyPropertiesQueryKey(),
+      queryKey: [...getGetAgencyPropertiesQueryKey(), user?.id],
     },
   });
-  const activeAgencyName = agencyQuery.data?.agencyName?.trim() ?? '';
+  const accountAgencyCache = offlineAgencyCache?.userId === user?.id ? offlineAgencyCache : null;
+  const activeAgencyName = agencyQuery.data?.agencyName?.trim()
+    || accountAgencyCache?.agencyName?.trim()
+    || '';
   const agencyName = activeAgencyName || 'Agency Listings';
   const agentOptions = useMemo(() => {
+    if (!publicAgentsQuery.data) return accountAgencyCache?.agents ?? [];
     const normalizedAgency = activeAgencyName.toLocaleLowerCase();
-    const options = (publicAgentsQuery.data ?? [])
+    const options = publicAgentsQuery.data
       .filter((agent) => (
         (agent.role === 'agent' || agent.role === 'senior_agent')
         && agent.agencyName?.trim().toLocaleLowerCase() === normalizedAgency
@@ -159,7 +221,30 @@ export default function ListingsScreen() {
       options.push({ id: String(user.id), name: user.name, detail: user.branch || activeAgencyName });
     }
     return options.sort((a, b) => a.name.localeCompare(b.name));
-  }, [activeAgencyName, publicAgentsQuery.data, user]);
+  }, [accountAgencyCache?.agents, activeAgencyName, publicAgentsQuery.data, user]);
+
+  useEffect(() => {
+    if (
+      !user?.id
+      || !activeAgencyName
+      || agencyCacheReadyForUser !== user.id
+      || publicAgentsQuery.isError
+      || !publicAgentsQuery.data
+    ) return;
+    persistAgencyListings(user.id, {
+      agencyName: activeAgencyName,
+      agents: agentOptions,
+      agentsSyncedAt: new Date().toISOString(),
+    });
+  }, [
+    activeAgencyName,
+    agencyCacheReadyForUser,
+    agentOptions,
+    persistAgencyListings,
+    publicAgentsQuery.data,
+    user?.id,
+  ]);
+
   const allAgencyAgentsLabel = activeAgencyName ? `All ${activeAgencyName} agents` : 'All agency agents';
   const visibleAgentOptions = useMemo(() => {
     const term = agentSearch.trim().toLowerCase();
@@ -171,13 +256,17 @@ export default function ListingsScreen() {
   const publicAgentId = /^\d+$/.test(agentFilter) ? Number(agentFilter) : undefined;
   const serverUserId = /^\d+$/.test(user?.id ?? '') ? Number(user?.id) : undefined;
   const draftFilterParams = useMemo(() => {
-    if (visibilityFilter !== 'draft' || scope === 'my') return undefined;
+    if (
+      scope === 'my'
+      || (scope !== 'agency' && visibilityFilter !== 'draft' && user?.role !== 'agent')
+    ) return undefined;
 
     if (scope === 'agency') {
-      if (publicAgentId == null && (user?.role !== 'agent' || serverUserId == null)) return undefined;
+      if (user?.role === 'agent' && serverUserId == null) return undefined;
+      if (user?.role !== 'agent' && publicAgentId == null) return undefined;
       return {
         status: 'draft',
-        ...(publicAgentId != null ? { agentId: publicAgentId } : {}),
+        ...(user?.role === 'agent' ? {} : { agentId: publicAgentId }),
         agencyInventory: 'agency' as const,
       };
     }
@@ -186,7 +275,6 @@ export default function ListingsScreen() {
       if (serverUserId == null) return undefined;
       return {
         status: 'draft',
-        ...(publicAgentId != null ? { agentId: publicAgentId } : {}),
         agencyInventory: 'agency' as const,
       };
     }
@@ -194,11 +282,16 @@ export default function ListingsScreen() {
     if (publicAgentId != null) return { status: 'draft', agentId: publicAgentId };
     return user?.role === 'administrator' ? { status: 'draft' } : undefined;
   }, [publicAgentId, scope, serverUserId, user?.role, visibilityFilter]);
-  const draftQueryEnabled = Boolean(serverUserId != null && visibilityFilter === 'draft' && scope !== 'my' && draftFilterParams);
+  const draftQueryEnabled = Boolean(
+    serverUserId != null
+    && scope !== 'my'
+    && draftFilterParams
+    && (scope === 'agency' || user?.role === 'agent' || visibilityFilter === 'draft'),
+  );
   const draftListingsQuery = useListProperties(draftFilterParams, {
     query: {
       enabled: draftQueryEnabled,
-      queryKey: getListPropertiesQueryKey(draftFilterParams),
+      queryKey: [...getListPropertiesQueryKey(draftFilterParams), user?.id],
       staleTime: 30_000,
     },
   });
@@ -220,16 +313,92 @@ export default function ListingsScreen() {
     () => publicFeed.data?.pages.flatMap((page) => page.properties.map(mapPublicProperty)) ?? [],
     [publicFeed.data?.pages],
   );
-  const agencyProperties = useMemo(
+  const queriedAgencyProperties = useMemo(
     () => agencyQuery.data?.properties.map(mapPublicProperty) ?? [],
     [agencyQuery.data?.properties],
   );
-  const remoteDraftProperties = useMemo(
+  const queriedDraftProperties = useMemo(
     () => (draftListingsQuery.data ?? [])
       .filter((property) => property.status === 'draft' || property.pipelineStage === 'draft')
       .map(toMobileProperty),
     [draftListingsQuery.data],
   );
+  const agencyProperties = agencyQuery.data
+    ? queriedAgencyProperties
+    : accountAgencyCache?.live ?? queriedAgencyProperties;
+  const remoteDraftProperties = draftListingsQuery.data !== undefined
+    ? queriedDraftProperties
+    : (scope === 'agency' || user?.role === 'agent')
+      ? accountAgencyCache?.drafts ?? queriedDraftProperties
+      : queriedDraftProperties;
+
+  useEffect(() => {
+    if (!user?.id || agencyCacheReadyForUser !== user.id || agencyQuery.isError || !agencyQuery.data) return;
+    persistAgencyListings(user.id, {
+      agencyName: agencyQuery.data.agencyName?.trim() || null,
+      live: queriedAgencyProperties,
+      liveSyncedAt: new Date().toISOString(),
+    });
+  }, [agencyCacheReadyForUser, agencyQuery.data, persistAgencyListings, queriedAgencyProperties, user?.id]);
+
+  useEffect(() => {
+    if (
+      !user?.id
+      || agencyCacheReadyForUser !== user.id
+      || draftListingsQuery.isError
+      || !draftQueryEnabled
+      || draftListingsQuery.data === undefined
+    ) return;
+    persistAgencyListings(user.id, {
+      drafts: queriedDraftProperties,
+      draftsSyncedAt: new Date().toISOString(),
+    });
+  }, [
+    agencyCacheReadyForUser,
+    draftListingsQuery.data,
+    draftQueryEnabled,
+    persistAgencyListings,
+    queriedDraftProperties,
+    user?.id,
+  ]);
+
+  const offlineAgencyPhotoUris = useMemo(
+    () => [...new Set([...agencyProperties, ...remoteDraftProperties]
+      .flatMap((property) => property.photos ?? [])
+      .filter((uri) => typeof uri === 'string' && uri.trim()))],
+    [agencyProperties, remoteDraftProperties],
+  );
+  const offlineAgencyPhotoSignature = offlineAgencyPhotoUris.join('\u0000');
+
+  useEffect(() => {
+    if (Platform.OS === 'web' || !user?.id || !isOnline || offlineAgencyPhotoUris.length === 0) return;
+    let cancelled = false;
+    let storageUnavailable = false;
+    let nextIndex = 0;
+    const cacheWorker = async () => {
+      while (!cancelled && !storageUnavailable) {
+        const uri = offlineAgencyPhotoUris[nextIndex];
+        nextIndex += 1;
+        if (!uri) return;
+        if (uri.startsWith('file://')) continue;
+        try {
+          await cacheMediaForOffline(uri, user.id);
+        } catch (error) {
+          if (error instanceof Error && error.message.includes('free device storage')) {
+            storageUnavailable = true;
+            return;
+          }
+          console.warn('Agency listing photo cache deferred.', error);
+        }
+      }
+    };
+
+    void Promise.all(Array.from(
+      { length: Math.min(3, offlineAgencyPhotoUris.length) },
+      () => cacheWorker(),
+    ));
+    return () => { cancelled = true; };
+  }, [isOnline, offlineAgencyPhotoSignature, offlineAgencyPhotoUris, user?.id]);
   const localDraftProperties = useMemo(
     () => properties.filter((property) =>
       (property.status === 'draft' || property.pendingStatus === 'draft')
@@ -301,15 +470,21 @@ export default function ListingsScreen() {
 
   const agencyFilterLabel = agencyName === 'Agency Listings' ? SCOPE_FILTERS[2].label : agencyName;
   const feedLoading = visibilityFilter === 'draft'
-    ? scope !== 'my' && draftQueryEnabled && draftListingsQuery.isLoading
+    ? scope !== 'my'
+      && draftQueryEnabled
+      && draftListingsQuery.isLoading
+      && !(accountAgencyCache?.draftsSyncedAt && (scope === 'agency' || user?.role === 'agent'))
     : scope === 'all'
       ? publicFeed.isLoading
-      : scope === 'agency' && agencyQuery.isLoading;
+      : scope === 'agency' && agencyQuery.isLoading && !accountAgencyCache?.liveSyncedAt;
   const feedError = visibilityFilter === 'draft'
-    ? scope !== 'my' && draftQueryEnabled && draftListingsQuery.isError
+    ? scope !== 'my'
+      && draftQueryEnabled
+      && draftListingsQuery.isError
+      && !(accountAgencyCache?.draftsSyncedAt && (scope === 'agency' || user?.role === 'agent'))
     : scope === 'all'
       ? publicFeed.isError
-      : scope === 'agency' && agencyQuery.isError;
+      : scope === 'agency' && agencyQuery.isError && !accountAgencyCache?.liveSyncedAt;
 
   return (
     <View style={[styles.flex, { backgroundColor: colors.background }]}>
@@ -391,12 +566,12 @@ export default function ListingsScreen() {
                   {!agentFilter && <Ionicons name="checkmark" size={17} color={colors.primary} />}
                 </TouchableOpacity>
 
-                {publicAgentsQuery.isLoading || agencyQuery.isLoading ? (
+                {(publicAgentsQuery.isLoading || agencyQuery.isLoading) && !accountAgencyCache?.agentsSyncedAt ? (
                   <View style={styles.agentLoading}>
                     <ActivityIndicator size="small" color={colors.primary} />
                     <Text style={[styles.agentOptionDetail, { color: colors.mutedForeground }]}>Loading agents…</Text>
                   </View>
-                ) : publicAgentsQuery.isError || agencyQuery.isError || !activeAgencyName ? (
+                ) : (publicAgentsQuery.isError || agencyQuery.isError || !activeAgencyName) && !accountAgencyCache?.agentsSyncedAt ? (
                   <TouchableOpacity
                     style={styles.agentLoading}
                     onPress={() => { void Promise.all([publicAgentsQuery.refetch(), agencyQuery.refetch()]); }}
@@ -532,6 +707,19 @@ export default function ListingsScreen() {
             );
           })}
         </ScrollView>
+        {scope === 'agency'
+          && isOffline
+          && (visibilityFilter === 'draft'
+            ? Boolean(accountAgencyCache?.draftsSyncedAt)
+            : Boolean(accountAgencyCache?.liveSyncedAt))
+          && (
+            <View style={[styles.offlineAgencyHint, { backgroundColor: `${colors.primary}12` }]}>
+              <Ionicons name="cloud-offline-outline" size={15} color={colors.primary} />
+              <Text style={[styles.offlineAgencyHintText, { color: colors.primary }]}>
+                Offline — showing agency listings from the last sync.
+              </Text>
+            </View>
+          )}
       </View>
 
       {/* List */}
@@ -636,6 +824,8 @@ const styles = StyleSheet.create({
   agentNoResults: { paddingHorizontal: 10, paddingVertical: 14 },
   filterList: { marginHorizontal: -16 },
   filterContent: { paddingHorizontal: 16, gap: 8 },
+  offlineAgencyHint: { marginHorizontal: 18, marginTop: 8, paddingHorizontal: 10, paddingVertical: 8, borderRadius: 10, flexDirection: 'row', alignItems: 'center', gap: 6 },
+  offlineAgencyHintText: { flex: 1, fontSize: 12, fontWeight: '600' },
   filterBtn: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, borderWidth: 1 },
   filterText: { fontSize: 13, fontWeight: '600' },
   loadingState: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 48 },

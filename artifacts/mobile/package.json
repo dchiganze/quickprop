@@ -9,6 +9,7 @@
     "serve": "node server/serve.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test:search": "../../scripts/node_modules/.bin/tsx --test lib/property-search.test.mjs",
+    "test:offline": "../../scripts/node_modules/.bin/tsx --test lib/agency-listings-cache.test.mjs",
     "android": "expo run:android",
     "ios": "expo run:ios"
   },

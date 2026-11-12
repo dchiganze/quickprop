@@ -6,6 +6,11 @@ import * as SecureStore from 'expo-secure-store';
 import { User } from '@/types';
 import { clearDataContextMemory } from './dataReset';
 import {
+  AGENCY_LISTINGS_CACHE_PREFIX,
+  enqueueAgencyListingsCacheTask,
+} from '@/lib/agency-listings-cache';
+import { clearCachedOfflineMediaForUser } from '@/utils/offlineMedia';
+import {
   ApiError,
   startPhoneLogin as sendPhoneLoginCode,
   verifyPhoneLogin as verifyPhoneLoginCode,
@@ -173,18 +178,30 @@ async function withLocalProfilePhoto(user: User): Promise<User> {
   return photo ? { ...user, photo } : user;
 }
 
-async function clearLocalAccountData(): Promise<void> {
+async function clearLocalAccountData(userIdHint?: string): Promise<void> {
   clearDataContextMemory();
+  const storedUserId = userIdHint ?? await AsyncStorage.getItem(AUTH_KEY)
+    .then((serialized) => {
+      if (!serialized) return null;
+      const stored = JSON.parse(serialized) as Partial<User>;
+      return typeof stored.id === 'string' ? stored.id : null;
+    })
+    .catch(() => null);
   await Promise.all([
     // AUTH_TOKEN_KEY was formerly kept in AsyncStorage. Remove this legacy
     // value as well so a token is never left behind during the migration.
-    AsyncStorage.multiRemove(ACCOUNT_DATA_KEYS),
+    enqueueAgencyListingsCacheTask(async () => {
+      const agencyListingCacheKeys = (await AsyncStorage.getAllKeys().catch(() => []))
+        .filter((key) => key.startsWith(AGENCY_LISTINGS_CACHE_PREFIX));
+      await AsyncStorage.multiRemove([...ACCOUNT_DATA_KEYS, ...agencyListingCacheKeys]);
+    }),
+    clearCachedOfflineMediaForUser(storedUserId),
     removeStoredToken(),
   ]);
 }
 
-async function clearAccountSession(): Promise<void> {
-  await clearLocalAccountData();
+async function clearAccountSession(userIdHint?: string): Promise<void> {
+  await clearLocalAccountData(userIdHint);
   await AsyncStorage.removeItem(AUTH_KEY);
 }
 
@@ -419,7 +436,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = async () => {
-    await clearAccountSession();
+    await clearAccountSession(user?.id);
     setUser(null);
   };
 
@@ -430,7 +447,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!apiBaseUrl) {
       // LOCAL-DEMO ONLY: permanently remove every local user-scoped record.
       // There is intentionally no server deletion request in this mode.
-      await clearAccountSession();
+      await clearAccountSession(user.id);
       setUser(null);
       return;
     }
@@ -461,7 +478,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // irreversible deletion. DataContext restores from these storage keys.
     // Reset synchronously first, invalidating any in-flight DataContext
     // hydration before its persisted keys are removed.
-    await clearAccountSession();
+    await clearAccountSession(user.id);
     setUser(null);
   };
 

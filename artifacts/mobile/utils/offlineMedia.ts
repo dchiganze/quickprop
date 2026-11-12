@@ -149,6 +149,16 @@ export async function cacheMediaForOffline(uri: string, userId: string): Promise
   }
 }
 
+export async function clearCachedOfflineMediaForUser(userId: string | null | undefined): Promise<void> {
+  if (!userId || Platform.OS === 'web' || !FileSystem.documentDirectory) return;
+  const directory = `${FileSystem.documentDirectory}${OFFLINE_MEDIA_DIR}/${safeSegment(userId)}/`;
+  const activeDownloads = [...inFlightDownloads.entries()]
+    .filter(([destination]) => destination.startsWith(directory))
+    .map(([, download]) => download.catch(() => undefined));
+  await Promise.all(activeDownloads);
+  await FileSystem.deleteAsync(directory, { idempotent: true }).catch(() => undefined);
+}
+
 /** Copy picker/camera files out of the temporary cache before queueing a listing upload. */
 export async function persistListingDraftMedia(uri: string, userId: string): Promise<string> {
   if (Platform.OS === 'web' || !FileSystem.documentDirectory || uri.startsWith('http')) return uri;

@@ -12,7 +12,7 @@ import * as Haptics from 'expo-haptics';
 import { useColors } from '@/hooks/useColors';
 import { useAuth } from '@/contexts/AuthContext';
 import { KeyboardAwareScrollViewCompat } from '@/components/KeyboardAwareScrollViewCompat';
-import { welcomeIllustrationXml } from '@/constants/welcomeIllustration';
+import { welcomeIllustrationXml } from '@/constants/loginIllustration';
 
 type OtpAutofillModule = typeof import('expo-otp-autofill');
 const androidOtpAutofill: OtpAutofillModule | null = (() => {
@@ -271,15 +271,18 @@ export default function LoginScreen() {
               accessibilityRole="image"
               accessibilityLabel="QuickProp house logo"
             />
-            <Text style={styles.brandText}>QuickProp</Text>
+            <Text style={styles.brandText}>QuickProp Agent</Text>
           </View>
           <View style={[styles.illoWrap, { width: illoSize, height: illoSize, borderRadius: illoSize / 2 }]}>
             <SvgXml xml={welcomeIllustrationXml} width={illoSize} height={illoSize} />
           </View>
           {mode === 'welcome' && (
-            <Text style={styles.tagline} accessibilityRole="header">
-              Every listing, lead and viewing. One tap away.
-            </Text>
+            <>
+              <Text style={styles.middleBrand} accessibilityRole="header">QuickProp Agent</Text>
+              <Text style={styles.tagline}>
+                Every listing, lead and viewing. One tap away.
+              </Text>
+            </>
           )}
         </View>
 
@@ -500,6 +503,7 @@ const styles = StyleSheet.create({
   brandIcon: { width: 36, height: 36, borderRadius: 10 },
   brandText: { color: '#F3F7FF', fontSize: 22, fontWeight: '800', letterSpacing: -0.6 },
   illoWrap: { backgroundColor: 'rgba(15,191,138,0.16)', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  middleBrand: { color: '#F3F7FF', fontSize: 20, fontWeight: '800', textAlign: 'center', letterSpacing: -0.4 },
   tagline: { color: '#F3F7FF', fontSize: 24, fontWeight: '800', textAlign: 'center', letterSpacing: -0.6, lineHeight: 30, maxWidth: 320 },
   sheet: {
     flexGrow: 1, borderTopLeftRadius: 32, borderTopRightRadius: 32,
