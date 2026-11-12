@@ -4,6 +4,7 @@ import {
   Alert, Linking, Animated, useWindowDimensions, useColorScheme, Modal, ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Image as ExpoImage } from 'expo-image';
 import { countries, getEmojiFlag, type TCountryCode } from 'countries-list';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -271,10 +272,15 @@ export default function LoginScreen() {
             />
           </View>
           <View style={[styles.illoWrap, { width: illoSize, height: illoSize, borderRadius: illoSize / 2 }]}>
-            <Image
-              source={require('../assets/images/quickprop-agent-illustration-no-ring.png')}
+            <ExpoImage
+              source={require('../assets/images/quickprop-agent-illustration-3x.webp')}
+              placeholder={require('../assets/images/quickprop-agent-illustration-placeholder.png')}
               style={{ width: illoSize, height: illoSize }}
-              resizeMode="cover"
+              contentFit="cover"
+              placeholderContentFit="cover"
+              cachePolicy="memory-disk"
+              priority="high"
+              transition={150}
             />
           </View>
           {mode === 'welcome' && (
