@@ -519,3 +519,17 @@ mtime_ms = 1794481830743
 storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:cf900b3f-04ce-456b-888c-760ecb412036/83993073-876c-4d61-bbf7-e26bbf62ecee/fafb796b-ee98-43bd-bf35-de757c2ca9be"
 storage_version_token = "1794495299026793"
 content_type = "image/png"
+
+[[outputs]]
+id = "828GfDQH8ni7fdXF47Je-"
+uri = "file://generated-artifacts/quickprop-expo-go-tunnel-qr.png"
+type = "image"
+title = "QuickProp Expo Go QR"
+description = "Scan this fresh QR in Expo Go to open the current Metro tunnel."
+logical_id = "ee724b93-93b5-4d71-a2cf-db0fa4af3d3d"
+content_hash = "sha256:dfdfc7537c7331544305231ed4a634e2c3ee680d2f36db6b3a05251dbb621f17"
+size = 1138
+mtime_ms = 1794501075640
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:cf900b3f-04ce-456b-888c-760ecb412036/ee724b93-93b5-4d71-a2cf-db0fa4af3d3d/94de5442-97f1-44df-9c9b-e59e572407df"
+storage_version_token = "1794501095721299"
+content_type = "image/png"
