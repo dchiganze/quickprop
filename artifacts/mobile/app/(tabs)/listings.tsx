@@ -186,17 +186,37 @@ export default function ListingsScreen() {
       staleTime: 5 * 60_000,
     },
   });
+  const agencyQuery = useGetAgencyProperties({
+    query: {
+      enabled: Boolean(user?.id),
+      queryKey: getGetAgencyPropertiesQueryKey(),
+    },
+  });
+  const activeAgencyName = agencyQuery.data?.agencyName?.trim() ?? '';
+  const agencyName = activeAgencyName || 'Agency Listings';
   const agentOptions = useMemo(() => {
-    const options = (publicAgentsQuery.data ?? []).map((agent) => ({
-      id: String(agent.id),
-      name: agent.name,
-      detail: agent.branchName || agent.agencyName || '',
-    }));
-    if (user && !options.some((agent) => agent.id === String(user.id))) {
-      options.push({ id: String(user.id), name: user.name, detail: '' });
+    const normalizedAgency = activeAgencyName.toLocaleLowerCase();
+    const options = (publicAgentsQuery.data ?? [])
+      .filter((agent) => (
+        (agent.role === 'agent' || agent.role === 'senior_agent')
+        && agent.agencyName?.trim().toLocaleLowerCase() === normalizedAgency
+      ))
+      .map((agent) => ({
+        id: String(agent.id),
+        name: agent.name,
+        detail: agent.branchName || activeAgencyName,
+      }));
+    if (
+      activeAgencyName
+      && user?.role === 'agent'
+      && user
+      && !options.some((agent) => agent.id === String(user.id))
+    ) {
+      options.push({ id: String(user.id), name: user.name, detail: user.branch || activeAgencyName });
     }
     return options.sort((a, b) => a.name.localeCompare(b.name));
-  }, [publicAgentsQuery.data, user]);
+  }, [activeAgencyName, publicAgentsQuery.data, user]);
+  const allAgencyAgentsLabel = activeAgencyName ? `All ${activeAgencyName} agents` : 'All agency agents';
   const visibleAgentOptions = useMemo(() => {
     const term = agentSearch.trim().toLowerCase();
     return term
@@ -252,13 +272,6 @@ export default function ListingsScreen() {
     enabled: scope === 'all',
     staleTime: 30_000,
   });
-  const agencyQuery = useGetAgencyProperties({
-    query: {
-      enabled: Boolean(user?.id),
-      queryKey: getGetAgencyPropertiesQueryKey(),
-    },
-  });
-  const agencyName = agencyQuery.data?.agencyName?.trim() || 'Agency Listings';
   const publicProperties = useMemo(
     () => publicFeed.data?.pages.flatMap((page) => page.properties.map(mapPublicProperty)) ?? [],
     [publicFeed.data?.pages],
@@ -395,13 +408,13 @@ export default function ListingsScreen() {
               setAgentSearch('');
             }}
             accessibilityRole="button"
-            accessibilityLabel={selectedAgent ? `Filter by agent, ${selectedAgent.name}` : 'Filter by agent, all agents'}
+            accessibilityLabel={selectedAgent ? `Filter by agent, ${selectedAgent.name}` : `Filter by agent, ${allAgencyAgentsLabel}`}
             accessibilityState={{ expanded: agentMenuOpen }}
             testID="mobile-agent-filter"
           >
             <Ionicons name="people-outline" size={17} color={colors.mutedForeground} />
             <Text numberOfLines={1} style={[styles.agentFilterButtonText, { color: colors.foreground }]}>
-              {selectedAgent ? selectedAgent.name : 'All agents'}
+              {selectedAgent ? selectedAgent.name : allAgencyAgentsLabel}
             </Text>
             <Ionicons name={agentMenuOpen ? 'chevron-up' : 'chevron-down'} size={16} color={colors.mutedForeground} />
           </TouchableOpacity>
@@ -433,23 +446,25 @@ export default function ListingsScreen() {
                   accessibilityRole="button"
                   testID="mobile-agent-filter-all"
                 >
-                  <Text style={[styles.agentOptionName, { color: !agentFilter ? colors.primary : colors.foreground }]}>All agents</Text>
+                  <Text style={[styles.agentOptionName, { color: !agentFilter ? colors.primary : colors.foreground }]}>
+                    {allAgencyAgentsLabel}
+                  </Text>
                   {!agentFilter && <Ionicons name="checkmark" size={17} color={colors.primary} />}
                 </TouchableOpacity>
 
-                {publicAgentsQuery.isLoading ? (
+                {publicAgentsQuery.isLoading || agencyQuery.isLoading ? (
                   <View style={styles.agentLoading}>
                     <ActivityIndicator size="small" color={colors.primary} />
                     <Text style={[styles.agentOptionDetail, { color: colors.mutedForeground }]}>Loading agents…</Text>
                   </View>
-                ) : publicAgentsQuery.isError ? (
+                ) : publicAgentsQuery.isError || agencyQuery.isError || !activeAgencyName ? (
                   <TouchableOpacity
                     style={styles.agentLoading}
-                    onPress={() => { void publicAgentsQuery.refetch(); }}
+                    onPress={() => { void Promise.all([publicAgentsQuery.refetch(), agencyQuery.refetch()]); }}
                     accessibilityRole="button"
                     testID="mobile-agent-filter-retry"
                   >
-                    <Text style={[styles.agentOptionName, { color: colors.primary }]}>Couldn’t load agents — tap to retry</Text>
+                    <Text style={[styles.agentOptionName, { color: colors.primary }]}>Couldn’t load your agency’s agents — tap to retry</Text>
                   </TouchableOpacity>
                 ) : visibleAgentOptions.length > 0 ? (
                   visibleAgentOptions.map((agent) => (
