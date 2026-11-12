@@ -263,7 +263,7 @@ export default function LoginScreen() {
         <View style={[styles.hero, { paddingTop: insets.top + (compact ? 14 : 24) }]}>
           <View style={styles.brandRow}>
             <Image
-              source={require('../assets/images/quickprop-agent-logo-white.png')}
+              source={require('../assets/images/quickprop-agent-logo-white-crisp.png')}
               style={styles.brandLogo}
               resizeMode="contain"
               accessibilityRole="image"

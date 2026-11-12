@@ -533,3 +533,31 @@ mtime_ms = 1794501075640
 storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:cf900b3f-04ce-456b-888c-760ecb412036/ee724b93-93b5-4d71-a2cf-db0fa4af3d3d/94de5442-97f1-44df-9c9b-e59e572407df"
 storage_version_token = "1794501095721299"
 content_type = "image/png"
+
+[[outputs]]
+id = "XW95Bg2ioHxoVo_UAUuZA"
+uri = "file://generated-artifacts/quickprop-agent-logo-white-crisp-preview.png"
+type = "image"
+title = "QuickProp Agent logo preview"
+description = "Sharper logo on the app’s navy background at high resolution."
+logical_id = "9d6a8172-b7dd-4bc9-a036-af21eba3508c"
+content_hash = "sha256:dfd4dbf4f3d0084b7de03166ea8909b949c52cdfde6e756bb90c7e808b9f19ba"
+size = 81906
+mtime_ms = 1794501761028
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:cf900b3f-04ce-456b-888c-760ecb412036/9d6a8172-b7dd-4bc9-a036-af21eba3508c/1d63b796-edac-4f5e-ac8e-99a2e8cea9fc"
+storage_version_token = "1794501822572522"
+content_type = "image/png"
+
+[[outputs]]
+id = "dYw3Y84Imlnjpq00FxhrO"
+uri = "file://generated-artifacts/quickprop-expo-go-tunnel-qr-current.png"
+type = "image"
+title = "Current QuickProp Expo Go QR"
+description = "Fresh QR for the active tunnel after the preview restart."
+logical_id = "b72ab9a8-921c-4553-98b6-680eecb03fac"
+content_hash = "sha256:15317b509e86695692d2b86dbda408320f38f6e1f70ce54549153d9a1c570d7e"
+size = 1149
+mtime_ms = 1794501760760
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:cf900b3f-04ce-456b-888c-760ecb412036/b72ab9a8-921c-4553-98b6-680eecb03fac/41a08325-6bf2-4fe8-9d08-0915200a4f99"
+storage_version_token = "1794501823309681"
+content_type = "image/png"
