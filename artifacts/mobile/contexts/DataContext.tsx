@@ -172,7 +172,7 @@ export function parsePrivateContactNotes(value?: string | null) {
   return { name, phone, email, notes: remaining.join('\n') };
 }
 
-function toMobileProperty(property: ApiProperty): Property {
+export function toMobileProperty(property: ApiProperty): Property {
   const type: Property['type'] = property.propertyType === 'commercial' || property.propertyType === 'stand' || property.propertyType === 'farm'
     ? property.propertyType
     : property.listingType === 'rent' ? 'rent' : 'sale';

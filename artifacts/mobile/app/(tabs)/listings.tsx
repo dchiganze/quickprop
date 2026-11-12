@@ -9,14 +9,16 @@ import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import {
   getGetAgencyPropertiesQueryKey,
+  getListPropertiesQueryKey,
   getListPublicAgentsQueryKey,
   listPublicProperties,
   useGetAgencyProperties,
+  useListProperties,
   useListPublicAgents,
   type PublicProperty,
 } from '@workspace/api-client-react';
 import { useColors } from '@/hooks/useColors';
-import { useData } from '@/contexts/DataContext';
+import { toMobileProperty, useData } from '@/contexts/DataContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { PropertyCard } from '@/components/PropertyCard';
 import { SearchBar } from '@/components/SearchBar';
@@ -27,6 +29,7 @@ import type { Property } from '@/types';
 
 type ListingScope = 'all' | 'my' | 'agency';
 type MyStatusFilter = 'all' | 'draft' | 'sold' | 'rented' | 'archived';
+type ListingVisibilityFilter = 'all' | 'draft' | 'live';
 
 const SCOPE_FILTERS: { key: ListingScope; label: string }[] = [
   { key: 'all', label: 'All' },
@@ -39,6 +42,12 @@ const MY_STATUS_FILTERS: { key: Exclude<MyStatusFilter, 'all'>; label: string }[
   { key: 'sold', label: 'Sold' },
   { key: 'rented', label: 'Rented' },
   { key: 'archived', label: 'Archived' },
+];
+
+const VISIBILITY_FILTERS: { key: ListingVisibilityFilter; label: string }[] = [
+  { key: 'all', label: 'All statuses' },
+  { key: 'draft', label: 'Draft listings' },
+  { key: 'live', label: 'Live listings' },
 ];
 
 function mapPublicProperty(property: PublicProperty): Property {
@@ -161,6 +170,8 @@ export default function ListingsScreen() {
   const [query, setQuery] = useState('');
   const [scope, setScope] = useState<ListingScope>('all');
   const [statusFilter, setStatusFilter] = useState<MyStatusFilter>('all');
+  const [visibilityFilter, setVisibilityFilter] = useState<ListingVisibilityFilter>('all');
+  const [statusMenuOpen, setStatusMenuOpen] = useState(false);
   const [agentFilter, setAgentFilter] = useState('');
   const [agentMenuOpen, setAgentMenuOpen] = useState(false);
   const [agentSearch, setAgentSearch] = useState('');
@@ -194,6 +205,33 @@ export default function ListingsScreen() {
   }, [agentOptions, agentSearch]);
   const selectedAgent = agentOptions.find((agent) => agent.id === agentFilter);
   const publicAgentId = /^\d+$/.test(agentFilter) ? Number(agentFilter) : undefined;
+  const serverUserId = /^\d+$/.test(user?.id ?? '') ? Number(user?.id) : undefined;
+  const draftFilterParams = useMemo(() => {
+    if (visibilityFilter !== 'draft' || scope === 'my') return undefined;
+
+    if (scope === 'agency') {
+      if (publicAgentId == null && (user?.role !== 'agent' || serverUserId == null)) return undefined;
+      return {
+        status: 'draft',
+        ...(publicAgentId != null ? { agentId: publicAgentId } : {}),
+        agencyInventory: 'agency' as const,
+      };
+    }
+
+    if (publicAgentId != null) return { status: 'draft', agentId: publicAgentId };
+    if (user?.role === 'administrator') return { status: 'draft' };
+    return serverUserId != null
+      ? { status: 'draft', agentId: serverUserId }
+      : undefined;
+  }, [publicAgentId, scope, serverUserId, user?.role, visibilityFilter]);
+  const draftQueryEnabled = Boolean(serverUserId != null && visibilityFilter === 'draft' && scope !== 'my' && draftFilterParams);
+  const draftListingsQuery = useListProperties(draftFilterParams, {
+    query: {
+      enabled: draftQueryEnabled,
+      queryKey: getListPropertiesQueryKey(draftFilterParams),
+      staleTime: 30_000,
+    },
+  });
 
   const publicFeed = useInfiniteQuery({
     queryKey: ['mobile-public-properties', agentFilter || 'all'],
@@ -223,12 +261,40 @@ export default function ListingsScreen() {
     () => agencyQuery.data?.properties.map(mapPublicProperty) ?? [],
     [agencyQuery.data?.properties],
   );
+  const remoteDraftProperties = useMemo(
+    () => (draftListingsQuery.data ?? [])
+      .filter((property) => property.status === 'draft' || property.pipelineStage === 'draft')
+      .map(toMobileProperty),
+    [draftListingsQuery.data],
+  );
+  const localDraftProperties = useMemo(
+    () => properties.filter((property) =>
+      (property.status === 'draft' || property.pendingStatus === 'draft')
+      && property.agentId === user?.id
+      && (!agentFilter || property.agentId === agentFilter),
+    ),
+    [agentFilter, properties, user?.id],
+  );
+  const draftProperties = useMemo(() => {
+    const combined = new Map(remoteDraftProperties.map((property) => [property.id, property]));
+    const canIncludeLocalDrafts = scope !== 'agency' || agentFilter === user?.id;
+    if (canIncludeLocalDrafts) {
+      for (const property of localDraftProperties) combined.set(property.id, property);
+    }
+    return [...combined.values()]
+      .filter((property) => !agentFilter || property.agentId === agentFilter)
+      .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+  }, [agentFilter, localDraftProperties, remoteDraftProperties, scope, user?.id]);
 
   const handleRefresh = async () => {
     if (refreshing) return;
     setRefreshing(true);
     try {
-      if (scope === 'all') await publicFeed.refetch();
+      if (visibilityFilter === 'draft' && scope !== 'my' && draftQueryEnabled) {
+        await draftListingsQuery.refetch();
+      } else if (visibilityFilter === 'draft' || scope === 'my') {
+        await syncNow();
+      } else if (scope === 'all') await publicFeed.refetch();
       else if (scope === 'agency') await agencyQuery.refetch();
       else await syncNow();
     } finally {
@@ -237,17 +303,25 @@ export default function ListingsScreen() {
   };
 
   const filtered = useMemo(() => {
-    let list = scope === 'all'
-      ? [...publicProperties]
-      : scope === 'agency'
-        ? [...agencyProperties]
-        : properties.filter((property) => property.agentId === user?.id);
+    let list = visibilityFilter === 'draft'
+      ? scope === 'my'
+        ? localDraftProperties
+        : draftProperties
+      : scope === 'all'
+        ? [...publicProperties]
+        : scope === 'agency'
+          ? [...agencyProperties]
+          : properties.filter((property) => property.agentId === user?.id);
 
     if (agentFilter) {
       list = list.filter((property) => property.agentId === agentFilter);
     }
 
-    if (scope === 'my' && statusFilter !== 'all') {
+    if (visibilityFilter === 'live') {
+      list = list.filter((property) => property.status === 'published');
+    }
+
+    if (scope === 'my' && visibilityFilter === 'all' && statusFilter !== 'all') {
       list = list.filter((property) => property.status === statusFilter);
     }
 
@@ -257,15 +331,22 @@ export default function ListingsScreen() {
     }
 
     return list.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
-  }, [scope, statusFilter, properties, publicProperties, agencyProperties, query, user?.id, agentFilter]);
+  }, [
+    scope, statusFilter, visibilityFilter, properties, publicProperties, agencyProperties,
+    localDraftProperties, draftProperties, query, user?.id, agentFilter,
+  ]);
 
   const agencyFilterLabel = agencyName === 'Agency Listings' ? SCOPE_FILTERS[2].label : agencyName;
-  const feedLoading = scope === 'all'
-    ? publicFeed.isLoading
-    : scope === 'agency' && agencyQuery.isLoading;
-  const feedError = scope === 'all'
-    ? publicFeed.isError
-    : scope === 'agency' && agencyQuery.isError;
+  const feedLoading = visibilityFilter === 'draft'
+    ? scope !== 'my' && draftQueryEnabled && draftListingsQuery.isLoading
+    : scope === 'all'
+      ? publicFeed.isLoading
+      : scope === 'agency' && agencyQuery.isLoading;
+  const feedError = visibilityFilter === 'draft'
+    ? scope !== 'my' && draftQueryEnabled && draftListingsQuery.isError
+    : scope === 'all'
+      ? publicFeed.isError
+      : scope === 'agency' && agencyQuery.isError;
 
   const openAlerts = async () => {
     await Haptics.selectionAsync();
@@ -402,6 +483,50 @@ export default function ListingsScreen() {
           )}
         </View>
 
+        <View style={styles.statusFilterWrap}>
+          <TouchableOpacity
+            style={[styles.statusFilterButton, { backgroundColor: colors.muted, borderColor: colors.border }]}
+            onPress={() => setStatusMenuOpen((open) => !open)}
+            accessibilityRole="button"
+            accessibilityLabel={`Listing status, ${VISIBILITY_FILTERS.find((item) => item.key === visibilityFilter)?.label ?? 'All statuses'}`}
+            accessibilityState={{ expanded: statusMenuOpen }}
+            testID="mobile-listing-status-filter"
+          >
+            <Ionicons name="options-outline" size={17} color={colors.mutedForeground} />
+            <Text style={[styles.agentFilterButtonText, { color: colors.foreground }]}>
+              {VISIBILITY_FILTERS.find((item) => item.key === visibilityFilter)?.label ?? 'All statuses'}
+            </Text>
+            <Ionicons name={statusMenuOpen ? 'chevron-up' : 'chevron-down'} size={16} color={colors.mutedForeground} />
+          </TouchableOpacity>
+          {statusMenuOpen && (
+            <View style={[styles.statusDropdown, { backgroundColor: colors.background, borderColor: colors.border }]}>
+              {VISIBILITY_FILTERS.map((item) => {
+                const selected = visibilityFilter === item.key;
+                return (
+                  <TouchableOpacity
+                    key={item.key}
+                    style={[styles.statusOption, selected && { backgroundColor: `${colors.primary}14` }]}
+                    onPress={async () => {
+                      await Haptics.selectionAsync();
+                      setVisibilityFilter(item.key);
+                      setStatusFilter('all');
+                      setStatusMenuOpen(false);
+                    }}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected }}
+                    testID={`mobile-listing-status-${item.key}`}
+                  >
+                    <Text style={[styles.agentOptionName, { color: selected ? colors.primary : colors.foreground }]}>
+                      {item.label}
+                    </Text>
+                    {selected && <Ionicons name="checkmark" size={17} color={colors.primary} />}
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          )}
+        </View>
+
         {/* Filter chips — ScrollView so we can insert Alerts between My Listings and Draft */}
         <ScrollView
           horizontal
@@ -455,7 +580,7 @@ export default function ListingsScreen() {
               </View>
             )}
           </TouchableOpacity>
-          {scope === 'my' && MY_STATUS_FILTERS.map((item) => {
+          {scope === 'my' && visibilityFilter === 'all' && MY_STATUS_FILTERS.map((item) => {
             const active = statusFilter === item.key;
             return (
               <TouchableOpacity
@@ -498,23 +623,25 @@ export default function ListingsScreen() {
         ) : (
           <EmptyState
             icon={feedError ? 'cloud-offline-outline' : 'business-outline'}
-            title={feedError ? 'Listings unavailable' : query || agentFilter ? 'No results found' : 'No listings yet'}
+            title={feedError ? 'Listings unavailable' : query || agentFilter || visibilityFilter !== 'all' ? 'No results found' : 'No listings yet'}
             description={feedError
               ? 'Please check your connection and pull down to try again.'
-              : query || agentFilter
+              : visibilityFilter !== 'all' && !query && !agentFilter
+                ? `No ${visibilityFilter} listings found. Try a different filter or agent.`
+                : query || agentFilter
                 ? 'Try a different search or agent.'
                 : scope === 'my' ? 'Tap the + button to add your first listing.' : undefined}
             actionLabel={scope === 'my' && !query && !agentFilter ? 'Create Listing' : undefined}
             onAction={scope === 'my' ? () => router.push('/new-listing') : undefined}
           />
         )}
-        ListFooterComponent={scope === 'all' && publicFeed.isFetchingNextPage ? (
+        ListFooterComponent={scope === 'all' && visibilityFilter !== 'draft' && publicFeed.isFetchingNextPage ? (
           <View style={styles.loadingFooter}>
             <ActivityIndicator size="small" color={colors.primary} />
           </View>
         ) : undefined}
         onEndReached={() => {
-          if (scope === 'all' && publicFeed.hasNextPage && !publicFeed.isFetchingNextPage) {
+          if (scope === 'all' && visibilityFilter !== 'draft' && publicFeed.hasNextPage && !publicFeed.isFetchingNextPage) {
             void publicFeed.fetchNextPage();
           }
         }}
@@ -556,7 +683,11 @@ const styles = StyleSheet.create({
   count: { fontSize: 14, fontWeight: '500', marginBottom: 2 },
   shareIconBtn: { width: 34, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
   agentFilterWrap: { gap: 8 },
+  statusFilterWrap: { gap: 8 },
   agentFilterButton: { minHeight: 42, borderRadius: 12, borderWidth: 1, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', gap: 9 },
+  statusFilterButton: { minHeight: 42, borderRadius: 12, borderWidth: 1, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', gap: 9 },
+  statusDropdown: { borderWidth: 1, borderRadius: 12, padding: 6, gap: 3 },
+  statusOption: { minHeight: 42, borderRadius: 8, paddingHorizontal: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   agentFilterButtonText: { flex: 1, fontSize: 14, fontWeight: '600' },
   agentDropdown: { borderWidth: 1, borderRadius: 12, padding: 8, gap: 8 },
   agentSearch: { height: 40, borderRadius: 9, borderWidth: 1, paddingHorizontal: 10, flexDirection: 'row', alignItems: 'center', gap: 8 },
