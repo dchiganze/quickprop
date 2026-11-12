@@ -265,13 +265,12 @@ export default function LoginScreen() {
         <View style={[styles.hero, { paddingTop: insets.top + (compact ? 14 : 24) }]}>
           <View style={styles.brandRow}>
             <Image
-              source={require('../assets/images/quickprop-house-mark-white.png')}
-              style={styles.brandIcon}
+              source={require('../assets/images/quickprop-agent-logo-white.png')}
+              style={styles.brandLogo}
               resizeMode="contain"
               accessibilityRole="image"
-              accessibilityLabel="QuickProp house logo"
+              accessibilityLabel="QuickProp Agent logo"
             />
-            <Text style={styles.brandText}>QuickProp Agent</Text>
           </View>
           <View style={[styles.illoWrap, { width: illoSize, height: illoSize, borderRadius: illoSize / 2 }]}>
             <SvgXml xml={welcomeIllustrationXml} width={illoSize} height={illoSize} />
@@ -500,8 +499,7 @@ const styles = StyleSheet.create({
   scroll: { flexGrow: 1 },
   hero: { alignItems: 'center', paddingHorizontal: 24, paddingBottom: 22, gap: 14 },
   brandRow: { flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'flex-start' },
-  brandIcon: { width: 36, height: 36, borderRadius: 10 },
-  brandText: { color: '#F3F7FF', fontSize: 22, fontWeight: '800', letterSpacing: -0.6 },
+  brandLogo: { width: 260, height: 36 },
   illoWrap: { backgroundColor: 'rgba(15,191,138,0.16)', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   middleBrand: { color: '#F3F7FF', fontSize: 20, fontWeight: '800', textAlign: 'center', letterSpacing: -0.4 },
   tagline: { color: '#F3F7FF', fontSize: 24, fontWeight: '800', textAlign: 'center', letterSpacing: -0.6, lineHeight: 30, maxWidth: 320 },
