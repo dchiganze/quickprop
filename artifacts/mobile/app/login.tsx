@@ -497,7 +497,7 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   scroll: { flexGrow: 1 },
   hero: { alignItems: 'center', paddingHorizontal: 24, paddingBottom: 22, gap: 14 },
-  brandRow: { flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'flex-start' },
+  brandRow: { flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'center', justifyContent: 'center' },
   brandLogo: { width: 260, height: 36 },
   illoWrap: { backgroundColor: 'rgba(15,191,138,0.16)', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   middleBrand: { color: '#F3F7FF', fontSize: 20, fontWeight: '800', textAlign: 'center', letterSpacing: -0.4 },
