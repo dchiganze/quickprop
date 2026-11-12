@@ -59,8 +59,8 @@ type ListingVisibilityFilter = 'all' | 'draft' | 'live';
 
 const SCOPE_FILTERS: { key: ListingScope; label: string }[] = [
   { key: 'my', label: 'My Listings' },
-  { key: 'all', label: 'All of QuickProp' },
   { key: 'agency', label: 'Agency Listings' },
+  { key: 'all', label: 'All of QuickProp' },
 ];
 
 const MY_STATUS_FILTERS: { key: Exclude<MyStatusFilter, 'all'>; label: string }[] = [
