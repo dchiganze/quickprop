@@ -21,6 +21,7 @@ import {
   type PublicProperty,
 } from '@workspace/api-client-react';
 import { useColors } from '@/hooks/useColors';
+import { OfflineDownloadIcon } from '@/components/OfflineDownloadIcon';
 import { toMobileProperty, useData } from '@/contexts/DataContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { PropertyCard } from '@/components/PropertyCard';
@@ -1134,7 +1135,11 @@ export default function ListingsScreen() {
             property={item}
             offlineAction={canShowOfflineSync ? (
               <TouchableOpacity
-                style={styles.offlinePropertyButton}
+                style={[
+                  styles.offlinePropertyButton,
+                  (savedOfflineIds.has(item.id) || !/^\d+$/.test(item.id))
+                    && { backgroundColor: colors.accent, borderRadius: 17 },
+                ]}
                 onPress={() => toggleOfflineProperty(item)}
                 disabled={offlineCacheReadyForUser !== user?.id}
                 accessibilityRole="button"
@@ -1147,15 +1152,11 @@ export default function ListingsScreen() {
                       : `Download ${item.title ?? item.address} for offline use`}
                 testID={`offline-property-${item.id}`}
               >
-                {offlineCacheReadyForUser !== user?.id || offlineDownloadingIds.has(item.id) ? (
-                  <ActivityIndicator size="small" color={colors.accent} />
-                ) : (
-                  <Ionicons
-                    name={savedOfflineIds.has(item.id) || !/^\d+$/.test(item.id) ? 'download' : 'download-outline'}
-                    size={20}
-                    color={savedOfflineIds.has(item.id) || !/^\d+$/.test(item.id) ? colors.accent : colors.mutedForeground}
-                  />
-                )}
+                <OfflineDownloadIcon
+                  saved={savedOfflineIds.has(item.id) || !/^\d+$/.test(item.id)}
+                  downloading={offlineCacheReadyForUser !== user?.id || offlineDownloadingIds.has(item.id)}
+                  iconSize={16}
+                />
               </TouchableOpacity>
             ) : undefined}
             onPress={() => {

@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { Router, type IRouter, type Request } from "express";
+import { Router, type IRouter, type Request, type Response } from "express";
 import { eq, and, ilike, or, gte, lte, desc, inArray, type SQL } from "drizzle-orm";
 import {
   db,
@@ -268,7 +268,7 @@ router.get("/properties", async (req, res): Promise<void> => {
   res.json(ListPropertiesResponse.parse(jsonify(rows)));
 });
 
-router.post("/properties/offline-snapshot", async (req, res): Promise<void> => {
+async function createOfflinePropertySnapshot(req: Request, res: Response): Promise<void> {
   const parsed = CreateOfflinePropertySnapshotBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
@@ -305,7 +305,11 @@ router.post("/properties/offline-snapshot", async (req, res): Promise<void> => {
   const rowsById = new Map(rows.map((property) => [property.id, property]));
   const orderedRows = propertyIds.map((id) => rowsById.get(id)!);
   res.json(CreateOfflinePropertySnapshotResponse.parse(jsonify(orderedRows)));
-});
+}
+
+router.post("/properties/offline-snapshot", createOfflinePropertySnapshot);
+// Keep older Expo Go bundles working while they refresh to the canonical route.
+router.post("/offline-snapshot", createOfflinePropertySnapshot);
 
 router.post("/properties", async (req, res): Promise<void> => {
   const parsed = CreatePropertyBody.safeParse(req.body);

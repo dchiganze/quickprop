@@ -2012,6 +2012,79 @@ export const useCreateOfflinePropertySnapshot = <TError = ErrorType<void>,
       return useMutation(getCreateOfflinePropertySnapshotMutationOptions(options));
     }
 
+export const getCreateLegacyOfflinePropertySnapshotUrl = () => {
+
+
+
+
+  return `/api/offline-snapshot`
+}
+
+/**
+ * @deprecated
+ * @summary Legacy compatibility alias for offline property snapshots
+ */
+export const createLegacyOfflinePropertySnapshot = async (offlinePropertySnapshotInput: OfflinePropertySnapshotInput, options?: RequestInit): Promise<Property[]> => {
+
+  return customFetch<Property[]>(getCreateLegacyOfflinePropertySnapshotUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(offlinePropertySnapshotInput)
+  }
+);}
+
+
+
+
+
+export const getCreateLegacyOfflinePropertySnapshotMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createLegacyOfflinePropertySnapshot>>, TError,{data: BodyType<OfflinePropertySnapshotInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createLegacyOfflinePropertySnapshot>>, TError,{data: BodyType<OfflinePropertySnapshotInput>}, TContext> => {
+
+const mutationKey = ['createLegacyOfflinePropertySnapshot'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createLegacyOfflinePropertySnapshot>>, {data: BodyType<OfflinePropertySnapshotInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createLegacyOfflinePropertySnapshot(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateLegacyOfflinePropertySnapshotMutationResult = NonNullable<Awaited<ReturnType<typeof createLegacyOfflinePropertySnapshot>>>
+    export type CreateLegacyOfflinePropertySnapshotMutationBody = BodyType<OfflinePropertySnapshotInput>
+    export type CreateLegacyOfflinePropertySnapshotMutationError = ErrorType<void>
+
+    /**
+ * @deprecated
+ * @summary Legacy compatibility alias for offline property snapshots
+ */
+export const useCreateLegacyOfflinePropertySnapshot = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createLegacyOfflinePropertySnapshot>>, TError,{data: BodyType<OfflinePropertySnapshotInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createLegacyOfflinePropertySnapshot>>,
+        TError,
+        {data: BodyType<OfflinePropertySnapshotInput>},
+        TContext
+      > => {
+      return useMutation(getCreateLegacyOfflinePropertySnapshotMutationOptions(options));
+    }
+
 export const getListPropertiesUrl = (params?: ListPropertiesParams,) => {
   const normalizedParams = new URLSearchParams();
 

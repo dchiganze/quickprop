@@ -15,6 +15,7 @@ import { sharePropertyGeneric } from '@/utils/whatsapp';
 import { getPrimaryListingPhoto } from '@/utils/listingPhoto';
 import { useNetworkStatus } from '@/contexts/ConnectivityContext';
 import { ListingImage } from '@/components/ListingImage';
+import { OfflineDownloadIcon } from '@/components/OfflineDownloadIcon';
 import { KeyboardAwareScrollViewCompat } from '@/components/KeyboardAwareScrollViewCompat';
 import { PropertyFlyer, PropertyFlyerHandle } from '@/components/PropertyFlyer';
 import { FlyerCustomizer } from '@/components/FlyerCustomizer';
@@ -752,18 +753,16 @@ export default function ListingDetailScreen() {
                   styles.offlineDownloadButton,
                   {
                     borderColor: isOfflineListingSaved || offlineDownloadInProgress ? colors.accent : colors.border,
-                    backgroundColor: isOfflineListingSaved ? colors.accent + '18' : colors.card,
+                    backgroundColor: isOfflineListingSaved ? colors.accent : colors.card,
                     opacity: !offlineCacheChecked && !isOfflineListingSaved && !offlineDownloadInProgress ? 0.55 : 1,
                   },
                 ]}
               >
-                {offlineDownloadInProgress
-                  ? <ActivityIndicator size="small" color={colors.accent} />
-                  : <Ionicons
-                    name={isOfflineListingSaved ? 'download' : 'download-outline'}
-                    size={18}
-                    color={isOfflineListingSaved ? colors.accent : colors.mutedForeground}
-                  />}
+                <OfflineDownloadIcon
+                  saved={isOfflineListingSaved}
+                  downloading={offlineDownloadInProgress || !offlineCacheChecked}
+                  iconSize={18}
+                />
               </TouchableOpacity>
             )}
           </View>
