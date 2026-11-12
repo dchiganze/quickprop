@@ -756,22 +756,6 @@ export default function BrochureCatalog() {
           letter-spacing: -0.04em;
         }
 
-        @media print {
-          .no-print { display: none !important; }
-          body { margin: 0; background: white; }
-          .brochure-canvas { min-height: 0; padding: 0; background: white; }
-          .brochure-page {
-            margin: 0;
-            box-shadow: none;
-          }
-          .property-price {
-            color: #ffffff !important;
-            background-color: var(--brochure-primary) !important;
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
-          }
-        }
-
         @media (max-width: 900px) {
           .brochure-canvas { padding: 74px 0 0; }
           .brochure-page {
@@ -800,6 +784,45 @@ export default function BrochureCatalog() {
           .property-specs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
           .property-detail-grid { grid-template-columns: 1fr; }
           .page-footer { right: 22px; bottom: 24px; left: 22px; }
+        }
+
+        @media print {
+          .no-print { display: none !important; }
+          html, body, #root {
+            width: 210mm;
+            margin: 0;
+            background: white;
+          }
+          .brochure-canvas {
+            width: 210mm;
+            min-height: 0;
+            margin: 0;
+            padding: 0;
+            background: white;
+          }
+          .brochure-page {
+            box-sizing: border-box;
+            width: 210mm;
+            min-height: 297mm;
+            margin: 0;
+            box-shadow: none;
+            break-inside: avoid;
+            page-break-inside: avoid;
+          }
+          .brochure-page:not(:last-child) {
+            break-after: page;
+            page-break-after: always;
+          }
+          .brochure-page:last-child {
+            break-after: auto;
+            page-break-after: auto;
+          }
+          .property-price {
+            color: #ffffff !important;
+            background-color: var(--brochure-primary) !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
         }
 
         @page { size: A4; margin: 0; }

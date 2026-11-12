@@ -4,6 +4,7 @@ import { resolveAgencyBrandColors } from '@/utils/propertyFlyer';
 export const BROCHURE_PRINT_OPTIONS = {
   width: (210 / 25.4) * 72,
   height: (297 / 25.4) * 72,
+  margins: { top: 0, right: 0, bottom: 0, left: 0 },
 } as const;
 
 type AgencyBranding = {
