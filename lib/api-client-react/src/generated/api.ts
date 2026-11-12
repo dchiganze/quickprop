@@ -148,6 +148,7 @@ import type {
   MultiAgentProperty,
   Notification,
   OfficeSearchParams,
+  OfflinePropertySnapshotInput,
   PasskeyAuthenticationVerificationInput,
   PasskeyRegistrationVerificationInput,
   PasswordResetCompleteInput,
@@ -1939,6 +1940,77 @@ export function useGetAgencyProperties<TData = Awaited<ReturnType<typeof getAgen
 
 
 
+
+export const getCreateOfflinePropertySnapshotUrl = () => {
+
+
+
+
+  return `/api/properties/offline-snapshot`
+}
+
+/**
+ * @summary Return authorized property snapshots for device offline storage
+ */
+export const createOfflinePropertySnapshot = async (offlinePropertySnapshotInput: OfflinePropertySnapshotInput, options?: RequestInit): Promise<Property[]> => {
+
+  return customFetch<Property[]>(getCreateOfflinePropertySnapshotUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(offlinePropertySnapshotInput)
+  }
+);}
+
+
+
+
+
+export const getCreateOfflinePropertySnapshotMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createOfflinePropertySnapshot>>, TError,{data: BodyType<OfflinePropertySnapshotInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createOfflinePropertySnapshot>>, TError,{data: BodyType<OfflinePropertySnapshotInput>}, TContext> => {
+
+const mutationKey = ['createOfflinePropertySnapshot'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createOfflinePropertySnapshot>>, {data: BodyType<OfflinePropertySnapshotInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createOfflinePropertySnapshot(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateOfflinePropertySnapshotMutationResult = NonNullable<Awaited<ReturnType<typeof createOfflinePropertySnapshot>>>
+    export type CreateOfflinePropertySnapshotMutationBody = BodyType<OfflinePropertySnapshotInput>
+    export type CreateOfflinePropertySnapshotMutationError = ErrorType<void>
+
+    /**
+ * @summary Return authorized property snapshots for device offline storage
+ */
+export const useCreateOfflinePropertySnapshot = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createOfflinePropertySnapshot>>, TError,{data: BodyType<OfflinePropertySnapshotInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createOfflinePropertySnapshot>>,
+        TError,
+        {data: BodyType<OfflinePropertySnapshotInput>},
+        TContext
+      > => {
+      return useMutation(getCreateOfflinePropertySnapshotMutationOptions(options));
+    }
 
 export const getListPropertiesUrl = (params?: ListPropertiesParams,) => {
   const normalizedParams = new URLSearchParams();

@@ -3,6 +3,7 @@ import { Router, type IRouter, type Request } from "express";
 import { and, eq, inArray, like, or, sql } from "drizzle-orm";
 import { agencySettingsTable, branchesTable, businessAgenciesTable, db, documentsTable, propertiesTable } from "@workspace/db";
 import { currentUser } from "./auth";
+import { getActiveAgencyBranchIdsForUser } from "../lib/office-inventory-scope";
 
 const router: IRouter = Router();
 const SIDECAR = "http://127.0.0.1:1106";
@@ -63,6 +64,37 @@ async function canReadStoredMedia(req: Request, objectName: string): Promise<boo
   const user = await currentUser(req);
   if (!user) return false;
   if (objectName.startsWith(`uploads/${user.id}/`)) return true;
+  const agencyBranchIds = await getActiveAgencyBranchIdsForUser(user.branchId);
+  if (agencyBranchIds?.length) {
+    const directObjectPath = `%/objects/${objectName}`;
+    const storageRoutePath = `%/api/storage/objects/${objectName}`;
+    const visibleAgencyMedia = or(
+      eq(propertiesTable.status, "draft"),
+      eq(propertiesTable.pipelineStage, "draft"),
+      and(
+        inArray(propertiesTable.status, PUBLIC_PROPERTY_STATUSES),
+        inArray(propertiesTable.availabilityStatus, ["available", "under_offer"]),
+      ),
+    );
+    const [agencyProperty] = await db.select({ id: propertiesTable.id })
+      .from(propertiesTable)
+      .where(and(
+        inArray(propertiesTable.branchId, agencyBranchIds),
+        visibleAgencyMedia,
+        or(
+          sql`EXISTS (
+            SELECT 1
+            FROM unnest(${propertiesTable.photos}) AS media_path
+            WHERE media_path LIKE ${directObjectPath}
+               OR media_path LIKE ${storageRoutePath}
+          )`,
+          like(propertiesTable.coverImage, directObjectPath),
+          like(propertiesTable.coverImage, storageRoutePath),
+        ),
+      ))
+      .limit(1);
+    if (agencyProperty) return true;
+  }
   const objectPath = `/objects/${objectName}`;
   const [mandate] = await db.select({ propertyId: propertiesTable.id, agentId: propertiesTable.agentId, branchId: propertiesTable.branchId })
     .from(documentsTable)

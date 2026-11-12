@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, Alert, Linking, Image, Modal, TextInput, ActivityIndicator,
 } from 'react-native';
@@ -34,6 +34,8 @@ import {
 } from '@workspace/api-client-react';
 import type { RentalApplicationInvite } from '@workspace/api-client-react';
 import * as Clipboard from 'expo-clipboard';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { offlineListingsCacheKey, parseOfflineListingsCache } from '@/lib/offline-listings-cache';
 
 function VideoPlayerModal({ uri, onClose }: { uri: string; onClose: () => void }) {
   const player = useVideoPlayer(uri, p => { p.loop = false; p.play(); });
@@ -84,8 +86,39 @@ export default function ListingDetailScreen() {
     properties, updateProperty, recordPropertySale,
   } = useData();
   const { isOnline } = useNetworkStatus();
-  const property = properties.find(p => p.id === id);
   const { user, loading: authLoading } = useAuth();
+  const [offlinePropertyRecord, setOfflinePropertyRecord] = useState<{
+    userId: string;
+    property: Property;
+  } | null>(null);
+  const [offlineCacheChecked, setOfflineCacheChecked] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    const accountId = user?.id;
+    setOfflineCacheChecked(false);
+    setOfflinePropertyRecord(null);
+    if (!accountId || !id) {
+      setOfflineCacheChecked(true);
+      return () => { cancelled = true; };
+    }
+    AsyncStorage.getItem(offlineListingsCacheKey(accountId))
+      .then((serialized) => {
+        if (cancelled) return;
+        const cached = parseOfflineListingsCache(serialized, accountId);
+        const saved = cached?.properties.find((item) => item.id === id);
+        setOfflinePropertyRecord(saved ? { userId: accountId, property: saved } : null);
+        setOfflineCacheChecked(true);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setOfflineCacheChecked(true);
+      });
+    return () => { cancelled = true; };
+  }, [id, user?.id]);
+  const property = properties.find((item) => item.id === id)
+    ?? (offlinePropertyRecord && offlinePropertyRecord.userId === user?.id
+      ? offlinePropertyRecord.property
+      : undefined);
   const queryClient = useQueryClient();
   const updateAgencyOfferPrice = useUpdateAgencyRelationshipPrice();
   const remoteAgentId = user?.id && /^\d+$/.test(user.id) ? user.id : null;
@@ -172,6 +205,14 @@ export default function ListingDetailScreen() {
   );
   const rentalApplications = rentalApplicationsQuery.data ?? [];
   const createRentalInvite = useCreateRentalApplicationInvite();
+
+  if (!property && !offlineCacheChecked) {
+    return (
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background }}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
 
   if (!property) {
     return (

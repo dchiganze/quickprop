@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Dimensions,
@@ -9,11 +9,15 @@ import {
   View,
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getGetPublicPropertyQueryKey, useGetPublicProperty } from '@workspace/api-client-react';
 import { ListingImage } from '@/components/ListingImage';
 import { useColors } from '@/hooks/useColors';
+import { useAuth } from '@/contexts/AuthContext';
+import { offlineListingsCacheKey, parseOfflineListingsCache } from '@/lib/offline-listings-cache';
+import type { Property as MobileProperty } from '@/types';
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -26,18 +30,64 @@ export default function PublicListingDetailScreen() {
   const propertyId = Array.isArray(id) ? id[0] : id;
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const { user } = useAuth();
   const listingQuery = useGetPublicProperty(propertyId ?? '', {
     query: {
       enabled: Boolean(propertyId),
       queryKey: getGetPublicPropertyQueryKey(propertyId ?? ''),
     },
   });
-  const property = listingQuery.data?.property;
+  const [cachedPropertyRecord, setCachedPropertyRecord] = useState<{
+    userId: string;
+    property: MobileProperty;
+  } | null>(null);
+  const [offlineCacheChecked, setOfflineCacheChecked] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    const accountId = user?.id;
+    setOfflineCacheChecked(false);
+    setCachedPropertyRecord(null);
+    if (!accountId || !propertyId) {
+      setOfflineCacheChecked(true);
+      return () => { cancelled = true; };
+    }
+    AsyncStorage.getItem(offlineListingsCacheKey(accountId))
+      .then((serialized) => {
+        if (cancelled) return;
+        const cache = parseOfflineListingsCache(serialized, accountId);
+        const saved = cache?.properties.find((item) => item.id === propertyId);
+        setCachedPropertyRecord(saved ? { userId: accountId, property: saved } : null);
+        setOfflineCacheChecked(true);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setOfflineCacheChecked(true);
+      });
+    return () => { cancelled = true; };
+  }, [propertyId, user?.id]);
+  const cachedProperty = cachedPropertyRecord && cachedPropertyRecord.userId === user?.id
+    ? cachedPropertyRecord.property
+    : undefined;
+  const property = listingQuery.data?.property ?? (cachedProperty ? {
+    photos: cachedProperty.photos,
+    coverImage: cachedProperty.photos[0] ?? null,
+    priceOnApplication: cachedProperty.priceOnApplication ?? false,
+    price: cachedProperty.price,
+    currency: cachedProperty.currency,
+    title: cachedProperty.title ?? '',
+    suburb: cachedProperty.suburb,
+    city: cachedProperty.city ?? '',
+    bedrooms: cachedProperty.bedrooms ?? null,
+    bathrooms: cachedProperty.bathrooms ?? null,
+    parking: cachedProperty.garages ?? null,
+    description: cachedProperty.description,
+    features: cachedProperty.features,
+  } : undefined);
   const photos = property?.photos.length
     ? property.photos
     : property?.coverImage ? [property.coverImage] : [];
 
-  if (listingQuery.isLoading) {
+  if ((listingQuery.isLoading || !offlineCacheChecked) && !property) {
     return (
       <View style={[styles.center, { backgroundColor: colors.background }]}>
         <ActivityIndicator size="large" color={colors.primary} />
@@ -82,7 +132,9 @@ export default function PublicListingDetailScreen() {
         >
           <Ionicons name="chevron-back" size={23} color={colors.foreground} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.foreground }]}>Public listing</Text>
+        <Text style={[styles.headerTitle, { color: colors.foreground }]}>
+          {cachedProperty?.status === 'draft' ? 'Agency listing' : 'Public listing'}
+        </Text>
         <View style={styles.headerSpacer} />
       </View>
 

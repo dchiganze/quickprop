@@ -470,6 +470,87 @@ export const GetAgencyPropertiesResponse = zod.object({
 })
 
 
+/**
+ * @summary Return authorized property snapshots for device offline storage
+ */
+
+export const createOfflinePropertySnapshotBodyPropertyIdsMax = 500;
+
+
+
+export const CreateOfflinePropertySnapshotBody = zod.object({
+  "scope": zod.enum(['my', 'agency']),
+  "propertyIds": zod.array(zod.number().min(1)).min(1).max(createOfflinePropertySnapshotBodyPropertyIdsMax)
+})
+
+export const CreateOfflinePropertySnapshotResponseItem = zod.object({
+  "id": zod.number(),
+  "reference": zod.string(),
+  "title": zod.string(),
+  "description": zod.string().nullish(),
+  "propertyType": zod.string().describe('house | apartment | townhouse | stand | commercial | industrial | farm'),
+  "listingType": zod.string().describe('sale | rent'),
+  "status": zod.string().describe('draft | internal_only | public | under_offer | sold | rented | archived | withdrawn | coming_soon | private_listing'),
+  "pipelineStage": zod.string().describe('draft | awaiting_photos | ready | published | under_offer | sold | archived'),
+  "price": zod.number(),
+  "priceOnApplication": zod.boolean().optional().describe('The asking price is available on application (POA).'),
+  "negotiable": zod.boolean().optional(),
+  "salePrice": zod.number().nullish().describe('Completed sale price; asking price remains in price.'),
+  "soldAt": zod.string().nullish(),
+  "soldBy": zod.number().nullish(),
+  "currency": zod.string(),
+  "suburb": zod.string(),
+  "city": zod.string(),
+  "address": zod.string().nullish(),
+  "addressVisible": zod.boolean().optional().describe('Whether the full property address may be shown on the public website.'),
+  "hasTitleDeed": zod.boolean().describe('Whether the sale listing has a title deed.'),
+  "bedrooms": zod.number().nullish(),
+  "bathrooms": zod.number().nullish(),
+  "parking": zod.number().nullish(),
+  "landSize": zod.number().nullish().describe('square metres'),
+  "buildingSize": zod.number().nullish(),
+  "levies": zod.number().nullish().describe('Monthly levies, when applicable.'),
+  "rates": zod.number().nullish().describe('Monthly municipal rates, when applicable.'),
+  "features": zod.array(zod.string()).optional(),
+  "photos": zod.array(zod.string()).optional(),
+  "proposedViewingTimes": zod.array(zod.coerce.date()).optional().describe('Optional proposed viewing slots as ISO 8601 date-time strings.'),
+  "videoUrl": zod.string().nullish(),
+  "coverImage": zod.string().nullish(),
+  "agentId": zod.number().nullish(),
+  "branchId": zod.number().nullish(),
+  "sellerId": zod.number().nullish(),
+  "mandateType": zod.string().nullish().describe('open | sole'),
+  "mandateStart": zod.string().nullish(),
+  "mandateExpiry": zod.string().nullish(),
+  "commissionPercent": zod.number().nullish(),
+  "privateNotes": zod.string().nullish(),
+  "views": zod.number().optional(),
+  "enquiries": zod.number().optional(),
+  "shares": zod.number().optional(),
+  "hasBrochure": zod.boolean().optional(),
+  "collaborationEnabled": zod.boolean().optional(),
+  "publishedAt": zod.string().nullish(),
+  "createdAt": zod.string().optional(),
+  "updatedAt": zod.string().optional(),
+  "canonicalPropertyId": zod.number().nullish(),
+  "duplicateStatus": zod.string().optional(),
+  "latitude": zod.number().nullish(),
+  "longitude": zod.number().nullish(),
+  "lastAvailabilityConfirmedAt": zod.string().nullish(),
+  "lastPriceConfirmedAt": zod.string().nullish(),
+  "freshnessStatus": zod.string().optional(),
+  "availabilityStatus": zod.string().optional(),
+  "nextConfirmationAt": zod.string().nullish(),
+  "daysSinceConfirmation": zod.number().optional(),
+  "freshnessScore": zod.number().optional(),
+  "qualityScore": zod.number().optional(),
+  "lastReminderSentAt": zod.string().nullish(),
+  "reminderCount": zod.number().optional(),
+  "staleSince": zod.string().nullish()
+})
+export const CreateOfflinePropertySnapshotResponse = zod.array(CreateOfflinePropertySnapshotResponseItem)
+
+
 export const ListPropertiesQueryParams = zod.object({
   "status": zod.coerce.string().optional(),
   "pipelineStage": zod.coerce.string().optional(),

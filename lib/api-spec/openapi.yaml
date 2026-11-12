@@ -472,6 +472,27 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/AgencyPropertiesResponse" }
+  /properties/offline-snapshot:
+    post:
+      operationId: createOfflinePropertySnapshot
+      tags: [properties]
+      summary: Return authorized property snapshots for device offline storage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/OfflinePropertySnapshotInput" }
+      responses:
+        "200":
+          description: Current authorized property records
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Property" }
+        "401": { description: Not logged in }
+        "403": { description: This account cannot sync the selected scope }
+        "404": { description: One or more listings are no longer available }
   /properties:
     get:
       operationId: listProperties
@@ -3398,6 +3419,17 @@ components:
         name: { type: string }
         address: { type: string }
         phone: { type: string }
+    OfflinePropertySnapshotInput:
+      type: object
+      required: [scope, propertyIds]
+      properties:
+        scope: { type: string, enum: [my, agency] }
+        propertyIds:
+          type: array
+          minItems: 1
+          maxItems: 500
+          uniqueItems: true
+          items: { type: integer, minimum: 1 }
     Property:
       type: object
       required: [id, reference, title, status, pipelineStage, listingType, propertyType, price, currency, suburb, city, hasTitleDeed]

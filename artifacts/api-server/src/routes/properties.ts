@@ -37,6 +37,8 @@ import {
   SharePropertyBody,
   SharePropertyResponse,
   GenerateBrochureResponse,
+  CreateOfflinePropertySnapshotBody,
+  CreateOfflinePropertySnapshotResponse,
 } from "@workspace/api-zod";
 import { parseId, logActivity, logAudit, jsonify } from "../lib/helpers";
 import { currentUser } from "./auth";
@@ -49,6 +51,7 @@ import { isPublicProperty, syncPropertyToProduction } from "../lib/publication-s
 import { hasValidListingPrice, isDraftPropertyState, needsPublicationPhoto } from "../lib/property-drafts";
 import { canAssignPropertyToAgent } from "../lib/property-assignment";
 import { getActiveAgencyBranchIdsForUser } from "../lib/office-inventory-scope";
+import { canSyncOfflineProperty } from "../lib/offline-property-sync";
 import {
   createPropertySaleConfirmationToken,
   hashPropertySaleConfirmationToken,
@@ -263,6 +266,45 @@ router.get("/properties", async (req, res): Promise<void> => {
     .where(conds.length > 0 ? and(...conds) : undefined)
     .orderBy(desc(propertiesTable.createdAt));
   res.json(ListPropertiesResponse.parse(jsonify(rows)));
+});
+
+router.post("/properties/offline-snapshot", async (req, res): Promise<void> => {
+  const parsed = CreateOfflinePropertySnapshotBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+
+  const user = await currentUser(req);
+  if (!user) {
+    res.status(401).json({ error: "Not logged in." });
+    return;
+  }
+
+  const { scope, propertyIds } = parsed.data;
+  const activeAgencyBranchIds = scope === "agency"
+    ? await getActiveAgencyBranchIdsForUser(user.branchId)
+    : undefined;
+  if (scope === "agency" && !activeAgencyBranchIds) {
+    res.status(403).json({ error: "An active agency branch is required to sync agency listings." });
+    return;
+  }
+
+  const rows = await db.select().from(propertiesTable)
+    .where(inArray(propertiesTable.id, propertyIds));
+  if (rows.length !== propertyIds.length || rows.some((property) => !canSyncOfflineProperty(
+    scope,
+    user.id,
+    property,
+    activeAgencyBranchIds,
+  ))) {
+    res.status(404).json({ error: "One or more listings are no longer available to this account." });
+    return;
+  }
+
+  const rowsById = new Map(rows.map((property) => [property.id, property]));
+  const orderedRows = propertyIds.map((id) => rowsById.get(id)!);
+  res.json(CreateOfflinePropertySnapshotResponse.parse(jsonify(orderedRows)));
 });
 
 router.post("/properties", async (req, res): Promise<void> => {

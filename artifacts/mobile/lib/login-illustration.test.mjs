@@ -1,0 +1,16 @@
+import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+import { test } from 'node:test';
+import { welcomeIllustrationXml } from '../constants/loginIllustration.ts';
+
+test('login artwork removes the face discoloration while keeping the beard and skin', async () => {
+  const source = await readFile(
+    new URL('../assets/images/quickprop-welcome-illustration.svg', import.meta.url),
+    'utf8',
+  );
+
+  assert.doesNotMatch(source, /m58\.79 19\.02|#A698B8/);
+  assert.doesNotMatch(welcomeIllustrationXml, /m58\.79 19\.02|#A698B8/);
+  assert.match(welcomeIllustrationXml, /fill="#0D2D5D"/);
+  assert.match(welcomeIllustrationXml, /fill="#B35B33"/);
+});

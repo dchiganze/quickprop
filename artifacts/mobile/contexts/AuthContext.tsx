@@ -9,6 +9,7 @@ import {
   AGENCY_LISTINGS_CACHE_PREFIX,
   enqueueAgencyListingsCacheTask,
 } from '@/lib/agency-listings-cache';
+import { OFFLINE_LISTINGS_CACHE_PREFIX } from '@/lib/offline-listings-cache';
 import { clearCachedOfflineMediaForUser } from '@/utils/offlineMedia';
 import {
   ApiError,
@@ -192,7 +193,8 @@ async function clearLocalAccountData(userIdHint?: string): Promise<void> {
     // value as well so a token is never left behind during the migration.
     enqueueAgencyListingsCacheTask(async () => {
       const agencyListingCacheKeys = (await AsyncStorage.getAllKeys().catch(() => []))
-        .filter((key) => key.startsWith(AGENCY_LISTINGS_CACHE_PREFIX));
+        .filter((key) => key.startsWith(AGENCY_LISTINGS_CACHE_PREFIX)
+          || key.startsWith(OFFLINE_LISTINGS_CACHE_PREFIX));
       await AsyncStorage.multiRemove([...ACCOUNT_DATA_KEYS, ...agencyListingCacheKeys]);
     }),
     clearCachedOfflineMediaForUser(storedUserId),

@@ -26,3 +26,9 @@ Keep draft listing photos private when fixing missing thumbnails; authenticate m
 **Why:** Native and browser image elements do not automatically carry the app's bearer session. Direct private-object URLs can therefore fail even while listing API requests succeed.
 
 **How to apply:** Resolve durable media references through the authenticated API and keep expiring read URLs only in a short-lived, account-scoped client cache—not in listing records or the offline portfolio.
+
+Treat explicitly downloaded mobile listings as account-scoped device copies, not server-wide download flags. Revalidate listing access through an authenticated snapshot API, keep pinned media outside the evictable cache, and clear those copies on sign-out.
+
+**Why:** A downloaded marker means the content exists on this device only; explicitly saved photos must remain available offline without bypassing draft-media privacy.
+
+**How to apply:** Keep the offline manifest scoped to the signed-in account, authorize own listings or active agency listings on the server, and never persist expiring signed media URLs.

@@ -293,7 +293,7 @@ export default function LoginScreen() {
         >
           {mode === 'welcome' && (
             <>
-              <Text style={[styles.title, { color: colors.foreground }]}>Welcome to QuickProp</Text>
+              <Text style={[styles.title, { color: colors.foreground }]}>Welcome to QuickProp Agent</Text>
               <Text style={[styles.sub, { color: colors.mutedForeground }]}>
                 Built for Zimbabwe's property agents. Sign in fast and get back to closing.
               </Text>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, type ReactNode } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useColors } from '@/hooks/useColors';
@@ -9,6 +9,7 @@ import { ListingImage } from '@/components/ListingImage';
 interface Props {
   property: Property;
   onPress: () => void;
+  offlineAction?: ReactNode;
 }
 
 const STATUS_COLORS: Record<Property['status'], string> = {
@@ -36,87 +37,95 @@ function formatPrice(price: number, currency: string, type: Property['type']) {
   return type === 'rent' ? `${formatted}/mo` : formatted;
 }
 
-export function PropertyCard({ property, onPress }: Props) {
+export function PropertyCard({ property, onPress, offlineAction }: Props) {
   const colors = useColors();
   const photoUri = getPrimaryListingPhoto(property);
   const [failedPhotoUri, setFailedPhotoUri] = useState<string>();
   const photoFailed = Boolean(photoUri && failedPhotoUri === photoUri);
 
   return (
-    <TouchableOpacity
+    <View
       style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border, shadowColor: colors.foreground }]}
-      onPress={onPress}
-      activeOpacity={0.85}
     >
       {/* Photo placeholder / thumbnail */}
-      <View style={[styles.imageContainer, { backgroundColor: colors.muted }]}>
-        {photoUri ? (
-          <ListingImage
-            uri={photoUri}
-            style={styles.mainImage}
-            resizeMode="cover"
-            onError={() => setFailedPhotoUri(photoUri)}
-            onLoad={() => setFailedPhotoUri(undefined)}
-          />
-        ) : (
-          <Image source={require('../assets/images/logo.png')} style={styles.mainImage} resizeMode="contain" />
-        )}
-        {(!photoUri || photoFailed) && (
-          <View style={[styles.fallbackOverlay, { backgroundColor: colors.muted + 'CC' }]}>
-            <Ionicons name="home-outline" size={32} color={colors.mutedForeground} />
-            <Text style={[styles.fallbackText, { color: colors.mutedForeground }]}>{photoFailed ? 'Photo could not load' : 'Photo coming soon'}</Text>
+      <TouchableOpacity onPress={onPress} activeOpacity={0.85} accessibilityRole="button">
+        <View style={[styles.imageContainer, { backgroundColor: colors.muted }]}>
+          {photoUri ? (
+            <ListingImage
+              uri={photoUri}
+              style={styles.mainImage}
+              resizeMode="cover"
+              onError={() => setFailedPhotoUri(photoUri)}
+              onLoad={() => setFailedPhotoUri(undefined)}
+            />
+          ) : (
+            <Image source={require('../assets/images/logo.png')} style={styles.mainImage} resizeMode="contain" />
+          )}
+          {(!photoUri || photoFailed) && (
+            <View style={[styles.fallbackOverlay, { backgroundColor: colors.muted + 'CC' }]}>
+              <Ionicons name="home-outline" size={32} color={colors.mutedForeground} />
+              <Text style={[styles.fallbackText, { color: colors.mutedForeground }]}>{photoFailed ? 'Photo could not load' : 'Photo coming soon'}</Text>
+            </View>
+          )}
+          <View style={[styles.statusBadge, { backgroundColor: property.syncStatus === 'conflict' ? colors.info : property.syncStatus === 'queued' ? colors.info : STATUS_COLORS[property.status] }]}>
+            <Text style={styles.statusText}>{property.syncStatus === 'conflict' ? 'Review changes' : property.syncStatus === 'queued' ? 'Queued' : STATUS_LABELS[property.status]}</Text>
           </View>
-        )}
-        <View style={[styles.statusBadge, { backgroundColor: property.syncStatus === 'conflict' ? colors.info : property.syncStatus === 'queued' ? colors.info : STATUS_COLORS[property.status] }]}>
-          <Text style={styles.statusText}>{property.syncStatus === 'conflict' ? 'Review changes' : property.syncStatus === 'queued' ? 'Queued' : STATUS_LABELS[property.status]}</Text>
+          <View style={[styles.typeBadge, { backgroundColor: colors.primary }]}>
+            <Text style={styles.typeText}>{property.type.charAt(0).toUpperCase() + property.type.slice(1)}</Text>
+          </View>
         </View>
-        <View style={[styles.typeBadge, { backgroundColor: colors.primary }]}>
-          <Text style={styles.typeText}>{property.type.charAt(0).toUpperCase() + property.type.slice(1)}</Text>
-        </View>
-      </View>
+      </TouchableOpacity>
 
       <View style={styles.body}>
-        <Text style={[styles.price, { color: colors.primary }]}>
-          {property.priceOnApplication ? 'POA' : formatPrice(property.price, property.currency, property.type)}
-          {property.negotiable && <Text style={[styles.neg, { color: colors.accent }]}> • Neg</Text>}
-        </Text>
-        <Text style={[styles.address, { color: colors.foreground }]} numberOfLines={1}>
-          {property.address}
-        </Text>
-        <Text style={[styles.suburb, { color: colors.mutedForeground }]}>{property.suburb}</Text>
+        <View style={styles.priceRow}>
+          <TouchableOpacity onPress={onPress} activeOpacity={0.85} style={styles.priceTextButton}>
+            <Text style={[styles.price, { color: colors.primary }]}>
+              {property.priceOnApplication ? 'POA' : formatPrice(property.price, property.currency, property.type)}
+              {property.negotiable && <Text style={[styles.neg, { color: colors.accent }]}> • Neg</Text>}
+            </Text>
+          </TouchableOpacity>
+          {offlineAction}
+        </View>
 
-        {(property.bedrooms !== undefined || property.bathrooms !== undefined) && (
-          <View style={styles.stats}>
-            {property.bedrooms !== undefined && (
-              <View style={styles.stat}>
-                <Ionicons name="bed-outline" size={14} color={colors.mutedForeground} />
-                <Text style={[styles.statText, { color: colors.mutedForeground }]}>{property.bedrooms}</Text>
-              </View>
-            )}
-            {property.bathrooms !== undefined && (
-              <View style={styles.stat}>
-                <Ionicons name="water-outline" size={14} color={colors.mutedForeground} />
-                <Text style={[styles.statText, { color: colors.mutedForeground }]}>{property.bathrooms}</Text>
-              </View>
-            )}
-            {property.garages !== undefined && property.garages > 0 && (
-              <View style={styles.stat}>
-                <Ionicons name="car-outline" size={14} color={colors.mutedForeground} />
-                <Text style={[styles.statText, { color: colors.mutedForeground }]}>{property.garages}</Text>
-              </View>
-            )}
-            {property.landSize !== undefined && property.landSize > 0 && (
-              <View style={styles.stat}>
-                <Ionicons name="resize-outline" size={14} color={colors.mutedForeground} />
-                <Text style={[styles.statText, { color: colors.mutedForeground }]}>{property.landSize}m²</Text>
-              </View>
-            )}
-          </View>
-        )}
+        <TouchableOpacity onPress={onPress} activeOpacity={0.85}>
+          <Text style={[styles.address, { color: colors.foreground }]} numberOfLines={1}>
+            {property.address}
+          </Text>
+          <Text style={[styles.suburb, { color: colors.mutedForeground }]}>{property.suburb}</Text>
 
-        <Text style={[styles.ref, { color: colors.mutedForeground }]}>{property.referenceNumber}</Text>
+          {(property.bedrooms !== undefined || property.bathrooms !== undefined) && (
+            <View style={styles.stats}>
+              {property.bedrooms !== undefined && (
+                <View style={styles.stat}>
+                  <Ionicons name="bed-outline" size={14} color={colors.mutedForeground} />
+                  <Text style={[styles.statText, { color: colors.mutedForeground }]}>{property.bedrooms}</Text>
+                </View>
+              )}
+              {property.bathrooms !== undefined && (
+                <View style={styles.stat}>
+                  <Ionicons name="water-outline" size={14} color={colors.mutedForeground} />
+                  <Text style={[styles.statText, { color: colors.mutedForeground }]}>{property.bathrooms}</Text>
+                </View>
+              )}
+              {property.garages !== undefined && property.garages > 0 && (
+                <View style={styles.stat}>
+                  <Ionicons name="car-outline" size={14} color={colors.mutedForeground} />
+                  <Text style={[styles.statText, { color: colors.mutedForeground }]}>{property.garages}</Text>
+                </View>
+              )}
+              {property.landSize !== undefined && property.landSize > 0 && (
+                <View style={styles.stat}>
+                  <Ionicons name="resize-outline" size={14} color={colors.mutedForeground} />
+                  <Text style={[styles.statText, { color: colors.mutedForeground }]}>{property.landSize}m²</Text>
+                </View>
+              )}
+            </View>
+          )}
+
+          <Text style={[styles.ref, { color: colors.mutedForeground }]}>{property.referenceNumber}</Text>
+        </TouchableOpacity>
       </View>
-    </TouchableOpacity>
+    </View>
   );
 }
 
@@ -159,6 +168,8 @@ const styles = StyleSheet.create({
   },
   typeText: { color: '#FFFFFF', fontSize: 11, fontWeight: '600' },
   body: { padding: 14 },
+  priceRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 },
+  priceTextButton: { flex: 1, minWidth: 0 },
   price: { fontSize: 20, fontWeight: '800', marginBottom: 2 },
   neg: { fontSize: 14, fontWeight: '600' },
   address: { fontSize: 14, fontWeight: '600', marginBottom: 2 },

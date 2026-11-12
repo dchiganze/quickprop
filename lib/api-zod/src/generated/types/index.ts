@@ -178,6 +178,8 @@ export * from './moderateProperty200';
 export * from './multiAgentProperty';
 export * from './notification';
 export * from './officeSearchParams';
+export * from './offlinePropertySnapshotInput';
+export * from './offlinePropertySnapshotInputScope';
 export * from './passkeyAuthenticationVerificationInput';
 export * from './passkeyAuthenticationVerificationInputCredential';
 export * from './passkeyRegistrationVerificationInput';

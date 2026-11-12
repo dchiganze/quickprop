@@ -1,13 +1,27 @@
 import { Platform } from 'react-native';
 import * as FileSystem from 'expo-file-system/legacy';
+import type { DownloadResumable } from 'expo-file-system/legacy';
 import { getStoredMediaUrl } from '@workspace/api-client-react';
 import { getStoredMediaObjectPath } from '@/utils/listingPhoto';
 
 const OFFLINE_MEDIA_DIR = 'quickprop-offline-media';
+const PINNED_LISTING_MEDIA_DIR = 'quickprop-downloaded-listings';
 const LISTING_DRAFTS_DIR = 'quickprop-listing-drafts';
 const LOW_STORAGE_BYTES = 128 * 1024 * 1024;
 const STORAGE_TARGET_BYTES = 256 * 1024 * 1024;
 const inFlightDownloads = new Map<string, Promise<string>>();
+const activeDownloadTasks = new Map<string, {
+  userId: string;
+  downloadId?: string;
+  task: DownloadResumable;
+}>();
+
+export interface OfflineMediaDownloadOptions {
+  durable?: boolean;
+  downloadId?: string;
+  onProgress?: (fraction: number) => void;
+  isCancelled?: () => boolean;
+}
 
 function safeSegment(value: string): string {
   return value.replace(/[^a-z0-9_-]/gi, '_') || 'account';
@@ -27,11 +41,12 @@ function fileExtension(uri: string, fallback = 'jpg'): string {
   return match?.[1]?.toLowerCase() ?? fallback;
 }
 
-function offlineMediaUri(uri: string, userId: string): string | null {
+function offlineMediaUri(uri: string, userId: string, durable = false): string | null {
   if (Platform.OS === 'web' || !FileSystem.documentDirectory) return null;
   const stableUri = getStoredMediaObjectPath(uri) ?? uri;
   const extension = fileExtension(stableUri, 'media');
-  return `${FileSystem.documentDirectory}${OFFLINE_MEDIA_DIR}/${safeSegment(userId)}/${hash(stableUri)}.${extension}`;
+  const root = durable ? PINNED_LISTING_MEDIA_DIR : OFFLINE_MEDIA_DIR;
+  return `${FileSystem.documentDirectory}${root}/${safeSegment(userId)}/${hash(stableUri)}.${extension}`;
 }
 
 async function ensureDirectory(uri: string): Promise<void> {
@@ -85,16 +100,43 @@ export async function getCachedOfflineMediaUri(uri: string, userId: string): Pro
   return cached?.exists && cached.size > 0 ? cachedUri : undefined;
 }
 
-export async function cacheMediaForOffline(uri: string, userId: string): Promise<string> {
+export async function cancelOfflineMediaDownload(downloadId: string): Promise<void> {
+  const tasks = [...activeDownloadTasks.values()]
+    .filter((entry) => entry.downloadId === downloadId)
+    .map((entry) => entry.task);
+  await Promise.all(tasks.map((task) => task.cancelAsync().catch(() => undefined)));
+}
+
+export async function removePinnedOfflineMedia(uri: string, userId: string): Promise<void> {
+  if (Platform.OS === 'web' || !FileSystem.documentDirectory) return;
+  const userDirectory = `${FileSystem.documentDirectory}${PINNED_LISTING_MEDIA_DIR}/${safeSegment(userId)}/`;
+  if (!uri.startsWith(userDirectory)) return;
+  await FileSystem.deleteAsync(uri, { idempotent: true });
+}
+
+export async function cacheMediaForOffline(
+  uri: string,
+  userId: string,
+  options: OfflineMediaDownloadOptions = {},
+): Promise<string> {
   if (Platform.OS === 'web') throw new Error('Offline media downloads are available in the installed app.');
-  if (uri.startsWith('file://')) {
+  const destination = offlineMediaUri(uri, userId, options.durable);
+  if (!destination) throw new Error('Device storage is unavailable.');
+  if (options.isCancelled?.()) throw new Error('The listing download was cancelled.');
+
+  if (uri.startsWith('file://') && !options.durable) {
     const local = await FileSystem.getInfoAsync(uri);
     if (!local.exists) throw new Error('A listing file is no longer available on this device.');
     return uri;
   }
+  if (uri.startsWith('file://') && options.durable) {
+    const pinnedDirectory = `${FileSystem.documentDirectory}${PINNED_LISTING_MEDIA_DIR}/${safeSegment(userId)}/`;
+    if (uri.startsWith(pinnedDirectory)) {
+      const local = await FileSystem.getInfoAsync(uri).catch(() => null);
+      if (local?.exists && local.size > 0) return uri;
+    }
+  }
 
-  const destination = offlineMediaUri(uri, userId);
-  if (!destination) throw new Error('Device storage is unavailable.');
   const existing = await FileSystem.getInfoAsync(destination).catch(() => null);
   if (existing?.exists && existing.size > 0) return destination;
   if (existing?.exists) {
@@ -107,7 +149,26 @@ export async function cacheMediaForOffline(uri: string, userId: string): Promise
   const download = (async () => {
     await ensureDirectory(destination);
     if (!(await makeCacheSpace(userId))) {
-      throw new Error('There is not enough free device storage to cache this listing photo.');
+      throw new Error('There is not enough free device storage to save this listing offline.');
+    }
+
+    if (uri.startsWith('file://')) {
+      const source = await FileSystem.getInfoAsync(uri).catch(() => null);
+      if (!source?.exists || source.isDirectory) {
+        throw new Error('A listing file is no longer available on this device.');
+      }
+      const free = await FileSystem.getFreeDiskStorageAsync().catch(() => Number.POSITIVE_INFINITY);
+      if (free - source.size < LOW_STORAGE_BYTES) {
+        throw new Error('There is not enough free device storage to save this listing offline.');
+      }
+      if (options.isCancelled?.()) throw new Error('The listing download was cancelled.');
+      await FileSystem.copyAsync({ from: uri, to: destination });
+      const copied = await FileSystem.getInfoAsync(destination).catch(() => null);
+      if (!copied?.exists || copied.size <= 0) {
+        await FileSystem.deleteAsync(destination, { idempotent: true }).catch(() => undefined);
+        throw new Error('A listing photo could not be saved on this device.');
+      }
+      return destination;
     }
 
     const objectPath = getStoredMediaObjectPath(uri);
@@ -117,11 +178,30 @@ export async function cacheMediaForOffline(uri: string, userId: string): Promise
     if (!/^https?:\/\//i.test(downloadUrl)) {
       throw new Error('This listing photo cannot be cached.');
     }
+    if (options.isCancelled?.()) throw new Error('The listing download was cancelled.');
 
     const temporaryUri = `${destination}.part`;
     await FileSystem.deleteAsync(temporaryUri, { idempotent: true }).catch(() => undefined);
+    const task = FileSystem.createDownloadResumable(
+      downloadUrl,
+      temporaryUri,
+      {},
+      (progress) => {
+        if (progress.totalBytesExpectedToWrite > 0) {
+          options.onProgress?.(
+            Math.min(1, progress.totalBytesWritten / progress.totalBytesExpectedToWrite),
+          );
+        }
+      },
+    );
+    activeDownloadTasks.set(destination, { userId, downloadId: options.downloadId, task });
     try {
-      const result = await FileSystem.downloadAsync(downloadUrl, temporaryUri);
+      if (options.isCancelled?.()) {
+        await task.cancelAsync();
+        throw new Error('The listing download was cancelled.');
+      }
+      const result = await task.downloadAsync();
+      if (!result) throw new Error('The listing download was cancelled.');
       if (result.status < 200 || result.status >= 300) {
         throw new Error('A listing photo could not be downloaded.');
       }
@@ -138,6 +218,8 @@ export async function cacheMediaForOffline(uri: string, userId: string): Promise
       throw error instanceof Error
         ? error
         : new Error('A listing photo could not be downloaded. Check your connection and try again.');
+    } finally {
+      activeDownloadTasks.delete(destination);
     }
   })();
 
@@ -151,12 +233,20 @@ export async function cacheMediaForOffline(uri: string, userId: string): Promise
 
 export async function clearCachedOfflineMediaForUser(userId: string | null | undefined): Promise<void> {
   if (!userId || Platform.OS === 'web' || !FileSystem.documentDirectory) return;
-  const directory = `${FileSystem.documentDirectory}${OFFLINE_MEDIA_DIR}/${safeSegment(userId)}/`;
+  const directories = [
+    `${FileSystem.documentDirectory}${OFFLINE_MEDIA_DIR}/${safeSegment(userId)}/`,
+    `${FileSystem.documentDirectory}${PINNED_LISTING_MEDIA_DIR}/${safeSegment(userId)}/`,
+  ];
+  const tasks = [...activeDownloadTasks.entries()]
+    .filter(([, entry]) => entry.userId === userId)
+    .map(([, entry]) => entry.task.cancelAsync().catch(() => undefined));
+  await Promise.all(tasks);
   const activeDownloads = [...inFlightDownloads.entries()]
-    .filter(([destination]) => destination.startsWith(directory))
+    .filter(([destination]) => directories.some((directory) => destination.startsWith(directory)))
     .map(([, download]) => download.catch(() => undefined));
   await Promise.all(activeDownloads);
-  await FileSystem.deleteAsync(directory, { idempotent: true }).catch(() => undefined);
+  await Promise.all(directories.map((directory) =>
+    FileSystem.deleteAsync(directory, { idempotent: true }).catch(() => undefined)));
 }
 
 /** Copy picker/camera files out of the temporary cache before queueing a listing upload. */

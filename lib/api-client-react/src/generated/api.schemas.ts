@@ -723,6 +723,24 @@ export interface BranchInput {
   phone?: string;
 }
 
+export type OfflinePropertySnapshotInputScope = typeof OfflinePropertySnapshotInputScope[keyof typeof OfflinePropertySnapshotInputScope];
+
+
+export const OfflinePropertySnapshotInputScope = {
+  my: 'my',
+  agency: 'agency',
+} as const;
+
+export interface OfflinePropertySnapshotInput {
+  scope: OfflinePropertySnapshotInputScope;
+  /**
+     * @minItems 1
+     * @maxItems 500
+     * @items.minimum 1
+     */
+  propertyIds: number[];
+}
+
 export interface Property {
   id: number;
   reference: string;

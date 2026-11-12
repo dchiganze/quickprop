@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import {
-  View, Text, TextInput, FlatList, ScrollView, TouchableOpacity, StyleSheet, Platform, RefreshControl, ActivityIndicator,
+  Alert, View, Text, TextInput, FlatList, ScrollView, TouchableOpacity, StyleSheet, Platform, RefreshControl, ActivityIndicator,
 } from 'react-native';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -13,9 +13,11 @@ import {
   getListPropertiesQueryKey,
   getListPublicAgentsQueryKey,
   listPublicProperties,
+  useCreateOfflinePropertySnapshot,
   useGetAgencyProperties,
   useListProperties,
   useListPublicAgents,
+  type Property as ApiPropertyRecord,
   type PublicProperty,
 } from '@workspace/api-client-react';
 import { useColors } from '@/hooks/useColors';
@@ -35,7 +37,20 @@ import {
   parseAgencyListingsCache,
   type AgencyListingsCache,
 } from '@/lib/agency-listings-cache';
-import { cacheMediaForOffline } from '@/utils/offlineMedia';
+import {
+  emptyOfflineListingsCache,
+  enqueueOfflineListingsCacheTask,
+  offlineListingsCacheKey,
+  parseOfflineListingsCache,
+  removeOfflineListing,
+  upsertOfflineListing,
+  type OfflineListingsCache,
+} from '@/lib/offline-listings-cache';
+import {
+  cacheMediaForOffline,
+  cancelOfflineMediaDownload,
+  removePinnedOfflineMedia,
+} from '@/utils/offlineMedia';
 import type { Property } from '@/types';
 
 type ListingScope = 'all' | 'my' | 'agency';
@@ -129,6 +144,15 @@ export default function ListingsScreen() {
   const agencyCacheRef = useRef<AgencyListingsCache | null>(null);
   const [offlineAgencyCache, setOfflineAgencyCache] = useState<AgencyListingsCache | null>(null);
   const [agencyCacheReadyForUser, setAgencyCacheReadyForUser] = useState<string | null>(null);
+  const offlineListingsCacheRef = useRef<OfflineListingsCache | null>(null);
+  const [offlineListingsCache, setOfflineListingsCache] = useState<OfflineListingsCache | null>(null);
+  const [offlineCacheReadyForUser, setOfflineCacheReadyForUser] = useState<string | null>(null);
+  const [offlineDownloadingIds, setOfflineDownloadingIds] = useState<Set<string>>(() => new Set());
+  const [offlineBatchSyncing, setOfflineBatchSyncing] = useState(false);
+  const activeOfflineDownloadIdRef = useRef<string | null>(null);
+  const cancelledOfflineDownloadIdsRef = useRef<Set<string>>(new Set());
+  const stopOfflineBatchRef = useRef(false);
+  const offlineSnapshotMutation = useCreateOfflinePropertySnapshot();
   const [query, setQuery] = useState('');
   const [scope, setScope] = useState<ListingScope>('all');
   const [statusFilter, setStatusFilter] = useState<MyStatusFilter>('all');
@@ -165,6 +189,31 @@ export default function ListingsScreen() {
     return () => { cancelled = true; };
   }, [user?.id]);
 
+  useEffect(() => {
+    let cancelled = false;
+    const accountId = user?.id;
+    offlineListingsCacheRef.current = null;
+    setOfflineListingsCache(null);
+    setOfflineCacheReadyForUser(null);
+    if (!accountId) return () => { cancelled = true; };
+
+    AsyncStorage.getItem(offlineListingsCacheKey(accountId))
+      .then((serialized) => {
+        if (cancelled) return;
+        const cached = parseOfflineListingsCache(serialized, accountId);
+        offlineListingsCacheRef.current = cached;
+        setOfflineListingsCache(cached);
+        setOfflineCacheReadyForUser(accountId);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        offlineListingsCacheRef.current = emptyOfflineListingsCache(accountId);
+        setOfflineCacheReadyForUser(accountId);
+      });
+
+    return () => { cancelled = true; };
+  }, [user?.id]);
+
   const persistAgencyListings = useCallback((
     accountId: string,
     update: Partial<Omit<AgencyListingsCache, 'version' | 'userId'>>,
@@ -179,6 +228,20 @@ export default function ListingsScreen() {
     }).catch(() => {
       console.warn('Agency listings could not be saved for offline use.');
     });
+  }, []);
+
+  const persistOfflineListings = useCallback(async (
+    accountId: string,
+    next: OfflineListingsCache,
+  ) => {
+    if (accountIdRef.current !== accountId) throw new Error('The signed-in account changed.');
+    await enqueueOfflineListingsCacheTask(async () => {
+      if (accountIdRef.current !== accountId) throw new Error('The signed-in account changed.');
+      await AsyncStorage.setItem(offlineListingsCacheKey(accountId), JSON.stringify(next));
+    });
+    if (accountIdRef.current !== accountId) throw new Error('The signed-in account changed.');
+    offlineListingsCacheRef.current = next;
+    setOfflineListingsCache(next);
   }, []);
 
   const publicAgentsQuery = useListPublicAgents({
@@ -434,6 +497,14 @@ export default function ListingsScreen() {
     }
   };
 
+  const savedOfflineProperties = offlineListingsCache && offlineListingsCache.userId === user?.id
+    ? offlineListingsCache.properties
+    : [];
+  const savedOfflineIds = useMemo(
+    () => new Set(savedOfflineProperties.map((property) => property.id)),
+    [savedOfflineProperties],
+  );
+
   const filtered = useMemo(() => {
     let list = visibilityFilter === 'draft'
       ? scope === 'my'
@@ -444,6 +515,22 @@ export default function ListingsScreen() {
         : scope === 'agency'
           ? [...agencyProperties]
           : properties.filter((property) => property.agentId === user?.id);
+
+    if (isOffline && scope !== 'all') {
+      const cachedProperties = savedOfflineProperties.filter((property) => (
+        (scope !== 'my' || property.agentId === user?.id)
+        && (
+          visibilityFilter === 'all'
+          || (visibilityFilter === 'draft' && property.status === 'draft')
+          || (visibilityFilter === 'live' && property.status === 'published')
+        )
+      ));
+      const merged = new Map(list.map((property) => [property.id, property]));
+      for (const property of cachedProperties) {
+        if (!merged.has(property.id)) merged.set(property.id, property);
+      }
+      list = [...merged.values()];
+    }
 
     if (agentFilter) {
       list = list.filter((property) => property.agentId === agentFilter);
@@ -465,7 +552,274 @@ export default function ListingsScreen() {
     return list.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
   }, [
     scope, statusFilter, visibilityFilter, properties, publicProperties, agencyProperties,
-    localDraftProperties, draftProperties, query, user?.id, agentFilter,
+    localDraftProperties, draftProperties, query, user?.id, agentFilter, isOffline, savedOfflineProperties,
+  ]);
+
+  const canShowOfflineSync = scope === 'my' || scope === 'agency';
+  const filteredAllSaved = filtered.length > 0 && filtered.every((property) => (
+    savedOfflineIds.has(property.id) || !/^\d+$/.test(property.id)
+  ));
+  const isOfflineDownloadCancelled = (downloadId: string) => (
+    cancelledOfflineDownloadIdsRef.current.has(downloadId)
+    || stopOfflineBatchRef.current
+  );
+
+  const persistDownloadedProperty = useCallback(async (
+    accountId: string,
+    property: Property,
+  ) => {
+    const updatedAt = new Date().toISOString();
+    const previous = offlineListingsCacheRef.current?.properties.find((entry) => entry.id === property.id);
+    const next = upsertOfflineListing(offlineListingsCacheRef.current, accountId, property, updatedAt);
+    await persistOfflineListings(accountId, next);
+    const referencedMedia = new Set(next.properties.flatMap((entry) => entry.photos));
+    for (const oldUri of previous?.photos ?? []) {
+      if (!referencedMedia.has(oldUri)) {
+        await removePinnedOfflineMedia(oldUri, accountId).catch(() => undefined);
+      }
+    }
+  }, [persistOfflineListings]);
+
+  const downloadOfflineProperty = useCallback(async (
+    property: Property,
+    selectedScope: 'my' | 'agency',
+    apiSnapshot?: ApiPropertyRecord,
+    showError = true,
+  ): Promise<'saved' | 'cancelled' | 'failed'> => {
+    const accountId = user?.id;
+    if (!accountId) {
+      if (showError) Alert.alert('Sign in required', 'Sign in before saving listings offline.');
+      return 'failed';
+    }
+    if (offlineCacheReadyForUser !== accountId) {
+      if (showError) Alert.alert('Offline library is loading', 'Try again shortly.');
+      return 'failed';
+    }
+    const downloadId = `${accountId}:${property.id}`;
+    activeOfflineDownloadIdRef.current = downloadId;
+    cancelledOfflineDownloadIdsRef.current.delete(downloadId);
+    setOfflineDownloadingIds((current) => new Set(current).add(property.id));
+    const downloadedMedia: string[] = [];
+
+    try {
+      let snapshot = property;
+      if (apiSnapshot) {
+        snapshot = toMobileProperty(apiSnapshot);
+      } else if (/^\d+$/.test(property.id)) {
+        if (!isOnline) throw new Error('Connect to the internet to download this listing.');
+        const records = await offlineSnapshotMutation.mutateAsync({
+          data: { scope: selectedScope, propertyIds: [Number(property.id)] },
+        });
+        if (isOfflineDownloadCancelled(downloadId)) throw new Error('The listing download was cancelled.');
+        const record = records.find((entry) => String(entry.id) === property.id);
+        if (!record) throw new Error('This listing is no longer available to your account.');
+        snapshot = toMobileProperty(record);
+      }
+
+      if (isOfflineDownloadCancelled(downloadId)) throw new Error('The listing download was cancelled.');
+      const localPhotos: string[] = [];
+      for (const photo of snapshot.photos) {
+        if (isOfflineDownloadCancelled(downloadId)) throw new Error('The listing download was cancelled.');
+        const localUri = await cacheMediaForOffline(photo, accountId, {
+          durable: true,
+          downloadId,
+          isCancelled: () => isOfflineDownloadCancelled(downloadId),
+        });
+        downloadedMedia.push(localUri);
+        localPhotos.push(localUri);
+      }
+
+      if (isOfflineDownloadCancelled(downloadId)) throw new Error('The listing download was cancelled.');
+      await persistDownloadedProperty(accountId, { ...snapshot, photos: localPhotos });
+      return 'saved';
+    } catch (error) {
+      const referencedMedia = new Set(
+        (offlineListingsCacheRef.current?.properties ?? []).flatMap((entry) => entry.photos),
+      );
+      await Promise.all([...new Set(downloadedMedia)]
+        .filter((uri) => !referencedMedia.has(uri))
+        .map((uri) => removePinnedOfflineMedia(uri, accountId).catch(() => undefined)));
+      const cancelled = cancelledOfflineDownloadIdsRef.current.has(downloadId);
+      if (showError && !cancelled) {
+        Alert.alert(
+          'Could not save this listing',
+          error instanceof Error ? error.message : 'Check your connection and device storage, then try again.',
+        );
+      }
+      return cancelled ? 'cancelled' : 'failed';
+    } finally {
+      cancelledOfflineDownloadIdsRef.current.delete(downloadId);
+      if (activeOfflineDownloadIdRef.current === downloadId) activeOfflineDownloadIdRef.current = null;
+      setOfflineDownloadingIds((current) => {
+        const next = new Set(current);
+        next.delete(property.id);
+        return next;
+      });
+    }
+  }, [
+    isOnline,
+    offlineCacheReadyForUser,
+    offlineSnapshotMutation,
+    persistDownloadedProperty,
+    user?.id,
+  ]);
+
+  const removeOfflineProperty = useCallback(async (propertyId: string) => {
+    const accountId = user?.id;
+    if (!accountId) return;
+    const updatedAt = new Date().toISOString();
+    const { cache, removed } = removeOfflineListing(
+      offlineListingsCacheRef.current,
+      accountId,
+      propertyId,
+      updatedAt,
+    );
+    if (!removed) return;
+    try {
+      await persistOfflineListings(accountId, cache);
+      const referencedMedia = new Set(cache.properties.flatMap((property) => property.photos));
+      await Promise.all(removed.photos
+        .filter((uri) => !referencedMedia.has(uri))
+        .map((uri) => removePinnedOfflineMedia(uri, accountId).catch(() => undefined)));
+    } catch (error) {
+      Alert.alert(
+        'Could not remove offline listing',
+        error instanceof Error ? error.message : 'Try again.',
+      );
+    }
+  }, [persistOfflineListings, user?.id]);
+
+  const cancelOfflineProperty = useCallback((propertyId: string) => {
+    const accountId = user?.id;
+    const downloadId = accountId ? `${accountId}:${propertyId}` : null;
+    if (!downloadId) return;
+    cancelledOfflineDownloadIdsRef.current.add(downloadId);
+    void cancelOfflineMediaDownload(downloadId);
+  }, [user?.id]);
+
+  const stopOfflineSync = useCallback(() => {
+    if (offlineBatchSyncing) stopOfflineBatchRef.current = true;
+    const activeId = activeOfflineDownloadIdRef.current;
+    if (activeId) {
+      cancelledOfflineDownloadIdsRef.current.add(activeId);
+      void cancelOfflineMediaDownload(activeId);
+    }
+  }, [offlineBatchSyncing]);
+
+  const syncVisibleOfflineListings = useCallback(async () => {
+    if (offlineBatchSyncing) {
+      stopOfflineSync();
+      return;
+    }
+    if (offlineDownloadingIds.size > 0) {
+      const activeId = activeOfflineDownloadIdRef.current;
+      if (activeId) {
+        const propertyId = activeId.slice(activeId.indexOf(':') + 1);
+        cancelOfflineProperty(propertyId);
+      }
+      return;
+    }
+    const accountId = user?.id;
+    if (!accountId) return;
+    if (!isOnline) {
+      Alert.alert('Connect to sync listings', 'You can browse listings already saved on this device while offline.');
+      return;
+    }
+
+    const selected = filtered;
+    if (selected.length === 0) return;
+    stopOfflineBatchRef.current = false;
+    setOfflineBatchSyncing(true);
+    try {
+      const remoteProperties = selected.filter((property) => /^\d+$/.test(property.id));
+      for (let index = 0; index < remoteProperties.length; index += 100) {
+        if (stopOfflineBatchRef.current) break;
+        const batch = remoteProperties.slice(index, index + 100);
+        const records = await offlineSnapshotMutation.mutateAsync({
+          data: {
+            scope: scope === 'agency' ? 'agency' : 'my',
+            propertyIds: batch.map((property) => Number(property.id)),
+          },
+        });
+        const recordsById = new Map(records.map((record) => [String(record.id), record]));
+        for (const property of batch) {
+          if (stopOfflineBatchRef.current) break;
+          const record = recordsById.get(property.id);
+          if (!record) throw new Error('One or more listings are no longer available to your account.');
+          const result = await downloadOfflineProperty(
+            property,
+            scope === 'agency' ? 'agency' : 'my',
+            record,
+            false,
+          );
+          if (result === 'failed' && !stopOfflineBatchRef.current) {
+            throw new Error('A listing could not be saved. Completed downloads remain available offline.');
+          }
+        }
+      }
+      if (!stopOfflineBatchRef.current) {
+        for (const property of selected.filter((item) => !/^\d+$/.test(item.id))) {
+          if (stopOfflineBatchRef.current) break;
+          const result = await downloadOfflineProperty(
+            property,
+            scope === 'agency' ? 'agency' : 'my',
+            undefined,
+            false,
+          );
+          if (result === 'failed' && !stopOfflineBatchRef.current) {
+            throw new Error('A listing could not be saved. Completed downloads remain available offline.');
+          }
+        }
+      }
+    } catch (error) {
+      Alert.alert(
+        'Offline sync stopped',
+        error instanceof Error ? error.message : 'Check your connection and try again.',
+      );
+    } finally {
+      stopOfflineBatchRef.current = false;
+      activeOfflineDownloadIdRef.current = null;
+      setOfflineBatchSyncing(false);
+    }
+  }, [
+    cancelOfflineProperty,
+    downloadOfflineProperty,
+    filtered,
+    isOnline,
+    offlineBatchSyncing,
+    offlineDownloadingIds.size,
+    offlineSnapshotMutation,
+    savedOfflineIds,
+    scope,
+    stopOfflineSync,
+    user?.id,
+  ]);
+
+  const toggleOfflineProperty = useCallback((property: Property) => {
+    if (offlineDownloadingIds.has(property.id)) {
+      cancelOfflineProperty(property.id);
+      return;
+    }
+    if (savedOfflineIds.has(property.id)) {
+      void removeOfflineProperty(property.id);
+      return;
+    }
+    if (!/^\d+$/.test(property.id)) {
+      Alert.alert('Already saved on this device', 'This unsent draft is stored locally and will sync when its connection is restored.');
+      return;
+    }
+    if (offlineDownloadingIds.size > 0) {
+      Alert.alert('Sync already running', 'Stop the current download before starting another listing.');
+      return;
+    }
+    void downloadOfflineProperty(property, scope === 'agency' ? 'agency' : 'my');
+  }, [
+    cancelOfflineProperty,
+    downloadOfflineProperty,
+    offlineDownloadingIds,
+    removeOfflineProperty,
+    savedOfflineIds,
+    scope,
   ]);
 
   const agencyFilterLabel = agencyName === 'Agency Listings' ? SCOPE_FILTERS[2].label : agencyName;
@@ -491,11 +845,35 @@ export default function ListingsScreen() {
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + (Platform.OS === 'web' ? 67 : 16), backgroundColor: colors.background }]}>
         <View style={styles.titleRow}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+          <View style={styles.titleGroup}>
             <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
               <Ionicons name="chevron-back" size={24} color={colors.foreground} />
             </TouchableOpacity>
             <Text style={[styles.title, { color: colors.foreground }]}>Listings</Text>
+            {(canShowOfflineSync || offlineDownloadingIds.size > 0) && (
+              <TouchableOpacity
+                style={[styles.offlineSyncButton, { borderColor: colors.border }]}
+                onPress={() => { void syncVisibleOfflineListings(); }}
+                disabled={offlineCacheReadyForUser !== user?.id || filtered.length === 0}
+                accessibilityRole="button"
+                accessibilityLabel={offlineDownloadingIds.size > 0
+                  ? 'Stop offline listing sync'
+                  : filteredAllSaved
+                    ? 'Refresh saved offline listings'
+                    : 'Save visible listings offline'}
+                testID="offline-listings-sync"
+              >
+        {offlineDownloadingIds.size > 0 ? (
+                  <Ionicons name="stop-circle" size={23} color={colors.accent} />
+                ) : (
+                  <Ionicons
+                    name="download-outline"
+                    size={21}
+                    color={filteredAllSaved ? colors.accent : colors.mutedForeground}
+                  />
+                )}
+              </TouchableOpacity>
+            )}
           </View>
           <View style={styles.titleActions}>
             <Text style={[styles.count, { color: colors.mutedForeground }]}>{filtered.length} properties</Text>
@@ -734,6 +1112,32 @@ export default function ListingsScreen() {
         renderItem={({ item }) => (
           <PropertyCard
             property={item}
+            offlineAction={canShowOfflineSync ? (
+              <TouchableOpacity
+                style={styles.offlinePropertyButton}
+                onPress={() => toggleOfflineProperty(item)}
+                disabled={offlineCacheReadyForUser !== user?.id}
+                accessibilityRole="button"
+                accessibilityLabel={offlineDownloadingIds.has(item.id)
+                  ? `Cancel download for ${item.title ?? item.address}`
+                  : savedOfflineIds.has(item.id)
+                    ? `Remove ${item.title ?? item.address} from offline listings`
+                    : !/^\d+$/.test(item.id)
+                      ? `${item.title ?? item.address} is already stored on this device`
+                      : `Download ${item.title ?? item.address} for offline use`}
+                testID={`offline-property-${item.id}`}
+              >
+                {offlineCacheReadyForUser !== user?.id || offlineDownloadingIds.has(item.id) ? (
+                  <ActivityIndicator size="small" color={colors.accent} />
+                ) : (
+                  <Ionicons
+                    name={savedOfflineIds.has(item.id) || !/^\d+$/.test(item.id) ? 'download' : 'download-outline'}
+                    size={20}
+                    color={savedOfflineIds.has(item.id) || !/^\d+$/.test(item.id) ? colors.accent : colors.mutedForeground}
+                  />
+                )}
+              </TouchableOpacity>
+            ) : undefined}
             onPress={() => {
               if (scope === 'my') router.push(`/listing/${item.id}`);
               else router.push({ pathname: '/public-listing/[id]', params: { id: item.id } });
@@ -800,7 +1204,10 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   header: { paddingHorizontal: 16, gap: 12, paddingBottom: 12, zIndex: 10 },
   titleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  titleGroup: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   backBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
+  offlineSyncButton: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center', borderRadius: 18, borderWidth: 1, marginLeft: 4 },
+  offlinePropertyButton: { width: 34, height: 34, alignItems: 'center', justifyContent: 'center', marginLeft: 8 },
   titleActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   title: { fontSize: 28, fontWeight: '800', letterSpacing: -0.5 },
   count: { fontSize: 14, fontWeight: '500', marginBottom: 2 },
