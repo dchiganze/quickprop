@@ -3,7 +3,6 @@ import {
   View, Text, TextInput, TouchableOpacity, StyleSheet, Platform, ActivityIndicator, Image,
   Alert, Linking, Animated, useWindowDimensions, useColorScheme, Modal, ScrollView,
 } from 'react-native';
-import { SvgXml } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
 import { countries, getEmojiFlag, type TCountryCode } from 'countries-list';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -12,7 +11,6 @@ import * as Haptics from 'expo-haptics';
 import { useColors } from '@/hooks/useColors';
 import { useAuth } from '@/contexts/AuthContext';
 import { KeyboardAwareScrollViewCompat } from '@/components/KeyboardAwareScrollViewCompat';
-import { welcomeIllustrationXml } from '@/constants/loginIllustration';
 
 type OtpAutofillModule = typeof import('expo-otp-autofill');
 const androidOtpAutofill: OtpAutofillModule | null = (() => {
@@ -273,7 +271,11 @@ export default function LoginScreen() {
             />
           </View>
           <View style={[styles.illoWrap, { width: illoSize, height: illoSize, borderRadius: illoSize / 2 }]}>
-            <SvgXml xml={welcomeIllustrationXml} width={illoSize} height={illoSize} />
+            <Image
+              source={require('../assets/images/quickprop-agent-illustration.png')}
+              style={{ width: illoSize, height: illoSize }}
+              resizeMode="cover"
+            />
           </View>
           {mode === 'welcome' && (
             <>
