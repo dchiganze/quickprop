@@ -8,6 +8,7 @@ import { Tabs } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { ShareHubSheet } from '@/components/ShareHubSheet';
+import { useData } from '@/contexts/DataContext';
 import {
   SyncStatusBanner,
   SYNC_STATUS_BANNER_HEIGHT,
@@ -15,6 +16,7 @@ import {
 
 export default function TabLayout() {
   const colors = useColors();
+  const { unseenMatchCount } = useData();
   const isIOS = Platform.OS === 'ios';
   const insets = useSafeAreaInsets();
   const [shareOpen, setShareOpen] = useState(false);
@@ -79,19 +81,6 @@ export default function TabLayout() {
           }}
         />
         <Tabs.Screen
-          name="matches"
-          options={{
-            title: 'Matches',
-            tabBarIcon: ({ focused }) => (
-              <Ionicons
-                name="people-outline"
-                size={22}
-                color={focused ? colors.primary : colors.mutedForeground}
-              />
-            ),
-          }}
-        />
-        <Tabs.Screen
           name="share"
           options={{
             title: 'Share',
@@ -109,6 +98,35 @@ export default function TabLayout() {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
               setShareOpen(true);
             },
+          }}
+        />
+        <Tabs.Screen
+          name="matches"
+          options={{
+            title: 'Matches',
+            tabBarIcon: ({ focused }) => (
+              <Ionicons
+                name="people-outline"
+                size={22}
+                color={focused ? colors.primary : colors.mutedForeground}
+              />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="alerts"
+          options={{
+            title: 'Alerts',
+            tabBarBadge: unseenMatchCount > 0
+              ? (unseenMatchCount > 9 ? '9+' : unseenMatchCount)
+              : undefined,
+            tabBarIcon: ({ focused }) => (
+              <Ionicons
+                name={unseenMatchCount > 0 ? 'notifications' : 'notifications-outline'}
+                size={22}
+                color={focused ? colors.primary : colors.mutedForeground}
+              />
+            ),
           }}
         />
         <Tabs.Screen

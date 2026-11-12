@@ -8,6 +8,7 @@ import * as Haptics from 'expo-haptics';
 import { useColors } from '@/hooks/useColors';
 import { useData } from '@/contexts/DataContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Property, PropertyAlert, PROPERTY_FEATURES } from '@/types';
 
 type Step = 'list' | 'create' | 'matches';
@@ -42,10 +43,13 @@ const COMMON_FEATURES = [
 interface Props {
   visible: boolean;
   onClose: () => void;
+  presentation?: 'sheet' | 'screen';
 }
 
-export function AlertsSheet({ visible, onClose }: Props) {
+export function AlertsSheet({ visible, onClose, presentation = 'sheet' }: Props) {
   const colors = useColors();
+  const insets = useSafeAreaInsets();
+  const isScreen = presentation === 'screen';
   const { alerts, alertMatches, addAlert, deleteAlert, dismissAlertMatches } = useData();
   const { user } = useAuth();
 
@@ -160,7 +164,7 @@ export function AlertsSheet({ visible, onClose }: Props) {
   /* ─── RENDER: LIST ─── */
   const renderList = () => (
     <>
-      <Text style={[s.title, { color: colors.foreground }]}>Property Alerts</Text>
+      {!isScreen && <Text style={[s.title, { color: colors.foreground }]}>Property Alerts</Text>}
       <Text style={[s.sub, { color: colors.mutedForeground }]}>
         Get notified when a matching listing is uploaded. Enable Push Notifications in Settings to receive alerts when the app is closed.
       </Text>
@@ -177,7 +181,10 @@ export function AlertsSheet({ visible, onClose }: Props) {
         </View>
       )}
 
-      <ScrollView style={s.listScroll} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={[s.listScroll, isScreen && s.fullScreenListScroll]}
+        showsVerticalScrollIndicator={false}
+      >
         {alerts.length === 0 ? (
           <View style={s.emptyWrap}>
             <View style={[s.emptyIcon, { backgroundColor: colors.muted }]}>
@@ -270,11 +277,14 @@ export function AlertsSheet({ visible, onClose }: Props) {
     const props = group.properties;
     return (
       <>
-        <Text style={[s.title, { color: colors.foreground }]} numberOfLines={1}>{group.alert.name}</Text>
+        {!isScreen && <Text style={[s.title, { color: colors.foreground }]} numberOfLines={1}>{group.alert.name}</Text>}
         <Text style={[s.sub, { color: colors.mutedForeground }]}>
           {props.length} new {props.length === 1 ? 'property matches' : 'properties match'} your alert.
         </Text>
-        <ScrollView style={s.listScroll} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          style={[s.listScroll, isScreen && s.fullScreenListScroll]}
+          showsVerticalScrollIndicator={false}
+        >
           {props.map(p => (
             <View key={p.id} style={[s.matchCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
               <View style={[s.matchIcon, { backgroundColor: colors.primary + '14' }]}>
@@ -307,8 +317,12 @@ export function AlertsSheet({ visible, onClose }: Props) {
 
   /* ─── RENDER: CREATE ─── */
   const renderCreate = () => (
-    <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-      <Text style={[s.title, { color: colors.foreground }]}>New Alert</Text>
+    <ScrollView
+      style={isScreen ? s.fullScreenListScroll : undefined}
+      showsVerticalScrollIndicator={false}
+      keyboardShouldPersistTaps="handled"
+    >
+      {!isScreen && <Text style={[s.title, { color: colors.foreground }]}>New Alert</Text>}
       <Text style={[s.sub, { color: colors.mutedForeground }]}>
         We'll notify you when a matching property is uploaded. Push delivery requires Push Notifications to be enabled in Settings.
       </Text>
@@ -430,6 +444,36 @@ export function AlertsSheet({ visible, onClose }: Props) {
     </ScrollView>
   );
 
+  if (isScreen) {
+    const screenTitle = step === 'list'
+      ? 'Property Alerts'
+      : step === 'create'
+        ? 'New Alert'
+        : selectedMatchGroup?.alert.name ?? 'Alert Matches';
+    return (
+      <View style={[s.screen, { backgroundColor: colors.background }]}>
+        <View style={[s.screenHeader, { paddingTop: insets.top + (Platform.OS === 'web' ? 67 : 16) }]}>
+          {step === 'list' ? (
+            <View style={[s.navBtn, { backgroundColor: colors.muted }]}>
+              <Ionicons name="notifications-outline" size={18} color={colors.primary} />
+            </View>
+          ) : (
+            <TouchableOpacity onPress={goBack} style={[s.navBtn, { backgroundColor: colors.muted }]}>
+              <Ionicons name="arrow-back" size={18} color={colors.foreground} />
+            </TouchableOpacity>
+          )}
+          <Text numberOfLines={1} style={[s.screenTitle, { color: colors.foreground }]}>{screenTitle}</Text>
+          <View style={s.navBtn} />
+        </View>
+        <View style={[s.screenBody, { paddingBottom: insets.bottom + 84 }]}>
+          {step === 'list' && renderList()}
+          {step === 'create' && renderCreate()}
+          {step === 'matches' && renderMatches()}
+        </View>
+      </View>
+    );
+  }
+
   return (
     <Modal
       visible={visible}
@@ -478,6 +522,10 @@ const s = StyleSheet.create({
   handle: { width: 36, height: 4, borderRadius: 2, alignSelf: 'center', marginBottom: 14 },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 },
   navBtn: { width: 34, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  screen: { flex: 1 },
+  screenHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 20, paddingBottom: 14 },
+  screenTitle: { flex: 1, fontSize: 22, fontWeight: '800', letterSpacing: -0.4 },
+  screenBody: { flex: 1, paddingHorizontal: 20, paddingTop: 8 },
   title: { fontSize: 22, fontWeight: '800', letterSpacing: -0.4, marginBottom: 4 },
   sub: { fontSize: 14, marginBottom: 16, lineHeight: 20 },
 
@@ -489,6 +537,7 @@ const s = StyleSheet.create({
   matchBannerText: { fontSize: 14, fontWeight: '600', flex: 1 },
 
   listScroll: { maxHeight: 380 },
+  fullScreenListScroll: { flex: 1, maxHeight: '100%' },
 
   emptyWrap: { alignItems: 'center', paddingVertical: 32, gap: 10 },
   emptyIcon: { width: 64, height: 64, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },

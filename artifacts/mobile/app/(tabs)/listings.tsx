@@ -24,7 +24,6 @@ import { PropertyCard } from '@/components/PropertyCard';
 import { SearchBar } from '@/components/SearchBar';
 import { EmptyState } from '@/components/EmptyState';
 import { QuickShareSheet } from '@/components/QuickShareSheet';
-import { AlertsSheet } from '@/components/AlertsSheet';
 import type { Property } from '@/types';
 
 type ListingScope = 'all' | 'my' | 'agency';
@@ -32,7 +31,7 @@ type MyStatusFilter = 'all' | 'draft' | 'sold' | 'rented' | 'archived';
 type ListingVisibilityFilter = 'all' | 'draft' | 'live';
 
 const SCOPE_FILTERS: { key: ListingScope; label: string }[] = [
-  { key: 'all', label: 'All' },
+  { key: 'all', label: 'All of QuickProp' },
   { key: 'my', label: 'My Listings' },
   { key: 'agency', label: 'Agency Listings' },
 ];
@@ -165,7 +164,7 @@ export default function ListingsScreen() {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const {
-    properties, unseenMatchCount, syncNow,
+    properties, syncNow,
   } = useData();
   const [query, setQuery] = useState('');
   const [scope, setScope] = useState<ListingScope>('all');
@@ -176,7 +175,6 @@ export default function ListingsScreen() {
   const [agentMenuOpen, setAgentMenuOpen] = useState(false);
   const [agentSearch, setAgentSearch] = useState('');
   const [shareOpen, setShareOpen] = useState(false);
-  const [alertsOpen, setAlertsOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
   const publicAgentsQuery = useListPublicAgents({
@@ -367,11 +365,6 @@ export default function ListingsScreen() {
       ? publicFeed.isError
       : scope === 'agency' && agencyQuery.isError;
 
-  const openAlerts = async () => {
-    await Haptics.selectionAsync();
-    setAlertsOpen(true);
-  };
-
   return (
     <View style={[styles.flex, { backgroundColor: colors.background }]}>
       {/* Header */}
@@ -548,7 +541,7 @@ export default function ListingsScreen() {
           )}
         </View>
 
-        {/* Filter chips — ScrollView so we can insert Alerts between My Listings and Draft */}
+        {/* Listing scope filters */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -577,30 +570,6 @@ export default function ListingsScreen() {
               </TouchableOpacity>
             );
           })}
-          <TouchableOpacity
-            style={[
-              styles.filterBtn, styles.alertsChip,
-              {
-                backgroundColor: unseenMatchCount > 0 ? colors.primary : colors.muted,
-                borderColor: unseenMatchCount > 0 ? colors.primary : colors.border,
-              },
-            ]}
-            onPress={openAlerts}
-          >
-            <Ionicons
-              name={unseenMatchCount > 0 ? 'notifications' : 'notifications-outline'}
-              size={13}
-              color={unseenMatchCount > 0 ? '#FFF' : colors.mutedForeground}
-            />
-            <Text style={[styles.filterText, { color: unseenMatchCount > 0 ? '#FFF' : colors.mutedForeground }]}>
-              Alerts
-            </Text>
-            {unseenMatchCount > 0 && (
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>{unseenMatchCount > 9 ? '9+' : unseenMatchCount}</Text>
-              </View>
-            )}
-          </TouchableOpacity>
           {scope === 'my' && visibilityFilter === 'all' && MY_STATUS_FILTERS.map((item) => {
             const active = statusFilter === item.key;
             return (
@@ -689,7 +658,6 @@ export default function ListingsScreen() {
       </TouchableOpacity>
 
       <QuickShareSheet visible={shareOpen} onClose={() => setShareOpen(false)} />
-      <AlertsSheet visible={alertsOpen} onClose={() => setAlertsOpen(false)} />
     </View>
   );
 }
@@ -723,15 +691,9 @@ const styles = StyleSheet.create({
   filterList: { marginHorizontal: -16 },
   filterContent: { paddingHorizontal: 16, gap: 8 },
   filterBtn: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, borderWidth: 1 },
-  alertsChip: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   filterText: { fontSize: 13, fontWeight: '600' },
   loadingState: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 48 },
   loadingFooter: { height: 48, alignItems: 'center', justifyContent: 'center' },
-  badge: {
-    backgroundColor: '#FFF3', borderRadius: 8, minWidth: 16, height: 16,
-    alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3,
-  },
-  badgeText: { color: '#FFF', fontSize: 10, fontWeight: '800' },
   listContent: { paddingHorizontal: 16, paddingTop: 12 },
   fab: {
     position: 'absolute', right: 20, width: 56, height: 56,
