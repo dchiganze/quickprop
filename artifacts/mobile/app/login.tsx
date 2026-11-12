@@ -277,7 +277,6 @@ export default function LoginScreen() {
           </View>
           {mode === 'welcome' && (
             <>
-              <Text style={styles.middleBrand} accessibilityRole="header">QuickProp Agent</Text>
               <Text style={styles.tagline}>
                 Every listing, lead and viewing. One tap away.
               </Text>
