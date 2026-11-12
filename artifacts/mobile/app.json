@@ -12,6 +12,7 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": false,
+      "jsEngine": "jsc",
       "bundleIdentifier": "com.quickprop.agent",
       "buildNumber": "94",
       "deploymentTarget": "16.4",
