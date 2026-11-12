@@ -4,4 +4,7 @@ import { welcomeIllustrationXml as generatedWelcomeIllustrationXml } from './wel
 export const welcomeIllustrationXml = generatedWelcomeIllustrationXml.replace(
   /<path d="m58\.79 19\.02[^"]*" fill="#A698B8" fill-opacity=".58"\/>/,
   '',
+).replace(
+  /<path d="m60\.07 24\.55[^"]*" fill="#D2E7F2" stroke="#0D244E" stroke-width=".2865"\/>/,
+  '',
 );
