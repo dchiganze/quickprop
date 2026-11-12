@@ -218,11 +218,17 @@ export default function ListingsScreen() {
       };
     }
 
+    if (user?.role === 'agent') {
+      if (serverUserId == null) return undefined;
+      return {
+        status: 'draft',
+        ...(publicAgentId != null ? { agentId: publicAgentId } : {}),
+        agencyInventory: 'agency' as const,
+      };
+    }
+
     if (publicAgentId != null) return { status: 'draft', agentId: publicAgentId };
-    if (user?.role === 'administrator') return { status: 'draft' };
-    return serverUserId != null
-      ? { status: 'draft', agentId: serverUserId }
-      : undefined;
+    return user?.role === 'administrator' ? { status: 'draft' } : undefined;
   }, [publicAgentId, scope, serverUserId, user?.role, visibilityFilter]);
   const draftQueryEnabled = Boolean(serverUserId != null && visibilityFilter === 'draft' && scope !== 'my' && draftFilterParams);
   const draftListingsQuery = useListProperties(draftFilterParams, {
