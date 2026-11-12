@@ -21,6 +21,8 @@ test('login artwork removes the face discoloration while keeping the beard and s
   assert.match(welcomeIllustrationXml, /M68\.6 24\.9c1\.2\.4/);
   assert.match(source, /M71\.6 25\.8c\.7\.1/);
   assert.match(welcomeIllustrationXml, /M71\.6 25\.8c\.7\.1/);
+  assert.match(source, /M68\.8 21\.9c\.9\.2/);
+  assert.match(welcomeIllustrationXml, /M68\.8 21\.9c\.9\.2/);
   assert.match(welcomeIllustrationXml, /fill="#0D2D5D"/);
   assert.match(welcomeIllustrationXml, /fill="#B35B33"/);
 });
