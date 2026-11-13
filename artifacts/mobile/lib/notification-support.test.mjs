@@ -9,6 +9,7 @@ test('keeps native push disabled in Expo Go', () => {
 
 test('allows native push in installed and bare apps', () => {
   assert.equal(supportsNativePushForRuntime('android', 'standalone'), true);
+  assert.equal(supportsNativePushForRuntime('ios', 'standalone'), true);
   assert.equal(supportsNativePushForRuntime('ios', null), true);
 });
 
