@@ -72,6 +72,39 @@ jobs:
       - name: Link mobile dependencies into artifacts/mobile/node_modules
         run: node .github/scripts/link-mobile-deps.js
 
+      - name: Prepare Android Firebase config
+        env:
+          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${FIREBASE_PROJECT_ID:-}" ]]; then
+            echo "::error::Missing GitHub Actions secret FIREBASE_PROJECT_ID."
+            exit 1
+          fi
+          if [[ -z "${GOOGLE_SERVICES_JSON:-}" ]]; then
+            echo "::error::Missing GitHub Actions secret GOOGLE_SERVICES_JSON. Add the Firebase Android google-services.json contents for zw.co.melios.quickprop.agent."
+            exit 1
+          fi
+          printf '%s' "$GOOGLE_SERVICES_JSON" > artifacts/mobile/google-services.json
+          node <<'NODE'
+          const fs = require('node:fs');
+          const config = JSON.parse(fs.readFileSync('artifacts/mobile/google-services.json', 'utf8'));
+          const expectedPackage = 'zw.co.melios.quickprop.agent';
+          if (config.project_info?.project_id !== process.env.FIREBASE_PROJECT_ID) {
+            console.error('Firebase config does not match the configured Firebase project.');
+            process.exit(1);
+          }
+          const hasExpectedAndroidApp = (config.client ?? []).some(
+            (client) => client.client_info?.android_client_info?.package_name === expectedPackage,
+          );
+          if (!hasExpectedAndroidApp) {
+            console.error('Firebase config does not contain the QuickProp Android package.');
+            process.exit(1);
+          }
+          console.log('Validated Firebase config for the QuickProp Android app.');
+          NODE
+
       - name: Expo prebuild (Android)
         working-directory: artifacts/mobile
         run: npx expo prebuild --platform android --no-install

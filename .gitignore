@@ -8,6 +8,7 @@ out-tsc
 *.tsbuildinfo
 .expo
 .expo-shared
+**/google-services.json
 
 # dependencies
 node_modules
