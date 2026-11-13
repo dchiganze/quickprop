@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
-  View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, Switch, Linking, Alert,
+  AppState, View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, Switch, Linking, Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -110,9 +110,28 @@ export default function SettingsScreen() {
 
   useEffect(() => {
     if (!supportsNativePush || Platform.OS === 'web') return;
-    import('expo-notifications').then((Notifications) => Notifications.getPermissionsAsync())
-      .then((permissions) => setPushEnabled(permissions.granted))
-      .catch(() => setPushEnabled(false));
+    let mounted = true;
+    const refreshPushState = async () => {
+      try {
+        const Notifications = await import('expo-notifications');
+        const [permissions, token] = await Promise.all([
+          Notifications.getPermissionsAsync(),
+          AsyncStorage.getItem(PUSH_TOKEN_STORAGE_KEY),
+        ]);
+        if (mounted) setPushEnabled(permissions.granted && Boolean(token));
+      } catch {
+        if (mounted) setPushEnabled(false);
+      }
+    };
+
+    void refreshPushState();
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') void refreshPushState();
+    });
+    return () => {
+      mounted = false;
+      subscription.remove();
+    };
   }, []);
 
   const persistReminderPreferences = async (next: typeof reminderPreferences) => {
@@ -158,9 +177,16 @@ export default function SettingsScreen() {
       try {
         const token = await AsyncStorage.getItem(PUSH_TOKEN_STORAGE_KEY);
         if (token && apiBaseUrl) {
-          await deactivateListingHousekeepingPushToken({ token, platform: Platform.OS }).catch(() => {});
+          await deactivateListingHousekeepingPushToken({ token, platform: Platform.OS });
         }
-      } catch {}
+        await AsyncStorage.removeItem(PUSH_TOKEN_STORAGE_KEY);
+      } catch {
+        setPushEnabled(true);
+        Alert.alert(
+          'Unable to turn off notifications',
+          'QuickProp could not update this device. Please try again.',
+        );
+      }
       return;
     }
 
