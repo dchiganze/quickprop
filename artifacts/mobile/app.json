@@ -48,7 +48,7 @@
     "android": {
       "package": "zw.co.melios.quickprop.agent",
       "googleServicesFile": "./google-services.json",
-      "versionCode": 32,
+      "versionCode": 33,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
