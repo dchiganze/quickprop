@@ -140,3 +140,9 @@ On iOS, dismissing Expo's native print sheet rejects with “Printing did not co
 **Why:** The print controller reports a rejected promise when the user closes the print options without starting a print job.
 
 **How to apply:** Suppress failure alerts for the `PrintIncompleteException`/`ERR_PRINT_INCOMPLETE` cancellation while still clearing the loading state.
+
+Keep the iOS JSC setting used by the native project even though Expo Doctor flags its app-config placement.
+
+**Why:** Removing the setting makes SDK 58's iOS static export assume Hermes, which conflicts with the native Podfile configured for JSC and fails the export.
+
+**How to apply:** Preserve the current iOS engine setting and `withNoHermes` plugin together unless deliberately migrating the iOS engine and native project; do not remove the field solely to silence Expo Doctor.

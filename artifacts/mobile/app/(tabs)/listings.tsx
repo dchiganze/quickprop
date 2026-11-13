@@ -313,6 +313,7 @@ export default function ListingsScreen() {
     user?.name,
     user?.role,
   ]);
+  // Keep API-derived options independent of the cache that this screen persists below.
   const agentOptions = publicAgentsQuery.data
     ? apiAgentOptions
     : accountAgencyCache?.agents ?? apiAgentOptions;
