@@ -45,7 +45,10 @@ function ToggleRow({ icon, label, description, value, onChange, disabled = false
       <Switch
         disabled={disabled}
         value={value}
-        onValueChange={v => { Haptics.selectionAsync(); onChange(v); }}
+        onValueChange={v => {
+          void Haptics.selectionAsync().catch(() => undefined);
+          onChange(v);
+        }}
         trackColor={{ false: '#CBD5E0', true: '#10B981' }}
         thumbColor="#FFF"
       />
@@ -179,9 +182,16 @@ export default function SettingsScreen() {
       }
       await AsyncStorage.setItem(PUSH_TOKEN_STORAGE_KEY, token);
       setPushEnabled(true);
-    } catch {
+    } catch (error) {
       setPushEnabled(false);
-      Alert.alert('Unable to enable notifications', 'Please try again on this device.');
+      const detail = error instanceof Error ? error.message : '';
+      const firebaseSetupMissing = /firebase|fcm|google.?services|default firebaseapp/i.test(detail);
+      Alert.alert(
+        'Unable to enable notifications',
+        firebaseSetupMissing
+          ? 'This Android build is missing Firebase Cloud Messaging setup. Contact your QuickProp administrator.'
+          : 'The device could not register for push notifications. Please try again on this device.',
+      );
     } finally {
       setPushLoading(false);
     }
@@ -208,7 +218,7 @@ export default function SettingsScreen() {
       >
         <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>NOTIFICATIONS</Text>
         <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <ToggleRow icon="notifications-outline" label="Push Notifications" description={supportsNativePush ? (pushLoading ? 'Enabling on this device…' : 'Enable alerts from QuickProp Agent') : 'Available in the installed app, not Expo Go'} value={pushEnabled} disabled={!supportsNativePush} onChange={(value) => { void setNativePushEnabled(value); }} />
+          <ToggleRow icon="notifications-outline" label="Push Notifications" description={supportsNativePush ? (pushLoading ? 'Enabling on this device…' : 'Enable alerts from QuickProp Agent') : 'Available in the installed app, not Expo Go'} value={pushEnabled} disabled={!supportsNativePush || pushLoading} onChange={(value) => { void setNativePushEnabled(value); }} />
           <ToggleRow icon="person-add-outline" label="New Lead" description="When a buyer enquires on your listing" value={newLeadNotif} onChange={setNewLeadNotif} />
           <ToggleRow icon="locate-outline" label="Buyer Match" description="When a new buyer matches your listing" value={buyerMatchNotif} onChange={setBuyerMatchNotif} />
           <ToggleRow icon="eye-outline" label="Viewing Reminders" description="At 7:30 am on the day of a scheduled viewing" value={reminderPreferences.viewingReminderEnabled} onChange={(value) => persistReminderPreferences({ ...reminderPreferences, viewingReminderEnabled: value })} />

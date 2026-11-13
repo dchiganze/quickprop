@@ -283,8 +283,8 @@ export default function ListingsScreen() {
     || accountAgencyCache?.agencyName?.trim()
     || '';
   const agencyName = activeAgencyName || 'Agency Listings';
-  const agentOptions = useMemo(() => {
-    if (!publicAgentsQuery.data) return accountAgencyCache?.agents ?? [];
+  const apiAgentOptions = useMemo(() => {
+    if (!publicAgentsQuery.data) return [];
     const normalizedAgency = activeAgencyName.toLocaleLowerCase();
     const options = publicAgentsQuery.data
       .filter((agent) => (
@@ -305,7 +305,17 @@ export default function ListingsScreen() {
       options.push({ id: String(user.id), name: user.name, detail: user.branch || activeAgencyName });
     }
     return options.sort((a, b) => a.name.localeCompare(b.name));
-  }, [accountAgencyCache?.agents, activeAgencyName, publicAgentsQuery.data, user]);
+  }, [
+    activeAgencyName,
+    publicAgentsQuery.data,
+    user?.branch,
+    user?.id,
+    user?.name,
+    user?.role,
+  ]);
+  const agentOptions = publicAgentsQuery.data
+    ? apiAgentOptions
+    : accountAgencyCache?.agents ?? apiAgentOptions;
 
   useEffect(() => {
     if (
@@ -1078,13 +1088,14 @@ export default function ListingsScreen() {
                   styles.filterBtn,
                   { backgroundColor: active ? colors.primary : colors.muted, borderColor: active ? colors.primary : colors.border },
                 ]}
-                onPress={async () => {
-                  await Haptics.selectionAsync();
+                onPress={() => {
                   setScope(item.key);
                   setStatusFilter('all');
+                  void Haptics.selectionAsync().catch(() => undefined);
                 }}
                 accessibilityRole="button"
                 accessibilityState={{ selected: active }}
+                testID={`listings-scope-${item.key}`}
               >
                 <Text style={[styles.filterText, { color: active ? '#FFF' : colors.mutedForeground }]}>{label}</Text>
               </TouchableOpacity>
