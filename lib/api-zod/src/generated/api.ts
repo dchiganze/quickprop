@@ -3361,6 +3361,9 @@ export const GetPublicPropertyParams = zod.object({
   "id": zod.coerce.string().describe('Numeric ID or listing reference (for example QP-0005).')
 })
 
+export const getPublicPropertyResponseAgentAgencyPrimaryColorRegExp = new RegExp('^#[0-9A-Fa-f]{6}$');
+
+
 export const GetPublicPropertyResponse = zod.object({
   "property": zod.object({
   "id": zod.number(),
@@ -3413,6 +3416,7 @@ export const GetPublicPropertyResponse = zod.object({
   "branchId": zod.number().nullish(),
   "branchName": zod.string().nullish(),
   "agencyName": zod.string().nullish(),
+  "agencyPrimaryColor": zod.string().regex(getPublicPropertyResponseAgentAgencyPrimaryColorRegExp).nullish(),
   "medianSalePrices": zod.array(zod.object({
   "currency": zod.string(),
   "medianPrice": zod.number(),
@@ -3459,6 +3463,9 @@ export const GetPublicPropertyResponse = zod.object({
 /**
  * @summary List all active agents (no auth required)
  */
+export const listPublicAgentsResponseAgencyPrimaryColorRegExp = new RegExp('^#[0-9A-Fa-f]{6}$');
+
+
 export const ListPublicAgentsResponseItem = zod.object({
   "id": zod.number(),
   "name": zod.string(),
@@ -3469,6 +3476,7 @@ export const ListPublicAgentsResponseItem = zod.object({
   "branchId": zod.number().nullish(),
   "branchName": zod.string().nullish(),
   "agencyName": zod.string().nullish(),
+  "agencyPrimaryColor": zod.string().regex(listPublicAgentsResponseAgencyPrimaryColorRegExp).nullish(),
   "medianSalePrices": zod.array(zod.object({
   "currency": zod.string(),
   "medianPrice": zod.number(),
@@ -3490,6 +3498,9 @@ export const GetPublicAgentParams = zod.object({
   "id": zod.coerce.number()
 })
 
+export const getPublicAgentResponseAgentAgencyPrimaryColorRegExp = new RegExp('^#[0-9A-Fa-f]{6}$');
+
+
 export const GetPublicAgentResponse = zod.object({
   "agent": zod.object({
   "id": zod.number(),
@@ -3501,6 +3512,7 @@ export const GetPublicAgentResponse = zod.object({
   "branchId": zod.number().nullish(),
   "branchName": zod.string().nullish(),
   "agencyName": zod.string().nullish(),
+  "agencyPrimaryColor": zod.string().regex(getPublicAgentResponseAgentAgencyPrimaryColorRegExp).nullish(),
   "medianSalePrices": zod.array(zod.object({
   "currency": zod.string(),
   "medianPrice": zod.number(),

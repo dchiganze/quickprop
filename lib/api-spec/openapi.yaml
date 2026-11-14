@@ -4338,6 +4338,7 @@ components:
         branchId: { type: ["integer", "null"] }
         branchName: { type: ["string", "null"] }
         agencyName: { type: ["string", "null"] }
+        agencyPrimaryColor: { type: ["string", "null"], pattern: '^#[0-9A-Fa-f]{6}$' }
         medianSalePrices:
           type: array
           items: { $ref: "#/components/schemas/AgentSaleMedian" }

@@ -111,7 +111,7 @@ test("sales history enforces ownership and only exposes conveyancer-confirmed li
     assert.equal(confirmed.status, 200);
     assert.equal((await confirmed.json() as { status: string }).status, "confirmed");
     assert.equal((await getAgentSalesHistory(agent.id)).sales.length, 3, "Only confirmed listings appear in public sales history");
-    assert.deepEqual(await getAgentAgency(branch.id), { agencyId: agency.id, agencyName: agency.name });
+    assert.deepEqual(await getAgentAgency(branch.id), { agencyId: agency.id, agencyName: agency.name, logoUrl: null });
     assert.equal(await getAgentAgency(null), null, "Never invent an agency when none is assigned");
     assert.equal((await request(`${path}/${sale.id}`, "DELETE")).status, 204);
     assert.deepEqual((await getAgentSalesHistory(agent.id)).medians, [{ currency: "USD", medianPrice: 295000, saleCount: 2 }]);

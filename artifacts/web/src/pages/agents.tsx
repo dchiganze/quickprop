@@ -19,6 +19,69 @@ function AgentsSkeleton() {
   );
 }
 
+type AgentTileTheme = {
+  backgroundColor: string;
+  foregroundColor: string;
+  mutedColor: string;
+  borderColor: string;
+  softBackground: string;
+};
+
+function getAgentTileTheme(primaryColor?: string | null): AgentTileTheme | null {
+  if (!primaryColor || !/^#[0-9a-f]{6}$/i.test(primaryColor)) return null;
+
+  const channels = [1, 3, 5].map((offset) => parseInt(primaryColor.slice(offset, offset + 2), 16) / 255);
+  const linearChannels = channels.map((channel) =>
+    channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4,
+  );
+  const luminance = linearChannels[0] * 0.2126 + linearChannels[1] * 0.7152 + linearChannels[2] * 0.0722;
+  const lightBackground = luminance > 0.18;
+
+  return {
+    backgroundColor: primaryColor,
+    foregroundColor: lightBackground ? "#142033" : "#FFFFFF",
+    mutedColor: lightBackground ? "rgba(20, 32, 51, 0.74)" : "rgba(255, 255, 255, 0.78)",
+    borderColor: lightBackground ? "rgba(20, 32, 51, 0.18)" : "rgba(255, 255, 255, 0.28)",
+    softBackground: lightBackground ? "rgba(20, 32, 51, 0.07)" : "rgba(255, 255, 255, 0.14)",
+  };
+}
+
+function AgentTileReviewSummary({
+  averageRating,
+  reviewCount,
+  theme,
+}: {
+  averageRating: number;
+  reviewCount: number;
+  theme: AgentTileTheme | null;
+}) {
+  if (!theme) return <ReviewSummary averageRating={averageRating} reviewCount={reviewCount} compact />;
+  if (!reviewCount) {
+    return <span className="text-sm" style={{ color: theme.mutedColor }} data-testid="text-no-reviews">No reviews yet</span>;
+  }
+
+  return (
+    <div className="flex items-center gap-2" data-testid="review-summary">
+      <span className="flex items-center gap-0.5" aria-label={`${averageRating.toFixed(1)} out of 5 stars`}>
+        {[1, 2, 3, 4, 5].map((value) => (
+          <Star
+            key={value}
+            className={`h-3.5 w-3.5 ${value <= averageRating ? "fill-accent text-accent" : ""}`}
+            style={value > averageRating ? { color: theme.foregroundColor, opacity: 0.35 } : undefined}
+            aria-hidden="true"
+          />
+        ))}
+      </span>
+      <span className="text-sm font-semibold" style={{ color: theme.foregroundColor }} data-testid="text-average-rating">
+        {averageRating.toFixed(1)}
+      </span>
+      <span className="text-sm" style={{ color: theme.mutedColor }} data-testid="text-review-count">
+        {reviewCount} {reviewCount === 1 ? "review" : "reviews"}
+      </span>
+    </div>
+  );
+}
+
 export default function Agents() {
   const agentsQuery = useListPublicAgents({ query: { queryKey: getListPublicAgentsQueryKey(), staleTime: 60_000, refetchOnMount: "always" } });
   const agents = agentsQuery.data ?? [];
@@ -331,38 +394,48 @@ export default function Agents() {
           </div>
         ) : (
           <div className="space-y-3" data-testid="list-public-agents">
-            {filteredAgents.map((agent, index) => (
+            {filteredAgents.map((agent, index) => {
+              const tileTheme = getAgentTileTheme(agent.agencyPrimaryColor);
+              return (
               <Card
                 key={agent.id}
                 className="group overflow-hidden border-border bg-card shadow-none transition-all duration-300 hover:border-primary/30 hover:shadow-[0_12px_28px_hsl(var(--primary)/0.08)]"
                 data-testid={`card-agent-${agent.id}`}
+                style={tileTheme ? { backgroundColor: tileTheme.backgroundColor, borderColor: tileTheme.borderColor } : undefined}
               >
                 <CardContent className="p-0">
                   <div className="grid gap-0 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-stretch">
                     <div className="flex min-w-0 flex-col gap-4 p-4 sm:flex-row sm:items-center sm:gap-5 sm:px-6 sm:py-5">
                       <div className="flex min-w-0 items-center gap-4 sm:w-[36%] sm:shrink-0">
-                        <div className={`relative flex h-[4.5rem] w-[4.5rem] shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-border ${index === 1 ? "bg-accent/20" : "bg-secondary"}`}>
+                        <div
+                          className={`relative flex h-[4.5rem] w-[4.5rem] shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-border ${index === 1 ? "bg-accent/20" : "bg-secondary"}`}
+                          style={tileTheme ? { backgroundColor: tileTheme.softBackground, borderColor: tileTheme.borderColor } : undefined}
+                        >
                           {agent.avatarUrl ? (
                             <img src={agent.avatarUrl} alt={agent.name} className="h-full w-full object-cover" data-testid={`img-agent-avatar-${agent.id}`} />
                           ) : (
-                            <span className="font-display text-2xl text-primary" data-testid={`text-agent-initials-${agent.id}`}>
+                            <span className="font-display text-2xl text-primary" style={tileTheme ? { color: tileTheme.foregroundColor } : undefined} data-testid={`text-agent-initials-${agent.id}`}>
                               {agent.name.split(" ").map((part) => part[0]).slice(0, 2).join("")}
                             </span>
                           )}
                         </div>
                         <div className="min-w-0">
-                          <h3 className="truncate font-display text-2xl leading-tight text-foreground" data-testid={`text-agent-name-${agent.id}`}>{agent.name}</h3>
+                          <h3 className="truncate font-display text-2xl leading-tight text-foreground" style={tileTheme ? { color: tileTheme.foregroundColor } : undefined} data-testid={`text-agent-name-${agent.id}`}>{agent.name}</h3>
                           {agent.agencyName && (
-                            <p className="mt-1 truncate text-sm text-muted-foreground" data-testid={`text-agent-agency-${agent.id}`}>
+                            <p className="mt-1 truncate text-sm text-muted-foreground" style={tileTheme ? { color: tileTheme.mutedColor } : undefined} data-testid={`text-agent-agency-${agent.id}`}>
                               {agent.agencyName}
                             </p>
                           )}
                           <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-                            <span className="rounded-full bg-primary/10 px-2.5 py-1 font-semibold capitalize text-primary" data-testid={`text-agent-role-${agent.id}`}>
+                            <span
+                              className="rounded-full bg-primary/10 px-2.5 py-1 font-semibold capitalize text-primary"
+                              style={tileTheme ? { backgroundColor: tileTheme.softBackground, color: tileTheme.foregroundColor } : undefined}
+                              data-testid={`text-agent-role-${agent.id}`}
+                            >
                               {agent.role.replace(/_/g, " ")}
                             </span>
                             {agent.branchName && (
-                              <span className="inline-flex items-center gap-1">
+                              <span className="inline-flex items-center gap-1" style={tileTheme ? { color: tileTheme.mutedColor } : undefined}>
                                 <Building2 className="h-3.5 w-3.5" aria-hidden="true" />
                                 <span data-testid={`text-agent-branch-${agent.id}`}>{agent.branchName}</span>
                               </span>
@@ -371,20 +444,20 @@ export default function Agents() {
                         </div>
                       </div>
 
-                      <div className="grid flex-1 grid-cols-2 gap-3 border-t border-border pt-4 sm:grid-cols-3 sm:border-l sm:border-t-0 sm:pl-5 sm:pt-0">
+                      <div className="grid flex-1 grid-cols-2 gap-3 border-t border-border pt-4 sm:grid-cols-3 sm:border-l sm:border-t-0 sm:pl-5 sm:pt-0" style={tileTheme ? { borderColor: tileTheme.borderColor } : undefined}>
                         <div className="col-span-2 sm:col-span-1 sm:pl-1">
-                          <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">Client rating</p>
+                          <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground" style={tileTheme ? { color: tileTheme.mutedColor } : undefined}>Client rating</p>
                           <div className="mt-1.5">
-                            <ReviewSummary averageRating={agent.reviewSummary.averageRating} reviewCount={agent.reviewSummary.reviewCount} compact />
+                            <AgentTileReviewSummary averageRating={agent.reviewSummary.averageRating} reviewCount={agent.reviewSummary.reviewCount} theme={tileTheme} />
                           </div>
                         </div>
-                        <div className="sm:border-l sm:border-border sm:pl-5">
-                          <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">Active listings</p>
-                          <p className="mt-1 text-xl font-semibold tabular-nums text-primary" data-testid={`text-agent-listings-${agent.id}`}>{agent.activeListings}</p>
+                        <div className="sm:border-l sm:border-border sm:pl-5" style={tileTheme ? { borderColor: tileTheme.borderColor } : undefined}>
+                          <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground" style={tileTheme ? { color: tileTheme.mutedColor } : undefined}>Active listings</p>
+                          <p className="mt-1 text-xl font-semibold tabular-nums text-primary" style={tileTheme ? { color: tileTheme.foregroundColor } : undefined} data-testid={`text-agent-listings-${agent.id}`}>{agent.activeListings}</p>
                         </div>
-                        <div className="col-span-2 sm:col-span-1 sm:border-l sm:border-border sm:pl-5">
-                          <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">Median sale price</p>
-                          <p className="mt-1 text-base font-semibold text-foreground" data-testid={`text-agent-median-${agent.id}`}>
+                        <div className="col-span-2 sm:col-span-1 sm:border-l sm:border-border sm:pl-5" style={tileTheme ? { borderColor: tileTheme.borderColor } : undefined}>
+                          <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground" style={tileTheme ? { color: tileTheme.mutedColor } : undefined}>Median sale price</p>
+                          <p className="mt-1 text-base font-semibold text-foreground" style={tileTheme ? { color: tileTheme.foregroundColor } : undefined} data-testid={`text-agent-median-${agent.id}`}>
                             {agent.medianSalePrices?.length
                               ? agent.medianSalePrices.map((m) => formatPrice(m.medianPrice, m.currency)).join(" · ")
                               : "No sales recorded yet"}
@@ -393,8 +466,17 @@ export default function Agents() {
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-end border-t border-border bg-secondary/30 px-4 py-3 sm:border-l sm:border-t-0 sm:px-5">
-                      <Button asChild size="sm" className="w-full gap-2 rounded-lg sm:w-auto" data-testid={`button-view-agent-${agent.id}`}>
+                    <div
+                      className="flex items-center justify-end border-t border-border bg-secondary/30 px-4 py-3 sm:border-l sm:border-t-0 sm:px-5"
+                      style={tileTheme ? { backgroundColor: tileTheme.softBackground, borderColor: tileTheme.borderColor } : undefined}
+                    >
+                      <Button
+                        asChild
+                        size="sm"
+                        className="w-full gap-2 rounded-lg sm:w-auto"
+                        style={tileTheme ? { backgroundColor: tileTheme.foregroundColor, color: tileTheme.backgroundColor, borderColor: tileTheme.foregroundColor } : undefined}
+                        data-testid={`button-view-agent-${agent.id}`}
+                      >
                         <Link href={`/agents/${agent.id}`} data-testid={`link-agent-profile-${agent.id}`}>
                           View profile
                           <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
@@ -404,7 +486,8 @@ export default function Agents() {
                   </div>
                 </CardContent>
               </Card>
-            ))}
+              );
+            })}
           </div>
         )}
       </section>

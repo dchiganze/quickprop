@@ -24,6 +24,11 @@ export interface PublicAgent {
   branchName?: string | null;
   /** @nullable */
   agencyName?: string | null;
+  /**
+     * @nullable
+     * @pattern ^#[0-9A-Fa-f]{6}$
+     */
+  agencyPrimaryColor?: string | null;
   medianSalePrices?: AgentSaleMedian[];
   activeListings: number;
   reviewSummary: AgentReviewSummary;

@@ -22,7 +22,11 @@ export async function ensureAgentPastSalesTable(): Promise<void> {
 
 export async function getAgentAgency(branchId: number | null) {
   if (!branchId) return null;
-  const [row] = await db.select({ agencyId: businessAgenciesTable.id, agencyName: businessAgenciesTable.name })
+  const [row] = await db.select({
+    agencyId: businessAgenciesTable.id,
+    agencyName: businessAgenciesTable.name,
+    logoUrl: businessAgenciesTable.logoUrl,
+  })
     .from(branchesTable)
     .innerJoin(businessAgenciesTable, eq(branchesTable.agencyId, businessAgenciesTable.id))
     .where(eq(branchesTable.id, branchId));

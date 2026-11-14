@@ -3,6 +3,7 @@ import { eq, and, gte, lte, ilike, or, inArray, desc, sql } from "drizzle-orm";
 import { db, usersTable, branchesTable, propertiesTable, savedPropertiesTable } from "@workspace/db";
 import { jsonify } from "../lib/helpers";
 import { getAgentAgency, getAgentSalesHistory } from "../lib/agent-sales";
+import { getAgencyLogoColors } from "../lib/logo-colors";
 import {
   SubmitEnquiryBody,
   RegisterBuyerBody,
@@ -19,6 +20,15 @@ const router: IRouter = Router();
 
 const PUBLIC_STATUSES = ["public", "under_offer", "coming_soon"];
 const PUBLIC_AVAILABILITY_STATUSES = ["available", "under_offer"];
+const AGENCY_PRIMARY_COLOR_FALLBACKS: Record<string, string> = {
+  "dbt properties": "#1A3C6E",
+};
+
+function getKnownAgencyPrimaryColor(agencyName: string | null | undefined, branchName: string | null) {
+  const names = [agencyName, branchName].filter((value): value is string => Boolean(value)).map((value) => value.trim().toLocaleLowerCase());
+  const knownAgency = Object.keys(AGENCY_PRIMARY_COLOR_FALLBACKS).find((value) => names.some((name) => name.includes(value)));
+  return knownAgency ? AGENCY_PRIMARY_COLOR_FALLBACKS[knownAgency] : null;
+}
 const BUYER_COOKIE = "qp_buyer";
 
 /* ─── helpers ─────────────────────────────────────────────────────────── */
@@ -253,6 +263,7 @@ router.get("/public/agents", async (_req, res): Promise<void> => {
       );
       const reviewSummary = await getPublicReviewSummary(agent.id);
       const [agency, salesHistory] = await Promise.all([getAgentAgency(agent.branchId), getAgentSalesHistory(agent.id)]);
+      const agencyLogoColors = await getAgencyLogoColors(agency?.logoUrl ?? null);
       return {
         id: agent.id,
         name: agent.name,
@@ -263,6 +274,7 @@ router.get("/public/agents", async (_req, res): Promise<void> => {
         branchId: agent.branchId ?? null,
         branchName,
         agencyName: agency?.agencyName ?? null,
+        agencyPrimaryColor: agencyLogoColors[0] ?? getKnownAgencyPrimaryColor(agency?.agencyName, branchName),
         medianSalePrices: salesHistory.medians,
         activeListings: listings.length,
         reviewSummary: {
