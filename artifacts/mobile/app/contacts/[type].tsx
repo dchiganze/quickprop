@@ -288,9 +288,6 @@ export default function ContactRecordsScreen() {
         </TouchableOpacity>
         <View style={styles.heading}>
           <Text style={[styles.title, { color: colors.foreground }]}>{title}</Text>
-          <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>
-            Standalone contacts and details linked to your {kind === 'seller' ? 'sale' : 'rental'} properties
-          </Text>
         </View>
         <View style={styles.headerActions}>
           <TouchableOpacity
