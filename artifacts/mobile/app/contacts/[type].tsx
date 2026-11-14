@@ -526,7 +526,8 @@ function ContactCard({
               onChangeText={setPhoneDraft}
               placeholder="Phone number"
               placeholderTextColor={colors.mutedForeground}
-              keyboardType="phone-pad"
+              keyboardType="default"
+              selectTextOnFocus
               accessibilityLabel="Seller or landlord phone number"
             />
             <TextInput
