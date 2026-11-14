@@ -321,7 +321,7 @@ export default function ContactRecordsScreen() {
               <Text style={[styles.reviewSectionTitle, { color: colors.foreground }]}>Request a review</Text>
             </View>
             <Text style={[styles.reviewSectionDescription, { color: colors.mutedForeground }]}>
-              Review requests are available when a {kind} is linked to a {kind === 'seller' ? 'sale' : 'rental'} listing.
+              Review requests are available when a {kind} is linked to a {kind === 'seller' ? 'sale' : 'rental'} listing. Once submitted, the review will appear on the QuickProp online marketplace to help build your online presence and trust.
             </Text>
           </View>
         </View>
@@ -610,7 +610,7 @@ function ContactCard({
                 <View style={styles.flex}>
                   <Text style={[styles.reviewSectionTitle, { color: colors.foreground }]}>Request a review</Text>
                   <Text style={[styles.reviewSectionDescription, { color: colors.mutedForeground }]}>
-                    Send a review link to this {kind} by WhatsApp or email.
+                    Send a review link to this {kind} by WhatsApp or email. Once submitted, it will appear on the QuickProp online marketplace to help build your online presence and trust.
                   </Text>
                 </View>
               </View>
