@@ -313,6 +313,17 @@ export default function ContactRecordsScreen() {
           <Ionicons name={kind === 'seller' ? 'briefcase-outline' : 'home-outline'} size={32} color={colors.primary} />
           <Text style={[styles.emptyTitle, { color: colors.foreground }]}>No {title.toLowerCase()} on file</Text>
           <Text style={[styles.stateText, { color: colors.mutedForeground }]}>Add a standalone contact here or enter contact details on a {kind === 'seller' ? 'sale' : 'rental'} listing.</Text>
+          <View style={[styles.reviewSection, { backgroundColor: colors.secondary, borderColor: colors.border }]}>
+            <View style={styles.reviewSectionHeader}>
+              <View style={[styles.reviewSectionIcon, { backgroundColor: colors.card }]}>
+                <Ionicons name="star-outline" size={17} color={colors.primary} />
+              </View>
+              <Text style={[styles.reviewSectionTitle, { color: colors.foreground }]}>Request a review</Text>
+            </View>
+            <Text style={[styles.reviewSectionDescription, { color: colors.mutedForeground }]}>
+              Review requests are available when a {kind} is linked to a {kind === 'seller' ? 'sale' : 'rental'} listing.
+            </Text>
+          </View>
         </View>
       ) : (
         contacts.map((contact) => (
