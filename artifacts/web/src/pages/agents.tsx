@@ -1,7 +1,7 @@
 import { getListPublicAgentsQueryKey, useListPublicAgents } from "@workspace/api-client-react";
 import { Link } from "wouter";
 import { useMemo, useState } from "react";
-import { ArrowRight, BriefcaseBusiness, Building2, Mail, Phone, Search, ShieldCheck, Star, X } from "lucide-react";
+import { ArrowRight, BriefcaseBusiness, Building2, Search, ShieldCheck, Star, X } from "lucide-react";
 import { Layout } from "@/components/layout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,9 +10,9 @@ import { ReviewSummary } from "@/components/review-rating";
 
 function AgentsSkeleton() {
   return (
-    <div className="grid animate-pulse grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3" data-testid="loading-agents">
-      {[1, 2, 3, 4, 5, 6].map((item) => (
-        <div key={item} className="h-72 rounded-2xl bg-secondary" />
+    <div className="animate-pulse space-y-4" data-testid="loading-agents">
+      {[1, 2, 3].map((item) => (
+        <div key={item} className="h-40 rounded-2xl bg-secondary" />
       ))}
     </div>
   );
@@ -128,64 +128,71 @@ export default function Agents() {
             </Button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3" data-testid="list-public-agents">
-            {filteredAgents.map((agent) => (
-              <Card key={agent.id} className="group overflow-hidden border-border bg-card shadow-none transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_18px_40px_hsl(var(--primary)/0.12)]" data-testid={`card-agent-${agent.id}`}>
+          <div className="space-y-3" data-testid="list-public-agents">
+            {filteredAgents.map((agent, index) => (
+              <Card
+                key={agent.id}
+                className="group overflow-hidden border-border bg-card shadow-none transition-all duration-300 hover:border-primary/30 hover:shadow-[0_12px_28px_hsl(var(--primary)/0.08)]"
+                data-testid={`card-agent-${agent.id}`}
+              >
                 <CardContent className="p-0">
-                  <div className="relative h-28 overflow-hidden bg-primary">
-                    <div aria-hidden="true" className="absolute -right-8 -top-16 h-40 w-40 rounded-full border-[18px] border-accent/40 transition-transform duration-500 group-hover:scale-110" />
-                    <div aria-hidden="true" className="absolute -bottom-12 left-7 h-32 w-32 rounded-full border border-primary-foreground/15" />
-                    <div className="absolute bottom-3 right-5 rounded-full bg-primary-foreground/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-primary-foreground" data-testid={`text-agent-role-${agent.id}`}>
-                      {agent.role.replace(/_/g, " ")}
-                    </div>
-                  </div>
-                  <div className="relative px-5 pb-5">
-                    <div className="-mt-10 mb-4 flex items-end justify-between">
-                      <div className="h-20 w-20 overflow-hidden rounded-2xl border-4 border-card bg-accent shadow-md">
-                        {agent.avatarUrl ? (
-                          <img src={agent.avatarUrl} alt={agent.name} className="h-full w-full object-cover" data-testid={`img-agent-avatar-${agent.id}`} />
-                        ) : (
-                          <div className="flex h-full w-full items-center justify-center text-2xl font-bold text-primary" data-testid={`text-agent-initials-${agent.id}`}>
-                            {agent.name.split(" ").map((part) => part[0]).slice(0, 2).join("")}
+                  <div className="grid gap-0 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-stretch">
+                    <div className="flex min-w-0 flex-col gap-4 p-4 sm:flex-row sm:items-center sm:gap-5 sm:px-6 sm:py-5">
+                      <div className="flex min-w-0 items-center gap-4 sm:w-[36%] sm:shrink-0">
+                        <div className={`relative flex h-[4.5rem] w-[4.5rem] shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-border ${index === 1 ? "bg-accent/20" : "bg-secondary"}`}>
+                          {agent.avatarUrl ? (
+                            <img src={agent.avatarUrl} alt={agent.name} className="h-full w-full object-cover" data-testid={`img-agent-avatar-${agent.id}`} />
+                          ) : (
+                            <span className="font-display text-2xl text-primary" data-testid={`text-agent-initials-${agent.id}`}>
+                              {agent.name.split(" ").map((part) => part[0]).slice(0, 2).join("")}
+                            </span>
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <h3 className="truncate font-display text-2xl leading-tight text-foreground" data-testid={`text-agent-name-${agent.id}`}>{agent.name}</h3>
+                          {agent.agencyName && (
+                            <p className="mt-1 truncate text-sm text-muted-foreground" data-testid={`text-agent-agency-${agent.id}`}>
+                              {agent.agencyName}
+                            </p>
+                          )}
+                          <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+                            <span className="rounded-full bg-primary/10 px-2.5 py-1 font-semibold capitalize text-primary" data-testid={`text-agent-role-${agent.id}`}>
+                              {agent.role.replace(/_/g, " ")}
+                            </span>
+                            {agent.branchName && (
+                              <span className="inline-flex items-center gap-1">
+                                <Building2 className="h-3.5 w-3.5" aria-hidden="true" />
+                                <span data-testid={`text-agent-branch-${agent.id}`}>{agent.branchName}</span>
+                              </span>
+                            )}
                           </div>
-                        )}
+                        </div>
                       </div>
-                      {agent.branchName && (
-                        <span className="flex max-w-[60%] items-center gap-1.5 pb-1 text-right text-xs text-muted-foreground" data-testid={`text-agent-branch-${agent.id}`}>
-                          <Building2 className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                          <span className="truncate">{agent.branchName}</span>
-                        </span>
-                      )}
-                    </div>
-                    <h3 className="font-display text-3xl leading-none text-foreground" data-testid={`text-agent-name-${agent.id}`}>{agent.name}</h3>
-                    {agent.agencyName && <p className="mt-2 text-sm text-muted-foreground" data-testid={`text-agent-agency-${agent.id}`}>{agent.agencyName}</p>}
-                    <div className="mt-4">
-                      <ReviewSummary averageRating={agent.reviewSummary.averageRating} reviewCount={agent.reviewSummary.reviewCount} compact />
-                    </div>
-                    <div className="mt-5 grid grid-cols-2 gap-3 border-y border-border py-4 text-sm">
-                      <div>
-                        <p className="text-2xl font-semibold text-primary" data-testid={`text-agent-listings-${agent.id}`}>{agent.activeListings}</p>
-                        <p className="mt-1 text-xs text-muted-foreground">Active listings</p>
+
+                      <div className="grid flex-1 grid-cols-2 gap-3 border-t border-border pt-4 sm:grid-cols-3 sm:border-l sm:border-t-0 sm:pl-5 sm:pt-0">
+                        <div className="col-span-2 sm:col-span-1 sm:pl-1">
+                          <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">Client rating</p>
+                          <div className="mt-1.5">
+                            <ReviewSummary averageRating={agent.reviewSummary.averageRating} reviewCount={agent.reviewSummary.reviewCount} compact />
+                          </div>
+                        </div>
+                        <div className="sm:border-l sm:border-border sm:pl-5">
+                          <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">Active listings</p>
+                          <p className="mt-1 text-xl font-semibold tabular-nums text-primary" data-testid={`text-agent-listings-${agent.id}`}>{agent.activeListings}</p>
+                        </div>
+                        <div className="col-span-2 sm:col-span-1 sm:border-l sm:border-border sm:pl-5">
+                          <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">Median sale price</p>
+                          <p className="mt-1 text-base font-semibold text-foreground" data-testid={`text-agent-median-${agent.id}`}>
+                            {agent.medianSalePrices?.length
+                              ? agent.medianSalePrices.map((m) => formatPrice(m.medianPrice, m.currency)).join(" · ")
+                              : "No sales recorded yet"}
+                          </p>
+                        </div>
                       </div>
-                      <div className="border-l border-border pl-4">
-                        <p className="text-2xl font-semibold text-primary" data-testid={`text-agent-reviews-${agent.id}`}>{agent.reviewSummary.reviewCount}</p>
-                        <p className="mt-1 text-xs text-muted-foreground">Client reviews</p>
-                      </div>
                     </div>
-                    <div className="mt-4 text-sm" data-testid={`text-agent-median-${agent.id}`}>
-                      <p className="text-xs text-muted-foreground">Median sale price</p>
-                      {agent.medianSalePrices && agent.medianSalePrices.length > 0 ? (
-                        <p className="font-semibold text-foreground">{agent.medianSalePrices.map((m) => formatPrice(m.medianPrice, m.currency)).join(" · ")}</p>
-                      ) : (
-                        <p className="text-muted-foreground">No sales recorded yet</p>
-                      )}
-                    </div>
-                    <div className="mt-5 flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-3 text-muted-foreground">
-                        {agent.phone && <Phone className="h-4 w-4" aria-label="Phone available" />}
-                        {agent.email && <Mail className="h-4 w-4" aria-label="Email available" />}
-                      </div>
-                      <Button asChild size="sm" className="gap-2 rounded-lg" data-testid={`button-view-agent-${agent.id}`}>
+
+                    <div className="flex items-center justify-end border-t border-border bg-secondary/30 px-4 py-3 sm:border-l sm:border-t-0 sm:px-5">
+                      <Button asChild size="sm" className="w-full gap-2 rounded-lg sm:w-auto" data-testid={`button-view-agent-${agent.id}`}>
                         <Link href={`/agents/${agent.id}`} data-testid={`link-agent-profile-${agent.id}`}>
                           View profile
                           <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />

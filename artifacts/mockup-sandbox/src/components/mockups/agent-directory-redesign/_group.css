@@ -1,0 +1,54 @@
+@import url("https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap");
+
+:root {
+  --background: 42 32% 96%;
+  --foreground: 212 35% 17%;
+  --card: 42 38% 98%;
+  --card-foreground: 212 35% 17%;
+  --card-border: 38 23% 88%;
+  --popover: 42 38% 98%;
+  --popover-foreground: 212 35% 17%;
+  --primary: 165 42% 30%;
+  --primary-foreground: 42 38% 98%;
+  --secondary: 39 31% 91%;
+  --secondary-foreground: 212 35% 17%;
+  --muted: 39 25% 92%;
+  --muted-foreground: 210 13% 42%;
+  --accent: 13 66% 63%;
+  --accent-foreground: 212 35% 17%;
+  --destructive: 2 62% 48%;
+  --destructive-foreground: 42 38% 98%;
+  --border: 38 23% 84%;
+  --input: 38 23% 79%;
+  --ring: 165 42% 30%;
+  --app-font-sans: "Plus Jakarta Sans", system-ui, sans-serif;
+  --app-font-serif: "Fraunces", Georgia, serif;
+  --radius: 0.8rem;
+}
+
+.dark {
+  --background: 212 28% 13%;
+  --foreground: 39 31% 93%;
+  --card: 212 25% 17%;
+  --card-foreground: 39 31% 93%;
+  --card-border: 212 20% 25%;
+  --popover: 212 25% 17%;
+  --popover-foreground: 39 31% 93%;
+  --primary: 160 36% 53%;
+  --primary-foreground: 212 28% 13%;
+  --secondary: 212 20% 25%;
+  --secondary-foreground: 39 31% 93%;
+  --muted: 212 20% 25%;
+  --muted-foreground: 210 15% 69%;
+  --accent: 13 66% 63%;
+  --accent-foreground: 212 28% 13%;
+  --destructive: 2 62% 58%;
+  --destructive-foreground: 39 31% 93%;
+  --border: 212 20% 29%;
+  --input: 212 20% 34%;
+  --ring: 160 36% 53%;
+}
+
+.font-display {
+  font-family: var(--app-font-serif);
+}
