@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { getContactDisplayValues } from './contact-display.ts';
+import { contactMatchesSearch, getContactDisplayValues } from './contact-display.ts';
 
 test('shows a misplaced alphabetic surname with the contact name, not as a phone', () => {
   assert.deepEqual(getContactDisplayValues('Farai', 'Gwanzura'), {
@@ -25,4 +25,15 @@ test('does not treat placeholders or short numeric values as surnames', () => {
     name: 'Farai',
     phone: '',
   });
+});
+
+test('searches by displayed name including a misplaced surname and email', () => {
+  assert.equal(contactMatchesSearch('Farai', 'Gwanzura', 'farai@example.com', 'Gwanzura'), true);
+  assert.equal(contactMatchesSearch('Farai', 'Gwanzura', 'farai@example.com', 'example.com'), true);
+  assert.equal(contactMatchesSearch('Farai', 'Gwanzura', 'farai@example.com', 'Douglas'), false);
+});
+
+test('searches formatted phone numbers by their digits', () => {
+  assert.equal(contactMatchesSearch('Farai Gwanzura', '+263 77 123 4567', null, '771234567'), true);
+  assert.equal(contactMatchesSearch('Farai Gwanzura', '+263 77 123 4567', null, '077 000'), false);
 });

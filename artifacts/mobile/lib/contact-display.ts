@@ -25,3 +25,27 @@ export function getContactDisplayValues(nameValue: string, phoneValue?: string |
     phone: phoneDigitCount >= 7 ? storedPhone : '',
   };
 }
+
+export function contactMatchesSearch(
+  nameValue: string,
+  phoneValue: string | null | undefined,
+  emailValue: string | null | undefined,
+  query: string,
+) {
+  const trimmedQuery = query.trim().toLowerCase();
+  if (!trimmedQuery) return true;
+
+  const displayValues = getContactDisplayValues(nameValue, phoneValue);
+  const searchableValues = [
+    displayValues.name,
+    displayValues.phone,
+    emailValue ?? '',
+  ].map((value) => value.toLowerCase());
+
+  if (searchableValues.some((value) => value.includes(trimmedQuery))) return true;
+
+  const isPhoneQuery = /^[+\d\s()./-]+$/.test(query.trim());
+  const queryDigits = query.replace(/\D/g, '');
+  const phoneDigits = displayValues.phone.replace(/\D/g, '');
+  return isPhoneQuery && queryDigits.length > 0 && phoneDigits.includes(queryDigits);
+}

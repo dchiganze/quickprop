@@ -30,7 +30,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useColors } from '@/hooks/useColors';
 import { apiBaseUrl, getStoredAccessToken, useAuth } from '@/contexts/AuthContext';
 import { KeyboardAwareScrollViewCompat } from '@/components/KeyboardAwareScrollViewCompat';
-import { getContactDisplayValues } from '@/lib/contact-display';
+import { contactMatchesSearch, getContactDisplayValues } from '@/lib/contact-display';
 
 type ContactKind = 'seller' | 'landlord';
 
@@ -113,6 +113,21 @@ export default function ContactRecordsScreen() {
   const [emailRequestPropertyId, setEmailRequestPropertyId] = useState<number | null>(null);
   const [emailRequestAddress, setEmailRequestAddress] = useState('');
   const [emailRequestError, setEmailRequestError] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [expandedContactKeys, setExpandedContactKeys] = useState<Set<string>>(new Set());
+
+  const filteredContacts = (contacts ?? []).filter((contact) =>
+    contactMatchesSearch(contact.name, contact.phone, contact.email, searchQuery),
+  );
+
+  const toggleContactExpanded = (contactKey: string) => {
+    setExpandedContactKeys((current) => {
+      const next = new Set(current);
+      if (next.has(contactKey)) next.delete(contactKey);
+      else next.add(contactKey);
+      return next;
+    });
+  };
 
   const saveStandaloneContact = async () => {
     const name = contactName.trim();
@@ -304,6 +319,36 @@ export default function ContactRecordsScreen() {
         </View>
       </View>
 
+      {!isLoading && !isError && contacts?.length ? (
+        <View style={[styles.searchBox, { backgroundColor: colors.input, borderColor: colors.border }]}>
+          <Ionicons name="search-outline" size={19} color={colors.mutedForeground} />
+          <TextInput
+            style={[styles.searchInput, { color: colors.foreground }]}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholder={`Search ${title.toLowerCase()} by name, phone or email`}
+            placeholderTextColor={colors.mutedForeground}
+            autoCapitalize="none"
+            autoCorrect={false}
+            returnKeyType="search"
+            accessibilityLabel={`Search ${title.toLowerCase()} by name, phone number, or email`}
+            testID={`${kind}-contacts-search`}
+          />
+          {searchQuery.length > 0 ? (
+            <TouchableOpacity
+              onPress={() => {
+                setSearchQuery('');
+              }}
+              accessibilityRole="button"
+              accessibilityLabel="Clear contact search"
+              testID={`${kind}-contacts-search-clear`}
+            >
+              <Ionicons name="close-circle" size={19} color={colors.mutedForeground} />
+            </TouchableOpacity>
+          ) : null}
+        </View>
+      ) : null}
+
       {isLoading ? (
         <View style={styles.state}><ActivityIndicator color={colors.primary} /><Text style={[styles.stateText, { color: colors.mutedForeground }]}>Loading {title.toLowerCase()}…</Text></View>
       ) : isError ? (
@@ -328,20 +373,38 @@ export default function ContactRecordsScreen() {
             </Text>
           </View>
         </View>
+      ) : filteredContacts.length ? (
+        filteredContacts.map((contact) => {
+          const contactKey = `${kind}:${contact.id}`;
+          return (
+            <ContactCard
+              key={contactKey}
+              contact={contact}
+              kind={kind}
+              colors={colors}
+              expanded={expandedContactKeys.has(contactKey)}
+              onToggleExpanded={() => toggleContactExpanded(contactKey)}
+              busyPropertyId={busyPropertyId}
+              onCaptureMandate={captureMandate}
+              onRequestReview={openReviewRequest}
+              onOpenMandate={openMandate}
+              onSaveContactDetails={saveContactDetails}
+            />
+          );
+        })
       ) : (
-        contacts.map((contact) => (
-          <ContactCard
-            key={contact.id}
-            contact={contact}
-            kind={kind}
-            colors={colors}
-            busyPropertyId={busyPropertyId}
-            onCaptureMandate={captureMandate}
-            onRequestReview={openReviewRequest}
-            onOpenMandate={openMandate}
-            onSaveContactDetails={saveContactDetails}
-          />
-        ))
+        <View style={[styles.empty, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <Text style={[styles.emptyTitle, { color: colors.foreground }]}>No contacts match your search</Text>
+          <TouchableOpacity
+            onPress={() => {
+              setSearchQuery('');
+            }}
+            accessibilityRole="button"
+            testID={`${kind}-contacts-search-empty-clear`}
+          >
+            <Text style={[styles.link, { color: colors.primary }]}>Clear search</Text>
+          </TouchableOpacity>
+        </View>
       )}
       <Text style={[styles.privacy, { color: colors.mutedForeground }]}>Standalone contacts are visible only to your account.</Text>
     </KeyboardAwareScrollViewCompat>
@@ -474,6 +537,8 @@ function ContactCard({
   contact,
   kind,
   colors,
+  expanded,
+  onToggleExpanded,
   busyPropertyId,
   onCaptureMandate,
   onRequestReview,
@@ -483,6 +548,8 @@ function ContactCard({
   contact: AgentContact;
   kind: ContactKind;
   colors: ReturnType<typeof useColors>;
+  expanded: boolean;
+  onToggleExpanded: () => void;
   busyPropertyId: number | null;
   onCaptureMandate: (propertyId: number) => void;
   onRequestReview: (propertyId: number, channel: 'whatsapp' | 'email', recipientEmail?: string | null) => void;
@@ -512,31 +579,55 @@ function ContactCard({
 
   return (
     <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
-      <View style={styles.nameRow}>
-        <View style={[styles.avatar, { backgroundColor: colors.secondary }]}><Text style={[styles.avatarText, { color: colors.primary }]}>{displayValues.name.charAt(0).toUpperCase()}</Text></View>
-        <View style={styles.flex}>
-            <Text style={[styles.name, { color: colors.foreground }]} numberOfLines={1}>
-              {displayValues.name}
-            </Text>
-        </View>
-          {canEditContact ? (
+      {!expanded ? (
+        <TouchableOpacity
+          style={styles.collapsedContact}
+          onPress={onToggleExpanded}
+          accessibilityRole="button"
+          accessibilityLabel={`Show ${displayValues.name} details`}
+          accessibilityState={{ expanded: false }}
+          testID={`${kind}-contact-toggle-${contact.id}`}
+        >
+          <Text style={[styles.collapsedContactName, { color: colors.foreground }]} numberOfLines={1}>
+            {displayValues.name}
+          </Text>
+        </TouchableOpacity>
+      ) : (
+        <>
+          <View style={styles.nameRow}>
             <TouchableOpacity
-              style={[styles.contactEditButton, { backgroundColor: colors.secondary }]}
-              onPress={() => {
-                setNameDraft(displayValues.name);
-                setPhoneDraft(displayValues.phone);
-                setEmailDraft(contact.email ?? '');
-                setEditingDetails(true);
-              }}
+              style={styles.contactIdentity}
+              onPress={onToggleExpanded}
               accessibilityRole="button"
-              accessibilityLabel={`Edit ${displayValues.name}, phone number, and email`}
-              testID={`${kind}-edit-contact-${contact.id}`}
+              accessibilityLabel={`Hide ${displayValues.name} details`}
+              accessibilityState={{ expanded: true }}
+              testID={`${kind}-contact-toggle-${contact.id}`}
             >
-              <Ionicons name="create-outline" size={16} color={colors.primary} />
-              <Text style={[styles.contactEditText, { color: colors.primary }]}>Edit</Text>
+              <View style={[styles.avatar, { backgroundColor: colors.secondary }]}>
+                <Text style={[styles.avatarText, { color: colors.primary }]}>{displayValues.name.charAt(0).toUpperCase()}</Text>
+              </View>
+              <Text style={[styles.name, styles.flex, { color: colors.foreground }]} numberOfLines={1}>
+                {displayValues.name}
+              </Text>
             </TouchableOpacity>
-          ) : null}
-      </View>
+            {canEditContact ? (
+              <TouchableOpacity
+                style={[styles.contactEditButton, { backgroundColor: colors.secondary }]}
+                onPress={() => {
+                  setNameDraft(displayValues.name);
+                  setPhoneDraft(displayValues.phone);
+                  setEmailDraft(contact.email ?? '');
+                  setEditingDetails(true);
+                }}
+                accessibilityRole="button"
+                accessibilityLabel={`Edit ${displayValues.name}, phone number, and email`}
+                testID={`${kind}-edit-contact-${contact.id}`}
+              >
+                <Ionicons name="create-outline" size={16} color={colors.primary} />
+                <Text style={[styles.contactEditText, { color: colors.primary }]}>Edit</Text>
+              </TouchableOpacity>
+            ) : null}
+          </View>
         <View style={styles.contactDetailsRow}>
           <TouchableOpacity
             style={styles.contactMetaItem}
@@ -683,6 +774,8 @@ function ContactCard({
           </View>
         );
       })}
+        </>
+      )}
     </View>
   );
 }
@@ -703,7 +796,12 @@ const styles = StyleSheet.create({
   emptyTitle: { fontSize: 17, fontWeight: '700', marginTop: 4 },
   link: { fontWeight: '700', padding: 8 },
   card: { borderWidth: 1, borderRadius: 20, padding: 16, gap: 11 },
+  searchBox: { minHeight: 52, borderWidth: 1, borderRadius: 15, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  searchInput: { flex: 1, minWidth: 0, minHeight: 50, fontSize: 14 },
+  collapsedContact: { minHeight: 44, justifyContent: 'center' },
+  collapsedContactName: { fontSize: 16, fontWeight: '700' },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  contactIdentity: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 12 },
   avatar: { width: 44, height: 44, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
   avatarText: { fontSize: 19, fontWeight: '800' },
   name: { fontSize: 17, fontWeight: '700' },
