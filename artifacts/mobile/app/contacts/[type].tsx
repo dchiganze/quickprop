@@ -575,8 +575,6 @@ function ContactCard({
 
       {contact.properties.length > 0 ? <View style={[styles.divider, { backgroundColor: colors.border }]} /> : null}
       {contact.properties.map((property) => {
-        const closed = ['sold', 'rented', 'withdrawn', 'archived'].includes(property.status)
-          || ['sold', 'let', 'withdrawn'].includes(property.availabilityStatus ?? '');
         const busy = busyPropertyId === property.id;
         return (
           <View key={property.id} style={[styles.property, { borderColor: colors.border }]}>
@@ -608,10 +606,7 @@ function ContactCard({
                   <Ionicons name="star-outline" size={17} color={colors.primary} />
                 </View>
                 <View style={styles.flex}>
-                  <Text style={[styles.reviewSectionTitle, { color: colors.foreground }]}>Request a review</Text>
-                  <Text style={[styles.reviewSectionDescription, { color: colors.mutedForeground }]}>
-                    Send a review link to this {kind} by WhatsApp or email. Once submitted, it will appear on the QuickProp online marketplace to help build your online presence and trust.
-                  </Text>
+                  <Text style={[styles.reviewSectionTitle, { color: colors.foreground }]}>Request a review to boost your online profile on Quickprop.co.zw</Text>
                 </View>
               </View>
               <View style={styles.reviewActions}>
@@ -638,8 +633,6 @@ function ContactCard({
                   <Text style={[styles.actionText, { color: colors.primary }]}>Email</Text>
                 </TouchableOpacity>
               </View>
-              {!contact.email ? <Text style={[styles.reviewHint, { color: colors.mutedForeground }]}>No email is saved for this contact. You can enter one when requesting a review.</Text> : null}
-              {!closed ? <Text style={[styles.reviewHint, { color: colors.mutedForeground }]}>You can request a review now. QuickProp will still send its automatic request after the mandate closes.</Text> : null}
             </View>
           </View>
         );
