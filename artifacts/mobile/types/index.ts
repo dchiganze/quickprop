@@ -8,6 +8,7 @@ export interface User {
   licenceNumber: string;
   role: 'agent' | 'administrator' | 'quickprop_admin';
   photo?: string;
+  canShareMarketplaceProfile?: boolean;
 }
 
 export interface Property {

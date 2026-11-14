@@ -28,6 +28,7 @@ interface AuthContextType {
   logout: () => Promise<void>;
   deleteAccount: (password: string, confirmation: string) => Promise<void>;
   updateUser: (updates: Partial<User>) => Promise<void>;
+  updateMarketplaceAvatar: (avatarUrl: string) => Promise<void>;
 }
 
 const MOCK_USER: User = {
@@ -39,6 +40,7 @@ const MOCK_USER: User = {
   branch: 'Borrowdale Branch',
   licenceNumber: 'ZW-RE-2024-0891',
   role: 'agent',
+  canShareMarketplaceProfile: true,
 };
 
 const DEMO_EMAIL = 'demo@quickprop.co.zw';
@@ -167,6 +169,7 @@ function toMobileUser(apiUser: ApiUser): User {
     licenceNumber: '',
     role,
     photo: apiUser.avatarUrl ?? undefined,
+    canShareMarketplaceProfile: ['agent', 'senior_agent', 'principal'].includes(apiUser.role),
   };
 }
 
@@ -229,6 +232,7 @@ const AuthContext = createContext<AuthContextType>({
   logout: async () => {},
   deleteAccount: async () => {},
   updateUser: async () => {},
+  updateMarketplaceAvatar: async () => {},
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -494,8 +498,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(updated);
   };
 
+  const updateMarketplaceAvatar = async (avatarUrl: string): Promise<void> => {
+    if (!user) throw new Error('Sign in before sharing a marketplace photo.');
+    if (!user.canShareMarketplaceProfile) throw new Error('Only marketplace agents can share a photo.');
+    if (!apiBaseUrl) throw new Error('Marketplace photo sharing is unavailable right now.');
+
+    const token = await getStoredToken();
+    if (!token) throw new Error('Your session has expired. Please sign in again.');
+
+    let response: Response;
+    try {
+      response = await fetch(apiUrl('/auth/profile/avatar'), {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ avatarUrl }),
+      });
+    } catch {
+      throw new Error('Unable to reach QuickProp. Your photo was not published.');
+    }
+
+    const result = await response.json().catch(() => null) as { avatarUrl?: string | null; error?: string } | null;
+    if (!response.ok) {
+      throw new Error(result?.error ?? 'Unable to publish your photo to the marketplace.');
+    }
+    if (result?.avatarUrl !== avatarUrl) {
+      throw new Error('QuickProp could not confirm the marketplace photo update.');
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, startPhoneLogin, verifyPhoneLogin, signInWithPasskey, registerPasskey, logout, deleteAccount, updateUser }}>
+    <AuthContext.Provider value={{ user, loading, login, startPhoneLogin, verifyPhoneLogin, signInWithPasskey, registerPasskey, logout, deleteAccount, updateUser, updateMarketplaceAvatar }}>
       {children}
     </AuthContext.Provider>
   );

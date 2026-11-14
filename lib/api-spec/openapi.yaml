@@ -415,6 +415,30 @@ paths:
           description: Invalid profile details
         "401":
           description: Not logged in
+  /auth/profile/avatar:
+    patch:
+      operationId: updateCurrentUserAvatar
+      tags: [auth]
+      summary: Share the signed-in agent's avatar on their public marketplace profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CurrentUserAvatarUpdate"
+      responses:
+        "200":
+          description: Updated current user avatar
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "400":
+          description: Invalid avatar URL
+        "401":
+          description: Not logged in
+        "403":
+          description: Only marketplace agents can share a public avatar
   /auth/brochure-agent-link:
     patch:
       operationId: updateCurrentUserBrochureAgentLink
@@ -3376,6 +3400,14 @@ components:
         phone:
           type: ["string", "null"]
           maxLength: 40
+    CurrentUserAvatarUpdate:
+      type: object
+      required: [avatarUrl]
+      properties:
+        avatarUrl:
+          type: string
+          minLength: 1
+          maxLength: 2048
     BrochureAgentLinkUpdate:
       type: object
       required: [agentId]

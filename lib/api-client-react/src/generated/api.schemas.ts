@@ -669,6 +669,14 @@ export interface CurrentUserProfileUpdate {
   phone: string | null;
 }
 
+export interface CurrentUserAvatarUpdate {
+  /**
+     * @minLength 1
+     * @maxLength 2048
+     */
+  avatarUrl: string;
+}
+
 export interface BrochureAgentLinkUpdate {
   /**
      * @minimum 1

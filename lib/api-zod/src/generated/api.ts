@@ -385,6 +385,30 @@ export const UpdateCurrentUserProfileResponse = zod.object({
 
 
 /**
+ * @summary Share the signed-in agent's avatar on their public marketplace profile
+ */
+export const updateCurrentUserAvatarBodyAvatarUrlMax = 2048;
+
+
+
+export const UpdateCurrentUserAvatarBody = zod.object({
+  "avatarUrl": zod.string().min(1).max(updateCurrentUserAvatarBodyAvatarUrlMax)
+})
+
+export const UpdateCurrentUserAvatarResponse = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "email": zod.string(),
+  "phone": zod.string().nullish(),
+  "role": zod.string().describe('principal | admin | senior_agent | agent | receptionist | marketing | viewer'),
+  "branchId": zod.number().nullish(),
+  "linkedAgentId": zod.number().nullish(),
+  "status": zod.string().describe('active | suspended | inactive | deleted (tombstone; excluded from team lists)'),
+  "avatarUrl": zod.string().nullish()
+})
+
+
+/**
  * @summary Link the signed-in admin profile to an agent profile for brochures
  */
 

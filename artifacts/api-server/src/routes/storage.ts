@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { Router, type IRouter, type Request } from "express";
 import { and, eq, inArray, like, or, sql } from "drizzle-orm";
-import { agencySettingsTable, branchesTable, businessAgenciesTable, db, documentsTable, propertiesTable } from "@workspace/db";
+import { agencySettingsTable, branchesTable, businessAgenciesTable, db, documentsTable, propertiesTable, usersTable } from "@workspace/db";
 import { currentUser } from "./auth";
 import { getActiveAgencyBranchIdsForUser } from "../lib/office-inventory-scope";
 
@@ -61,6 +61,17 @@ async function canReadStoredMedia(req: Request, objectName: string): Promise<boo
     ))
     .limit(1);
   if (publicProperty) return true;
+  const [publicAgentAvatar] = await db
+    .select({ id: usersTable.id })
+    .from(usersTable)
+    .where(and(
+      eq(usersTable.status, "active"),
+      inArray(usersTable.role, ["agent", "senior_agent", "principal"]),
+      like(usersTable.avatarUrl, `%${mediaUrlSuffix}`),
+    ))
+    .limit(1);
+  if (publicAgentAvatar) return true;
+
   const user = await currentUser(req);
   if (!user) return false;
   if (objectName.startsWith(`uploads/${user.id}/`)) return true;

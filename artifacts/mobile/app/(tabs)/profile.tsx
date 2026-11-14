@@ -13,7 +13,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useColors } from '@/hooks/useColors';
 import { useAuth } from '@/contexts/AuthContext';
-import { useData } from '@/contexts/DataContext';
+import { uploadOneMedia, useData } from '@/contexts/DataContext';
 
 const BIOMETRIC_KEY = '@qp_biometric';
 const DARK_MODE_KEY = '@qp_dark_mode';
@@ -174,7 +174,7 @@ const ab = StyleSheet.create({
 export default function ProfileScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { user, logout, deleteAccount, updateUser } = useAuth();
+  const { user, logout, deleteAccount, updateUser, updateMarketplaceAvatar } = useAuth();
   const { properties, leads } = useData();
 
   // Sheet visibility
@@ -200,6 +200,39 @@ export default function ProfileScreen() {
   // Toggles
   const [biometric, setBiometric] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
+
+  const publishProfilePhoto = async (photoUri: string) => {
+    setSavingPhoto(true);
+    try {
+      const avatarUrl = await uploadOneMedia(photoUri, 'image');
+      if (avatarUrl === photoUri) {
+        throw new Error('The photo could not be uploaded to your QuickProp account.');
+      }
+      await updateMarketplaceAvatar(avatarUrl);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+      Alert.alert('Photo shared', 'Your photo now appears on your QuickProp.co.zw marketplace profile.');
+    } catch (error) {
+      Alert.alert(
+        'Photo not shared',
+        `Your photo is saved in the app, but it was not published. ${error instanceof Error ? error.message : 'Please try again.'}`,
+      );
+    } finally {
+      setSavingPhoto(false);
+    }
+  };
+
+  const askToShareProfilePhoto = (photoUri: string) => {
+    if (!user?.canShareMarketplaceProfile) return;
+    Alert.alert(
+      'Show this photo on QuickProp.co.zw?',
+      'It will be visible on your public marketplace agent profile.',
+      [
+        { text: 'Keep app only', style: 'cancel' },
+        { text: 'Yes, show it', onPress: () => { void publishProfilePhoto(photoUri); } },
+      ],
+      { cancelable: true },
+    );
+  };
 
   const handleProfilePhoto = async () => {
     if (savingPhoto) return;
@@ -237,6 +270,7 @@ export default function ProfileScreen() {
 
       await updateUser({ photo: photoUri });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+      askToShareProfilePhoto(photoUri);
     } catch (error) {
       Alert.alert(
         'Photo not updated',

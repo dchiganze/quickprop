@@ -40,11 +40,13 @@ import {
   RequestPasswordSetupCodeBody,
   RequestPasswordSetupCodeResponse,
   StartPhoneLoginResponse,
+  UpdateCurrentUserAvatarBody,
   UpdateCurrentUserProfileBody,
   UpdateCurrentUserProfileResponse,
   UpdateCurrentUserBrochureAgentLinkBody,
 } from "@workspace/api-zod";
 import { logAudit, jsonify } from "../lib/helpers";
+import { isOwnUploadedProfileAvatarUrl } from "../lib/profile-avatar";
 import {
   ADMIN_PASSWORD_RESET_COOLDOWN_MS,
   ADMIN_PASSWORD_RESET_TTL_MS,
@@ -947,6 +949,37 @@ router.patch("/auth/profile", requireAuth, async (req, res): Promise<void> => {
 
   await logAudit("edited", "user", user.id, "Updated personal profile details", user.id, name);
   res.json(UpdateCurrentUserProfileResponse.parse(jsonify(toUser(updatedUser))));
+});
+
+router.patch("/auth/profile/avatar", requireAuth, async (req, res): Promise<void> => {
+  const parsed = UpdateCurrentUserAvatarBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+
+  const user = res.locals.user as typeof usersTable.$inferSelect;
+  if (!["agent", "senior_agent", "principal"].includes(user.role)) {
+    res.status(403).json({ error: "Only agents can share a marketplace profile photo." });
+    return;
+  }
+  if (!isOwnUploadedProfileAvatarUrl(parsed.data.avatarUrl, user.id)) {
+    res.status(400).json({ error: "Choose a photo uploaded to your own QuickProp account." });
+    return;
+  }
+
+  const [updatedUser] = await db
+    .update(usersTable)
+    .set({ avatarUrl: parsed.data.avatarUrl })
+    .where(eq(usersTable.id, user.id))
+    .returning();
+  if (!updatedUser) {
+    res.status(401).json({ error: "Not logged in" });
+    return;
+  }
+
+  await logAudit("edited", "user", user.id, "Shared profile photo on the marketplace", user.id, user.name);
+  res.json(GetCurrentUserResponse.parse(jsonify(toUser(updatedUser))));
 });
 
 router.patch("/auth/brochure-agent-link", requireAuth, async (req, res): Promise<void> => {

@@ -89,6 +89,7 @@ import type {
   CollaborationRequestInput,
   CollaborationRequestStatusUpdate,
   CreateImportSessionInput,
+  CurrentUserAvatarUpdate,
   CurrentUserProfileUpdate,
   DashboardCharts,
   DashboardSummary,
@@ -1720,6 +1721,77 @@ export const useUpdateCurrentUserProfile = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getUpdateCurrentUserProfileMutationOptions(options));
+    }
+
+export const getUpdateCurrentUserAvatarUrl = () => {
+
+
+
+
+  return `/api/auth/profile/avatar`
+}
+
+/**
+ * @summary Share the signed-in agent's avatar on their public marketplace profile
+ */
+export const updateCurrentUserAvatar = async (currentUserAvatarUpdate: CurrentUserAvatarUpdate, options?: RequestInit): Promise<User> => {
+
+  return customFetch<User>(getUpdateCurrentUserAvatarUrl(),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(currentUserAvatarUpdate)
+  }
+);}
+
+
+
+
+
+export const getUpdateCurrentUserAvatarMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateCurrentUserAvatar>>, TError,{data: BodyType<CurrentUserAvatarUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateCurrentUserAvatar>>, TError,{data: BodyType<CurrentUserAvatarUpdate>}, TContext> => {
+
+const mutationKey = ['updateCurrentUserAvatar'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateCurrentUserAvatar>>, {data: BodyType<CurrentUserAvatarUpdate>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  updateCurrentUserAvatar(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateCurrentUserAvatarMutationResult = NonNullable<Awaited<ReturnType<typeof updateCurrentUserAvatar>>>
+    export type UpdateCurrentUserAvatarMutationBody = BodyType<CurrentUserAvatarUpdate>
+    export type UpdateCurrentUserAvatarMutationError = ErrorType<void>
+
+    /**
+ * @summary Share the signed-in agent's avatar on their public marketplace profile
+ */
+export const useUpdateCurrentUserAvatar = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateCurrentUserAvatar>>, TError,{data: BodyType<CurrentUserAvatarUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateCurrentUserAvatar>>,
+        TError,
+        {data: BodyType<CurrentUserAvatarUpdate>},
+        TContext
+      > => {
+      return useMutation(getUpdateCurrentUserAvatarMutationOptions(options));
     }
 
 export const getUpdateCurrentUserBrochureAgentLinkUrl = () => {

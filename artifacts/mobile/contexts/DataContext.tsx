@@ -342,7 +342,7 @@ function toMobileSearchAlert(alert: ApiAgentSearchAlert, agentId: string): Prope
   };
 }
 
-async function uploadOneMedia(uri: string, mediaKind: 'image' | 'video'): Promise<string> {
+export async function uploadOneMedia(uri: string, mediaKind: 'image' | 'video'): Promise<string> {
   if (!apiBaseUrl || !apiOrigin || /^https?:\/\//.test(uri)) return uri;
   const source = await fetch(uri);
   const blob = await source.blob();
