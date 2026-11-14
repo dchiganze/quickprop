@@ -11,6 +11,10 @@ export interface AgentSearchAlert {
   name: string;
   /** @nullable */
   type: string | null;
+  transactionType: string;
+  propertyTypes: string[];
+  /** @nullable */
+  city: string | null;
   /** @nullable */
   suburb: string | null;
   /** @nullable */

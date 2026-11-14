@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState, useMemo, useRef,
 import { AppState, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Property, Lead, BuyerMatch, Task, PropertyAlert } from '@/types';
+import { propertyMatchesAlert } from '@/lib/alert-matching';
 import { registerDataReset } from './dataReset';
 import { useNetworkStatus } from './ConnectivityContext';
 import { apiBaseUrl, apiOrigin, getStoredAccessToken, useAuth } from './AuthContext';
@@ -87,21 +88,6 @@ type PendingSync = PendingSyncMetadata & (
   | { kind: 'viewing-delete'; localId: string }
   | { kind: 'alert-delete'; localId: string }
 );
-
-export function propertyMatchesAlert(p: Property, alert: PropertyAlert): boolean {
-  if (alert.type && p.type !== alert.type) return false;
-  if (alert.suburb && !p.suburb.toLowerCase().includes(alert.suburb.toLowerCase())) return false;
-  if (alert.minBedrooms && (p.bedrooms ?? 0) < alert.minBedrooms) return false;
-  if (alert.maxPrice && p.price > alert.maxPrice) return false;
-  if (alert.currency && p.currency !== alert.currency) return false;
-  if (alert.features.length > 0) {
-    const hasAll = alert.features.every(f =>
-      p.features.some(pf => pf.toLowerCase().includes(f.toLowerCase()))
-    );
-    if (!hasAll) return false;
-  }
-  return true;
-}
 
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 const now = () => new Date().toISOString();
@@ -318,6 +304,8 @@ function toAgentSearchAlertInput(alert: PropertyAlert): AgentSearchAlertInput {
   return {
     name: alert.name,
     type: alert.type ?? null,
+    propertyTypes: alert.propertyTypes ?? [],
+    city: alert.city ?? null,
     suburb: alert.suburb ?? null,
     minBedrooms: alert.minBedrooms ?? null,
     maxPrice: alert.maxPrice ?? null,
@@ -327,11 +315,17 @@ function toAgentSearchAlertInput(alert: PropertyAlert): AgentSearchAlertInput {
 }
 
 function toMobileSearchAlert(alert: ApiAgentSearchAlert, agentId: string): PropertyAlert {
+  const legacyPropertyType = alert.type && !['sale', 'rent'].includes(alert.type) ? alert.type : undefined;
+  const remotePropertyTypes = Array.isArray(alert.propertyTypes) ? alert.propertyTypes : [];
   return {
     id: alert.id,
     agentId,
     name: alert.name,
-    type: (alert.type ?? undefined) as PropertyAlert['type'],
+    type: (['sale', 'rent'].includes(alert.transactionType)
+      ? alert.transactionType
+      : alert.type === 'sale' || alert.type === 'rent' ? alert.type : undefined) as PropertyAlert['type'],
+    propertyTypes: remotePropertyTypes.length ? remotePropertyTypes : legacyPropertyType ? [legacyPropertyType] : [],
+    city: alert.city ?? undefined,
     suburb: alert.suburb ?? undefined,
     minBedrooms: alert.minBedrooms ?? undefined,
     maxPrice: alert.maxPrice ?? undefined,

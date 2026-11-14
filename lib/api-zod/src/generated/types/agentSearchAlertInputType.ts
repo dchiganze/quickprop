@@ -15,7 +15,11 @@ export type AgentSearchAlertInputType = typeof AgentSearchAlertInputType[keyof t
 export const AgentSearchAlertInputType = {
   sale: 'sale',
   rent: 'rent',
+  house: 'house',
+  apartment: 'apartment',
   commercial: 'commercial',
+  industrial: 'industrial',
+  townhouse: 'townhouse',
   stand: 'stand',
   farm: 'farm',
   mine: 'mine',

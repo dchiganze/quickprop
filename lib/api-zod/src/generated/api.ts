@@ -4070,6 +4070,9 @@ export const ListAgentSearchAlertsResponseItem = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "type": zod.string().nullable(),
+  "transactionType": zod.string(),
+  "propertyTypes": zod.array(zod.string()),
+  "city": zod.string().nullable(),
   "suburb": zod.string().nullable(),
   "minBedrooms": zod.number().nullable(),
   "maxPrice": zod.number().nullable(),
@@ -4094,6 +4097,8 @@ export const UpsertAgentSearchAlertParams = zod.object({
 
 export const upsertAgentSearchAlertBodyNameMax = 120;
 
+export const upsertAgentSearchAlertBodyCityMax = 120;
+
 export const upsertAgentSearchAlertBodySuburbMax = 120;
 
 export const upsertAgentSearchAlertBodyMinBedroomsMin = 0;
@@ -4109,7 +4114,9 @@ export const upsertAgentSearchAlertBodyFeaturesItemMax = 120;
 
 export const UpsertAgentSearchAlertBody = zod.object({
   "name": zod.string().min(1).max(upsertAgentSearchAlertBodyNameMax),
-  "type": zod.union([zod.literal('sale'),zod.literal('rent'),zod.literal('commercial'),zod.literal('stand'),zod.literal('farm'),zod.literal('mine'),zod.literal(null)]).nullable(),
+  "type": zod.union([zod.literal('sale'),zod.literal('rent'),zod.literal('house'),zod.literal('apartment'),zod.literal('commercial'),zod.literal('industrial'),zod.literal('townhouse'),zod.literal('stand'),zod.literal('farm'),zod.literal('mine'),zod.literal(null)]).nullable(),
+  "propertyTypes": zod.array(zod.string()).optional(),
+  "city": zod.string().max(upsertAgentSearchAlertBodyCityMax).nullish(),
   "suburb": zod.string().max(upsertAgentSearchAlertBodySuburbMax).nullable(),
   "minBedrooms": zod.number().min(upsertAgentSearchAlertBodyMinBedroomsMin).max(upsertAgentSearchAlertBodyMinBedroomsMax).nullable(),
   "maxPrice": zod.number().min(upsertAgentSearchAlertBodyMaxPriceMin).nullable(),
@@ -4121,6 +4128,9 @@ export const UpsertAgentSearchAlertResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "type": zod.string().nullable(),
+  "transactionType": zod.string(),
+  "propertyTypes": zod.array(zod.string()),
+  "city": zod.string().nullable(),
   "suburb": zod.string().nullable(),
   "minBedrooms": zod.number().nullable(),
   "maxPrice": zod.number().nullable(),

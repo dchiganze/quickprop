@@ -2460,6 +2460,10 @@ export interface AgentSearchAlert {
   name: string;
   /** @nullable */
   type: string | null;
+  transactionType: string;
+  propertyTypes: string[];
+  /** @nullable */
+  city: string | null;
   /** @nullable */
   suburb: string | null;
   /** @nullable */
@@ -2482,7 +2486,11 @@ export type AgentSearchAlertInputType = typeof AgentSearchAlertInputType[keyof t
 export const AgentSearchAlertInputType = {
   sale: 'sale',
   rent: 'rent',
+  house: 'house',
+  apartment: 'apartment',
   commercial: 'commercial',
+  industrial: 'industrial',
+  townhouse: 'townhouse',
   stand: 'stand',
   farm: 'farm',
   mine: 'mine',
@@ -2496,6 +2504,12 @@ export interface AgentSearchAlertInput {
   name: string;
   /** @nullable */
   type: AgentSearchAlertInputType;
+  propertyTypes?: string[];
+  /**
+     * @maxLength 120
+     * @nullable
+     */
+  city?: string | null;
   /**
      * @maxLength 120
      * @nullable

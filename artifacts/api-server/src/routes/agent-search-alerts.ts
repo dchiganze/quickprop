@@ -45,6 +45,11 @@ async function serializeAgentAlerts(alerts: PropertyAlert[]) {
     id: alert.clientId!,
     name: alert.name,
     type: toAlertType(alert),
+    transactionType: alert.transactionType,
+    propertyTypes: alert.propertyTypes.length
+      ? alert.propertyTypes
+      : alert.transactionType === "any" && toAlertType(alert) ? [toAlertType(alert)!] : [],
+    city: alert.cities[0] ?? null,
     suburb: alert.suburbs[0] ?? null,
     minBedrooms: alert.minBedrooms,
     maxPrice: alert.maxPrice,
@@ -84,14 +89,18 @@ router.put("/agent/search-alerts/:clientId", async (req, res): Promise<void> => 
   const input = parsed.data;
   const propertyType = input.type && !["sale", "rent"].includes(input.type) ? input.type : null;
   const transactionType = input.type === "sale" || input.type === "rent" ? input.type : "any";
+  const propertyTypes = [...new Set([
+    ...(input.propertyTypes ?? []).map((type) => type.trim()).filter(Boolean),
+    ...(!input.propertyTypes?.length && propertyType ? [propertyType] : []),
+  ])];
   const values = {
     userId: user.id,
     clientId: params.data.clientId,
     name: input.name.trim(),
     currency: input.currency?.trim() || null,
     transactionType,
-    propertyTypes: propertyType ? [propertyType] : [],
-    cities: [],
+    propertyTypes,
+    cities: input.city?.trim() ? [input.city.trim()] : [],
     suburbs: input.suburb?.trim() ? [input.suburb.trim()] : [],
     minPrice: null,
     maxPrice: input.maxPrice,

@@ -13,14 +13,21 @@ import { Property, PropertyAlert, PROPERTY_FEATURES } from '@/types';
 
 type Step = 'list' | 'create' | 'matches';
 
-const TYPE_OPTIONS: { value: Property['type'] | ''; label: string }[] = [
+const LISTING_TYPE_OPTIONS: { value: 'sale' | 'rent' | ''; label: string }[] = [
   { value: '', label: 'Any type' },
   { value: 'sale', label: 'For Sale' },
   { value: 'rent', label: 'To Rent' },
-  { value: 'commercial', label: 'Commercial' },
+];
+
+const PROPERTY_TYPE_OPTIONS = [
+  { value: 'house', label: 'House' },
+  { value: 'apartment', label: 'Apartment' },
   { value: 'stand', label: 'Stand' },
   { value: 'farm', label: 'Farm' },
+  { value: 'industrial', label: 'Industrial' },
+  { value: 'townhouse', label: 'Townhouse' },
   { value: 'mine', label: 'Mine' },
+  { value: 'commercial', label: 'Commercial' },
 ];
 
 const BED_OPTIONS = [
@@ -59,7 +66,9 @@ export function AlertsSheet({ visible, onClose, presentation = 'sheet' }: Props)
 
   // Create form state
   const [formName, setFormName] = useState('');
-  const [formType, setFormType] = useState<Property['type'] | ''>('');
+  const [formType, setFormType] = useState<'sale' | 'rent' | ''>('');
+  const [formPropertyTypes, setFormPropertyTypes] = useState<string[]>([]);
+  const [formCity, setFormCity] = useState('');
   const [formSuburb, setFormSuburb] = useState('');
   const [formMinBeds, setFormMinBeds] = useState(0);
   const [formMaxPrice, setFormMaxPrice] = useState('');
@@ -78,6 +87,8 @@ export function AlertsSheet({ visible, onClose, presentation = 'sheet' }: Props)
   const resetForm = () => {
     setFormName('');
     setFormType('');
+    setFormPropertyTypes([]);
+    setFormCity('');
     setFormSuburb('');
     setFormMinBeds(0);
     setFormMaxPrice('');
@@ -95,6 +106,8 @@ export function AlertsSheet({ visible, onClose, presentation = 'sheet' }: Props)
     const parts: string[] = [];
     if (formMinBeds > 0) parts.push(`${formMinBeds}+ bed`);
     if (formType) parts.push(formType === 'sale' ? 'for sale' : formType === 'rent' ? 'to rent' : formType);
+    if (formPropertyTypes.length) parts.push(formPropertyTypes.map(type => PROPERTY_TYPE_OPTIONS.find(option => option.value === type)?.label ?? type).join(', '));
+    if (formCity.trim()) parts.push(`in ${formCity.trim()}`);
     if (formSuburb.trim()) parts.push(`in ${formSuburb.trim()}`);
     if (formMaxPrice) parts.push(`up to ${formCurrency} ${Number(formMaxPrice).toLocaleString()}`);
     if (formFeatures.length) parts.push(`with ${formFeatures.slice(0, 2).join(', ')}`);
@@ -109,6 +122,8 @@ export function AlertsSheet({ visible, onClose, presentation = 'sheet' }: Props)
       agentId: user?.id ?? '',
       name,
       type: formType || undefined,
+      propertyTypes: formPropertyTypes,
+      city: formCity.trim() || undefined,
       suburb: formSuburb.trim() || undefined,
       minBedrooms: formMinBeds > 0 ? formMinBeds : undefined,
       maxPrice: formMaxPrice ? Number(formMaxPrice) : undefined,
@@ -217,6 +232,8 @@ export function AlertsSheet({ visible, onClose, presentation = 'sheet' }: Props)
                     <Text style={[s.alertMeta, { color: colors.mutedForeground }]} numberOfLines={1}>
                       {[
                         alert.type ? (alert.type === 'sale' ? 'For Sale' : alert.type === 'rent' ? 'To Rent' : alert.type) : null,
+                        ...(alert.propertyTypes ?? []).map(type => PROPERTY_TYPE_OPTIONS.find(option => option.value === type)?.label ?? type),
+                        alert.city ? alert.city : null,
                         alert.suburb ? alert.suburb : null,
                         alert.minBedrooms ? `${alert.minBedrooms}+ bed` : null,
                         alert.maxPrice ? `≤ ${alert.currency} ${alert.maxPrice.toLocaleString()}` : null,
@@ -338,9 +355,9 @@ export function AlertsSheet({ visible, onClose, presentation = 'sheet' }: Props)
       />
 
       {/* Type */}
-      <Text style={[s.fieldLabel, { color: colors.mutedForeground, marginTop: 16 }]}>PROPERTY TYPE</Text>
+      <Text style={[s.fieldLabel, { color: colors.mutedForeground, marginTop: 16 }]}>LISTING TYPE</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.chipRow}>
-        {TYPE_OPTIONS.map(opt => {
+        {LISTING_TYPE_OPTIONS.map(opt => {
           const active = formType === opt.value;
           return (
             <TouchableOpacity
@@ -353,6 +370,37 @@ export function AlertsSheet({ visible, onClose, presentation = 'sheet' }: Props)
           );
         })}
       </ScrollView>
+
+      {/* Property category */}
+      <Text style={[s.fieldLabel, { color: colors.mutedForeground, marginTop: 16 }]}>PROPERTY TYPE</Text>
+      <View style={s.featureGrid}>
+        {PROPERTY_TYPE_OPTIONS.map(opt => {
+          const active = formPropertyTypes.includes(opt.value);
+          return (
+            <TouchableOpacity
+              key={opt.value}
+              style={[s.featureChip, { backgroundColor: active ? colors.primary + '18' : colors.muted, borderColor: active ? colors.primary : colors.border }]}
+              onPress={() => {
+                Haptics.selectionAsync();
+                setFormPropertyTypes(prev => active ? prev.filter(type => type !== opt.value) : [...prev, opt.value]);
+              }}
+            >
+              {active && <Ionicons name="checkmark-circle" size={13} color={colors.primary} />}
+              <Text style={[s.featureChipText, { color: active ? colors.primary : colors.foreground }]}>{opt.label}</Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+
+      {/* City */}
+      <Text style={[s.fieldLabel, { color: colors.mutedForeground, marginTop: 16 }]}>CITY</Text>
+      <TextInput
+        style={inputStyle}
+        value={formCity}
+        onChangeText={setFormCity}
+        placeholder="e.g. Harare"
+        placeholderTextColor={colors.mutedForeground}
+      />
 
       {/* Suburb */}
       <Text style={[s.fieldLabel, { color: colors.mutedForeground, marginTop: 16 }]}>SUBURB</Text>

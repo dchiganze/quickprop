@@ -4816,11 +4816,16 @@ components:
         active: { type: boolean }
     AgentSearchAlert:
       type: object
-      required: [id, name, type, suburb, minBedrooms, maxPrice, currency, features, seenPropertyIds, createdAt]
+      required: [id, name, type, transactionType, propertyTypes, city, suburb, minBedrooms, maxPrice, currency, features, seenPropertyIds, createdAt]
       properties:
         id: { type: string }
         name: { type: string }
         type: { type: ["string", "null"] }
+        transactionType: { type: string }
+        propertyTypes:
+          type: array
+          items: { type: string }
+        city: { type: ["string", "null"] }
         suburb: { type: ["string", "null"] }
         minBedrooms: { type: ["integer", "null"] }
         maxPrice: { type: ["number", "null"] }
@@ -4837,7 +4842,11 @@ components:
       required: [name, type, suburb, minBedrooms, maxPrice, currency, features]
       properties:
         name: { type: string, minLength: 1, maxLength: 120 }
-        type: { type: ["string", "null"], enum: [sale, rent, commercial, stand, farm, mine, null] }
+        type: { type: ["string", "null"], enum: [sale, rent, house, apartment, commercial, industrial, townhouse, stand, farm, mine, null] }
+        propertyTypes:
+          type: array
+          items: { type: string }
+        city: { type: ["string", "null"], maxLength: 120 }
         suburb: { type: ["string", "null"], maxLength: 120 }
         minBedrooms: { type: ["integer", "null"], minimum: 0, maximum: 20 }
         maxPrice: { type: ["number", "null"], minimum: 0 }

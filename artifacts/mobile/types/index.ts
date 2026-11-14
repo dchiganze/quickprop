@@ -174,6 +174,8 @@ export interface PropertyAlert {
   agentId: string;
   name: string;
   type?: Property['type'];
+  propertyTypes?: string[];
+  city?: string;
   suburb?: string;
   minBedrooms?: number;
   maxPrice?: number;

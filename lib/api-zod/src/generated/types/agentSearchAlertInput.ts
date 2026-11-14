@@ -15,6 +15,12 @@ export interface AgentSearchAlertInput {
   name: string;
   /** @nullable */
   type: AgentSearchAlertInputType;
+  propertyTypes?: string[];
+  /**
+     * @maxLength 120
+     * @nullable
+     */
+  city?: string | null;
   /**
      * @maxLength 120
      * @nullable
