@@ -30,6 +30,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useColors } from '@/hooks/useColors';
 import { apiBaseUrl, getStoredAccessToken, useAuth } from '@/contexts/AuthContext';
 import { KeyboardAwareScrollViewCompat } from '@/components/KeyboardAwareScrollViewCompat';
+import { getContactDisplayValues } from '@/lib/contact-display';
 
 type ContactKind = 'seller' | 'landlord';
 
@@ -488,9 +489,10 @@ function ContactCard({
   onOpenMandate: (objectPath?: string | null) => void;
   onSaveContactDetails: (contact: AgentContact, name: string, phone: string, email: string) => Promise<void>;
 }) {
+  const displayValues = getContactDisplayValues(contact.name, contact.phone);
   const [editingDetails, setEditingDetails] = useState(false);
-  const [nameDraft, setNameDraft] = useState(contact.name);
-  const [phoneDraft, setPhoneDraft] = useState(contact.phone ?? '');
+  const [nameDraft, setNameDraft] = useState(displayValues.name);
+  const [phoneDraft, setPhoneDraft] = useState(displayValues.phone);
   const [emailDraft, setEmailDraft] = useState(contact.email ?? '');
   const [savingDetails, setSavingDetails] = useState(false);
   const canEditContact = contact.standalone || contact.properties.length > 0;
@@ -511,23 +513,23 @@ function ContactCard({
   return (
     <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
       <View style={styles.nameRow}>
-        <View style={[styles.avatar, { backgroundColor: colors.secondary }]}><Text style={[styles.avatarText, { color: colors.primary }]}>{contact.name.charAt(0).toUpperCase()}</Text></View>
+        <View style={[styles.avatar, { backgroundColor: colors.secondary }]}><Text style={[styles.avatarText, { color: colors.primary }]}>{displayValues.name.charAt(0).toUpperCase()}</Text></View>
         <View style={styles.flex}>
             <Text style={[styles.name, { color: colors.foreground }]} numberOfLines={1}>
-              {contact.name}
+              {displayValues.name}
             </Text>
         </View>
           {canEditContact ? (
             <TouchableOpacity
               style={[styles.contactEditButton, { backgroundColor: colors.secondary }]}
               onPress={() => {
-                setNameDraft(contact.name);
-                setPhoneDraft(contact.phone ?? '');
+                setNameDraft(displayValues.name);
+                setPhoneDraft(displayValues.phone);
                 setEmailDraft(contact.email ?? '');
                 setEditingDetails(true);
               }}
               accessibilityRole="button"
-              accessibilityLabel={`Edit ${contact.name}, phone number, and email`}
+              accessibilityLabel={`Edit ${displayValues.name}, phone number, and email`}
               testID={`${kind}-edit-contact-${contact.id}`}
             >
               <Ionicons name="create-outline" size={16} color={colors.primary} />
@@ -538,14 +540,14 @@ function ContactCard({
         <View style={styles.contactDetailsRow}>
           <TouchableOpacity
             style={styles.contactMetaItem}
-            onPress={() => contact.phone && void Linking.openURL(`tel:${contact.phone}`)}
-            disabled={!contact.phone}
-            accessibilityRole={contact.phone ? 'button' : undefined}
-            accessibilityLabel={contact.phone ? `Call ${contact.name}` : undefined}
+            onPress={() => displayValues.phone && void Linking.openURL(`tel:${displayValues.phone}`)}
+            disabled={!displayValues.phone}
+            accessibilityRole={displayValues.phone ? 'button' : undefined}
+            accessibilityLabel={displayValues.phone ? `Call ${displayValues.name}` : undefined}
           >
             <Ionicons name="call-outline" size={15} color={colors.primary} />
-            <Text style={[styles.detail, { color: contact.phone ? colors.foreground : colors.mutedForeground }]} numberOfLines={1}>
-              {contact.phone || 'Phone not provided'}
+            <Text style={[styles.detail, { color: displayValues.phone ? colors.foreground : colors.mutedForeground }]} numberOfLines={1}>
+              {displayValues.phone || 'Phone not provided'}
             </Text>
           </TouchableOpacity>
           <View style={styles.contactMetaItem}>
@@ -578,9 +580,12 @@ function ContactCard({
               onChangeText={setPhoneDraft}
               placeholder="Phone number"
               placeholderTextColor={colors.mutedForeground}
-              keyboardType="default"
+              keyboardType="phone-pad"
+              autoComplete="tel"
               selectTextOnFocus
+              maxLength={40}
               accessibilityLabel="Seller or landlord phone number"
+              testID={`${kind}-contact-phone-input-${contact.id}`}
             />
             <TextInput
               style={[styles.input, { backgroundColor: colors.input, borderColor: colors.border, color: colors.foreground }]}
