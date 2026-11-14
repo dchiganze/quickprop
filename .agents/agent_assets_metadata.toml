@@ -603,3 +603,17 @@ mtime_ms = 1794643051620
 storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:cf900b3f-04ce-456b-888c-760ecb412036/3feb80db-27b1-4750-8610-c356fe2285a3/6b45c664-9d50-4085-ba1c-dc75a9da0148"
 storage_version_token = "1794643057554723"
 content_type = "image/png"
+
+[[outputs]]
+id = "Khypk4zQBveJSyAOp6_zl"
+uri = "file://attached_assets/quickprop-expo-go-qr.png"
+type = "image"
+title = "Fresh QuickProp Agent Expo Go QR"
+description = "Scan this with Expo Go to open the freshly restarted development server. The phone connection cannot be verified from Replit."
+logical_id = "eb992e13-7abe-48ae-8692-b04a09b428de"
+content_hash = "sha256:c2baf750a2f06bf37985506e8685560768fb888b49679e8c6f40f02aabda9817"
+size = 1145
+mtime_ms = 1794646601845
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:cf900b3f-04ce-456b-888c-760ecb412036/eb992e13-7abe-48ae-8692-b04a09b428de/110d04b5-aab3-4685-b7b7-318172bef7fc"
+storage_version_token = "1794646618733083"
+content_type = "image/png"
