@@ -30,7 +30,7 @@ import { EmptyState } from '@/components/EmptyState';
 import { QuickShareSheet } from '@/components/QuickShareSheet';
 import { useNetworkStatus } from '@/contexts/ConnectivityContext';
 import { propertyMatchesQuery } from '@/lib/property-search';
-import { buildAgencyDraftQueryParams } from '@/lib/listing-draft-scope';
+import { buildAgencyDraftQueryParams, mergeAgencyListings } from '@/lib/listing-draft-scope';
 import {
   agencyListingsCacheKey,
   emptyAgencyListingsCache,
@@ -488,7 +488,9 @@ export default function ListingsScreen() {
     if (refreshing) return;
     setRefreshing(true);
     try {
-      if (visibilityFilter === 'draft' && scope !== 'my' && draftQueryEnabled) {
+      if (scope === 'agency' && visibilityFilter === 'all' && draftQueryEnabled) {
+        await Promise.all([agencyQuery.refetch(), draftListingsQuery.refetch()]);
+      } else if (visibilityFilter === 'draft' && scope !== 'my' && draftQueryEnabled) {
         await draftListingsQuery.refetch();
       } else if (visibilityFilter === 'draft' || scope === 'my') {
         await syncNow();
@@ -518,7 +520,9 @@ export default function ListingsScreen() {
       : scope === 'all'
         ? [...publicProperties]
         : scope === 'agency'
-          ? [...agencyProperties]
+          ? visibilityFilter === 'all'
+            ? mergeAgencyListings(agencyProperties, draftProperties)
+            : [...agencyProperties]
           : properties.filter((property) => property.agentId === user?.id);
 
     if (isOffline && scope !== 'all') {
@@ -835,7 +839,15 @@ export default function ListingsScreen() {
       && !(accountAgencyCache?.draftsSyncedAt && (scope === 'agency' || user?.role === 'agent'))
     : scope === 'all'
       ? publicFeed.isLoading
-      : scope === 'agency' && agencyQuery.isLoading && !accountAgencyCache?.liveSyncedAt;
+      : scope === 'agency'
+        && (
+          (agencyQuery.isLoading && !accountAgencyCache?.liveSyncedAt)
+          || (
+            draftQueryEnabled
+            && draftListingsQuery.isLoading
+            && !accountAgencyCache?.draftsSyncedAt
+          )
+        );
   const feedError = visibilityFilter === 'draft'
     ? scope !== 'my'
       && draftQueryEnabled
@@ -843,7 +855,15 @@ export default function ListingsScreen() {
       && !(accountAgencyCache?.draftsSyncedAt && scope === 'agency')
     : scope === 'all'
       ? publicFeed.isError
-      : scope === 'agency' && agencyQuery.isError && !accountAgencyCache?.liveSyncedAt;
+      : scope === 'agency'
+        && (
+          (agencyQuery.isError && !accountAgencyCache?.liveSyncedAt)
+          || (
+            draftQueryEnabled
+            && draftListingsQuery.isError
+            && !accountAgencyCache?.draftsSyncedAt
+          )
+        );
   const canNavigateToAgencyDrafts = Boolean(
     (scope === 'my' || scope === 'all')
     && visibilityFilter === 'draft'

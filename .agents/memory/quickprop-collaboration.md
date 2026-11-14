@@ -9,11 +9,11 @@ Agencies group branches for administrative management, logos, and team assignmen
 
 **How to apply:** Keep discovery and collaboration contact details branch-scoped, and restrict contact details to approved requests. Do not expand access across an agency's branches unless explicitly requested.
 
-QuickProp Agent's DBT Properties agency view must show drafts from agents in the signed-in user's active agency. My Listings stays limited to the signed-in agent, All of QuickProp stays published-only, and agency draft visibility does not grant cross-branch editing access.
+QuickProp Agent's DBT Properties view must show same-agency drafts under both Draft listings and All statuses; Live shows published listings only. My Listings stays limited to the signed-in agent, All of QuickProp stays published-only, and agency draft visibility does not grant cross-branch editing access.
 
-**Why:** The user explicitly confirmed that agents should see drafts across their own agency, but not across agencies.
+**Why:** The user explicitly confirmed that agents should see drafts across their own agency, including when All statuses is selected, but not across agencies.
 
-**How to apply:** Derive the agency and its active branches from the signed-in user's branch. Keep draft visibility within those active branches, preserve My Listings ownership filtering, keep the global feed published-only, and keep edits owner-scoped.
+**How to apply:** Derive the agency and its active branches from the signed-in user's branch. Include drafts in the DBT Properties All statuses result, keep the Live filter and global feed published-only, preserve My Listings ownership filtering, and keep edits owner-scoped.
 
 Changing an existing user's assigned branch changes their branch-scoped access. Admin reassignment must be explicitly confirmed, accept only active branches in active agencies, and update the user's branch without silently moving linked listings or import history.
 

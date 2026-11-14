@@ -14,7 +14,7 @@ export function buildAgencyDraftQueryParams(
 ): AgencyDraftQueryParams | undefined {
   if (
     scope !== 'agency'
-    || visibilityFilter !== 'draft'
+    || visibilityFilter === 'live'
     || !/^\d+$/.test(userId ?? '')
   ) return undefined;
 
@@ -23,4 +23,13 @@ export function buildAgencyDraftQueryParams(
     agencyInventory: 'agency',
     ...(agentId == null ? {} : { agentId }),
   };
+}
+
+export function mergeAgencyListings<T extends { id: string }>(
+  liveListings: readonly T[],
+  draftListings: readonly T[],
+): T[] {
+  const combined = new Map(liveListings.map((listing) => [listing.id, listing]));
+  for (const listing of draftListings) combined.set(listing.id, listing);
+  return [...combined.values()];
 }
