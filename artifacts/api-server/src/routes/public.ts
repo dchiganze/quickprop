@@ -263,7 +263,10 @@ router.get("/public/agents", async (_req, res): Promise<void> => {
       );
       const reviewSummary = await getPublicReviewSummary(agent.id);
       const [agency, salesHistory] = await Promise.all([getAgentAgency(agent.branchId), getAgentSalesHistory(agent.id)]);
-      const agencyLogoColors = await getAgencyLogoColors(agency?.logoUrl ?? null);
+      const agencyPrimaryColor =
+        getKnownAgencyPrimaryColor(agency?.agencyName, branchName) ??
+        (await getAgencyLogoColors(agency?.logoUrl ?? null))[0] ??
+        null;
       return {
         id: agent.id,
         name: agent.name,
@@ -274,7 +277,7 @@ router.get("/public/agents", async (_req, res): Promise<void> => {
         branchId: agent.branchId ?? null,
         branchName,
         agencyName: agency?.agencyName ?? null,
-        agencyPrimaryColor: agencyLogoColors[0] ?? getKnownAgencyPrimaryColor(agency?.agencyName, branchName),
+        agencyPrimaryColor,
         medianSalePrices: salesHistory.medians,
         activeListings: listings.length,
         reviewSummary: {
