@@ -3812,6 +3812,7 @@ components:
       type: object
       required: [phone, email]
       properties:
+        name: { type: string, minLength: 1, maxLength: 120 }
         phone: { type: string, minLength: 5, maxLength: 40 }
         email: { type: ["string", "null"] }
     AgentContactProperty:

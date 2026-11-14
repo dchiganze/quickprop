@@ -4,7 +4,6 @@ import {
   Alert,
   Linking,
   Modal,
-  ScrollView,
   Share,
   StyleSheet,
   Text,
@@ -147,11 +146,15 @@ export default function ContactRecordsScreen() {
     }
   };
 
-  const saveContactDetails = async (contact: AgentContact, phone: string, email: string) => {
+  const saveContactDetails = async (contact: AgentContact, name: string, phone: string, email: string) => {
     const property = contact.properties[0];
+    const trimmedName = name.trim();
     const trimmedPhone = phone.trim();
     const trimmedEmail = email.trim();
     const phoneDigits = trimmedPhone.replace(/\D/g, '').length;
+    if (!trimmedName) {
+      throw new Error('Enter a contact name.');
+    }
     if ((contact.standalone && phoneDigits < 7) || (phoneDigits > 0 && phoneDigits < 7)) {
       throw new Error('Enter a complete phone number or leave it blank.');
     }
@@ -161,13 +164,13 @@ export default function ContactRecordsScreen() {
     if (contact.standalone) {
       await updateAgentContact.mutateAsync({
         contactId: Math.abs(contact.id),
-        data: { phone: trimmedPhone, email: trimmedEmail || null },
+        data: { name: trimmedName, phone: trimmedPhone, email: trimmedEmail || null },
       });
     } else if (property) {
       await updateProperty.mutateAsync({
         id: property.id,
         data: {
-          sellerName: contact.name,
+          sellerName: trimmedName,
           sellerPhone: trimmedPhone,
           sellerEmail: trimmedEmail,
         },
@@ -272,10 +275,12 @@ export default function ContactRecordsScreen() {
 
   return (
     <>
-    <ScrollView
+    <KeyboardAwareScrollViewCompat
       style={[styles.flex, { backgroundColor: colors.background }]}
       contentContainerStyle={[styles.content, { paddingTop: insets.top + 14, paddingBottom: insets.bottom + 32 }]}
       showsVerticalScrollIndicator={false}
+      bottomOffset={24}
+      keyboardShouldPersistTaps="handled"
     >
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={[styles.back, { backgroundColor: colors.card, borderColor: colors.border }]}>
@@ -341,7 +346,7 @@ export default function ContactRecordsScreen() {
         ))
       )}
       <Text style={[styles.privacy, { color: colors.mutedForeground }]}>Standalone contacts are visible only to your account.</Text>
-    </ScrollView>
+    </KeyboardAwareScrollViewCompat>
     <Modal
       visible={createOpen}
       transparent
@@ -484,19 +489,21 @@ function ContactCard({
   onCaptureMandate: (propertyId: number) => void;
   onRequestReview: (propertyId: number, channel: 'whatsapp' | 'email', recipientEmail?: string | null) => void;
   onOpenMandate: (objectPath?: string | null) => void;
-  onSaveContactDetails: (contact: AgentContact, phone: string, email: string) => Promise<void>;
+  onSaveContactDetails: (contact: AgentContact, name: string, phone: string, email: string) => Promise<void>;
 }) {
   const [editingDetails, setEditingDetails] = useState(false);
+  const [nameDraft, setNameDraft] = useState(contact.name);
   const [phoneDraft, setPhoneDraft] = useState(contact.phone ?? '');
   const [emailDraft, setEmailDraft] = useState(contact.email ?? '');
   const [savingDetails, setSavingDetails] = useState(false);
+  const canEditContact = contact.standalone || contact.properties.length > 0;
 
   const saveDetails = async () => {
     setSavingDetails(true);
     try {
-      await onSaveContactDetails(contact, phoneDraft, emailDraft);
+      await onSaveContactDetails(contact, nameDraft, phoneDraft, emailDraft);
       setEditingDetails(false);
-      Alert.alert('Contact updated', 'The phone number and email have been saved.');
+      Alert.alert('Contact updated', 'The name, phone number, and email have been saved.');
     } catch (error) {
       Alert.alert('Could not save contact', error instanceof Error ? error.message : 'Please try again.');
     } finally {
@@ -509,17 +516,65 @@ function ContactCard({
       <View style={styles.nameRow}>
         <View style={[styles.avatar, { backgroundColor: colors.secondary }]}><Text style={[styles.avatarText, { color: colors.primary }]}>{contact.name.charAt(0).toUpperCase()}</Text></View>
         <View style={styles.flex}>
-          <Text style={[styles.name, { color: colors.foreground }]}>{contact.name}</Text>
-          {contact.idNumber ? <Text style={[styles.detail, { color: colors.mutedForeground }]}>ID: {contact.idNumber}</Text> : null}
-          {contact.standalone ? <Text style={[styles.standalone, { color: colors.mutedForeground }]}>Standalone contact</Text> : null}
+            <Text style={[styles.name, { color: colors.foreground }]} numberOfLines={1}>
+              {contact.name}
+            </Text>
         </View>
+          {canEditContact ? (
+            <TouchableOpacity
+              style={[styles.contactEditButton, { backgroundColor: colors.secondary }]}
+              onPress={() => {
+                setNameDraft(contact.name);
+                setPhoneDraft(contact.phone ?? '');
+                setEmailDraft(contact.email ?? '');
+                setEditingDetails(true);
+              }}
+              accessibilityRole="button"
+              accessibilityLabel={`Edit ${contact.name}, phone number, and email`}
+              testID={`${kind}-edit-contact-${contact.id}`}
+            >
+              <Ionicons name="create-outline" size={16} color={colors.primary} />
+              <Text style={[styles.contactEditText, { color: colors.primary }]}>Edit</Text>
+            </TouchableOpacity>
+          ) : null}
       </View>
-      {!!contact.phone && <TouchableOpacity style={styles.contactLine} onPress={() => Linking.openURL(`tel:${contact.phone}`)}><Ionicons name="call-outline" size={16} color={colors.primary} /><Text style={[styles.detail, { color: colors.foreground }]}>{contact.phone}</Text></TouchableOpacity>}
-      {!!contact.email && <View style={styles.contactLine}><Ionicons name="mail-outline" size={16} color={colors.primary} /><Text style={[styles.detail, { color: colors.foreground }]}>{contact.email}</Text></View>}
+        <View style={styles.contactDetailsRow}>
+          <TouchableOpacity
+            style={styles.contactMetaItem}
+            onPress={() => contact.phone && void Linking.openURL(`tel:${contact.phone}`)}
+            disabled={!contact.phone}
+            accessibilityRole={contact.phone ? 'button' : undefined}
+            accessibilityLabel={contact.phone ? `Call ${contact.name}` : undefined}
+          >
+            <Ionicons name="call-outline" size={15} color={colors.primary} />
+            <Text style={[styles.detail, { color: contact.phone ? colors.foreground : colors.mutedForeground }]} numberOfLines={1}>
+              {contact.phone || 'Phone not provided'}
+            </Text>
+          </TouchableOpacity>
+          <View style={styles.contactMetaItem}>
+            <Ionicons name="mail-outline" size={15} color={colors.primary} />
+            <Text style={[styles.detail, { color: contact.email ? colors.foreground : colors.mutedForeground }]} numberOfLines={1}>
+              {contact.email || 'Email not provided'}
+            </Text>
+          </View>
+        </View>
+        {contact.idNumber ? <Text style={[styles.detail, { color: colors.mutedForeground }]}>ID: {contact.idNumber}</Text> : null}
+        {contact.standalone ? <Text style={[styles.standalone, { color: colors.mutedForeground }]}>Standalone contact</Text> : null}
       {!!contact.postalAddress && <View style={styles.contactLine}><Ionicons name="location-outline" size={16} color={colors.primary} /><Text style={[styles.detail, { color: colors.foreground }]}>{contact.postalAddress}</Text></View>}
-      {(contact.standalone || contact.properties.length > 0) ? (
-        editingDetails ? (
+        {editingDetails && canEditContact ? (
           <View style={styles.contactEditor}>
+            <TextInput
+              style={[styles.input, { backgroundColor: colors.input, borderColor: colors.border, color: colors.foreground }]}
+              value={nameDraft}
+              onChangeText={setNameDraft}
+              placeholder="Full name"
+              placeholderTextColor={colors.mutedForeground}
+              autoCapitalize="words"
+              autoCorrect={false}
+              maxLength={120}
+              returnKeyType="next"
+              accessibilityLabel="Seller or landlord full name"
+            />
             <TextInput
               style={[styles.input, { backgroundColor: colors.input, borderColor: colors.border, color: colors.foreground }]}
               value={phoneDraft}
@@ -559,19 +614,7 @@ function ContactCard({
               </TouchableOpacity>
             </View>
           </View>
-        ) : (
-          <TouchableOpacity
-            onPress={() => {
-              setPhoneDraft(contact.phone ?? '');
-              setEmailDraft(contact.email ?? '');
-              setEditingDetails(true);
-            }}
-            accessibilityRole="button"
-          >
-            <Text style={[styles.reviewHint, { color: colors.primary, textAlign: 'left' }]}>Edit phone and email</Text>
-          </TouchableOpacity>
-        )
-      ) : null}
+        ) : null}
       {!!contact.notes && <Text style={[styles.notes, { color: colors.mutedForeground }]}>{contact.notes}</Text>}
 
       {contact.properties.length > 0 ? <View style={[styles.divider, { backgroundColor: colors.border }]} /> : null}
@@ -663,6 +706,10 @@ const styles = StyleSheet.create({
   avatarText: { fontSize: 19, fontWeight: '800' },
   name: { fontSize: 17, fontWeight: '700' },
   detail: { fontSize: 13, lineHeight: 18, flexShrink: 1 },
+  contactEditButton: { minHeight: 36, borderRadius: 11, flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10 },
+  contactEditText: { fontSize: 12, fontWeight: '700' },
+  contactDetailsRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  contactMetaItem: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 5 },
   contactLine: { flexDirection: 'row', alignItems: 'center', gap: 9 },
   notes: { fontSize: 13, lineHeight: 18 },
   standalone: { fontSize: 11, fontWeight: '600', marginTop: 3 },

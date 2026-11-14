@@ -8,6 +8,11 @@
 
 export interface AgentContactUpdateInput {
   /**
+     * @minLength 1
+     * @maxLength 120
+     */
+  name?: string;
+  /**
      * @minLength 5
      * @maxLength 40
      */

@@ -266,6 +266,11 @@ router.patch("/agent-contacts/:contactId", async (req, res): Promise<void> => {
     res.status(404).json({ error: "Contact not found" });
     return;
   }
+  const name = body.data.name === undefined ? existing.name : body.data.name.trim();
+  if (!name) {
+    res.status(400).json({ error: "Enter a contact name." });
+    return;
+  }
   const phone = body.data.phone.trim();
   const email = body.data.email?.trim() || null;
   if (phone.replace(/\D/g, "").length < 7) {
@@ -286,7 +291,7 @@ router.patch("/agent-contacts/:contactId", async (req, res): Promise<void> => {
     res.status(409).json({ error: "Another contact already uses this phone number." });
     return;
   }
-  const [updated] = await db.update(agentContactsTable).set({ phone, email })
+  const [updated] = await db.update(agentContactsTable).set({ name, phone, email })
     .where(and(
       eq(agentContactsTable.id, existing.id),
       eq(agentContactsTable.agentId, user.id),

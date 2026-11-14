@@ -1830,12 +1830,15 @@ export const UpdateAgentContactParams = zod.object({
   "contactId": zod.coerce.number().min(1)
 })
 
+export const updateAgentContactBodyNameMax = 120;
+
 export const updateAgentContactBodyPhoneMin = 5;
 export const updateAgentContactBodyPhoneMax = 40;
 
 
 
 export const UpdateAgentContactBody = zod.object({
+  "name": zod.string().min(1).max(updateAgentContactBodyNameMax).optional(),
   "phone": zod.string().min(updateAgentContactBodyPhoneMin).max(updateAgentContactBodyPhoneMax),
   "email": zod.string().nullable()
 })
