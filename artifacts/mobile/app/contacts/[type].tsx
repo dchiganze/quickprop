@@ -591,26 +591,45 @@ function ContactCard({
               {busy ? <ActivityIndicator size="small" color={colors.primary} /> : <Ionicons name="scan-outline" size={17} color={colors.primary} />}
               <Text style={[styles.actionText, { color: colors.primary }]}>{busy ? 'Saving…' : 'Scan and store mandate'}</Text>
             </TouchableOpacity>
-            <View style={styles.reviewActions}>
-              <TouchableOpacity
-                disabled={busy}
-                style={[styles.actionButton, styles.reviewAction, { backgroundColor: colors.primary, opacity: busy ? 0.55 : 1 }]}
-                onPress={() => onRequestReview(property.id, 'whatsapp', contact.phone)}
-              >
-                {busy ? <ActivityIndicator size="small" color="#FFF" /> : <Ionicons name="logo-whatsapp" size={17} color="#FFF" />}
-                <Text style={[styles.actionText, { color: '#FFF' }]}>WhatsApp</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                disabled={busy}
-                style={[styles.actionButton, styles.reviewAction, { backgroundColor: colors.secondary, opacity: busy ? 0.45 : 1 }]}
-                onPress={() => onRequestReview(property.id, 'email', contact.email)}
-              >
-                {busy ? <ActivityIndicator size="small" color={colors.primary} /> : <Ionicons name="mail-outline" size={17} color={colors.primary} />}
-                <Text style={[styles.actionText, { color: colors.primary }]}>Email</Text>
-              </TouchableOpacity>
+            <View style={[styles.reviewSection, { backgroundColor: colors.secondary, borderColor: colors.border }]}>
+              <View style={styles.reviewSectionHeader}>
+                <View style={[styles.reviewSectionIcon, { backgroundColor: colors.card }]}>
+                  <Ionicons name="star-outline" size={17} color={colors.primary} />
+                </View>
+                <View style={styles.flex}>
+                  <Text style={[styles.reviewSectionTitle, { color: colors.foreground }]}>Request a review</Text>
+                  <Text style={[styles.reviewSectionDescription, { color: colors.mutedForeground }]}>
+                    Send a review link to this {kind} by WhatsApp or email.
+                  </Text>
+                </View>
+              </View>
+              <View style={styles.reviewActions}>
+                <TouchableOpacity
+                  disabled={busy}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Request a review from this ${kind} by WhatsApp`}
+                  testID={`${kind}-request-review-whatsapp-${property.id}`}
+                  style={[styles.actionButton, styles.reviewAction, { backgroundColor: colors.primary, opacity: busy ? 0.55 : 1 }]}
+                  onPress={() => onRequestReview(property.id, 'whatsapp', contact.phone)}
+                >
+                  {busy ? <ActivityIndicator size="small" color="#FFF" /> : <Ionicons name="logo-whatsapp" size={17} color="#FFF" />}
+                  <Text style={[styles.actionText, { color: '#FFF' }]}>WhatsApp</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  disabled={busy}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Request a review from this ${kind} by email`}
+                  testID={`${kind}-request-review-email-${property.id}`}
+                  style={[styles.actionButton, styles.reviewAction, { backgroundColor: colors.card, opacity: busy ? 0.45 : 1 }]}
+                  onPress={() => onRequestReview(property.id, 'email', contact.email)}
+                >
+                  {busy ? <ActivityIndicator size="small" color={colors.primary} /> : <Ionicons name="mail-outline" size={17} color={colors.primary} />}
+                  <Text style={[styles.actionText, { color: colors.primary }]}>Email</Text>
+                </TouchableOpacity>
+              </View>
+              {!contact.email ? <Text style={[styles.reviewHint, { color: colors.mutedForeground }]}>No email is saved for this contact. You can enter one when requesting a review.</Text> : null}
+              {!closed ? <Text style={[styles.reviewHint, { color: colors.mutedForeground }]}>You can request a review now. QuickProp will still send its automatic request after the mandate closes.</Text> : null}
             </View>
-            {!contact.email ? <Text style={[styles.reviewHint, { color: colors.mutedForeground }]}>No email is saved for this contact. You can enter one when requesting a review.</Text> : null}
-            {!closed ? <Text style={[styles.reviewHint, { color: colors.mutedForeground }]}>You can request a review now. QuickProp will still send its automatic request after the mandate closes.</Text> : null}
           </View>
         );
       })}
@@ -648,6 +667,11 @@ const styles = StyleSheet.create({
   propertyTitle: { fontWeight: '700', fontSize: 14, marginBottom: 2 },
   status: { fontSize: 10, fontWeight: '700', textTransform: 'uppercase' },
   docRow: { flexDirection: 'row', alignItems: 'center', gap: 7, paddingVertical: 4 },
+  reviewSection: { borderWidth: 1, borderRadius: 14, padding: 12, gap: 9, marginTop: 3 },
+  reviewSectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 9 },
+  reviewSectionIcon: { width: 32, height: 32, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  reviewSectionTitle: { fontSize: 14, fontWeight: '800' },
+  reviewSectionDescription: { fontSize: 12, lineHeight: 17, marginTop: 1 },
   actionButton: { minHeight: 42, borderRadius: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingHorizontal: 12 },
   reviewActions: { flexDirection: 'row', gap: 8 },
   reviewAction: { flex: 1 },
