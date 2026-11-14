@@ -17,6 +17,28 @@ export type OfficeInventoryAgencyBranch = {
   status: string;
 };
 
+const AGENCY_INVENTORY_VIEWER_ROLES = new Set([
+  "agent",
+  "senior_agent",
+  "admin",
+  "principal",
+  "administrator",
+  "quickprop_admin",
+]);
+
+export function canViewAgencyInventory(
+  role: string | null | undefined,
+  branchId: number | null | undefined,
+  activeAgencyBranchIds: number[] | undefined,
+): boolean {
+  return Boolean(
+    role
+    && AGENCY_INVENTORY_VIEWER_ROLES.has(role)
+    && branchId != null
+    && activeAgencyBranchIds?.includes(branchId),
+  );
+}
+
 export function getActiveAgencyBranchIds(
   memberBranchId: number | null | undefined,
   memberBranch: OfficeInventoryBranch | undefined,

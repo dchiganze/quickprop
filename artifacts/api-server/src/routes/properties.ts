@@ -50,7 +50,10 @@ import { logger } from "../lib/logger";
 import { isPublicProperty, syncPropertyToProduction } from "../lib/publication-sync";
 import { hasValidListingPrice, isDraftPropertyState, needsPublicationPhoto } from "../lib/property-drafts";
 import { canAssignPropertyToAgent } from "../lib/property-assignment";
-import { getActiveAgencyBranchIdsForUser } from "../lib/office-inventory-scope";
+import {
+  canViewAgencyInventory,
+  getActiveAgencyBranchIdsForUser,
+} from "../lib/office-inventory-scope";
 import { canSyncOfflineProperty } from "../lib/offline-property-sync";
 import {
   createPropertySaleConfirmationToken,
@@ -226,24 +229,34 @@ router.get("/properties", async (req, res): Promise<void> => {
   }
   const f = q.data;
   const conds: SQL[] = [];
-  if (f.status) conds.push(eq(propertiesTable.status, f.status));
+  if (f.status === "draft" && f.pipelineStage == null) {
+    const draftCondition = or(
+      eq(propertiesTable.status, "draft"),
+      eq(propertiesTable.pipelineStage, "draft"),
+    );
+    if (draftCondition) conds.push(draftCondition);
+  } else if (f.status) {
+    conds.push(eq(propertiesTable.status, f.status));
+  }
   if (f.pipelineStage) conds.push(eq(propertiesTable.pipelineStage, f.pipelineStage));
   if (f.listingType) conds.push(eq(propertiesTable.listingType, f.listingType));
   if (f.propertyType) conds.push(eq(propertiesTable.propertyType, f.propertyType));
   if (f.suburb) conds.push(ilike(propertiesTable.suburb, f.suburb));
   const user = await currentUser(req);
-  // The Office explicitly requests agency inventory; mobile callers keep the
-  // existing own-portfolio behavior unless they opt into that Office scope.
-  if (user?.role === "agent" || user?.role === "senior_agent") {
-    const agencyBranchIds = f.agencyInventory === "agency"
-      ? await getActiveAgencyBranchIdsForUser(user.branchId)
-      : undefined;
-    if (agencyBranchIds?.length) {
-      conds.push(inArray(propertiesTable.branchId, agencyBranchIds));
-      if (f.agentId != null) conds.push(eq(propertiesTable.agentId, f.agentId));
-    } else {
-      conds.push(eq(propertiesTable.agentId, user.id));
+  if (f.agencyInventory === "agency") {
+    const agencyBranchIds = await getActiveAgencyBranchIdsForUser(user?.branchId);
+    if (!user) {
+      res.status(401).json({ error: "Sign in to view agency inventory." });
+      return;
     }
+    if (!canViewAgencyInventory(user.role, user.branchId, agencyBranchIds)) {
+      res.status(403).json({ error: "An active branch in your agency is required to view agency inventory." });
+      return;
+    }
+    conds.push(inArray(propertiesTable.branchId, agencyBranchIds!));
+    if (f.agentId != null) conds.push(eq(propertiesTable.agentId, f.agentId));
+  } else if (user?.role === "agent" || user?.role === "senior_agent") {
+    conds.push(eq(propertiesTable.agentId, user.id));
   } else if (f.agentId != null) {
     conds.push(eq(propertiesTable.agentId, f.agentId));
   }

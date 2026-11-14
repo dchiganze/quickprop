@@ -30,6 +30,7 @@ import { EmptyState } from '@/components/EmptyState';
 import { QuickShareSheet } from '@/components/QuickShareSheet';
 import { useNetworkStatus } from '@/contexts/ConnectivityContext';
 import { propertyMatchesQuery } from '@/lib/property-search';
+import { buildAgencyDraftQueryParams } from '@/lib/listing-draft-scope';
 import {
   agencyListingsCacheKey,
   emptyAgencyListingsCache,
@@ -349,40 +350,10 @@ export default function ListingsScreen() {
   }, [agentOptions, agentSearch]);
   const selectedAgent = agentOptions.find((agent) => agent.id === agentFilter);
   const publicAgentId = /^\d+$/.test(agentFilter) ? Number(agentFilter) : undefined;
-  const serverUserId = /^\d+$/.test(user?.id ?? '') ? Number(user?.id) : undefined;
   const draftFilterParams = useMemo(() => {
-    if (
-      scope === 'my'
-      || (scope !== 'agency' && visibilityFilter !== 'draft' && user?.role !== 'agent')
-    ) return undefined;
-
-    if (scope === 'agency') {
-      if (user?.role === 'agent' && serverUserId == null) return undefined;
-      if (user?.role !== 'agent' && publicAgentId == null) return undefined;
-      return {
-        status: 'draft',
-        ...(user?.role === 'agent' ? {} : { agentId: publicAgentId }),
-        agencyInventory: 'agency' as const,
-      };
-    }
-
-    if (user?.role === 'agent') {
-      if (serverUserId == null) return undefined;
-      return {
-        status: 'draft',
-        agencyInventory: 'agency' as const,
-      };
-    }
-
-    if (publicAgentId != null) return { status: 'draft', agentId: publicAgentId };
-    return user?.role === 'administrator' ? { status: 'draft' } : undefined;
-  }, [publicAgentId, scope, serverUserId, user?.role, visibilityFilter]);
-  const draftQueryEnabled = Boolean(
-    serverUserId != null
-    && scope !== 'my'
-    && draftFilterParams
-    && (scope === 'agency' || user?.role === 'agent' || visibilityFilter === 'draft'),
-  );
+    return buildAgencyDraftQueryParams(scope, visibilityFilter, user?.id, publicAgentId);
+  }, [publicAgentId, scope, user?.id, visibilityFilter]);
+  const draftQueryEnabled = Boolean(draftFilterParams);
   const draftListingsQuery = useListProperties(draftFilterParams, {
     query: {
       enabled: draftQueryEnabled,
@@ -541,7 +512,9 @@ export default function ListingsScreen() {
     let list = visibilityFilter === 'draft'
       ? scope === 'my'
         ? localDraftProperties
-        : draftProperties
+        : scope === 'agency'
+          ? draftProperties
+          : []
       : scope === 'all'
         ? [...publicProperties]
         : scope === 'agency'
@@ -867,10 +840,17 @@ export default function ListingsScreen() {
     ? scope !== 'my'
       && draftQueryEnabled
       && draftListingsQuery.isError
-      && !(accountAgencyCache?.draftsSyncedAt && (scope === 'agency' || user?.role === 'agent'))
+      && !(accountAgencyCache?.draftsSyncedAt && scope === 'agency')
     : scope === 'all'
       ? publicFeed.isError
       : scope === 'agency' && agencyQuery.isError && !accountAgencyCache?.liveSyncedAt;
+  const canNavigateToAgencyDrafts = Boolean(
+    (scope === 'my' || scope === 'all')
+    && visibilityFilter === 'draft'
+    && !query.trim()
+    && !agentFilter
+    && activeAgencyName,
+  );
 
   return (
     <View style={[styles.flex, { backgroundColor: colors.background }]}>
@@ -1187,13 +1167,22 @@ export default function ListingsScreen() {
             title={feedError ? 'Listings unavailable' : query || agentFilter || visibilityFilter !== 'all' ? 'No results found' : 'No listings yet'}
             description={feedError
               ? 'Please check your connection and pull down to try again.'
+              : canNavigateToAgencyDrafts
+                ? scope === 'my'
+                  ? `My Listings shows your drafts only. Open ${agencyName} to see drafts from every agent in your agency.`
+                  : `Drafts are agency-only. Open ${agencyName} to view drafts from its agents.`
               : visibilityFilter !== 'all' && !query && !agentFilter
                 ? `No ${visibilityFilter} listings found. Try a different filter or agent.`
                 : query || agentFilter
                 ? 'Try a different search or agent.'
                 : scope === 'my' ? 'Tap the + button to add your first listing.' : undefined}
-            actionLabel={scope === 'my' && !query && !agentFilter ? 'Create Listing' : undefined}
-            onAction={scope === 'my' ? () => router.push('/new-listing') : undefined}
+            actionLabel={canNavigateToAgencyDrafts ? `View ${agencyName}` : scope === 'my' && !query && !agentFilter ? 'Create Listing' : undefined}
+            onAction={canNavigateToAgencyDrafts
+              ? () => {
+                setScope('agency');
+                void Haptics.selectionAsync().catch(() => undefined);
+              }
+              : scope === 'my' ? () => router.push('/new-listing') : undefined}
           />
         )}
         ListFooterComponent={scope === 'all' && visibilityFilter !== 'draft' && publicFeed.isFetchingNextPage ? (

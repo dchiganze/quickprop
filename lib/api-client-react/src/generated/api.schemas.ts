@@ -3285,7 +3285,7 @@ propertyType?: string;
 suburb?: string;
 agentId?: number;
 /**
- * Set to agency for the Office view; agents remain scoped to active branches in their own active agency.
+ * Set to agency for an authenticated, read-only view of inventory in the member's active agency, including drafts; results never include other agencies.
  */
 agencyInventory?: ListPropertiesAgencyInventory;
 /**

@@ -1,6 +1,17 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { getActiveAgencyBranchIds } from "./office-inventory-scope";
+import { canViewAgencyInventory, getActiveAgencyBranchIds } from "./office-inventory-scope";
+
+test("agency inventory access requires an allowed role and a branch in the member's agency", () => {
+  const activeAgencyBranchIds = [10, 11];
+
+  assert.equal(canViewAgencyInventory("agent", 10, activeAgencyBranchIds), true);
+  assert.equal(canViewAgencyInventory("admin", 10, activeAgencyBranchIds), true);
+  assert.equal(canViewAgencyInventory("agent", 20, activeAgencyBranchIds), false);
+  assert.equal(canViewAgencyInventory("buyer", 10, activeAgencyBranchIds), false);
+  assert.equal(canViewAgencyInventory("agent", null, activeAgencyBranchIds), false);
+  assert.equal(canViewAgencyInventory("agent", 10, undefined), false);
+});
 
 test("agency inventory includes active branches in the member's active agency", () => {
   assert.deepEqual(

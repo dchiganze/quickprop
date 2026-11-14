@@ -640,7 +640,7 @@ export const ListPropertiesQueryParams = zod.object({
   "propertyType": zod.coerce.string().optional(),
   "suburb": zod.coerce.string().optional(),
   "agentId": zod.coerce.number().optional(),
-  "agencyInventory": zod.enum(['agency']).optional().describe('Set to agency for the Office view; agents remain scoped to active branches in their own active agency.'),
+  "agencyInventory": zod.enum(['agency']).optional().describe('Set to agency for an authenticated, read-only view of inventory in the member\'s active agency, including drafts; results never include other agencies.'),
   "q": zod.coerce.string().optional().describe('Supports phrases such as \"3 bedroom in Highlands under $300,000\".'),
   "minPrice": zod.coerce.number().optional(),
   "maxPrice": zod.coerce.number().optional()
