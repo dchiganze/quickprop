@@ -40,3 +40,11 @@ GitHub manual dispatch runs use the workflow definition on the repository's defa
 **Why:** A release-branch workflow definition included a submit job that was absent from the default-branch definition; the build artifact was produced, but the release run did not schedule that branch-only job. The dedicated submit workflow ran when dispatched from the default branch.
 
 **How to apply:** After building, confirm the signed AAB artifact exists, then dispatch the default-branch submit workflow with its exact run ID and track. Verify the upload job result before recording the version code as submitted.
+
+## Workflow dispatch through the Replit GitHub proxy
+
+When `gh workflow run` fails with `malformed version:` on the Replit GitHub Enterprise proxy, dispatch the existing workflow through the GitHub REST workflow-dispatch endpoint using `gh api`.
+
+**Why:** The CLI dispatch command failed before creating a run, while the REST dispatch request succeeded with HTTP 204.
+
+**How to apply:** Use the REST endpoint for the workflow ID with a JSON body containing the target ref and declared inputs; do not repeatedly retry the CLI command.

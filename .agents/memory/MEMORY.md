@@ -8,7 +8,7 @@
 - [QuickProp Office Bulk Imports](quickprop-office-imports.md) — confirmed mappings, safe retries, and assigned agent plus positive price required before draft creation.
 - [Durable Import Recovery](durable-import-recovery.md) — database file checkpoints and restart-safe worker ownership keep large portfolio imports resumable.
 - [OpenAPI Contract Shape](openapi-contract-shape.md) — keep each operation's request and response blocks directly nested under its method so Orval can resolve the spec.
-- [GitHub Release Workflow Publishing](github-release-workflow.md) — workflow-file pushes require GitHub workflow scope and may be blocked by the connector proxy.
+- [GitHub Release Workflow Publishing](github-release-workflow.md) — workflow-file pushes may be blocked by GitHub scope; use REST dispatch when gh workflow run parsing fails.
 - [QuickProp Sharing](quickprop-sharing.md) — browser file-sharing limits require a download-plus-caption fallback for WhatsApp.
 - [QuickProp Brochure Filtering](quickprop-brochure-filtering.md) — transaction type and property classification are separate mobile brochure dimensions.
 - [QuickProp Video Export](quickprop-video-export.md) — start capture at player mount; mux the verified soundtrack directly because Chromium's headless media clock may not advance.
