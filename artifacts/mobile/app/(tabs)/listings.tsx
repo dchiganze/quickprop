@@ -969,59 +969,59 @@ export default function ListingsScreen() {
                 })}
               </View>
 
-              {scope !== 'my' && (
-                <>
-                  <View style={[styles.menuDivider, { backgroundColor: colors.border }]} />
-                  <ScrollView style={styles.agentMenuScroll} nestedScrollEnabled keyboardShouldPersistTaps="handled">
-                    {(publicAgentsQuery.isLoading || agencyQuery.isLoading) && !accountAgencyCache?.agentsSyncedAt ? (
-                      <View style={styles.agentLoading}>
-                        <ActivityIndicator size="small" color={colors.primary} />
-                        <Text style={[styles.agentOptionDetail, { color: colors.mutedForeground }]}>Loading agents…</Text>
-                      </View>
-                    ) : (publicAgentsQuery.isError || agencyQuery.isError || !activeAgencyName) && !accountAgencyCache?.agentsSyncedAt ? (
+              <>
+                <View style={[styles.menuDivider, { backgroundColor: colors.border }]} />
+                <ScrollView style={styles.agentMenuScroll} nestedScrollEnabled keyboardShouldPersistTaps="handled">
+                  {(publicAgentsQuery.isLoading || agencyQuery.isLoading) && !accountAgencyCache?.agentsSyncedAt ? (
+                    <View style={styles.agentLoading}>
+                      <ActivityIndicator size="small" color={colors.primary} />
+                      <Text style={[styles.agentOptionDetail, { color: colors.mutedForeground }]}>Loading agents…</Text>
+                    </View>
+                  ) : (publicAgentsQuery.isError || agencyQuery.isError || !activeAgencyName) && !accountAgencyCache?.agentsSyncedAt ? (
+                    <TouchableOpacity
+                      style={styles.agentLoading}
+                      onPress={() => { void Promise.all([publicAgentsQuery.refetch(), agencyQuery.refetch()]); }}
+                      accessibilityRole="button"
+                      testID="mobile-agent-filter-retry"
+                    >
+                      <Text style={[styles.agentOptionName, { color: colors.primary }]}>Couldn’t load your agency’s agents — tap to retry</Text>
+                    </TouchableOpacity>
+                  ) : agentOptions.length > 0 ? (
+                    agentOptions.map((agent) => (
                       <TouchableOpacity
-                        style={styles.agentLoading}
-                        onPress={() => { void Promise.all([publicAgentsQuery.refetch(), agencyQuery.refetch()]); }}
+                        key={agent.id}
+                        style={[styles.agentOption, agentFilter === agent.id && { backgroundColor: `${colors.primary}14` }]}
+                        onPress={async () => {
+                          await Haptics.selectionAsync();
+                          setScope('agency');
+                          setAgentFilter(agent.id);
+                          setStatusFilter('all');
+                          setAgentMenuOpen(false);
+                        }}
                         accessibilityRole="button"
-                        testID="mobile-agent-filter-retry"
+                        accessibilityState={{ selected: agentFilter === agent.id }}
+                        testID={`mobile-agent-option-${agent.id}`}
                       >
-                        <Text style={[styles.agentOptionName, { color: colors.primary }]}>Couldn’t load your agency’s agents — tap to retry</Text>
-                      </TouchableOpacity>
-                    ) : agentOptions.length > 0 ? (
-                      agentOptions.map((agent) => (
-                        <TouchableOpacity
-                          key={agent.id}
-                          style={[styles.agentOption, agentFilter === agent.id && { backgroundColor: `${colors.primary}14` }]}
-                          onPress={async () => {
-                            await Haptics.selectionAsync();
-                            setAgentFilter(agent.id);
-                            setAgentMenuOpen(false);
-                          }}
-                          accessibilityRole="button"
-                          accessibilityState={{ selected: agentFilter === agent.id }}
-                          testID={`mobile-agent-option-${agent.id}`}
-                        >
-                          <View style={styles.agentOptionLabel}>
-                            <Text numberOfLines={1} style={[styles.agentOptionName, { color: agentFilter === agent.id ? colors.primary : colors.foreground }]}>
-                              {agent.name}
+                        <View style={styles.agentOptionLabel}>
+                          <Text numberOfLines={1} style={[styles.agentOptionName, { color: agentFilter === agent.id ? colors.primary : colors.foreground }]}>
+                            {agent.name}
+                          </Text>
+                          {agent.detail ? (
+                            <Text numberOfLines={1} style={[styles.agentOptionDetail, { color: colors.mutedForeground }]}>
+                              {agent.detail}
                             </Text>
-                            {agent.detail ? (
-                              <Text numberOfLines={1} style={[styles.agentOptionDetail, { color: colors.mutedForeground }]}>
-                                {agent.detail}
-                              </Text>
-                            ) : null}
-                          </View>
-                          {agentFilter === agent.id && <Ionicons name="checkmark" size={17} color={colors.primary} />}
-                        </TouchableOpacity>
-                      ))
-                    ) : (
-                      <Text style={[styles.agentOptionDetail, styles.agentNoResults, { color: colors.mutedForeground }]}>
-                        No agents are available in your agency.
-                      </Text>
-                    )}
-                  </ScrollView>
-                </>
-              )}
+                          ) : null}
+                        </View>
+                        {agentFilter === agent.id && <Ionicons name="checkmark" size={17} color={colors.primary} />}
+                      </TouchableOpacity>
+                    ))
+                  ) : (
+                    <Text style={[styles.agentOptionDetail, styles.agentNoResults, { color: colors.mutedForeground }]}>
+                      No agents are available in your agency.
+                    </Text>
+                  )}
+                </ScrollView>
+              </>
             </View>
           )}
         </View>
