@@ -56,17 +56,10 @@ import {
 import type { Property } from '@/types';
 
 type ListingScope = 'all' | 'my' | 'agency';
-type MyStatusFilter = 'all' | 'draft' | 'sold' | 'rented' | 'archived';
+type MyStatusFilter = 'all' | 'sold' | 'rented' | 'archived';
 type ListingVisibilityFilter = 'all' | 'draft' | 'live';
 
-const SCOPE_FILTERS: { key: ListingScope; label: string }[] = [
-  { key: 'my', label: 'My Listings' },
-  { key: 'agency', label: 'Agency Listings' },
-  { key: 'all', label: 'All of QuickProp' },
-];
-
 const MY_STATUS_FILTERS: { key: Exclude<MyStatusFilter, 'all'>; label: string }[] = [
-  { key: 'draft', label: 'Draft' },
   { key: 'sold', label: 'Sold' },
   { key: 'rented', label: 'Rented' },
   { key: 'archived', label: 'Archived' },
@@ -341,7 +334,7 @@ export default function ListingsScreen() {
     user?.id,
   ]);
 
-  const allAgencyAgentsLabel = activeAgencyName ? `All ${activeAgencyName} agents` : 'All agency agents';
+  const allAgencyAgentsLabel = activeAgencyName ? `All ${activeAgencyName} Agents` : 'All Agency Agents';
   const visibleAgentOptions = useMemo(() => {
     const term = agentSearch.trim().toLowerCase();
     return term
@@ -349,6 +342,19 @@ export default function ListingsScreen() {
       : agentOptions;
   }, [agentOptions, agentSearch]);
   const selectedAgent = agentOptions.find((agent) => agent.id === agentFilter);
+  const listingScopeOptions: { key: ListingScope; label: string }[] = [
+    { key: 'my', label: 'My Listings' },
+    { key: 'agency', label: allAgencyAgentsLabel },
+    { key: 'all', label: 'All of QuickProp' },
+  ];
+  const listingSourceLabel = scope === 'my'
+    ? 'My Listings'
+    : scope === 'all' && !agentFilter
+      ? 'All of QuickProp'
+      : selectedAgent?.name ?? allAgencyAgentsLabel;
+  const statusFilterLabel = MY_STATUS_FILTERS.find((item) => item.key === statusFilter)?.label
+    ?? VISIBILITY_FILTERS.find((item) => item.key === visibilityFilter)?.label
+    ?? 'All statuses';
   const publicAgentId = /^\d+$/.test(agentFilter) ? Number(agentFilter) : undefined;
   const draftFilterParams = useMemo(() => {
     return buildAgencyDraftQueryParams(scope, visibilityFilter, user?.id, publicAgentId);
@@ -831,7 +837,6 @@ export default function ListingsScreen() {
     scope,
   ]);
 
-  const agencyFilterLabel = agencyName === 'Agency Listings' ? SCOPE_FILTERS[2].label : agencyName;
   const feedLoading = visibilityFilter === 'draft'
     ? scope !== 'my'
       && draftQueryEnabled
@@ -932,98 +937,114 @@ export default function ListingsScreen() {
               setAgentSearch('');
             }}
             accessibilityRole="button"
-            accessibilityLabel={selectedAgent ? `Filter by agent, ${selectedAgent.name}` : `Filter by agent, ${allAgencyAgentsLabel}`}
+            accessibilityLabel={`Filter listings, ${listingSourceLabel}`}
             accessibilityState={{ expanded: agentMenuOpen }}
             testID="mobile-agent-filter"
           >
             <Ionicons name="people-outline" size={17} color={colors.mutedForeground} />
             <Text numberOfLines={1} style={[styles.agentFilterButtonText, { color: colors.foreground }]}>
-              {selectedAgent ? selectedAgent.name : allAgencyAgentsLabel}
+              {listingSourceLabel}
             </Text>
             <Ionicons name={agentMenuOpen ? 'chevron-up' : 'chevron-down'} size={16} color={colors.mutedForeground} />
           </TouchableOpacity>
 
           {agentMenuOpen && (
             <View style={[styles.agentDropdown, { backgroundColor: colors.background, borderColor: colors.border }]}>
-              <View style={[styles.agentSearch, { backgroundColor: colors.input, borderColor: colors.border }]}>
-                <Ionicons name="search-outline" size={16} color={colors.mutedForeground} />
-                <TextInput
-                  value={agentSearch}
-                  onChangeText={setAgentSearch}
-                  placeholder="Search agents"
-                  placeholderTextColor={colors.mutedForeground}
-                  style={[styles.agentSearchInput, { color: colors.foreground }]}
-                  autoCapitalize="words"
-                  testID="mobile-agent-search"
-                />
-              </View>
-
-              <ScrollView style={styles.agentMenuScroll} nestedScrollEnabled keyboardShouldPersistTaps="handled">
-                <TouchableOpacity
-                  style={[styles.agentOption, !agentFilter && { backgroundColor: `${colors.primary}14` }]}
-                  onPress={async () => {
-                    await Haptics.selectionAsync();
-                    setAgentFilter('');
-                    setAgentMenuOpen(false);
-                    setAgentSearch('');
-                  }}
-                  accessibilityRole="button"
-                  testID="mobile-agent-filter-all"
-                >
-                  <Text style={[styles.agentOptionName, { color: !agentFilter ? colors.primary : colors.foreground }]}>
-                    {allAgencyAgentsLabel}
-                  </Text>
-                  {!agentFilter && <Ionicons name="checkmark" size={17} color={colors.primary} />}
-                </TouchableOpacity>
-
-                {(publicAgentsQuery.isLoading || agencyQuery.isLoading) && !accountAgencyCache?.agentsSyncedAt ? (
-                  <View style={styles.agentLoading}>
-                    <ActivityIndicator size="small" color={colors.primary} />
-                    <Text style={[styles.agentOptionDetail, { color: colors.mutedForeground }]}>Loading agents…</Text>
-                  </View>
-                ) : (publicAgentsQuery.isError || agencyQuery.isError || !activeAgencyName) && !accountAgencyCache?.agentsSyncedAt ? (
-                  <TouchableOpacity
-                    style={styles.agentLoading}
-                    onPress={() => { void Promise.all([publicAgentsQuery.refetch(), agencyQuery.refetch()]); }}
-                    accessibilityRole="button"
-                    testID="mobile-agent-filter-retry"
-                  >
-                    <Text style={[styles.agentOptionName, { color: colors.primary }]}>Couldn’t load your agency’s agents — tap to retry</Text>
-                  </TouchableOpacity>
-                ) : visibleAgentOptions.length > 0 ? (
-                  visibleAgentOptions.map((agent) => (
+              <View style={styles.agentScopeOptions}>
+                {listingScopeOptions.map((item) => {
+                  const selected = scope === item.key;
+                  return (
                     <TouchableOpacity
-                      key={agent.id}
-                      style={[styles.agentOption, agentFilter === agent.id && { backgroundColor: `${colors.primary}14` }]}
+                      key={item.key}
+                      style={[styles.agentOption, selected && { backgroundColor: `${colors.primary}14` }]}
                       onPress={async () => {
                         await Haptics.selectionAsync();
-                        setAgentFilter(agent.id);
+                        setScope(item.key);
+                        setAgentFilter('');
+                        setStatusFilter('all');
                         setAgentMenuOpen(false);
                         setAgentSearch('');
                       }}
                       accessibilityRole="button"
-                      accessibilityState={{ selected: agentFilter === agent.id }}
-                      testID={`mobile-agent-option-${agent.id}`}
+                      accessibilityState={{ selected }}
+                      testID={item.key === 'agency' ? 'mobile-agent-filter-all' : `listings-scope-${item.key}`}
                     >
-                      <View style={styles.agentOptionLabel}>
-                        <Text numberOfLines={1} style={[styles.agentOptionName, { color: agentFilter === agent.id ? colors.primary : colors.foreground }]}>
-                          {agent.name}
-                        </Text>
-                        {agent.detail ? (
-                          <Text numberOfLines={1} style={[styles.agentOptionDetail, { color: colors.mutedForeground }]}>
-                            {agent.detail}
-                          </Text>
-                        ) : null}
-                      </View>
-                      {agentFilter === agent.id && <Ionicons name="checkmark" size={17} color={colors.primary} />}
+                      <Text style={[styles.agentOptionName, { color: selected ? colors.primary : colors.foreground }]}>
+                        {item.label}
+                      </Text>
+                      {selected && <Ionicons name="checkmark" size={17} color={colors.primary} />}
                     </TouchableOpacity>
-                  ))
-                ) : (
-                  <Text style={[styles.agentOptionDetail, styles.agentNoResults, { color: colors.mutedForeground }]}>
-                    No agents match that search.
-                  </Text>
-                )}
-              </ScrollView>
+                  );
+                })}
+              </View>
+
+              {scope !== 'my' && (
+                <>
+                  <View style={[styles.menuDivider, { backgroundColor: colors.border }]} />
+                  <View style={[styles.agentSearch, { backgroundColor: colors.input, borderColor: colors.border }]}>
+                    <Ionicons name="search-outline" size={16} color={colors.mutedForeground} />
+                    <TextInput
+                      value={agentSearch}
+                      onChangeText={setAgentSearch}
+                      placeholder="Search agents"
+                      placeholderTextColor={colors.mutedForeground}
+                      style={[styles.agentSearchInput, { color: colors.foreground }]}
+                      autoCapitalize="words"
+                      testID="mobile-agent-search"
+                    />
+                  </View>
+
+                  <ScrollView style={styles.agentMenuScroll} nestedScrollEnabled keyboardShouldPersistTaps="handled">
+                    {(publicAgentsQuery.isLoading || agencyQuery.isLoading) && !accountAgencyCache?.agentsSyncedAt ? (
+                      <View style={styles.agentLoading}>
+                        <ActivityIndicator size="small" color={colors.primary} />
+                        <Text style={[styles.agentOptionDetail, { color: colors.mutedForeground }]}>Loading agents…</Text>
+                      </View>
+                    ) : (publicAgentsQuery.isError || agencyQuery.isError || !activeAgencyName) && !accountAgencyCache?.agentsSyncedAt ? (
+                      <TouchableOpacity
+                        style={styles.agentLoading}
+                        onPress={() => { void Promise.all([publicAgentsQuery.refetch(), agencyQuery.refetch()]); }}
+                        accessibilityRole="button"
+                        testID="mobile-agent-filter-retry"
+                      >
+                        <Text style={[styles.agentOptionName, { color: colors.primary }]}>Couldn’t load your agency’s agents — tap to retry</Text>
+                      </TouchableOpacity>
+                    ) : visibleAgentOptions.length > 0 ? (
+                      visibleAgentOptions.map((agent) => (
+                        <TouchableOpacity
+                          key={agent.id}
+                          style={[styles.agentOption, agentFilter === agent.id && { backgroundColor: `${colors.primary}14` }]}
+                          onPress={async () => {
+                            await Haptics.selectionAsync();
+                            setAgentFilter(agent.id);
+                            setAgentMenuOpen(false);
+                            setAgentSearch('');
+                          }}
+                          accessibilityRole="button"
+                          accessibilityState={{ selected: agentFilter === agent.id }}
+                          testID={`mobile-agent-option-${agent.id}`}
+                        >
+                          <View style={styles.agentOptionLabel}>
+                            <Text numberOfLines={1} style={[styles.agentOptionName, { color: agentFilter === agent.id ? colors.primary : colors.foreground }]}>
+                              {agent.name}
+                            </Text>
+                            {agent.detail ? (
+                              <Text numberOfLines={1} style={[styles.agentOptionDetail, { color: colors.mutedForeground }]}>
+                                {agent.detail}
+                              </Text>
+                            ) : null}
+                          </View>
+                          {agentFilter === agent.id && <Ionicons name="checkmark" size={17} color={colors.primary} />}
+                        </TouchableOpacity>
+                      ))
+                    ) : (
+                      <Text style={[styles.agentOptionDetail, styles.agentNoResults, { color: colors.mutedForeground }]}>
+                        No agents match that search.
+                      </Text>
+                    )}
+                  </ScrollView>
+                </>
+              )}
             </View>
           )}
         </View>
@@ -1033,13 +1054,13 @@ export default function ListingsScreen() {
             style={[styles.statusFilterButton, { backgroundColor: colors.muted, borderColor: colors.border }]}
             onPress={() => setStatusMenuOpen((open) => !open)}
             accessibilityRole="button"
-            accessibilityLabel={`Listing status, ${VISIBILITY_FILTERS.find((item) => item.key === visibilityFilter)?.label ?? 'All statuses'}`}
+            accessibilityLabel={`Listing status, ${statusFilterLabel}`}
             accessibilityState={{ expanded: statusMenuOpen }}
             testID="mobile-listing-status-filter"
           >
             <Ionicons name="options-outline" size={17} color={colors.mutedForeground} />
             <Text style={[styles.agentFilterButtonText, { color: colors.foreground }]}>
-              {VISIBILITY_FILTERS.find((item) => item.key === visibilityFilter)?.label ?? 'All statuses'}
+              {statusFilterLabel}
             </Text>
             <Ionicons name={statusMenuOpen ? 'chevron-up' : 'chevron-down'} size={16} color={colors.mutedForeground} />
           </TouchableOpacity>
@@ -1068,56 +1089,38 @@ export default function ListingsScreen() {
                   </TouchableOpacity>
                 );
               })}
+              {scope === 'my' && visibilityFilter === 'all' && (
+                <>
+                  <View style={[styles.menuDivider, { backgroundColor: colors.border }]} />
+                  {MY_STATUS_FILTERS.map((item) => {
+                    const selected = statusFilter === item.key;
+                    return (
+                      <TouchableOpacity
+                        key={item.key}
+                        style={[styles.statusOption, selected && { backgroundColor: `${colors.primary}14` }]}
+                        onPress={async () => {
+                          await Haptics.selectionAsync();
+                          setVisibilityFilter('all');
+                          setStatusFilter(item.key);
+                          setStatusMenuOpen(false);
+                        }}
+                        accessibilityRole="button"
+                        accessibilityState={{ selected }}
+                        testID={`mobile-listing-status-${item.key}`}
+                      >
+                        <Text style={[styles.agentOptionName, { color: selected ? colors.primary : colors.foreground }]}>
+                          {item.label}
+                        </Text>
+                        {selected && <Ionicons name="checkmark" size={17} color={colors.primary} />}
+                      </TouchableOpacity>
+                    );
+                  })}
+                </>
+              )}
             </View>
           )}
         </View>
 
-        {/* Listing scope filters */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.filterList}
-          contentContainerStyle={styles.filterContent}
-        >
-          {SCOPE_FILTERS.map((item) => {
-            const active = scope === item.key;
-            const label = item.key === 'agency' ? agencyFilterLabel : item.label;
-            return (
-              <TouchableOpacity
-                key={item.key}
-                style={[
-                  styles.filterBtn,
-                  { backgroundColor: active ? colors.primary : colors.muted, borderColor: active ? colors.primary : colors.border },
-                ]}
-                onPress={() => {
-                  setScope(item.key);
-                  setStatusFilter('all');
-                  void Haptics.selectionAsync().catch(() => undefined);
-                }}
-                accessibilityRole="button"
-                accessibilityState={{ selected: active }}
-                testID={`listings-scope-${item.key}`}
-              >
-                <Text style={[styles.filterText, { color: active ? '#FFF' : colors.mutedForeground }]}>{label}</Text>
-              </TouchableOpacity>
-            );
-          })}
-          {scope === 'my' && visibilityFilter === 'all' && MY_STATUS_FILTERS.map((item) => {
-            const active = statusFilter === item.key;
-            return (
-              <TouchableOpacity
-                key={item.key}
-                style={[
-                  styles.filterBtn,
-                  { backgroundColor: active ? colors.primary : colors.muted, borderColor: active ? colors.primary : colors.border },
-                ]}
-                onPress={async () => { await Haptics.selectionAsync(); setStatusFilter(item.key); }}
-              >
-                <Text style={[styles.filterText, { color: active ? '#FFF' : colors.mutedForeground }]}>{item.label}</Text>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
         {scope === 'agency'
           && isOffline
           && (visibilityFilter === 'draft'
@@ -1262,6 +1265,8 @@ const styles = StyleSheet.create({
   statusOption: { minHeight: 42, borderRadius: 8, paddingHorizontal: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   agentFilterButtonText: { flex: 1, fontSize: 14, fontWeight: '600' },
   agentDropdown: { borderWidth: 1, borderRadius: 12, padding: 8, gap: 8 },
+  agentScopeOptions: { gap: 2 },
+  menuDivider: { height: 1, marginHorizontal: 4 },
   agentSearch: { height: 40, borderRadius: 9, borderWidth: 1, paddingHorizontal: 10, flexDirection: 'row', alignItems: 'center', gap: 8 },
   agentSearchInput: { flex: 1, height: '100%', fontSize: 14 },
   agentMenuScroll: { maxHeight: 210 },
@@ -1271,12 +1276,8 @@ const styles = StyleSheet.create({
   agentOptionDetail: { fontSize: 12 },
   agentLoading: { minHeight: 40, paddingHorizontal: 10, flexDirection: 'row', alignItems: 'center', gap: 8 },
   agentNoResults: { paddingHorizontal: 10, paddingVertical: 14 },
-  filterList: { marginHorizontal: -16 },
-  filterContent: { paddingHorizontal: 16, gap: 8 },
   offlineAgencyHint: { marginHorizontal: 18, marginTop: 8, paddingHorizontal: 10, paddingVertical: 8, borderRadius: 10, flexDirection: 'row', alignItems: 'center', gap: 6 },
   offlineAgencyHintText: { flex: 1, fontSize: 12, fontWeight: '600' },
-  filterBtn: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, borderWidth: 1 },
-  filterText: { fontSize: 13, fontWeight: '600' },
   loadingState: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 48 },
   loadingFooter: { height: 48, alignItems: 'center', justifyContent: 'center' },
   listContent: { paddingHorizontal: 16, paddingTop: 12 },
