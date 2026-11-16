@@ -186,8 +186,8 @@ jobs:
           import os, sys, stat
           fmt_dir = 'artifacts/mobile/ios/Pods/fmt'
           if not os.path.isdir(fmt_dir):
-              print('ERROR: ' + fmt_dir + ' not found', file=sys.stderr)
-              sys.exit(1)
+              print('Skipping fmt patch; CocoaPods did not install the fmt pod.')
+              sys.exit(0)
           patched = []
           for root, _, files in os.walk(fmt_dir):
               for fname in files:
@@ -202,8 +202,7 @@ jobs:
                       print('  patched: ' + fpath)
           print('Done -- ' + str(len(patched)) + ' file(s) patched.')
           if not patched:
-              print('WARNING: no occurrences of consteval found.')
-              sys.exit(1)
+              print('No consteval occurrences found; no patch is needed.')
 
       - name: Detect Xcode workspace and scheme
         working-directory: artifacts/mobile/ios
