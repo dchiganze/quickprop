@@ -617,3 +617,17 @@ mtime_ms = 1794668133523
 storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:cf900b3f-04ce-456b-888c-760ecb412036/eb992e13-7abe-48ae-8692-b04a09b428de/23c9b5a3-b1c4-4316-9388-6a2c8c699416"
 storage_version_token = "1794668182764267"
 content_type = "image/png"
+
+[[outputs]]
+id = "N9peYds4zPsMo0PwXQpxv"
+uri = "file://generated-artifacts/quickprop-agency-brochure.pdf"
+type = "pdf"
+title = "QuickProp for Agencies — Brochure"
+description = "Four-page A4 brochure for prospective agencies, covering the QuickProp agency workspace, marketplace, team tools, and agency contact details."
+logical_id = "32ef1586-af0c-4e1d-8aeb-65403f091b9d"
+content_hash = "sha256:339a4e8e5508b9c28454ae2b5b490337510b1b7e95a89d12e2df0492d53a7a65"
+size = 1648923
+mtime_ms = 1794815982884
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:cf900b3f-04ce-456b-888c-760ecb412036/32ef1586-af0c-4e1d-8aeb-65403f091b9d/8ab3de2b-6352-48b9-bcfc-bb282adf3bd1"
+storage_version_token = "1794816014576952"
+content_type = "application/pdf"
