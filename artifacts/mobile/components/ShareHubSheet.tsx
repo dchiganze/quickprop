@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useMemo } from 'react';
 import {
   View, Text, Modal, TouchableOpacity, StyleSheet, Share,
   ScrollView, Platform, Pressable, ActivityIndicator, Alert,
@@ -9,12 +9,10 @@ import { useColors } from '@/hooks/useColors';
 import { useData } from '@/contexts/DataContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Property } from '@/types';
-import { catalogueShareLinks, getFacebookShareUrl, propertyShareLinks } from '@/utils/shareLinks';
-import { buildCatalogueShareMessage, buildCatalogueWhatsAppCaption, buildPropertyShareMessage, formatSharePrice } from '@/utils/shareContent';
+import { propertyShareLinks } from '@/utils/shareLinks';
+import { buildPropertyShareMessage, formatSharePrice } from '@/utils/shareContent';
 import {
   PropertySocialDestination,
-  shareCatalogueToSocial,
-  shareCatalogueToWhatsApp,
   sharePropertyToWhatsApp,
   sharePropertyToSocial,
 } from '@/utils/whatsapp';
@@ -22,9 +20,21 @@ import { PropertyFlyer, PropertyFlyerHandle } from '@/components/PropertyFlyer';
 import { FlyerCustomizer } from '@/components/FlyerCustomizer';
 import { useFlyerSettings } from '@/hooks/useFlyerSettings';
 import { waitForShareModalDismissal } from '@/utils/socialShareFlow';
-import { ShareCatalogueCard, ShareCatalogueCardHandle } from '@/components/ShareCatalogueCard';
+import {
+  getGetAdminAgencySettingsQueryKey,
+  getGetAgencyPropertiesQueryKey,
+  getListUsersQueryKey,
+  useGetAdminAgencySettings,
+  useGetAgencyProperties,
+  useGetStoredMediaUrl,
+  useListUsers,
+} from '@workspace/api-client-react';
+import { getStoredMediaObjectPath } from '@/utils/listingPhoto';
+import { catalogueBrochureHtml, type BrochureAgent } from '@/utils/brochureHtml';
+import { prepareBrochureMedia } from '@/utils/brochureMedia';
+import { shareCatalogueBrochureHtml } from '@/utils/catalogueBrochureShare';
 
-type Step = 'hub' | 'property-select' | 'property-share' | 'catalogue-share';
+type Step = 'hub' | 'property-select' | 'property-share';
 type CatalogMode = 'agent' | 'company';
 
 interface Props {
@@ -42,9 +52,9 @@ export function ShareHubSheet({ visible, onClose }: Props) {
   const { user } = useAuth();
 
   const [step, setStep] = useState<Step>('hub');
-  const [catalogMode, setCatalogMode] = useState<CatalogMode>('agent');
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
   const [sharing, setSharing] = useState(false);
+  const [sharingCatalogueMode, setSharingCatalogueMode] = useState<CatalogMode | null>(null);
   const shareCardRef = useRef<PropertyFlyerHandle>(null);
   const flyer = useFlyerSettings(selectedProperty ?? undefined, user);
   const [flyerEditorOpen, setFlyerEditorOpen] = useState(false);
@@ -60,7 +70,68 @@ export function ShareHubSheet({ visible, onClose }: Props) {
       dismissRef.current = null;
     }
   }, [onClose]);
-  const catalogueCardRef = useRef<ShareCatalogueCardHandle>(null);
+  const directoryQuery = useListUsers({
+    query: {
+      enabled: visible && Boolean(user?.id),
+      queryKey: getListUsersQueryKey(),
+    },
+  });
+  const { data: directoryUsers = [], refetch: refetchDirectoryUsers } = directoryQuery;
+  const agencySettingsQuery = useGetAdminAgencySettings({
+    query: {
+      enabled: visible && Boolean(user?.id),
+      queryKey: getGetAdminAgencySettingsQueryKey(),
+    },
+  });
+  const agencyQuery = useGetAgencyProperties({
+    query: {
+      enabled: visible && Boolean(user?.id),
+      queryKey: getGetAgencyPropertiesQueryKey(),
+    },
+  });
+  const agencySettings = agencySettingsQuery.data;
+  const agencyLogoUrl = agencySettings?.logoUrl?.trim() || agencyQuery.data?.agencyLogoUrl || null;
+  const agencyLogoObjectPath = useMemo(
+    () => agencyLogoUrl ? getStoredMediaObjectPath(agencyLogoUrl) : undefined,
+    [agencyLogoUrl],
+  );
+  const agencyLogoMedia = useGetStoredMediaUrl(
+    { objectPath: agencyLogoObjectPath ?? '' },
+    {
+      query: {
+        queryKey: ['brochure-agency-logo', user?.id, agencyLogoObjectPath],
+        enabled: Boolean(agencyLogoObjectPath),
+        staleTime: 10 * 60 * 1000,
+        retry: 1,
+      },
+    },
+  );
+  const agencyName = agencyQuery.data?.agencyName?.trim()
+    || (user?.agency && user.agency !== 'QuickProp' ? user.agency : 'Agency');
+  const agencyBranding = useMemo(() => ({
+    agencyName,
+    logoUrl: agencyLogoObjectPath ? agencyLogoMedia.data?.url : agencyLogoUrl,
+    tagline: agencySettings?.tagline?.trim()
+      || (agencyName === 'DBT Properties' ? 'Property is what we know best!' : ''),
+    aboutText: agencySettings?.aboutText,
+    website: agencySettings?.website,
+    primaryColor: agencySettings?.primaryColor,
+    logoColors: agencySettings?.logoColors,
+  }), [
+    agencyName,
+    agencyLogoObjectPath,
+    agencyLogoMedia.data?.url,
+    agencyLogoUrl,
+    agencySettings?.aboutText,
+    agencySettings?.logoColors,
+    agencySettings?.primaryColor,
+    agencySettings?.tagline,
+    agencySettings?.website,
+  ]);
+  const catalogueDataLoading = agencySettingsQuery.isLoading
+    || agencyQuery.isLoading
+    || directoryQuery.isLoading
+    || Boolean(agencyLogoObjectPath && agencyLogoMedia.isLoading);
 
   const myProps = properties.filter(p => p.agentId === user?.id && p.status === 'published');
   const allProps = properties.filter(p => p.status === 'published');
@@ -74,8 +145,78 @@ export function ShareHubSheet({ visible, onClose }: Props) {
   const goBack = () => {
     if (step === 'property-select') setStep('hub');
     else if (step === 'property-share') setStep('property-select');
-    else if (step === 'catalogue-share') setStep('hub');
   };
+
+  const shareCataloguePdf = useCallback(async (mode: CatalogMode) => {
+    const catalogueProperties = mode === 'agent' ? myProps : allProps;
+    if (catalogueProperties.length === 0) {
+      Alert.alert('No published listings', 'There are no published listings available for this brochure.');
+      return;
+    }
+
+    setSharing(true);
+    setSharingCatalogueMode(mode);
+    try {
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      if (!agencyQuery.data?.agencyName) {
+        throw new Error('Could not load your agency branding. Check your connection and try again.');
+      }
+      if (agencyLogoObjectPath && !agencyLogoMedia.data?.url) {
+        throw new Error('Could not load the agency logo. Please retry the brochure.');
+      }
+
+      const refreshedDirectory = await refetchDirectoryUsers();
+      const agents: BrochureAgent[] = (refreshedDirectory.data ?? directoryUsers).map((directoryUser) => ({
+        id: String(directoryUser.id),
+        name: directoryUser.name,
+        email: directoryUser.email,
+        phone: directoryUser.phone,
+      }));
+      if (user && !agents.some((directoryUser) => String(directoryUser.id) === String(user.id))) {
+        agents.push({
+          id: String(user.id),
+          name: user.name,
+          email: user.email,
+          phone: user.phone,
+        });
+      }
+
+      const preparedMedia = await prepareBrochureMedia(
+        catalogueProperties,
+        agencyBranding.logoUrl,
+        user?.id,
+      );
+      const html = catalogueBrochureHtml(
+        preparedMedia.properties,
+        user,
+        mode === 'agent' ? 'my' : 'company',
+        agents,
+        { ...agencyBranding, logoUrl: preparedMedia.logoUrl },
+      );
+      await shareCatalogueBrochureHtml(html, user?.name, beforeNativeShare);
+      handleClose();
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Could not generate brochure. Please try again.';
+      if (!message.toLowerCase().includes('cancel') && !message.toLowerCase().includes('dismiss')) {
+        Alert.alert('Brochure unavailable', message);
+      }
+    } finally {
+      setSharing(false);
+      setSharingCatalogueMode(null);
+    }
+  }, [
+    agencyBranding,
+    agencyLogoMedia.data?.url,
+    agencyLogoObjectPath,
+    agencyQuery.data?.agencyName,
+    allProps,
+    beforeNativeShare,
+    directoryUsers,
+    handleClose,
+    myProps,
+    refetchDirectoryUsers,
+    user,
+  ]);
 
   // ── Property share actions ─────────────────────────────────────────────────
   const sharePropertyWhatsApp = useCallback(async (p: Property) => {
@@ -145,120 +286,6 @@ export function ShareHubSheet({ visible, onClose }: Props) {
     }
   }, [user?.id, flyer.loading, beforeNativeShare]);
 
-  // ── Catalogue share actions ────────────────────────────────────────────────
-  const activeProps = catalogMode === 'agent' ? myProps : allProps;
-  const catalogLinks = catalogueShareLinks(catalogMode === 'agent' ? user?.id : undefined);
-  const catalogUrl = catalogLinks.webUrl;
-
-  const shareCatalogWhatsApp = useCallback(async () => {
-    setSharing(true);
-    try {
-      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      const text = buildCatalogueWhatsAppCaption(user?.name);
-      await shareCatalogueToWhatsApp(
-        text,
-        () => catalogueCardRef.current?.capture()
-           ?? Promise.reject(new Error('Unable to prepare the brochure image.')),
-      );
-      handleClose();
-    } catch (e: unknown) {
-      Alert.alert('Could not share brochure', e instanceof Error ? e.message : 'Please try another sharing option.');
-    } finally {
-      setSharing(false);
-    }
-  }, [activeProps, catalogMode, user?.name, catalogLinks.appUrl, catalogUrl]);
-
-  const shareCatalogFacebook = useCallback(async () => {
-    setSharing(true);
-    try {
-      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      const text = buildCatalogueShareMessage(activeProps, catalogMode, user?.name, user?.id);
-      await shareCatalogueToSocial(
-        text,
-        () => catalogueCardRef.current?.capture()
-          ?? Promise.reject(new Error('Unable to prepare the brochure image.')),
-        'Share brochure to Facebook',
-        getFacebookShareUrl(catalogLinks.previewUrl, text),
-        'facebook',
-      );
-      handleClose();
-    } catch (e: unknown) {
-      Alert.alert('Could not open Facebook', e instanceof Error ? e.message : 'Please try again.');
-    } finally {
-      setSharing(false);
-    }
-  }, [activeProps, catalogMode, user?.name, user?.id, catalogUrl]);
-
-  const shareCatalogInstagram = useCallback(async () => {
-    setSharing(true);
-    try {
-      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      const text = buildCatalogueShareMessage(activeProps, catalogMode, user?.name, user?.id);
-      await shareCatalogueToSocial(
-        text,
-        () => catalogueCardRef.current?.capture()
-          ?? Promise.reject(new Error('Unable to prepare the brochure image.')),
-        'Share brochure to Instagram',
-        null,
-        'instagram',
-      );
-      handleClose();
-    } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : '';
-      if (!message.toLowerCase().includes('cancel') && !message.toLowerCase().includes('dismiss')) {
-        Alert.alert('Could not open Instagram', message || 'Please try again.');
-      }
-    } finally {
-      setSharing(false);
-    }
-  }, [activeProps, catalogMode, user?.name, user?.id]);
-
-  const shareCatalogLinkedIn = useCallback(async () => {
-    setSharing(true);
-    try {
-      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      const text = buildCatalogueShareMessage(activeProps, catalogMode, user?.name, user?.id);
-      await shareCatalogueToSocial(
-        text,
-        () => catalogueCardRef.current?.capture()
-          ?? Promise.reject(new Error('Unable to prepare the brochure image.')),
-        'Share brochure to LinkedIn',
-        null,
-        'linkedin',
-      );
-      handleClose();
-    } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : '';
-      if (!message.toLowerCase().includes('cancel') && !message.toLowerCase().includes('dismiss')) {
-        Alert.alert('Could not open LinkedIn', message || 'Please try again.');
-      }
-    } finally {
-      setSharing(false);
-    }
-  }, [activeProps, catalogMode, user?.name, user?.id]);
-
-  const shareCatalogNative = useCallback(async () => {
-    setSharing(true);
-    try {
-      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      const text = buildCatalogueShareMessage(activeProps, catalogMode, user?.name, user?.id);
-      await shareCatalogueToSocial(
-        text,
-        () => catalogueCardRef.current?.capture()
-          ?? Promise.reject(new Error('Unable to prepare the brochure image.')),
-        'Share property brochure',
-      );
-      handleClose();
-    } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : '';
-      if (!message.toLowerCase().includes('cancel')) {
-         Alert.alert('Could not share brochure', message || 'Please try again.');
-      }
-    } finally {
-      setSharing(false);
-    }
-  }, [activeProps, catalogMode, user?.name, user?.id, catalogLinks.appUrl, catalogUrl]);
-
   // ── Render steps ─────────────────────────────────────────────────────────
   const renderHub = () => (
     <>
@@ -282,7 +309,8 @@ export function ShareHubSheet({ visible, onClose }: Props) {
 
       <TouchableOpacity
         style={[s.hubCard, { backgroundColor: colors.card, borderColor: colors.border }]}
-        onPress={() => { Haptics.selectionAsync(); setCatalogMode('agent'); setStep('catalogue-share'); }}
+        onPress={() => { Haptics.selectionAsync(); shareCataloguePdf('agent'); }}
+        disabled={sharing || catalogueDataLoading}
         activeOpacity={0.75}
       >
         <View style={[s.hubIcon, { backgroundColor: '#10B981' + '18' }]}>
@@ -290,14 +318,17 @@ export function ShareHubSheet({ visible, onClose }: Props) {
         </View>
         <View style={s.hubText}>
           <Text style={[s.hubLabel, { color: colors.foreground }]}>My Brochure</Text>
-          <Text style={[s.hubDesc, { color: colors.mutedForeground }]}>{myProps.length} listing{myProps.length !== 1 ? 's' : ''} · your listings only</Text>
+          <Text style={[s.hubDesc, { color: colors.mutedForeground }]}>{myProps.length} listing{myProps.length !== 1 ? 's' : ''} · your listings only · PDF</Text>
         </View>
-        <Ionicons name="chevron-forward" size={18} color={colors.mutedForeground} />
+        {catalogueDataLoading || sharingCatalogueMode === 'agent'
+          ? <ActivityIndicator color={colors.primary} />
+          : <Ionicons name="chevron-forward" size={18} color={colors.mutedForeground} />}
       </TouchableOpacity>
 
       <TouchableOpacity
         style={[s.hubCard, { backgroundColor: colors.card, borderColor: colors.border }]}
-        onPress={() => { Haptics.selectionAsync(); setCatalogMode('company'); setStep('catalogue-share'); }}
+        onPress={() => { Haptics.selectionAsync(); shareCataloguePdf('company'); }}
+        disabled={sharing || catalogueDataLoading}
         activeOpacity={0.75}
       >
         <View style={[s.hubIcon, { backgroundColor: '#8B5CF6' + '18' }]}>
@@ -305,9 +336,11 @@ export function ShareHubSheet({ visible, onClose }: Props) {
         </View>
         <View style={s.hubText}>
           <Text style={[s.hubLabel, { color: colors.foreground }]}>Company Brochure</Text>
-          <Text style={[s.hubDesc, { color: colors.mutedForeground }]}>{allProps.length} listing{allProps.length !== 1 ? 's' : ''} · all agency listings</Text>
+          <Text style={[s.hubDesc, { color: colors.mutedForeground }]}>{allProps.length} listing{allProps.length !== 1 ? 's' : ''} · all agency listings · PDF</Text>
         </View>
-        <Ionicons name="chevron-forward" size={18} color={colors.mutedForeground} />
+        {catalogueDataLoading || sharingCatalogueMode === 'company'
+          ? <ActivityIndicator color={colors.primary} />
+          : <Ionicons name="chevron-forward" size={18} color={colors.mutedForeground} />}
       </TouchableOpacity>
     </>
   );
@@ -442,132 +475,6 @@ export function ShareHubSheet({ visible, onClose }: Props) {
     );
   };
 
-  const renderCatalogueShare = () => {
-    const forSale = activeProps.filter(p => p.type === 'sale');
-    const forRent = activeProps.filter(p => p.type === 'rent');
-    const suburbs = [...new Set(activeProps.map(p => p.suburb))].slice(0, 3);
-    const isAgent = catalogMode === 'agent';
-
-    return (
-      <>
-        <Text style={[s.sheetTitle, { color: colors.foreground }]}>
-          {isAgent ? 'My Brochure' : 'Company Brochure'}
-        </Text>
-
-        {/* Catalogue preview */}
-        <View style={[s.catPreview, { backgroundColor: colors.muted, borderColor: colors.border }]}>
-          <View style={s.catPreviewTop}>
-            <View style={s.catPreviewInfo}>
-              <Text style={[s.catPreviewTitle, { color: colors.foreground }]}>
-                {isAgent ? `${user?.name?.split(' ')[0] ?? 'My'}'s Listings` : 'QuickProp — All Listings'}
-              </Text>
-              {suburbs.length > 0 && (
-                <Text style={[s.catPreviewSub, { color: colors.mutedForeground }]}>
-                  {suburbs.join(', ')}{activeProps.length > 3 ? ' & more' : ''}
-                </Text>
-              )}
-            </View>
-            <View style={[s.countBadge, { backgroundColor: colors.primary + '20' }]}>
-              <Text style={[s.countText, { color: colors.primary }]}>
-                {activeProps.length} {activeProps.length === 1 ? 'property' : 'properties'}
-              </Text>
-            </View>
-          </View>
-          {activeProps.length > 0 ? (
-            <View style={s.catStats}>
-              {forSale.length > 0 && (
-                <View style={s.catStatRow}>
-                  <View style={[s.dot, { backgroundColor: colors.primary }]} />
-                  <Text style={[s.catStatText, { color: colors.mutedForeground }]}>{forSale.length} for sale</Text>
-                </View>
-              )}
-              {forRent.length > 0 && (
-                <View style={s.catStatRow}>
-                  <View style={[s.dot, { backgroundColor: '#3B82F6' }]} />
-                  <Text style={[s.catStatText, { color: colors.mutedForeground }]}>{forRent.length} to rent</Text>
-                </View>
-              )}
-            </View>
-          ) : (
-            <Text style={[s.emptyText, { color: colors.mutedForeground }]}>No published listings yet</Text>
-          )}
-          {activeProps.slice(0, 3).map(p => (
-            <View key={p.id} style={[s.catPropRow, { borderTopColor: colors.border }]}>
-              <Text style={[s.catPropName, { color: colors.foreground }]} numberOfLines={1}>
-                {p.bedrooms ? `${p.bedrooms}-bed · ` : ''}{p.suburb}
-              </Text>
-              <Text style={[s.catPropPrice, { color: colors.primary }]}>{formatPrice(p)}</Text>
-            </View>
-          ))}
-        </View>
-
-        <Text style={[s.sectionLabel, { color: colors.mutedForeground }]}>SHARE VIA</Text>
-
-        <View style={[s.shareRow, { flexWrap: 'wrap' }]}>
-          <TouchableOpacity
-            style={[s.shareSmallBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
-            onPress={shareCatalogWhatsApp}
-            disabled={sharing || activeProps.length === 0}
-            activeOpacity={0.75}
-          >
-            <View style={[s.shareSmallIcon, { backgroundColor: '#25D366' }]}>
-              <Ionicons name="logo-whatsapp" size={22} color="#FFF" />
-            </View>
-            <Text style={[s.shareSmallLabel, { color: colors.foreground }]}>WhatsApp</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[s.shareSmallBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
-            onPress={shareCatalogFacebook}
-            disabled={sharing || activeProps.length === 0}
-            activeOpacity={0.75}
-          >
-            <View style={[s.shareSmallIcon, { backgroundColor: '#1877F2' }]}>
-              <Ionicons name="logo-facebook" size={22} color="#FFF" />
-            </View>
-            <Text style={[s.shareSmallLabel, { color: colors.foreground }]}>Facebook</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[s.shareSmallBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
-            onPress={shareCatalogInstagram}
-            disabled={sharing || activeProps.length === 0}
-            activeOpacity={0.75}
-          >
-            <View style={[s.shareSmallIcon, { backgroundColor: '#E1306C' }]}>
-              <Ionicons name="logo-instagram" size={22} color="#FFF" />
-            </View>
-            <Text style={[s.shareSmallLabel, { color: colors.foreground }]}>Instagram</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[s.shareSmallBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
-            onPress={shareCatalogLinkedIn}
-            disabled={sharing || activeProps.length === 0}
-            activeOpacity={0.75}
-          >
-            <View style={[s.shareSmallIcon, { backgroundColor: '#0A66C2' }]}>
-              <Ionicons name="logo-linkedin" size={22} color="#FFF" />
-            </View>
-            <Text style={[s.shareSmallLabel, { color: colors.foreground }]}>LinkedIn</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[s.shareSmallBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
-            onPress={shareCatalogNative}
-            disabled={sharing || activeProps.length === 0}
-            activeOpacity={0.75}
-          >
-            <View style={[s.shareSmallIcon, { backgroundColor: colors.primary }]}>
-              <Ionicons name="share-outline" size={22} color="#FFF" />
-            </View>
-            <Text style={[s.shareSmallLabel, { color: colors.foreground }]}>More</Text>
-          </TouchableOpacity>
-        </View>
-      </>
-    );
-  };
-
   return (
     <>
     {selectedProperty && (
@@ -602,15 +509,6 @@ export function ShareHubSheet({ visible, onClose }: Props) {
               />
             </View>
           )}
-          <View style={s.catalogueCardHost} pointerEvents="none">
-            <ShareCatalogueCard
-              ref={catalogueCardRef}
-              properties={activeProps}
-              mode={catalogMode}
-              agentName={user?.name}
-              agentId={user?.id}
-            />
-          </View>
           {/* Handle */}
           <View style={[s.handle, { backgroundColor: colors.border }]} />
 
@@ -634,7 +532,6 @@ export function ShareHubSheet({ visible, onClose }: Props) {
           {step === 'hub' && renderHub()}
           {step === 'property-select' && renderPropertySelect()}
           {step === 'property-share' && renderPropertyShare()}
-          {step === 'catalogue-share' && renderCatalogueShare()}
         </Pressable>
       </Pressable>
     </Modal>
@@ -646,7 +543,6 @@ const s = StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   shareCardHost: { position: 'absolute', left: -1000, top: 0, width: 360, height: 450 },
   shareCollageHost: { position: 'absolute', left: -1000, top: 0, width: 360, height: 360 },
-  catalogueCardHost: { position: 'absolute', left: -1000, top: 0, width: 360, height: 450 },
   sheet: {
     borderTopLeftRadius: 26, borderTopRightRadius: 26,
     paddingHorizontal: 20, paddingBottom: Platform.OS === 'ios' ? 44 : 28, paddingTop: 12,
@@ -706,27 +602,6 @@ const s = StyleSheet.create({
   socialShareIcon: { width: 40, height: 40, borderRadius: 11, alignItems: 'center', justifyContent: 'center', marginBottom: 2 },
   socialShareLabel: { fontSize: 13, fontWeight: '700' },
   socialShareHint: { fontSize: 10 },
-
-  // Catalogue share step
-  catPreview: { borderRadius: 14, borderWidth: 1, padding: 14, marginBottom: 20, gap: 8 },
-  catPreviewTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-  catPreviewInfo: { flex: 1, marginRight: 8 },
-  catPreviewTitle: { fontSize: 14, fontWeight: '700' },
-  catPreviewSub: { fontSize: 12, marginTop: 2 },
-  countBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
-  countText: { fontSize: 12, fontWeight: '600' },
-  catStats: { flexDirection: 'row', gap: 16 },
-  catStatRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  dot: { width: 7, height: 7, borderRadius: 4 },
-  catStatText: { fontSize: 12 },
-  catPropRow: { flexDirection: 'row', justifyContent: 'space-between', paddingTop: 8, borderTopWidth: 1, marginTop: 4 },
-  catPropName: { fontSize: 12, flex: 1 },
-  catPropPrice: { fontSize: 12, fontWeight: '600', marginLeft: 8 },
-
-  shareRow: { flexDirection: 'row', gap: 12 },
-  shareSmallBtn: { flex: 1, alignItems: 'center', padding: 14, borderRadius: 16, borderWidth: 1, gap: 8 },
-  shareSmallIcon: { width: 48, height: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  shareSmallLabel: { fontSize: 13, fontWeight: '600' },
 
   emptyWrap: { alignItems: 'center', paddingVertical: 32, gap: 10 },
   emptyText: { fontSize: 14 },

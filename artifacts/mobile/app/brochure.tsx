@@ -34,7 +34,7 @@ import {
 } from '@workspace/api-client-react';
 import { getStoredMediaObjectPath } from '@/utils/listingPhoto';
 import { isPrintCancellation } from '@/utils/printCancellation';
-import { shareCataloguePdfWithCaption } from '@/utils/whatsapp';
+import { shareCatalogueBrochureHtml } from '@/utils/catalogueBrochureShare';
 
 type BrochureMode = 'my' | 'company' | 'custom';
 type ListingFilter = 'sale' | 'rent';
@@ -286,7 +286,6 @@ export default function BrochureSetupScreen() {
         agencyBranding.logoUrl,
         user?.id,
       );
-      const Print: typeof import('expo-print') = await import('expo-print');
       const html = catalogueBrochureHtml(
         preparedMedia.properties,
         user,
@@ -294,12 +293,12 @@ export default function BrochureSetupScreen() {
         agents,
         { ...agencyBranding, logoUrl: preparedMedia.logoUrl },
       );
-      const printHtml = getBrochurePrintHtml(html, Platform.OS);
       if (action === 'print') {
+        const Print: typeof import('expo-print') = await import('expo-print');
+        const printHtml = getBrochurePrintHtml(html, Platform.OS);
         await Print.printAsync({ html: printHtml, ...BROCHURE_PRINT_OPTIONS });
       } else {
-        const { uri } = await Print.printToFileAsync({ html: printHtml, ...BROCHURE_PRINT_OPTIONS });
-        await shareCataloguePdfWithCaption(uri, user?.name);
+        await shareCatalogueBrochureHtml(html, user?.name);
       }
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Could not generate brochure. Please try again.';
