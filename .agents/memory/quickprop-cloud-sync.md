@@ -9,6 +9,12 @@ Treat the API-backed PostgreSQL database as the source of truth for listings and
 
 **How to apply:** Persist mutations locally before syncing them through the API with idempotency keys. Expose pending/error state to the agent and do not clear an existing cloud-backed portfolio when a refresh unexpectedly returns an empty result.
 
+When an agent reconnects, apply only the mobile-edited listing fields to the latest server record; do not block a queued edit just because the record timestamp advanced elsewhere.
+
+**Why:** The user wants Agent and Office edits to sync when internet returns, without losing unrelated changes from the other client.
+
+**How to apply:** Keep field-level updates in the outbox and send them as PATCH data. For legacy conflicts with no saved field list, automatically recover an identifiable status-only change; do not overwrite the full online listing without a deliberate choice.
+
 Keep newly added, optional API sync routes isolated from core portfolio sync so a temporarily older production server cannot block unrelated data.
 
 **Why:** Mobile and API releases can briefly be out of step; a 404 from a new feature endpoint must not stop listings, tasks, or viewings from syncing.

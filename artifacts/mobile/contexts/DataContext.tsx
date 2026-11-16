@@ -3,6 +3,7 @@ import { AppState, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Property, Lead, BuyerMatch, Task, PropertyAlert } from '@/types';
 import { propertyMatchesAlert } from '@/lib/alert-matching';
+import { buildServerPropertyUpdatePatch, legacyStatusPatch, mergeMobilePropertyUpdates } from '@/lib/property-sync';
 import { registerDataReset } from './dataReset';
 import { useNetworkStatus } from './ConnectivityContext';
 import { apiBaseUrl, apiOrigin, getStoredAccessToken, useAuth } from './AuthContext';
@@ -628,12 +629,52 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setCloudSyncState('syncing');
     const idMap = new Map<string, string>();
     try {
-      const hasRemotePropertyUpdates = pendingSyncRef.current.some(
-        operation => operation.kind === 'property-update' && isServerId(operation.localId),
+      const queuedPropertyUpdateIds = new Set(
+        pendingSyncRef.current
+          .filter((operation): operation is Extract<PendingSync, { kind: 'property-update' }> =>
+            operation.kind === 'property-update' && isServerId(operation.localId))
+          .map(operation => operation.localId),
       );
-      const latestRemoteProperties = hasRemotePropertyUpdates
+      const legacyConflictProperties = propertiesRef.current.filter(
+        property => property.syncStatus === 'conflict'
+          && isServerId(property.id)
+          && !queuedPropertyUpdateIds.has(property.id),
+      );
+      const latestRemoteProperties = queuedPropertyUpdateIds.size > 0 || legacyConflictProperties.length > 0
         ? await listProperties({ agentId: Number(user!.id) })
         : [];
+
+      // Older app versions dropped the queued field patch when marking a conflict.
+      // We can safely recover a status-only difference, such as public -> draft,
+      // without replacing other fields that may have changed online.
+      let recoveredConflictStatus = false;
+      for (const localConflict of legacyConflictProperties) {
+        const latest = latestRemoteProperties.find(property => String(property.id) === localConflict.id);
+        if (!latest) continue;
+        const latestMobile = toMobileProperty(latest);
+        const localStatus = localConflict.pendingStatus ?? localConflict.status;
+        const remoteStatus = latestMobile.pendingStatus ?? latestMobile.status;
+        if (legacyStatusPatch(localStatus, remoteStatus) !== null) {
+          pendingSyncRef.current.push({
+            kind: 'property-update',
+            localId: localConflict.id,
+            updates: localConflict.pendingStatus === undefined
+              ? { status: localConflict.status }
+              : { status: localConflict.status, pendingStatus: localConflict.pendingStatus },
+            baseUpdatedAt: latest.updatedAt,
+          });
+          propertiesRef.current = propertiesRef.current.map(property => property.id === localConflict.id
+            ? { ...property, syncStatus: 'queued' }
+            : property);
+          recoveredConflictStatus = true;
+        }
+      }
+      if (recoveredConflictStatus) {
+        setProperties(propertiesRef.current);
+        await save(PROPS_KEY, propertiesRef);
+        await persistPending();
+      }
+
       while (pendingSyncRef.current.length > 0) {
         const operation = pendingSyncRef.current[0];
         const retryDelay = (operation.retryAt ?? 0) - Date.now();
@@ -663,25 +704,29 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
             const current = propertiesRef.current.find(p => p.id === id);
             if (current) {
               const latest = latestRemoteProperties.find(property => String(property.id) === id);
-              const baseTime = operation.baseUpdatedAt ? Date.parse(operation.baseUpdatedAt) : Number.NaN;
-              const remoteTime = latest?.updatedAt ? Date.parse(latest.updatedAt) : Number.NaN;
-              const changedElsewhere = Number.isFinite(baseTime)
-                && Number.isFinite(remoteTime)
-                && remoteTime > baseTime;
-              if (changedElsewhere || !latest) {
-                propertiesRef.current = propertiesRef.current.map(property => property.id === id
-                  ? { ...property, syncStatus: 'conflict' }
-                  : property);
-                setProperties(propertiesRef.current);
-                await save(PROPS_KEY, propertiesRef);
-              } else {
-                const withDurableMedia = await uploadPropertyMedia(current);
-                const result = await updateRemoteProperty(Number(id), toServerProperty(withDurableMedia, user!.id) as PropertyUpdate);
-                const remote = toMobileProperty(result);
-                propertiesRef.current = propertiesRef.current.map(p => p.id === id ? remote : p);
-                setProperties(propertiesRef.current);
-                await save(PROPS_KEY, propertiesRef);
+              if (!latest) {
+                throw new Error('This listing is not available in the online portfolio yet. Your change is still queued for retry.');
               }
+              const latestMobile = toMobileProperty(latest);
+              const merged = mergeMobilePropertyUpdates(latestMobile, operation.updates);
+              if (Object.prototype.hasOwnProperty.call(operation.updates, 'status')
+                && !Object.prototype.hasOwnProperty.call(operation.updates, 'pendingStatus')) {
+                merged.pendingStatus = undefined;
+              }
+              const withDurableMedia = await uploadPropertyMedia(merged);
+              const patch = buildServerPropertyUpdatePatch(
+                toServerProperty(withDurableMedia, user!.id),
+                operation.updates,
+              ) as PropertyUpdate;
+              const result = Object.keys(patch).length > 0
+                ? await updateRemoteProperty(Number(id), patch)
+                : latest;
+              const remote = toMobileProperty(result);
+              propertiesRef.current = propertiesRef.current.map(p => p.id === id ? remote : p);
+              setProperties(propertiesRef.current);
+              await save(PROPS_KEY, propertiesRef);
+              const latestIndex = latestRemoteProperties.findIndex(property => String(property.id) === id);
+              if (latestIndex >= 0) latestRemoteProperties[latestIndex] = result;
             }
           }
         } else if (operation.kind === 'property-delete') {
@@ -853,7 +898,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       const mappedProperties = remoteProperties
         .map(toMobileProperty)
         .filter(property => !pendingPropertyDeletes.has(property.id))
-        .map(property => localConflicts.get(property.id) ?? { ...property, ...pendingPropertyUpdates.get(property.id) });
+        .map(property => {
+          const pendingUpdate = pendingPropertyUpdates.get(property.id);
+          if (pendingUpdate) return { ...property, ...pendingUpdate, syncStatus: 'queued' as const };
+          return localConflicts.get(property.id) ?? property;
+        });
       const mappedPropertyIds = new Set(mappedProperties.map(property => property.id));
       const missingConflictProperties = [...localConflicts.values()].filter(
         property => !mappedPropertyIds.has(property.id),
@@ -1067,31 +1116,33 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
   const updateProperty = async (id: string, updates: Partial<Property>) => {
     const beforeUpdate = propertiesRef.current.find(p => p.id === id);
-    const updated = propertiesRef.current.map(p => p.id === id ? { ...p, ...updates, updatedAt: now() } : p);
+    const shouldQueue = remoteEnabled(user?.id);
+    const updated = propertiesRef.current.map(p => p.id === id
+      ? { ...p, ...updates, updatedAt: now(), ...(shouldQueue ? { syncStatus: 'queued' as const } : {}) }
+      : p);
     propertiesRef.current = updated;
     propertiesVersionRef.current += 1;
     setProperties(updated);
     await save(PROPS_KEY, propertiesRef);
-    if (remoteEnabled(user?.id)) {
-      if (beforeUpdate?.syncStatus !== 'conflict') {
-        if (isServerId(id)) {
-          const existingUpdate = pendingSyncRef.current.find(
-            (operation): operation is Extract<PendingSync, { kind: 'property-update' }> =>
-              operation.kind === 'property-update' && operation.localId === id,
-          );
-          pendingSyncRef.current = pendingSyncRef.current.filter(
-            operation => !(operation.kind === 'property-update' && operation.localId === id),
-          );
-          pendingSyncRef.current.push({
-            kind: 'property-update',
-            localId: id,
-            updates: { ...existingUpdate?.updates, ...updates },
-            baseUpdatedAt: existingUpdate?.baseUpdatedAt ?? beforeUpdate?.updatedAt,
-          });
-          await persistPending();
-          await syncNow();
-        }
-      }
+    if (shouldQueue && isServerId(id)) {
+      const existingUpdate = pendingSyncRef.current.find(
+        (operation): operation is Extract<PendingSync, { kind: 'property-update' }> =>
+          operation.kind === 'property-update' && operation.localId === id,
+      );
+      pendingSyncRef.current = pendingSyncRef.current.filter(
+        operation => !(operation.kind === 'property-update' && operation.localId === id),
+      );
+      const updatesToSync = beforeUpdate?.syncStatus === 'conflict'
+        ? { ...beforeUpdate, ...updates }
+        : updates;
+      pendingSyncRef.current.push({
+        kind: 'property-update',
+        localId: id,
+        updates: { ...existingUpdate?.updates, ...updatesToSync },
+        baseUpdatedAt: existingUpdate?.baseUpdatedAt ?? beforeUpdate?.updatedAt,
+      });
+      await persistPending();
+      await syncNow();
     }
   };
 
