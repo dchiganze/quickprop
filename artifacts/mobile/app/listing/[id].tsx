@@ -24,9 +24,11 @@ import { parsePrivateContactNotes, toMobileProperty, useData } from '@/contexts/
 import { Property } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
 import {
+  getGetPropertyQueryKey,
   getGetAgentContactsQueryKey,
   getGetMultiAgentPropertyQueryKey,
   getListRentalApplicationsQueryKey,
+  useGetProperty,
   useCreateRentalApplicationInvite,
   useCreateOfflinePropertySnapshot,
   useGetAgentContacts,
@@ -126,10 +128,25 @@ export default function ListingDetailScreen() {
       });
     return () => { cancelled = true; };
   }, [id, user?.id]);
-  const property = properties.find((item) => item.id === id)
+  const cachedProperty = properties.find((item) => item.id === id)
     ?? (offlinePropertyRecord && offlinePropertyRecord.userId === user?.id
       ? offlinePropertyRecord.property
       : undefined);
+  const remotePropertyIdForRead = /^\d+$/.test(id ?? '') ? Number(id) : 0;
+  const remotePropertyQuery = useGetProperty(remotePropertyIdForRead, {
+    query: {
+      queryKey: getGetPropertyQueryKey(remotePropertyIdForRead),
+      enabled: Boolean(!cachedProperty && isOnline && remotePropertyIdForRead > 0),
+      retry: false,
+    },
+  });
+  const property = cachedProperty
+    ?? (remotePropertyQuery.data ? toMobileProperty(remotePropertyQuery.data) : undefined);
+  const isReadOnlyAgencyDraft = Boolean(
+    property
+    && user?.role === 'agent'
+    && String(property.agentId) !== String(user.id),
+  );
   const displayStatus = property?.pendingStatus ?? property?.status ?? 'draft';
   const queryClient = useQueryClient();
   const offlineSnapshotMutation = useCreateOfflinePropertySnapshot();
@@ -345,7 +362,7 @@ export default function ListingDetailScreen() {
   const rentalApplications = rentalApplicationsQuery.data ?? [];
   const createRentalInvite = useCreateRentalApplicationInvite();
 
-  if (!property && !offlineCacheChecked) {
+  if (!property && (!offlineCacheChecked || remotePropertyQuery.isLoading)) {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background }}>
         <ActivityIndicator size="large" color={colors.primary} />
@@ -651,9 +668,11 @@ export default function ListingDetailScreen() {
               ? <ActivityIndicator size="small" color={colors.foreground} />
               : <Ionicons name="image-outline" size={20} color={colors.foreground} />}
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.iconBtn, { backgroundColor: colors.primary }]} onPress={() => router.push(`/edit-listing/${property.id}`)}>
-            <Ionicons name="create-outline" size={20} color="#FFF" />
-          </TouchableOpacity>
+          {!isReadOnlyAgencyDraft && (
+            <TouchableOpacity style={[styles.iconBtn, { backgroundColor: colors.primary }]} onPress={() => router.push(`/edit-listing/${property.id}`)}>
+              <Ionicons name="create-outline" size={20} color="#FFF" />
+            </TouchableOpacity>
+          )}
         </View>
       </View>
 
@@ -1169,9 +1188,11 @@ export default function ListingDetailScreen() {
                         ? 'Saved contact details could not be loaded. Try again when online.'
                         : `No ${property.listingType === 'rent' ? 'landlord' : 'seller'} details saved for this listing.`}
                     </Text>
-                    <TouchableOpacity onPress={() => router.push(`/edit-listing/${property.id}`)}>
-                      <Text style={[styles.sellerValue, { color: colors.primary, marginTop: 6 }]}>Edit listing details</Text>
-                    </TouchableOpacity>
+                    {!isReadOnlyAgencyDraft && (
+                      <TouchableOpacity onPress={() => router.push(`/edit-listing/${property.id}`)}>
+                        <Text style={[styles.sellerValue, { color: colors.primary, marginTop: 6 }]}>Edit listing details</Text>
+                      </TouchableOpacity>
+                    )}
                   </View>
                 </View>
               )}
@@ -1223,10 +1244,12 @@ export default function ListingDetailScreen() {
             <Text style={[styles.bottomBtnText, { color: colors.destructive }]}>Remove</Text>
           </TouchableOpacity>
         )}
-        <TouchableOpacity style={[styles.bottomBtnPrimary, { backgroundColor: colors.primary }]} onPress={() => router.push(`/edit-listing/${property.id}`)}>
-          <Ionicons name="create-outline" size={18} color="#FFF" />
-          <Text style={styles.bottomBtnPrimaryText}>Edit</Text>
-        </TouchableOpacity>
+        {!isReadOnlyAgencyDraft && (
+          <TouchableOpacity style={[styles.bottomBtnPrimary, { backgroundColor: colors.primary }]} onPress={() => router.push(`/edit-listing/${property.id}`)}>
+            <Ionicons name="create-outline" size={18} color="#FFF" />
+            <Text style={styles.bottomBtnPrimaryText}>Edit</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       <Modal

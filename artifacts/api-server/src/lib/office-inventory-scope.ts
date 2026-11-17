@@ -39,6 +39,19 @@ export function canViewAgencyInventory(
   );
 }
 
+export function canViewAgencyDraftProperty(
+  role: string | null | undefined,
+  memberBranchId: number | null | undefined,
+  propertyBranchId: number | null | undefined,
+  activeAgencyBranchIds: number[] | undefined,
+): boolean {
+  return Boolean(
+    canViewAgencyInventory(role, memberBranchId, activeAgencyBranchIds)
+    && propertyBranchId != null
+    && activeAgencyBranchIds?.includes(propertyBranchId),
+  );
+}
+
 export function getActiveAgencyBranchIds(
   memberBranchId: number | null | undefined,
   memberBranch: OfficeInventoryBranch | undefined,

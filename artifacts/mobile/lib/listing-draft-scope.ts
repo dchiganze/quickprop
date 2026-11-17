@@ -25,6 +25,13 @@ export function buildAgencyDraftQueryParams(
   };
 }
 
+export function shouldOpenPrivateListingDetails(
+  scope: ListingDraftScope,
+  status: string,
+): boolean {
+  return scope === 'my' || status === 'draft';
+}
+
 export function mergeAgencyListings<T extends { id: string }>(
   liveListings: readonly T[],
   draftListings: readonly T[],

@@ -30,7 +30,11 @@ import { EmptyState } from '@/components/EmptyState';
 import { QuickShareSheet } from '@/components/QuickShareSheet';
 import { useNetworkStatus } from '@/contexts/ConnectivityContext';
 import { propertyMatchesQuery } from '@/lib/property-search';
-import { buildAgencyDraftQueryParams, mergeAgencyListings } from '@/lib/listing-draft-scope';
+import {
+  buildAgencyDraftQueryParams,
+  mergeAgencyListings,
+  shouldOpenPrivateListingDetails,
+} from '@/lib/listing-draft-scope';
 import {
   agencyListingsCacheKey,
   emptyAgencyListingsCache,
@@ -1152,7 +1156,7 @@ export default function ListingsScreen() {
               </TouchableOpacity>
             ) : undefined}
             onPress={() => {
-              if (scope === 'my') router.push(`/listing/${item.id}`);
+              if (shouldOpenPrivateListingDetails(scope, item.status)) router.push(`/listing/${item.id}`);
               else router.push({ pathname: '/public-listing/[id]', params: { id: item.id } });
             }}
           />

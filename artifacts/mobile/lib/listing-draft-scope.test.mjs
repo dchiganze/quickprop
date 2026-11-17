@@ -1,6 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { buildAgencyDraftQueryParams, mergeAgencyListings } from './listing-draft-scope.ts';
+import {
+  buildAgencyDraftQueryParams,
+  mergeAgencyListings,
+  shouldOpenPrivateListingDetails,
+} from './listing-draft-scope.ts';
 
 test('agency draft requests are limited to the agency listings scope', () => {
   assert.equal(buildAgencyDraftQueryParams('my', 'draft', '12'), undefined);
@@ -49,4 +53,12 @@ test('the all-status agency view merges live listings with drafts without duplic
     { id: '2', status: 'draft' },
     { id: '3', status: 'draft' },
   ]);
+});
+
+test('agency draft cards open private details while live cards keep public details', () => {
+  assert.equal(shouldOpenPrivateListingDetails('agency', 'draft'), true);
+  assert.equal(shouldOpenPrivateListingDetails('all', 'draft'), true);
+  assert.equal(shouldOpenPrivateListingDetails('agency', 'published'), false);
+  assert.equal(shouldOpenPrivateListingDetails('all', 'published'), false);
+  assert.equal(shouldOpenPrivateListingDetails('my', 'draft'), true);
 });

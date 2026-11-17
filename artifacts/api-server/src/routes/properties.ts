@@ -51,6 +51,7 @@ import { isPublicProperty, syncPropertyToProduction } from "../lib/publication-s
 import { hasValidListingPrice, isDraftPropertyState, needsPublicationPhoto } from "../lib/property-drafts";
 import { canAssignPropertyToAgent } from "../lib/property-assignment";
 import {
+  canViewAgencyDraftProperty,
   canViewAgencyInventory,
   getActiveAgencyBranchIdsForUser,
 } from "../lib/office-inventory-scope";
@@ -102,6 +103,20 @@ async function canAssignPropertyBranch(user: Awaited<ReturnType<typeof currentUs
   const [actorBranch] = await db.select({ agencyId: branchesTable.agencyId })
     .from(branchesTable).where(eq(branchesTable.id, user.branchId)).limit(1);
   return actorBranch?.agencyId != null && actorBranch.agencyId === targetBranch.agencyId;
+}
+
+async function canReadAgencyDraft(
+  user: Awaited<ReturnType<typeof currentUser>>,
+  property: typeof propertiesTable.$inferSelect,
+): Promise<boolean> {
+  if (!user || !isDraftPropertyState(property.status, property.pipelineStage)) return false;
+  const activeAgencyBranchIds = await getActiveAgencyBranchIdsForUser(user.branchId);
+  return canViewAgencyDraftProperty(
+    user.role,
+    user.branchId,
+    property.branchId,
+    activeAgencyBranchIds,
+  );
 }
 
 function mutationKey(req: Request): string | null {
@@ -493,12 +508,16 @@ router.post("/properties", async (req, res): Promise<void> => {
 router.get("/properties/:id", async (req, res): Promise<void> => {
   const id = parseId(req);
   const user = await currentUser(req);
-  const [row] = await db.select().from(propertiesTable).where(
-    user?.role === "agent" || user?.role === "senior_agent"
-      ? and(eq(propertiesTable.id, id), eq(propertiesTable.agentId, user.id))
-      : eq(propertiesTable.id, id),
-  );
+  const [row] = await db.select().from(propertiesTable).where(eq(propertiesTable.id, id));
   if (!row) {
+    res.status(404).json({ error: "Property not found" });
+    return;
+  }
+  if (
+    (user?.role === "agent" || user?.role === "senior_agent")
+    && row.agentId !== user.id
+    && !await canReadAgencyDraft(user, row)
+  ) {
     res.status(404).json({ error: "Property not found" });
     return;
   }
@@ -840,11 +859,16 @@ router.delete("/properties/:id", async (req, res): Promise<void> => {
 router.get("/properties/:id/price-history", async (req, res): Promise<void> => {
   const id = parseId(req);
   const user = await currentUser(req);
-  const propertyCondition = user?.role === "agent" || user?.role === "senior_agent"
-    ? and(eq(propertiesTable.id, id), eq(propertiesTable.agentId, user.id))
-    : eq(propertiesTable.id, id);
-  const [property] = await db.select({ id: propertiesTable.id }).from(propertiesTable).where(propertyCondition);
+  const [property] = await db.select().from(propertiesTable).where(eq(propertiesTable.id, id));
   if (!property) {
+    res.status(404).json({ error: "Property not found" });
+    return;
+  }
+  if (
+    (user?.role === "agent" || user?.role === "senior_agent")
+    && property.agentId !== user.id
+    && !await canReadAgencyDraft(user, property)
+  ) {
     res.status(404).json({ error: "Property not found" });
     return;
   }
@@ -859,11 +883,16 @@ router.get("/properties/:id/price-history", async (req, res): Promise<void> => {
 router.get("/properties/:id/activity", async (req, res): Promise<void> => {
   const id = parseId(req);
   const user = await currentUser(req);
-  const propertyCondition = user?.role === "agent" || user?.role === "senior_agent"
-    ? and(eq(propertiesTable.id, id), eq(propertiesTable.agentId, user.id))
-    : eq(propertiesTable.id, id);
-  const [property] = await db.select({ id: propertiesTable.id }).from(propertiesTable).where(propertyCondition);
+  const [property] = await db.select().from(propertiesTable).where(eq(propertiesTable.id, id));
   if (!property) {
+    res.status(404).json({ error: "Property not found" });
+    return;
+  }
+  if (
+    (user?.role === "agent" || user?.role === "senior_agent")
+    && property.agentId !== user.id
+    && !await canReadAgencyDraft(user, property)
+  ) {
     res.status(404).json({ error: "Property not found" });
     return;
   }
