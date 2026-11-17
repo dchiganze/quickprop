@@ -631,3 +631,17 @@ mtime_ms = 1794816561340
 storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:cf900b3f-04ce-456b-888c-760ecb412036/32ef1586-af0c-4e1d-8aeb-65403f091b9d/5c417f6c-7e3e-4c0b-882c-f68de718bada"
 storage_version_token = "1794816585975317"
 content_type = "application/pdf"
+
+[[outputs]]
+id = "Hu_eWKS841sUm0_4i6FEa"
+uri = "file://attached_assets/quickprop-expo-go-qr-2026-11-17.png"
+type = "image"
+title = "Fresh QuickProp Expo Go QR"
+description = "Scan with your phone’s camera to open the current Expo tunnel. The iOS and Android manifests and bundles both responded successfully."
+logical_id = "7b9df3a6-e28f-422a-9dc5-1d38d77fae10"
+content_hash = "sha256:c2c785bed7a1dab6a3d88a107986ebf5b17dcd32cd0fed2da7dd4872c909469b"
+size = 1159
+mtime_ms = 1794901533833
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:cf900b3f-04ce-456b-888c-760ecb412036/7b9df3a6-e28f-422a-9dc5-1d38d77fae10/84837a6d-b0bb-4955-a873-68e56a997f89"
+storage_version_token = "1794901550066684"
+content_type = "image/png"

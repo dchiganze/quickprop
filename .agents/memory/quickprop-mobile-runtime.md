@@ -87,6 +87,12 @@ Native phone preview must be able to fetch a development signing certificate whe
 
 **How to apply:** Preserve Replit's managed login flow, avoid forcing the native preview server offline, and confirm a phone-style manifest request returns an `expo-signature` through the public preview URL before treating repeated login errors as account failures.
 
+When checking a public Expo tunnel, use Expo Go-style request headers; a generic HTTP client can receive an EAS Hosting 403 while Expo-style manifest and bundle requests succeed.
+
+**Why:** The tunnel host's CDN rejected generic requests but returned both platform manifests and bundles when sent an Expo Go User-Agent.
+
+**How to apply:** Verify manifests and bundles using platform/runtime headers and an Expo Go User-Agent. Treat an `@anonymous` scope as a possible account issue, and do not change project ownership without coordination.
+
 Also verify the signed manifest's account scope, not only that a signature exists. An existing release project's ownership can differ from the managed preview account.
 
 **Why:** A managed login succeeded while Expo used a personal token or fell back to a cached certificate for the personally owned release project. A signed response therefore still produced an account-mismatch error on the phone.
