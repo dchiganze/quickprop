@@ -38,3 +38,9 @@ Treat explicitly downloaded mobile listings as account-scoped device copies, not
 **Why:** A downloaded marker means the content exists on this device only; explicitly saved photos must remain available offline without bypassing draft-media privacy.
 
 **How to apply:** Keep the offline manifest scoped to the signed-in account, authorize own listings or active agency listings on the server, and never persist expiring signed media URLs.
+
+On mobile listing photo badges, show the listing's publication state rather than its local sync state.
+
+**Why:** The user wants these badges to show Draft or Published, not queued or waiting-to-sync labels.
+
+**How to apply:** Derive the badge from `pendingStatus ?? status`; keep outbox retries and the separate conflict warning intact.

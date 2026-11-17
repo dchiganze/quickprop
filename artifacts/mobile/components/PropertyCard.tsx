@@ -22,7 +22,7 @@ const STATUS_COLORS: Record<Property['status'], string> = {
 };
 
 const STATUS_LABELS: Record<Property['status'], string> = {
-  published: 'Live',
+  published: 'Published',
   draft: 'Draft',
   archived: 'Archived',
   sold: 'Sold',
@@ -39,6 +39,7 @@ function formatPrice(price: number, currency: string, type: Property['type']) {
 
 export function PropertyCard({ property, onPress, offlineAction }: Props) {
   const colors = useColors();
+  const displayStatus = property.pendingStatus ?? property.status;
   const photoUri = getPrimaryListingPhoto(property);
   const [failedPhotoUri, setFailedPhotoUri] = useState<string>();
   const photoFailed = Boolean(photoUri && failedPhotoUri === photoUri);
@@ -67,8 +68,8 @@ export function PropertyCard({ property, onPress, offlineAction }: Props) {
               <Text style={[styles.fallbackText, { color: colors.mutedForeground }]}>{photoFailed ? 'Photo could not load' : 'Photo coming soon'}</Text>
             </View>
           )}
-          <View style={[styles.statusBadge, { backgroundColor: property.syncStatus === 'conflict' ? colors.info : property.syncStatus === 'queued' ? colors.info : STATUS_COLORS[property.status] }]}>
-            <Text style={styles.statusText}>{property.syncStatus === 'conflict' ? 'Review changes' : property.syncStatus === 'queued' ? 'Queued' : STATUS_LABELS[property.status]}</Text>
+          <View style={[styles.statusBadge, { backgroundColor: STATUS_COLORS[displayStatus] }]}>
+            <Text style={styles.statusText}>{STATUS_LABELS[displayStatus]}</Text>
           </View>
           <View style={[styles.typeBadge, { backgroundColor: colors.primary }]}>
             <Text style={styles.typeText}>{property.type.charAt(0).toUpperCase() + property.type.slice(1)}</Text>

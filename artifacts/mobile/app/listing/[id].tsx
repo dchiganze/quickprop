@@ -130,6 +130,7 @@ export default function ListingDetailScreen() {
     ?? (offlinePropertyRecord && offlinePropertyRecord.userId === user?.id
       ? offlinePropertyRecord.property
       : undefined);
+  const displayStatus = property?.pendingStatus ?? property?.status ?? 'draft';
   const queryClient = useQueryClient();
   const offlineSnapshotMutation = useCreateOfflinePropertySnapshot();
   const isOfflineListingSaved = Boolean(
@@ -695,8 +696,8 @@ export default function ListingDetailScreen() {
                 <Text style={[styles.addPhotoLabel, { color: colors.primary }]}>Add</Text>
               </TouchableOpacity>
             </ScrollView>
-            <View style={[styles.statusBadge, { backgroundColor: property.syncStatus ? colors.info : STATUS_COLORS[property.status] }]}>
-              <Text style={styles.statusText}>{property.syncStatus === 'conflict' ? 'Needs review' : property.syncStatus === 'queued' ? 'Waiting to sync' : property.status.charAt(0).toUpperCase() + property.status.slice(1)}</Text>
+            <View style={[styles.statusBadge, { backgroundColor: STATUS_COLORS[displayStatus] }]}>
+              <Text style={styles.statusText}>{displayStatus.charAt(0).toUpperCase() + displayStatus.slice(1)}</Text>
             </View>
             <View style={[styles.photoCountBadge, { backgroundColor: '#00000066' }]}>
               <Ionicons name="images-outline" size={12} color="#FFF" />
@@ -714,8 +715,8 @@ export default function ListingDetailScreen() {
               <Ionicons name="home-outline" size={38} color={colors.mutedForeground} />
               <Text style={[styles.galleryHint, { color: colors.mutedForeground }]}>Main photo coming soon · tap to add media</Text>
             </View>
-            <View style={[styles.statusBadge, { backgroundColor: property.syncStatus ? colors.info : STATUS_COLORS[property.status] }]}>
-              <Text style={styles.statusText}>{property.syncStatus === 'conflict' ? 'Needs review' : property.syncStatus === 'queued' ? 'Waiting to sync' : property.status.charAt(0).toUpperCase() + property.status.slice(1)}</Text>
+            <View style={[styles.statusBadge, { backgroundColor: STATUS_COLORS[displayStatus] }]}>
+              <Text style={styles.statusText}>{displayStatus.charAt(0).toUpperCase() + displayStatus.slice(1)}</Text>
             </View>
           </TouchableOpacity>
         )}
