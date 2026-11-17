@@ -14,6 +14,7 @@ export interface TemplateProps {
   property: Property;
   settings: FlyerSettings;
   shareUrl: string;
+  summaryOverride?: string | null;
   main?: string;
   extras: string[];
   mainFailed: boolean;
@@ -110,7 +111,9 @@ export function EditorialTemplate(p: TemplateProps) {
   const c = safeColor(s.primaryColor);
   const on = readableOn(c);
   const features = flyerFeatures(property, 6);
-  const summary = flyerSummary(property, 150);
+  const summary = p.summaryOverride == null
+    ? flyerSummary(property, 150)
+    : p.summaryOverride.replace(/\s+/g, " ").trim().slice(0, 220);
   const stats = flyerStats(property);
   const iconPrimary = contrastingBrandColor(s.logoColors?.[0] ?? s.primaryColor, FALLBACK_FLYER_COLOR);
   const iconAccent = contrastingBrandColor(s.logoColors?.[1] ?? iconPrimary, iconPrimary);

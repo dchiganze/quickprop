@@ -753,6 +753,22 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/BrochureResult" }
+  /properties/{id}/flyer-copy:
+    post:
+      operationId: generatePropertyFlyerCopy
+      tags: [marketing]
+      summary: Generate a concise, factual draft for a published listing flyer
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "200":
+          description: Editable flyer copy draft
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PropertyFlyerCopy" }
+        "404": { description: Published property not found }
+        "502": { description: The AI did not return usable copy }
+        "503": { description: AI copy generation is temporarily unavailable }
   /collaboration/discovery:
     get:
       operationId: listCollaborationDiscovery
@@ -3786,6 +3802,11 @@ components:
         propertyId: { type: integer }
         url: { type: ["string", "null"] }
         generatedAt: { type: string }
+    PropertyFlyerCopy:
+      type: object
+      required: [copy]
+      properties:
+        copy: { type: string, minLength: 12, maxLength: 220 }
     Seller:
       type: object
       required: [id, name]

@@ -20,6 +20,7 @@ Do not infer a stalled Android build from an unchanged GitHub run timestamp or a
 ## Android version and track bookkeeping
 
 Persist the highest submitted Android version code as the source baseline after a successful submission; the CI increment only affects its temporary checkout.
+The latest confirmed Android Internal release is versionCode 38.
 
 **Why:** Reusing a stale baseline generates a version code Google Play has already consumed. Uploading a bundle to Internal also consumes its code; moving it to Production requires promotion rather than uploading it again.
 
@@ -48,3 +49,11 @@ When `gh workflow run` fails with `malformed version:` on the Replit GitHub Ente
 **Why:** The CLI dispatch command failed before creating a run, while the REST dispatch request succeeded with HTTP 204.
 
 **How to apply:** Use the REST endpoint for the workflow ID with a JSON body containing the target ref and declared inputs; do not repeatedly retry the CLI command.
+
+## Monitoring release runs through the Replit proxy
+
+Use `gh api --hostname github.replit.internal` to monitor Actions runs instead of relying on `gh run watch`.
+
+**Why:** `gh run watch` queried the public GitHub API, hit its unauthenticated rate limit, and exited while the actual release workflow kept running.
+
+**How to apply:** Query the run and its jobs through the Replit hostname; treat a watcher failure separately from the workflow's status.

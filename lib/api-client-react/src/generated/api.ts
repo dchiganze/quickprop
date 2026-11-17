@@ -170,6 +170,7 @@ import type {
   PropertyAlertInput,
   PropertyAlertStatusInput,
   PropertyAlertUpdate,
+  PropertyFlyerCopy,
   PropertyInput,
   PropertyMatch,
   PropertyModerationInput,
@@ -3137,6 +3138,77 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
         TContext
       > => {
       return useMutation(getGenerateBrochureMutationOptions(options));
+    }
+
+export const getGeneratePropertyFlyerCopyUrl = (id: number,) => {
+
+
+
+
+  return `/api/properties/${id}/flyer-copy`
+}
+
+/**
+ * @summary Generate a concise, factual draft for a published listing flyer
+ */
+export const generatePropertyFlyerCopy = async (id: number, options?: RequestInit): Promise<PropertyFlyerCopy> => {
+
+  return customFetch<PropertyFlyerCopy>(getGeneratePropertyFlyerCopyUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getGeneratePropertyFlyerCopyMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generatePropertyFlyerCopy>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof generatePropertyFlyerCopy>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['generatePropertyFlyerCopy'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof generatePropertyFlyerCopy>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  generatePropertyFlyerCopy(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type GeneratePropertyFlyerCopyMutationResult = NonNullable<Awaited<ReturnType<typeof generatePropertyFlyerCopy>>>
+
+    export type GeneratePropertyFlyerCopyMutationError = ErrorType<void>
+
+    /**
+ * @summary Generate a concise, factual draft for a published listing flyer
+ */
+export const useGeneratePropertyFlyerCopy = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generatePropertyFlyerCopy>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof generatePropertyFlyerCopy>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getGeneratePropertyFlyerCopyMutationOptions(options));
     }
 
 export const getListCollaborationDiscoveryUrl = (params?: ListCollaborationDiscoveryParams,) => {

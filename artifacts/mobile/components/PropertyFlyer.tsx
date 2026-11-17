@@ -11,14 +11,19 @@ import {
 export interface PropertyFlyerHandle {
   capture: () => Promise<string>;
 }
-interface Props { property: Property; settings: FlyerSettings; shareUrl: string }
+interface Props {
+  property: Property;
+  settings: FlyerSettings;
+  shareUrl: string;
+  summaryOverride?: string | null;
+}
 
 const READY_TIMEOUT_MS = 10_000;
 const MAX_EXTRA_PHOTOS = 3;
 const sleep = (ms: number) => new Promise<void>(r => setTimeout(r, ms));
 
 export const PropertyFlyer = forwardRef<PropertyFlyerHandle, Props>(function PropertyFlyer(
-  { property, settings, shareUrl }, ref,
+  { property, settings, shareUrl, summaryOverride }, ref,
 ) {
   const viewShot = useRef<ViewShotRef>(null);
   const main = property.photos?.[0] || undefined;
@@ -108,7 +113,7 @@ export const PropertyFlyer = forwardRef<PropertyFlyerHandle, Props>(function Pro
   }), [main, logo]);
 
   const tp: TemplateProps = {
-    property, settings, shareUrl, main, extras, pic,
+    property, settings, shareUrl, summaryOverride, main, extras, pic,
     mainFailed: !main || status[main] === 'fail',
     logoOk: !!logo && status[logo] !== 'fail',
   };

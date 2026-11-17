@@ -1282,6 +1282,23 @@ export const GenerateBrochureResponse = zod.object({
 
 
 /**
+ * @summary Generate a concise, factual draft for a published listing flyer
+ */
+export const GeneratePropertyFlyerCopyParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const generatePropertyFlyerCopyResponseCopyMin = 12;
+export const generatePropertyFlyerCopyResponseCopyMax = 220;
+
+
+
+export const GeneratePropertyFlyerCopyResponse = zod.object({
+  "copy": zod.string().min(generatePropertyFlyerCopyResponseCopyMin).max(generatePropertyFlyerCopyResponseCopyMax)
+})
+
+
+/**
  * @summary Published branch and opted-in cross-branch listings available for collaboration
  */
 export const ListCollaborationDiscoveryQueryParams = zod.object({

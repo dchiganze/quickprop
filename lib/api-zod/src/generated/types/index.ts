@@ -223,6 +223,7 @@ export * from './propertyAlertUpdatePetsPreference';
 export * from './propertyAlertUpdatePowerPreference';
 export * from './propertyAlertUpdateTransactionType';
 export * from './propertyAlertUpdateWaterPreference';
+export * from './propertyFlyerCopy';
 export * from './propertyInput';
 export * from './propertyMatch';
 export * from './propertyModerationInput';

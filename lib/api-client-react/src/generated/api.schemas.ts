@@ -1148,6 +1148,14 @@ export interface BrochureResult {
   generatedAt: string;
 }
 
+export interface PropertyFlyerCopy {
+  /**
+     * @minLength 12
+     * @maxLength 220
+     */
+  copy: string;
+}
+
 export interface Seller {
   id: number;
   name: string;

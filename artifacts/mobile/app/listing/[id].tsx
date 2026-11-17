@@ -345,7 +345,11 @@ export default function ListingDetailScreen() {
   const [inviteCopied, setInviteCopied] = useState(false);
   const shareCardRef = useRef<PropertyFlyerHandle>(null);
   const [flyerOpen, setFlyerOpen] = useState(false);
+  const [flyerSummaryOverride, setFlyerSummaryOverride] = useState<string | null>(null);
   const flyer = useFlyerSettings(property, user);
+  useEffect(() => {
+    setFlyerSummaryOverride(null);
+  }, [property?.id]);
   const canManageApplications = property?.listingType === 'rent'
     && property.status === 'published'
     && Number.isInteger(remotePropertyId)
@@ -621,6 +625,7 @@ export default function ListingDetailScreen() {
           ref={shareCardRef}
           property={property}
           settings={flyer.settings}
+          summaryOverride={flyerSummaryOverride}
           shareUrl={propertyShareLinks(property).webUrl}
         />
       </View>
@@ -629,6 +634,8 @@ export default function ListingDetailScreen() {
         onClose={() => setFlyerOpen(false)}
         property={property}
         settings={flyer.settings}
+        summaryOverride={flyerSummaryOverride}
+        onSummaryChange={setFlyerSummaryOverride}
         onChange={flyer.setSettings}
         onReset={flyer.reset}
         shareUrl={propertyShareLinks(property).webUrl}

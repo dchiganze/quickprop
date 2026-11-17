@@ -20,6 +20,7 @@ import {
   propertyDuplicateReviewsTable,
   propertySaleConfirmationsTable,
 } from "@workspace/db";
+import { ai } from "@workspace/integrations-gemini-ai";
 import {
   GetAgencyPropertiesResponse,
   ListPropertiesQueryParams,
@@ -37,6 +38,7 @@ import {
   SharePropertyBody,
   SharePropertyResponse,
   GenerateBrochureResponse,
+  GeneratePropertyFlyerCopyResponse,
   CreateOfflinePropertySnapshotBody,
   CreateOfflinePropertySnapshotResponse,
 } from "@workspace/api-zod";
@@ -48,6 +50,11 @@ import { queuePrimaryReviewInvitation } from "../lib/agent-reviews";
 import { matchPropertyToAlerts } from "../lib/property-alerts";
 import { logger } from "../lib/logger";
 import { isPublicProperty, syncPropertyToProduction } from "../lib/publication-sync";
+import {
+  buildFlyerCopyPrompt,
+  FLYER_COPY_SYSTEM_INSTRUCTION,
+  normalizeFlyerCopy,
+} from "../lib/property-flyer-copy";
 import { hasValidListingPrice, isDraftPropertyState, needsPublicationPhoto } from "../lib/property-drafts";
 import { canAssignPropertyToAgent } from "../lib/property-assignment";
 import {
@@ -941,6 +948,52 @@ router.post("/properties/:id/share", async (req, res): Promise<void> => {
       qrData: url,
     }),
   );
+});
+
+router.post("/properties/:id/flyer-copy", async (req, res): Promise<void> => {
+  const id = parseId(req);
+  const user = await currentUser(req);
+  const [property] = await db.select().from(propertiesTable).where(eq(propertiesTable.id, id));
+  if (!property || !isPublicProperty(property)) {
+    res.status(404).json({ error: "Published property not found" });
+    return;
+  }
+
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: [{
+        role: "user",
+        parts: [{
+          text: buildFlyerCopyPrompt({
+            title: property.title,
+            description: property.description,
+            propertyType: property.propertyType,
+            listingType: property.listingType,
+            suburb: property.suburb,
+            city: property.city,
+            bedrooms: property.bedrooms,
+            bathrooms: property.bathrooms,
+            parking: property.parking,
+            landSize: property.landSize,
+            buildingSize: property.buildingSize,
+            features: property.features,
+          }),
+        }],
+      }],
+      config: { systemInstruction: FLYER_COPY_SYSTEM_INSTRUCTION, maxOutputTokens: 8192 },
+    });
+
+    const copy = normalizeFlyerCopy(response.text);
+    if (!copy) {
+      res.status(502).json({ error: "AI did not return usable flyer copy. Please try again." });
+      return;
+    }
+    res.json(GeneratePropertyFlyerCopyResponse.parse({ copy }));
+  } catch (error) {
+    logger.error({ error, propertyId: id, userId: user?.id }, "Flyer copy generation failed");
+    res.status(503).json({ error: "AI flyer copy is temporarily unavailable. Please try again." });
+  }
 });
 
 router.post("/properties/:id/brochure", async (req, res): Promise<void> => {

@@ -53,6 +53,7 @@ export function ShareHubSheet({ visible, onClose }: Props) {
 
   const [step, setStep] = useState<Step>('hub');
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
+  const [flyerSummaryOverride, setFlyerSummaryOverride] = useState<string | null>(null);
   const [sharing, setSharing] = useState(false);
   const [sharingCatalogueMode, setSharingCatalogueMode] = useState<CatalogMode | null>(null);
   const shareCardRef = useRef<PropertyFlyerHandle>(null);
@@ -139,7 +140,11 @@ export function ShareHubSheet({ visible, onClose }: Props) {
   const handleClose = () => {
     onClose();
     // reset after animation
-    setTimeout(() => { setStep('hub'); setSelectedProperty(null); }, 400);
+    setTimeout(() => {
+      setStep('hub');
+      setSelectedProperty(null);
+      setFlyerSummaryOverride(null);
+    }, 400);
   };
 
   const goBack = () => {
@@ -360,7 +365,12 @@ export function ShareHubSheet({ visible, onClose }: Props) {
           <TouchableOpacity
             key={p.id}
             style={[s.propRow, { backgroundColor: colors.card, borderColor: colors.border }]}
-            onPress={() => { Haptics.selectionAsync(); setSelectedProperty(p); setStep('property-share'); }}
+            onPress={() => {
+              Haptics.selectionAsync();
+              setSelectedProperty(p);
+              setFlyerSummaryOverride(null);
+              setStep('property-share');
+            }}
             activeOpacity={0.75}
           >
             <View style={[s.propIconWrap, { backgroundColor: colors.primary + '14' }]}>
@@ -483,6 +493,8 @@ export function ShareHubSheet({ visible, onClose }: Props) {
         onClose={() => setFlyerEditorOpen(false)}
         property={selectedProperty}
         settings={flyer.settings}
+        summaryOverride={flyerSummaryOverride}
+        onSummaryChange={setFlyerSummaryOverride}
         onChange={flyer.setSettings}
         onReset={flyer.reset}
         shareUrl={propertyShareLinks(selectedProperty).webUrl}
@@ -505,6 +517,7 @@ export function ShareHubSheet({ visible, onClose }: Props) {
                 ref={shareCardRef}
                 property={selectedProperty}
                 settings={flyer.settings}
+                summaryOverride={flyerSummaryOverride}
                 shareUrl={propertyShareLinks(selectedProperty).webUrl}
               />
             </View>

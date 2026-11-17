@@ -1,17 +1,21 @@
-import React, { useRef, useState } from 'react';
-import { Modal, Platform, Pressable, useWindowDimensions, StyleSheet, Text, TextInput, View } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Modal, Platform, Pressable, useWindowDimensions, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { KeyboardAwareScrollViewCompat } from '@/components/KeyboardAwareScrollViewCompat';
 import { PropertyFlyer } from '@/components/PropertyFlyer';
 import { useColors } from '@/hooks/useColors';
 import { pickAndPersistLogo } from '@/utils/flyerLogo';
 import { isHexColor, type FlyerSettings } from '@/utils/propertyFlyer';
+import { useGeneratePropertyFlyerCopy } from '@workspace/api-client-react';
 
 interface Props {
   visible: boolean;
   onClose: () => void;
   property: Parameters<typeof PropertyFlyer>[0]['property'];
   settings: FlyerSettings;
+  summaryOverride: string | null;
+  onSummaryChange: (copy: string | null) => void;
   onChange: (settings: FlyerSettings) => void;
   /** Optional: reset to agency defaults (from useFlyerSettings().reset). */
   onReset?: () => void;
@@ -20,17 +24,60 @@ interface Props {
 
 const SWATCHES = ['#1A3C6E', '#9F1239', '#B45309', '#4C1D95', '#111827'];
 
-export function FlyerCustomizer({ visible, onClose, property, settings, onChange, onReset, shareUrl }: Props) {
+export function FlyerCustomizer({
+  visible,
+  onClose,
+  property,
+  settings,
+  summaryOverride,
+  onSummaryChange,
+  onChange,
+  onReset,
+  shareUrl,
+}: Props) {
   const c = useColors();
   const insets = useSafeAreaInsets();
   const [logoError, setLogoError] = useState<string | undefined>();
   const [picking, setPicking] = useState(false);
+  const [copyLoading, setCopyLoading] = useState(false);
+  const [copyError, setCopyError] = useState<string | undefined>();
   const busy = useRef(false);
+  const copyRequestId = useRef(0);
+  const generatePropertyFlyerCopy = useGeneratePropertyFlyerCopy();
   const { width: winW } = useWindowDimensions();
   const scale = Math.min(1, Math.max(0.5, (winW - 32) / 360));
   const pw = 360 * scale;
   const ph = 450 * scale;
   const set = (patch: Partial<FlyerSettings>) => onChange({ ...settings, ...patch });
+
+  useEffect(() => {
+    copyRequestId.current += 1;
+    setCopyLoading(false);
+    setCopyError(undefined);
+  }, [property.id, visible]);
+
+  const generateCopy = async () => {
+    if (copyLoading) return;
+    const id = Number(property.id);
+    if (!Number.isSafeInteger(id) || id <= 0) {
+      setCopyError('Sync this published listing before generating flyer copy.');
+      return;
+    }
+
+    const requestId = ++copyRequestId.current;
+    setCopyLoading(true);
+    setCopyError(undefined);
+    try {
+      const result = await generatePropertyFlyerCopy.mutateAsync({ id });
+      if (copyRequestId.current === requestId) onSummaryChange(result.copy);
+    } catch {
+      if (copyRequestId.current === requestId) {
+        setCopyError('Could not generate flyer copy. Check your connection and try again.');
+      }
+    } finally {
+      if (copyRequestId.current === requestId) setCopyLoading(false);
+    }
+  };
 
   const chooseLogo = async () => {
     if (busy.current) return;
@@ -71,7 +118,14 @@ export function FlyerCustomizer({ visible, onClose, property, settings, onChange
           <View style={{ alignItems: 'center', marginVertical: 12 }}>
             <View style={[s.preview, { borderColor: c.border, width: pw, height: ph, overflow: 'hidden' }]}>
               <View style={{ width: 360, height: 450, transform: [{ translateX: -(360 - pw) / 2 }, { translateY: -(450 - ph) / 2 }, { scale }] }}>
-                {visible && <PropertyFlyer property={property} settings={settings} shareUrl={shareUrl ?? ''} />}
+                {visible && (
+                  <PropertyFlyer
+                    property={property}
+                    settings={settings}
+                    summaryOverride={summaryOverride}
+                    shareUrl={shareUrl ?? ''}
+                  />
+                )}
               </View>
             </View>
           </View>
@@ -115,6 +169,57 @@ export function FlyerCustomizer({ visible, onClose, property, settings, onChange
           {field('CONTACT NAME', 'contactName')}
           {field('CONTACT PHONE', 'contactPhone', { keyboardType: 'phone-pad' })}
 
+          <View style={[s.aiPanel, { backgroundColor: c.card, borderColor: c.border }]}>
+            <View style={s.aiHeading}>
+              <View style={{ flex: 1 }}>
+                <Text style={[s.label, { color: c.foreground }]}>FLYER COPY</Text>
+                <Text style={[s.aiHint, { color: c.mutedForeground }]}>
+                  Generate an optional, editable draft from this published listing.
+                </Text>
+              </View>
+              <Pressable
+                onPress={generateCopy}
+                disabled={copyLoading}
+                testID="generate-flyer-copy"
+                accessibilityRole="button"
+                accessibilityLabel={summaryOverride === null ? 'Generate AI flyer copy' : 'Regenerate AI flyer copy'}
+                style={[s.aiGenerate, { backgroundColor: c.primary, opacity: copyLoading ? 0.65 : 1 }]}
+              >
+                {copyLoading
+                  ? <ActivityIndicator size="small" color={c.primaryForeground} />
+                  : <Ionicons name="sparkles-outline" size={16} color={c.primaryForeground} />}
+                <Text style={[s.aiGenerateText, { color: c.primaryForeground }]}>
+                  {copyLoading ? 'Writing' : summaryOverride === null ? 'Generate' : 'Regenerate'}
+                </Text>
+              </Pressable>
+            </View>
+            <TextInput
+              value={summaryOverride ?? property.description ?? ''}
+              onChangeText={onSummaryChange}
+              multiline
+              maxLength={220}
+              textAlignVertical="top"
+              accessibilityLabel="Editable flyer description"
+              testID="flyer-copy-input"
+              style={[s.aiInput, { backgroundColor: c.input, color: c.foreground, borderColor: c.border }]}
+              placeholder="Generate or enter a short property description"
+              placeholderTextColor={c.mutedForeground}
+            />
+            {summaryOverride !== null && (
+              <Pressable
+                onPress={() => onSummaryChange(null)}
+                testID="use-original-flyer-copy"
+                style={s.resetCopy}
+              >
+                <Text style={{ color: c.primary, fontWeight: '700', fontSize: 12 }}>Use listing description</Text>
+              </Pressable>
+            )}
+            {!!copyError && <Text style={[s.aiError, { color: c.destructive }]}>{copyError}</Text>}
+            <Text style={[s.aiHint, { color: c.mutedForeground }]}>
+              Review the text before sharing. It does not change the saved listing.
+            </Text>
+          </View>
+
           {!!onReset && (
             <Pressable onPress={onReset} testID="flyer-reset" style={[s.btn, { backgroundColor: c.secondary, marginTop: 20, alignSelf: 'flex-start' }]}>
               <Text style={{ color: c.secondaryForeground, fontWeight: '700' }}>Reset to agency defaults</Text>
@@ -132,6 +237,14 @@ const s = StyleSheet.create({
   preview: { borderWidth: 1, shadowColor: '#000', shadowOpacity: 0.12, shadowRadius: 12, shadowOffset: { width: 0, height: 4 } },
   label: { fontSize: 11, fontWeight: '800', letterSpacing: 0.8 },
   input: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, fontSize: 15, marginTop: 5 },
+  aiPanel: { borderWidth: 1, borderRadius: 14, padding: 12, marginTop: 22 },
+  aiHeading: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  aiHint: { fontSize: 11, lineHeight: 16, marginTop: 4 },
+  aiGenerate: { minHeight: 38, borderRadius: 10, paddingHorizontal: 11, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  aiGenerateText: { fontSize: 12, fontWeight: '800' },
+  aiInput: { minHeight: 96, maxHeight: 150, borderWidth: 1, borderRadius: 10, paddingHorizontal: 11, paddingVertical: 9, fontSize: 14, lineHeight: 20, marginTop: 11 },
+  resetCopy: { paddingVertical: 8, alignSelf: 'flex-start' },
+  aiError: { fontSize: 12, marginTop: 6 },
   btn: { borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10 },
   swatch: { width: 32, height: 32, borderRadius: 16, borderWidth: 2 },
 });
