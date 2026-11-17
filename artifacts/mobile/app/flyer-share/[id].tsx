@@ -15,12 +15,12 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
-  ApiError,
   getGetPropertyQueryKey,
   useGeneratePropertyAIFlyer,
   useGetProperty,
 } from '@workspace/api-client-react';
 import type { PropertyAIFlyerResult } from '@workspace/api-client-react';
+import { getAIFlyerErrorMessage } from '@/lib/ai-flyer-errors';
 import { useAuth } from '@/contexts/AuthContext';
 import { useData, toMobileProperty } from '@/contexts/DataContext';
 import { KeyboardAwareScrollViewCompat } from '@/components/KeyboardAwareScrollViewCompat';
@@ -34,16 +34,6 @@ import type { Property } from '@/types';
 
 type Step = 'choose' | 'prompt' | 'preview';
 type FlyerMode = 'standard' | 'ai';
-
-function getAIFlyerErrorMessage(error: unknown): string {
-  if (error instanceof ApiError) {
-    const data = error.data;
-    if (data && typeof data === 'object' && 'error' in data && typeof data.error === 'string') {
-      return data.error;
-    }
-  }
-  return 'Could not create the AI flyer. Check your connection and try again.';
-}
 
 function ChoiceCard({
   title,
