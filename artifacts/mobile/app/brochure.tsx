@@ -298,7 +298,7 @@ export default function BrochureSetupScreen() {
         const printHtml = getBrochurePrintHtml(html, Platform.OS);
         await Print.printAsync({ html: printHtml, ...BROCHURE_PRINT_OPTIONS });
       } else {
-        await shareCatalogueBrochureHtml(html, user?.name);
+        await shareCatalogueBrochureHtml(html, user?.id);
       }
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Could not generate brochure. Please try again.';

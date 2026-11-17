@@ -48,7 +48,7 @@ export function QuickShareSheet({ visible, onClose }: QuickShareSheetProps) {
     setSharing(true);
     try {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-       const text = buildCatalogueWhatsAppCaption(user?.name);
+       const text = buildCatalogueWhatsAppCaption(mode === 'agent' ? user?.id : undefined);
        await shareCatalogueToWhatsApp(
          text,
          () => catalogueCardRef.current?.capture()

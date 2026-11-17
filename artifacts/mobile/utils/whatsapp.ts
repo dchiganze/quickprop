@@ -76,9 +76,9 @@ async function recordPropertyShare(property: Property): Promise<void> {
 export async function sharePropertyToWhatsApp(
   property: Property,
   captureCard: () => Promise<string>,
-  options: { beforeNativeShare?: () => Promise<void> } = {},
+  options: { beforeNativeShare?: () => Promise<void>; caption?: string } = {},
 ): Promise<{ caption: string; sharedPhoto: boolean }> {
-  const caption = buildPropertyFlyerCaption();
+  const caption = options.caption ?? buildPropertyFlyerCaption();
 
   if (Platform.OS === 'web') {
     const cardUri = await prepareShareImage(captureCard);
@@ -87,9 +87,11 @@ export async function sharePropertyToWhatsApp(
   }
 
   if (isExpoGo) {
-    throw new Error(
-      'Automatic flyer and caption sharing requires the installed QuickProp Agent app. Expo Go does not include the native share module.',
-    );
+    const cardUri = await prepareShareImage(captureCard);
+    await options.beforeNativeShare?.();
+    await Clipboard.setStringAsync(caption);
+    await shareImageWithSystemSheet(cardUri, 'QuickProp property flyer');
+    return { caption, sharedPhoto: true };
   }
 
   const title = `${property.referenceNumber} — ${property.suburb}`;
@@ -125,8 +127,9 @@ export async function shareCatalogueToWhatsApp(
   }
 
   if (isExpoGo) {
-    await Share.share({ message: caption, title: 'QuickProp Property Brochure' });
-    return { caption, sharedPhoto: false };
+    const cardUri = await prepareShareImage(captureCard);
+    await shareImageWithSystemSheet(cardUri, 'QuickProp Property Brochure');
+    return { caption, sharedPhoto: true };
   }
 
   const cardUri = await prepareShareImage(captureCard);
@@ -154,9 +157,9 @@ export async function shareCatalogueToWhatsApp(
 
 export async function shareCataloguePdfWithCaption(
   pdfUri: string,
-  agentName?: string,
+  agentId?: string,
 ): Promise<{ caption: string }> {
-  const caption = buildCatalogueWhatsAppCaption(agentName);
+  const caption = buildCatalogueWhatsAppCaption(agentId);
   await Clipboard.setStringAsync(caption).catch(() => {});
 
   if (Platform.OS === 'web') {

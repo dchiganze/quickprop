@@ -10,7 +10,11 @@ import { useData } from '@/contexts/DataContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Property } from '@/types';
 import { propertyShareLinks } from '@/utils/shareLinks';
-import { buildPropertyShareMessage, formatSharePrice } from '@/utils/shareContent';
+import {
+  buildCatalogueWhatsAppCaption,
+  buildPropertyShareMessage,
+  formatSharePrice,
+} from '@/utils/shareContent';
 import {
   PropertySocialDestination,
   sharePropertyToWhatsApp,
@@ -198,7 +202,7 @@ export function ShareHubSheet({ visible, onClose }: Props) {
         agents,
         { ...agencyBranding, logoUrl: preparedMedia.logoUrl },
       );
-      await shareCatalogueBrochureHtml(html, user?.name, beforeNativeShare);
+      await shareCatalogueBrochureHtml(html, user?.id, beforeNativeShare);
       handleClose();
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Could not generate brochure. Please try again.';
@@ -233,7 +237,10 @@ export function ShareHubSheet({ visible, onClose }: Props) {
         p,
         () => shareCardRef.current?.capture()
           ?? Promise.reject(new Error('Unable to prepare the property image.')),
-        { beforeNativeShare },
+        {
+          beforeNativeShare,
+          caption: buildCatalogueWhatsAppCaption(user?.id),
+        },
       );
       handleClose();
     } catch (e: unknown) {
@@ -247,7 +254,7 @@ export function ShareHubSheet({ visible, onClose }: Props) {
     } finally {
       setSharing(false);
     }
-  }, [flyer.loading, beforeNativeShare]);
+  }, [flyer.loading, beforeNativeShare, user?.id]);
 
   const sharePropertyNative = useCallback(async (p: Property) => {
     setSharing(true);

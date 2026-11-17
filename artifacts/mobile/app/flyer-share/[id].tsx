@@ -29,6 +29,7 @@ import { useFlyerSettings } from '@/hooks/useFlyerSettings';
 import { useColors } from '@/hooks/useColors';
 import { resolveFlyerPalette, type FlyerSettings } from '@/utils/propertyFlyer';
 import { propertyShareLinks } from '@/utils/shareLinks';
+import { buildPropertyFlyerCaption } from '@/utils/shareContent';
 import { sharePropertyGeneric } from '@/utils/whatsapp';
 import type { Property } from '@/types';
 
@@ -192,6 +193,8 @@ export default function FlyerShareScreen() {
         () => flyerRef.current?.capture()
           ?? Promise.reject(new Error('Unable to prepare the flyer image.')),
         'Share property flyer',
+        true,
+        buildPropertyFlyerCaption(user?.id),
       );
       router.back();
     } catch (error) {

@@ -1,18 +1,13 @@
 import { Property } from '@/types';
 import { catalogueShareLinks, propertyShareLinks } from './shareLinks';
 
-export function buildPropertyFlyerCaption(): string {
-  return 'Follow this link to see all my properties www.quickprop.co.zw/douglaschiganze';
+export function buildPropertyFlyerCaption(agentId?: string): string {
+  return buildCatalogueWhatsAppCaption(agentId);
 }
 
-export function buildCatalogueWhatsAppCaption(agentName?: string): string {
-  const agentSlug = agentName
-    ?.normalize('NFKD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]/g, '')
-    || 'agent';
-  return `Click this link to keep up to date with all my listings www.quickprop.co.zw/${agentSlug}`;
+export function buildCatalogueWhatsAppCaption(agentId?: string): string {
+  const catalogueUrl = catalogueShareLinks(agentId).webUrl;
+  return `Click here to view my entire catalogue on ${catalogueUrl}`;
 }
 
 export type CatalogueMode = 'agent' | 'company';

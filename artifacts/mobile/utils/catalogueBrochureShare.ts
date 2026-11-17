@@ -6,7 +6,7 @@ type BeforeShare = () => Promise<void>;
 
 export async function shareCatalogueBrochureHtml(
   html: string,
-  agentName?: string,
+  agentId?: string,
   beforeShare?: BeforeShare,
 ): Promise<void> {
   const Print = await import('expo-print');
@@ -17,5 +17,5 @@ export async function shareCatalogueBrochureHtml(
   });
 
   await beforeShare?.();
-  await shareCataloguePdfWithCaption(uri, agentName);
+  await shareCataloguePdfWithCaption(uri, agentId);
 }
