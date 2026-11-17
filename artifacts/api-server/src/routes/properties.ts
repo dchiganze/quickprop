@@ -39,6 +39,8 @@ import {
   SharePropertyResponse,
   GenerateBrochureResponse,
   GeneratePropertyFlyerCopyResponse,
+  GeneratePropertyAIFlyerBody,
+  GeneratePropertyAIFlyerResponse,
   CreateOfflinePropertySnapshotBody,
   CreateOfflinePropertySnapshotResponse,
 } from "@workspace/api-zod";
@@ -52,7 +54,10 @@ import { logger } from "../lib/logger";
 import { isPublicProperty, syncPropertyToProduction } from "../lib/publication-sync";
 import {
   buildFlyerCopyPrompt,
+  buildPropertyAIFlyerPrompt,
   FLYER_COPY_SYSTEM_INSTRUCTION,
+  PROPERTY_AI_FLYER_SYSTEM_INSTRUCTION,
+  normalizePropertyAIFlyer,
   normalizeFlyerCopy,
 } from "../lib/property-flyer-copy";
 import { hasValidListingPrice, isDraftPropertyState, needsPublicationPhoto } from "../lib/property-drafts";
@@ -993,6 +998,65 @@ router.post("/properties/:id/flyer-copy", async (req, res): Promise<void> => {
   } catch (error) {
     logger.error({ error, propertyId: id, userId: user?.id }, "Flyer copy generation failed");
     res.status(503).json({ error: "AI flyer copy is temporarily unavailable. Please try again." });
+  }
+});
+
+router.post("/properties/:id/ai-flyer", async (req, res): Promise<void> => {
+  const id = parseId(req);
+  const user = await currentUser(req);
+  if (!user) {
+    res.status(401).json({ error: "Sign in to generate an AI flyer." });
+    return;
+  }
+  const request = GeneratePropertyAIFlyerBody.safeParse(req.body);
+  if (!request.success) {
+    res.status(400).json({ error: "Enter a flyer style description between 3 and 300 characters." });
+    return;
+  }
+  const [property] = await db.select().from(propertiesTable).where(eq(propertiesTable.id, id));
+  if (!property || !isPublicProperty(property)) {
+    res.status(404).json({ error: "Published property not found" });
+    return;
+  }
+
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: [{
+        role: "user",
+        parts: [{
+          text: buildPropertyAIFlyerPrompt({
+            title: property.title,
+            description: property.description,
+            propertyType: property.propertyType,
+            listingType: property.listingType,
+            suburb: property.suburb,
+            city: property.city,
+            bedrooms: property.bedrooms,
+            bathrooms: property.bathrooms,
+            parking: property.parking,
+            landSize: property.landSize,
+            buildingSize: property.buildingSize,
+            features: property.features,
+          }, request.data.stylePrompt),
+        }],
+      }],
+      config: {
+        systemInstruction: PROPERTY_AI_FLYER_SYSTEM_INSTRUCTION,
+        responseMimeType: "application/json",
+        maxOutputTokens: 8192,
+      },
+    });
+
+    const result = normalizePropertyAIFlyer(response.text);
+    if (!result) {
+      res.status(502).json({ error: "AI did not return a usable flyer design. Please try again." });
+      return;
+    }
+    res.json(GeneratePropertyAIFlyerResponse.parse(result));
+  } catch (error) {
+    logger.error({ error, propertyId: id, userId: user?.id }, "AI flyer generation failed");
+    res.status(503).json({ error: "AI flyer generation is temporarily unavailable. Please try again." });
   }
 });
 

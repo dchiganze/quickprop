@@ -109,6 +109,14 @@ function StatIcon({
 export function EditorialTemplate(p: TemplateProps) {
   const { settings: s, property } = p;
   const c = safeColor(s.primaryColor);
+  const designStyle = s.designStyle ?? 'editorial';
+  const bold = designStyle === 'bold';
+  const luxury = designStyle === 'luxury';
+  const minimal = designStyle === 'minimal';
+  const canvas = luxury ? '#0B1929' : '#FFFFFF';
+  const ink = luxury ? '#F8FAFC' : '#111827';
+  const subduedInk = luxury ? '#CBD5E1' : '#374151';
+  const heroHeight = bold ? 190 : minimal ? 154 : 172;
   const on = readableOn(c);
   const features = flyerFeatures(property, 6);
   const summary = p.summaryOverride == null
@@ -121,22 +129,38 @@ export function EditorialTemplate(p: TemplateProps) {
   const words = (s.headline || '').trim().split(/\s+/);
   const last = words.length > 1 ? words.pop() : '';
   return (
-    <View style={[st.root, { backgroundColor: '#FFFFFF' }]}>
-      <View style={{ height: 172, position: 'relative' }}>
-        <View style={{ position: 'absolute', right: 0, top: 0, width: 200, height: 172, overflow: 'hidden', backgroundColor: '#E5E7EB' }}>
-          <MainPhoto p={p} />
+    <View style={[st.root, { backgroundColor: canvas }]}>
+      {bold ? (
+        <View style={{ height: heroHeight, position: 'relative', overflow: 'hidden', backgroundColor: '#0B1929' }}>
+          <View style={StyleSheet.absoluteFill}><MainPhoto p={p} /></View>
+          <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(8,20,38,0.38)' }]} />
+          <View style={{ position: 'absolute', left: 12, top: 10, padding: 7, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.94)' }}>
+            <Brand s={s} logoOk={p.logoOk} pic={p.pic} color={c} size={46} />
+          </View>
+          <View style={{ position: 'absolute', left: 14, right: 14, bottom: 15 }}>
+            <View style={{ width: 42, height: 4, borderRadius: 2, backgroundColor: c, marginBottom: 7 }} />
+            <Text style={{ fontSize: 28, lineHeight: 31, fontWeight: '900', color: '#FFFFFF', letterSpacing: -0.6 }} numberOfLines={2} adjustsFontSizeToFit>
+              {s.headline.toUpperCase()}
+            </Text>
+          </View>
         </View>
-        <View style={{ position: 'absolute', left: 0, top: 0, width: 160, height: 102, paddingLeft: 5 }}>
-          <Brand s={s} logoOk={p.logoOk} pic={p.pic} color={c} size={92} />
+      ) : (
+        <View style={{ height: heroHeight, position: 'relative' }}>
+          <View style={{ position: 'absolute', right: 0, top: 0, width: minimal ? 188 : 200, height: heroHeight, overflow: 'hidden', backgroundColor: '#E5E7EB' }}>
+            <MainPhoto p={p} />
+          </View>
+          <View style={{ position: 'absolute', left: 0, top: 0, width: minimal ? 172 : 160, height: minimal ? 92 : 102, paddingLeft: 5 }}>
+            <Brand s={s} logoOk={p.logoOk} pic={p.pic} color={c} size={minimal ? 74 : 92} />
+          </View>
+          <View style={{ position: 'absolute', left: 0, bottom: 0, width: minimal ? 172 : 160, height: 64, justifyContent: 'flex-end', paddingLeft: 13 }}>
+            <Text style={{ fontSize: minimal ? 18 : 22, lineHeight: minimal ? 21 : 24, fontWeight: '900', color: ink, letterSpacing: -0.5 }} numberOfLines={1} adjustsFontSizeToFit>
+              {(last ? words.join(' ') : s.headline).toUpperCase()}
+            </Text>
+            {!!last && <Text style={{ fontSize: minimal ? 25 : 30, lineHeight: minimal ? 28 : 33, fontWeight: '900', color: c, letterSpacing: -0.5, marginTop: -3 }} numberOfLines={1} adjustsFontSizeToFit>{last.toUpperCase()}</Text>}
+          </View>
+          <View style={{ position: 'absolute', right: 0, bottom: 0, width: minimal ? 188 : 200, height: minimal ? 3 : 5, backgroundColor: c }} />
         </View>
-        <View style={{ position: 'absolute', left: 0, bottom: 0, width: 160, height: 64, justifyContent: 'flex-end', paddingLeft: 13 }}>
-          <Text style={{ fontSize: 22, lineHeight: 24, fontWeight: '900', color: '#111827', letterSpacing: -0.5 }} numberOfLines={1} adjustsFontSizeToFit>
-            {(last ? words.join(' ') : s.headline).toUpperCase()}
-          </Text>
-          {!!last && <Text style={{ fontSize: 30, lineHeight: 33, fontWeight: '900', color: c, letterSpacing: -0.5, marginTop: -3 }} numberOfLines={1} adjustsFontSizeToFit>{last.toUpperCase()}</Text>}
-        </View>
-        <View style={{ position: 'absolute', right: 0, bottom: 0, width: 200, height: 5, backgroundColor: c }} />
-      </View>
+      )}
       <View style={[st.bar, { backgroundColor: c, marginHorizontal: 14, marginTop: 1.2 }]}>
         <Text style={{ color: on, fontSize: 8, fontWeight: '800', flex: 1 }} numberOfLines={2}>{flyerLocation(property).toUpperCase()}</Text>
         {!!price && <Text style={{ color: on, fontSize: 18, fontWeight: '900', marginLeft: 8 }} numberOfLines={1}>{price}</Text>}
@@ -152,8 +176,8 @@ export function EditorialTemplate(p: TemplateProps) {
                   : index % 2 === 0 ? iconPrimary : iconAccent}
                 accent={iconAccent}
               />
-              <Text style={{ color: '#111827', fontSize: 8.5, lineHeight: 11, fontWeight: '900', marginTop: 2, textAlign: 'center' }} numberOfLines={1} adjustsFontSizeToFit>{stat.value}</Text>
-              <Text style={{ color: '#4B5563', fontSize: 6.5, lineHeight: 9, fontWeight: '700', textAlign: 'center', marginTop: 1 }} numberOfLines={2}>{stat.label}</Text>
+              <Text style={{ color: ink, fontSize: 8.5, lineHeight: 11, fontWeight: '900', marginTop: 2, textAlign: 'center' }} numberOfLines={1} adjustsFontSizeToFit>{stat.value}</Text>
+              <Text style={{ color: subduedInk, fontSize: 6.5, lineHeight: 9, fontWeight: '700', textAlign: 'center', marginTop: 1 }} numberOfLines={2}>{stat.label}</Text>
             </View>
           ))}
         </View>
@@ -161,14 +185,14 @@ export function EditorialTemplate(p: TemplateProps) {
       <View style={{ flexDirection: 'row', paddingHorizontal: 14, gap: 8, flex: 1, minHeight: 0 }}>
         <View style={{ flex: 1.1, minWidth: 0 }}>
           <View style={{ marginBottom: 1.2 }}>
-            <ContactLine s={s} color="#111827" />
+            <ContactLine s={s} color={ink} />
           </View>
-          {!!summary && <Text style={{ fontSize: 7.2, lineHeight: 8.5, color: '#374151' }} numberOfLines={5}>{summary}</Text>}
+          {!!summary && <Text style={{ fontSize: 7.2, lineHeight: 8.5, color: subduedInk }} numberOfLines={5}>{summary}</Text>}
           {features.length > 0 && (
             <View style={[st.featBox, { borderColor: c, padding: 4, marginTop: 3 }]}>
               <Text style={{ color: c, fontSize: 6.8, fontWeight: '900', letterSpacing: 1, marginBottom: 1 }}>PROPERTY FEATURES</Text>
               {features.map(f => (
-                <Text key={f} style={{ fontSize: 7, color: '#111827', lineHeight: 8 }} numberOfLines={1}>{'\u2022 '}{f}</Text>
+                <Text key={f} style={{ fontSize: 7, color: ink, lineHeight: 8 }} numberOfLines={1}>{'\u2022 '}{f}</Text>
               ))}
             </View>
           )}

@@ -166,6 +166,8 @@ import type {
   PriceHistoryEntry,
   ProcessImportInput,
   Property,
+  PropertyAIFlyerRequest,
+  PropertyAIFlyerResult,
   PropertyAlert,
   PropertyAlertInput,
   PropertyAlertStatusInput,
@@ -3209,6 +3211,78 @@ export const useGeneratePropertyFlyerCopy = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getGeneratePropertyFlyerCopyMutationOptions(options));
+    }
+
+export const getGeneratePropertyAIFlyerUrl = (id: number,) => {
+
+
+
+
+  return `/api/properties/${id}/ai-flyer`
+}
+
+/**
+ * @summary Generate a safe flyer design recipe and factual copy for a published listing
+ */
+export const generatePropertyAIFlyer = async (id: number,
+    propertyAIFlyerRequest: PropertyAIFlyerRequest, options?: RequestInit): Promise<PropertyAIFlyerResult> => {
+
+  return customFetch<PropertyAIFlyerResult>(getGeneratePropertyAIFlyerUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(propertyAIFlyerRequest)
+  }
+);}
+
+
+
+
+
+export const getGeneratePropertyAIFlyerMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generatePropertyAIFlyer>>, TError,{id: number;data: BodyType<PropertyAIFlyerRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof generatePropertyAIFlyer>>, TError,{id: number;data: BodyType<PropertyAIFlyerRequest>}, TContext> => {
+
+const mutationKey = ['generatePropertyAIFlyer'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof generatePropertyAIFlyer>>, {id: number;data: BodyType<PropertyAIFlyerRequest>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  generatePropertyAIFlyer(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type GeneratePropertyAIFlyerMutationResult = NonNullable<Awaited<ReturnType<typeof generatePropertyAIFlyer>>>
+    export type GeneratePropertyAIFlyerMutationBody = BodyType<PropertyAIFlyerRequest>
+    export type GeneratePropertyAIFlyerMutationError = ErrorType<void>
+
+    /**
+ * @summary Generate a safe flyer design recipe and factual copy for a published listing
+ */
+export const useGeneratePropertyAIFlyer = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generatePropertyAIFlyer>>, TError,{id: number;data: BodyType<PropertyAIFlyerRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof generatePropertyAIFlyer>>,
+        TError,
+        {id: number;data: BodyType<PropertyAIFlyerRequest>},
+        TContext
+      > => {
+      return useMutation(getGeneratePropertyAIFlyerMutationOptions(options));
     }
 
 export const getListCollaborationDiscoveryUrl = (params?: ListCollaborationDiscoveryParams,) => {

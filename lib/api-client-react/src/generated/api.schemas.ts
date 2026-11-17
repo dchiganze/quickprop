@@ -1156,6 +1156,45 @@ export interface PropertyFlyerCopy {
   copy: string;
 }
 
+export interface PropertyAIFlyerRequest {
+  /**
+     * @minLength 3
+     * @maxLength 300
+     */
+  stylePrompt: string;
+}
+
+export type PropertyAIFlyerResultDesignStyle = typeof PropertyAIFlyerResultDesignStyle[keyof typeof PropertyAIFlyerResultDesignStyle];
+
+
+export const PropertyAIFlyerResultDesignStyle = {
+  editorial: 'editorial',
+  bold: 'bold',
+  minimal: 'minimal',
+  luxury: 'luxury',
+} as const;
+
+export type PropertyAIFlyerResultPalette = typeof PropertyAIFlyerResultPalette[keyof typeof PropertyAIFlyerResultPalette];
+
+
+export const PropertyAIFlyerResultPalette = {
+  brand: 'brand',
+  navy: 'navy',
+  forest: 'forest',
+  amber: 'amber',
+  monochrome: 'monochrome',
+} as const;
+
+export interface PropertyAIFlyerResult {
+  /**
+     * @minLength 12
+     * @maxLength 220
+     */
+  copy: string;
+  designStyle: PropertyAIFlyerResultDesignStyle;
+  palette: PropertyAIFlyerResultPalette;
+}
+
 export interface Seller {
   id: number;
   name: string;

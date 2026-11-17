@@ -1,9 +1,12 @@
 import type { Property, User } from '@/types';
 
 export type FlyerTemplate = 'editorial';
+export type FlyerDesignStyle = 'editorial' | 'bold' | 'minimal' | 'luxury';
+export type FlyerPalette = 'brand' | 'navy' | 'forest' | 'amber' | 'monochrome';
 
 export interface FlyerSettings {
   template: FlyerTemplate;
+  designStyle?: FlyerDesignStyle;
   agencyName: string;
   logoUrl: string;
   primaryColor: string;
@@ -19,6 +22,16 @@ export interface FlyerSettings {
 
 export const FALLBACK_FLYER_COLOR = '#1A3C6E';
 const QUICKPROP_DEFAULT_GREEN = '#10B981';
+
+export function resolveFlyerPalette(palette: FlyerPalette, agencyColor: string): string {
+  const colors: Record<Exclude<FlyerPalette, 'brand'>, string> = {
+    navy: '#1A3C6E',
+    forest: '#176B56',
+    amber: '#A85C18',
+    monochrome: '#334155',
+  };
+  return palette === 'brand' ? safeColor(agencyColor) : colors[palette];
+}
 
 export function resolveAgencyBrandColors(agency?: {
   primaryColor?: string | null;

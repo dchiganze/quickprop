@@ -11,7 +11,6 @@ import * as Haptics from 'expo-haptics';
 import { useQueryClient } from '@tanstack/react-query';
 import { useColors } from '@/hooks/useColors';
 import { propertyShareLinks } from '@/utils/shareLinks';
-import { sharePropertyGeneric } from '@/utils/whatsapp';
 import { getPrimaryListingPhoto } from '@/utils/listingPhoto';
 import { useNetworkStatus } from '@/contexts/ConnectivityContext';
 import { ListingImage } from '@/components/ListingImage';
@@ -392,19 +391,9 @@ export default function ListingDetailScreen() {
     setSharingProperty(true);
     try {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      await sharePropertyGeneric(
-        property,
-        () => shareCardRef.current?.capture()
-          ?? Promise.reject(new Error('Unable to prepare the property image.')),
-      );
+      router.push({ pathname: '/flyer-share/[id]', params: { id: String(property.id) } });
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message.toLowerCase() : '';
-      if (!message.includes('cancel') && !message.includes('dismiss')) {
-        Alert.alert(
-          'Could not share property',
-          error instanceof Error ? error.message : 'Please try again or choose another sharing option.',
-        );
-      }
+      Alert.alert('Could not open flyer options', error instanceof Error ? error.message : 'Please try again.');
     } finally {
       setSharingProperty(false);
     }

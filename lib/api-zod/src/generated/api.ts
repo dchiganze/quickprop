@@ -1299,6 +1299,34 @@ export const GeneratePropertyFlyerCopyResponse = zod.object({
 
 
 /**
+ * @summary Generate a safe flyer design recipe and factual copy for a published listing
+ */
+export const GeneratePropertyAIFlyerParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const generatePropertyAIFlyerBodyStylePromptMin = 3;
+export const generatePropertyAIFlyerBodyStylePromptMax = 300;
+
+
+
+export const GeneratePropertyAIFlyerBody = zod.object({
+  "stylePrompt": zod.string().min(generatePropertyAIFlyerBodyStylePromptMin).max(generatePropertyAIFlyerBodyStylePromptMax)
+})
+
+export const generatePropertyAIFlyerResponseCopyMin = 12;
+export const generatePropertyAIFlyerResponseCopyMax = 220;
+
+
+
+export const GeneratePropertyAIFlyerResponse = zod.object({
+  "copy": zod.string().min(generatePropertyAIFlyerResponseCopyMin).max(generatePropertyAIFlyerResponseCopyMax),
+  "designStyle": zod.enum(['editorial', 'bold', 'minimal', 'luxury']),
+  "palette": zod.enum(['brand', 'navy', 'forest', 'amber', 'monochrome'])
+})
+
+
+/**
  * @summary Published branch and opted-in cross-branch listings available for collaboration
  */
 export const ListCollaborationDiscoveryQueryParams = zod.object({

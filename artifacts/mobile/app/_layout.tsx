@@ -101,6 +101,7 @@ function RootLayoutNav() {
           }}
         />
         <Stack.Screen name="listing/[id]" />
+        <Stack.Screen name="flyer-share/[id]" />
         <Stack.Screen name="task/[id]" />
         <Stack.Screen
           name="task/new"
