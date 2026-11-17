@@ -60,6 +60,7 @@ import {
   normalizePropertyAIFlyer,
   normalizeFlyerCopy,
 } from "../lib/property-flyer-copy";
+import { canGeneratePropertyAIFlyerForListing } from "../lib/property-ai-flyer-access";
 import { hasValidListingPrice, isDraftPropertyState, needsPublicationPhoto } from "../lib/property-drafts";
 import { canAssignPropertyToAgent } from "../lib/property-assignment";
 import {
@@ -1014,8 +1015,22 @@ router.post("/properties/:id/ai-flyer", async (req, res): Promise<void> => {
     return;
   }
   const [property] = await db.select().from(propertiesTable).where(eq(propertiesTable.id, id));
-  if (!property || !isPublicProperty(property)) {
-    res.status(404).json({ error: "Published property not found" });
+  if (!property) {
+    res.status(404).json({ error: "Property not found" });
+    return;
+  }
+  const isPublic = isPublicProperty(property);
+  const isDraft = isDraftPropertyState(property.status, property.pipelineStage);
+  const isAssignedAgent = ["agent", "senior_agent"].includes(user.role)
+    && property.agentId === user.id;
+  const canViewDraftWithinAgency = isDraft && await canReadAgencyDraft(user, property);
+  if (!canGeneratePropertyAIFlyerForListing({
+    isPublic,
+    isDraft,
+    isAssignedAgent,
+    canViewDraftWithinAgency,
+  })) {
+    res.status(404).json({ error: "Property not found" });
     return;
   }
 

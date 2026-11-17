@@ -15,6 +15,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
+  ApiError,
   getGetPropertyQueryKey,
   useGeneratePropertyAIFlyer,
   useGetProperty,
@@ -33,6 +34,16 @@ import type { Property } from '@/types';
 
 type Step = 'choose' | 'prompt' | 'preview';
 type FlyerMode = 'standard' | 'ai';
+
+function getAIFlyerErrorMessage(error: unknown): string {
+  if (error instanceof ApiError) {
+    const data = error.data;
+    if (data && typeof data === 'object' && 'error' in data && typeof data.error === 'string') {
+      return data.error;
+    }
+  }
+  return 'Could not create the AI flyer. Check your connection and try again.';
+}
 
 function ChoiceCard({
   title,
@@ -109,7 +120,11 @@ export default function FlyerShareScreen() {
   const [generating, setGenerating] = useState(false);
   const [sharing, setSharing] = useState(false);
 
-  const aiAvailable = (property?.pendingStatus ?? property?.status) === 'published';
+  const listingStatus = property?.pendingStatus ?? property?.status;
+  const aiAvailable = remoteId > 0
+    && property?.syncStatus !== 'queued'
+    && property?.syncStatus !== 'conflict'
+    && (listingStatus === 'published' || listingStatus === 'draft');
   const isBusy = generating || sharing;
   const previewWidth = Math.min(width - 32, 360);
   const previewScale = previewWidth / 360;
@@ -157,7 +172,7 @@ export default function FlyerShareScreen() {
       return;
     }
     if (!property || !aiAvailable || remoteId <= 0) {
-      setGenerationError('AI flyers are available for published listings after they have synced online.');
+      setGenerationError('Save and sync this listing while online before generating an AI flyer.');
       return;
     }
 
@@ -171,8 +186,8 @@ export default function FlyerShareScreen() {
       setGenerated(result);
       setMode('ai');
       setStep('preview');
-    } catch {
-      setGenerationError('Could not create the AI flyer. Check your connection and try again.');
+    } catch (error) {
+      setGenerationError(getAIFlyerErrorMessage(error));
     } finally {
       setGenerating(false);
     }
@@ -270,7 +285,7 @@ export default function FlyerShareScreen() {
             title="AI Flyer"
             detail={aiAvailable
               ? 'Describe a style; AI will adapt the design and draft the copy.'
-              : 'Available once this listing is published and synced.'}
+              : 'Available for published listings and saved drafts after syncing online.'}
             icon="sparkles-outline"
             disabled={!aiAvailable}
             onPress={() => chooseMode('ai')}
@@ -279,7 +294,7 @@ export default function FlyerShareScreen() {
           <View style={[styles.infoNote, { backgroundColor: colors.secondary, borderColor: colors.border }]}>
             <Ionicons name="shield-checkmark-outline" size={17} color={colors.primary} />
             <Text style={[styles.infoText, { color: colors.secondaryForeground }]}>
-              AI keeps listing facts, photos, and your agency logo unchanged. Review the preview before sharing.
+              AI keeps listing facts, photos, and your agency logo unchanged. Creating a flyer does not publish the listing.
             </Text>
           </View>
         </View>
@@ -321,7 +336,7 @@ export default function FlyerShareScreen() {
           />
           <Text style={[styles.characterCount, { color: colors.mutedForeground }]}>{stylePrompt.length}/300</Text>
           <Text style={[styles.promptHelp, { color: colors.mutedForeground }]}>
-            AI will choose a visual treatment and write a short description from published listing facts. It will not create or replace property photos.
+            AI will choose a visual treatment and write a short description from saved listing facts. It will not create or replace property photos.
           </Text>
           {!!generationError && (
             <Text style={[styles.errorText, { color: colors.destructive }]} accessibilityRole="alert">
