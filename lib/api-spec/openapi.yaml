@@ -3021,6 +3021,137 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/ImportAssistantResponse" }
         "409": { description: Branch assignment required }
+  /agent-network/submissions:
+    get:
+      operationId: listAgentNetworkSubmissions
+      tags: [agentNetwork]
+      summary: List the signed-in agent's network message submissions
+      responses:
+        "200":
+          description: Private submissions owned by the signed-in agent
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/AgentNetworkSubmission" }
+    post:
+      operationId: createAgentNetworkSubmission
+      tags: [agentNetwork]
+      summary: Extract a typed message and uploaded files for agent review
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateAgentNetworkSubmissionInput" }
+      responses:
+        "201":
+          description: Extracted but not yet saved as a listing or buyer requirement
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AgentNetworkSubmission" }
+        "400": { description: Unsupported attachment or invalid source }
+  /storage/uploads/request-url:
+    post:
+      operationId: requestStorageUploadUrl
+      tags: [storage]
+      summary: Request a short-lived upload URL for an authenticated file
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/StorageUploadRequestInput" }
+      responses:
+        "200":
+          description: Signed upload URL and private storage path
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/StorageUploadTarget" }
+        "400": { description: Unsupported file type or size }
+        "401": { description: Authentication required }
+  /agent-network/submissions/{id}/confirm:
+    post:
+      operationId: confirmAgentNetworkSubmission
+      tags: [agentNetwork]
+      summary: Confirm reviewed data and save it privately to the network
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ConfirmAgentNetworkSubmissionInput" }
+      responses:
+        "200":
+          description: Saved listing or buyer requirement and resulting matches
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ConfirmAgentNetworkSubmissionResult" }
+        "404": { description: Submission not found for this agent }
+  /agent-network/submissions/{id}/cancel:
+    post:
+      operationId: cancelAgentNetworkSubmission
+      tags: [agentNetwork]
+      summary: Cancel a pending network submission
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "200":
+          description: Cancelled submission
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AgentNetworkSubmission" }
+        "404": { description: Submission not found for this agent }
+  /agent-network/listings/{id}/sharing:
+    patch:
+      operationId: updateAgentNetworkListingSharing
+      tags: [agentNetwork]
+      summary: Opt an agent-owned draft or published listing into network sharing
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UpdateAgentNetworkListingSharingInput" }
+      responses:
+        "200":
+          description: Updated network-sharing preference and matches
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AgentNetworkSharingResult" }
+        "404": { description: Listing not found for this agent }
+  /agent-network/matches:
+    get:
+      operationId: listAgentNetworkMatches
+      tags: [agentNetwork]
+      summary: List private network matches for the signed-in agent
+      responses:
+        "200":
+          description: Anonymized matches unless both agents have agreed
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/AgentNetworkMatch" }
+  /agent-network/matches/{id}/interest:
+    post:
+      operationId: respondToAgentNetworkMatch
+      tags: [agentNetwork]
+      summary: Express or decline interest in a network match
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RespondToAgentNetworkMatchInput" }
+      responses:
+        "200":
+          description: Updated match; contact data is included only after mutual interest
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AgentNetworkMatch" }
+        "404": { description: Match not found for this agent }
 components:
   schemas:
     StoredMediaUrl:
@@ -3578,6 +3709,7 @@ components:
         shares: { type: integer }
         hasBrochure: { type: boolean }
         collaborationEnabled: { type: boolean }
+        networkEnabled: { type: boolean, description: "Agent has opted the listing into private Agent Network matching." }
         publishedAt: { type: ["string", "null"] }
         createdAt: { type: string }
         updatedAt: { type: string }
@@ -5584,3 +5716,156 @@ components:
       properties:
         message: { type: string }
         suggestions: { type: array, items: { type: string } }
+    AgentNetworkAttachmentInput:
+      type: object
+      required: [fileName, contentType, sizeBytes, storagePath]
+      properties:
+        fileName: { type: string, maxLength: 255 }
+        contentType: { type: string }
+        sizeBytes: { type: integer, minimum: 1, maximum: 26214400 }
+        storagePath: { type: string }
+    StorageUploadRequestInput:
+      type: object
+      required: [name, size, contentType]
+      properties:
+        name: { type: string }
+        size: { type: integer, minimum: 1 }
+        contentType: { type: string }
+    StorageUploadTarget:
+      type: object
+      required: [uploadURL, objectPath, metadata]
+      properties:
+        uploadURL: { type: string }
+        objectPath: { type: string }
+        metadata:
+          type: object
+          required: [name, size, contentType]
+          properties:
+            name: { type: string }
+            size: { type: integer }
+            contentType: { type: string }
+    CreateAgentNetworkSubmissionInput:
+      type: object
+      properties:
+        message: { type: string, maxLength: 12000 }
+        attachments:
+          type: array
+          maxItems: 5
+          items: { $ref: "#/components/schemas/AgentNetworkAttachmentInput" }
+    AgentNetworkSubmission:
+      type: object
+      required: [id, sourceText, attachments, extraction, status, createdAt, updatedAt]
+      properties:
+        id: { type: integer }
+        sourceText: { type: string }
+        attachments:
+          type: array
+          items: { $ref: "#/components/schemas/AgentNetworkAttachmentInput" }
+        extraction:
+          type: ["object", "null"]
+          additionalProperties: true
+        status: { type: string, description: "needs_review | confirmed | cancelled | failed" }
+        propertyId: { type: ["integer", "null"] }
+        requirementId: { type: ["integer", "null"] }
+        createdAt: { type: string }
+        updatedAt: { type: string }
+    ConfirmAgentNetworkSubmissionInput:
+      type: object
+      required: [recordType, data]
+      properties:
+        itemIndex: { type: integer, minimum: 0, maximum: 39, default: 0 }
+        recordType: { type: string, enum: [property, buyer_requirement] }
+        data: { type: object, additionalProperties: true }
+        shareWithNetwork: { type: boolean, default: false }
+    UpdateAgentNetworkListingSharingInput:
+      type: object
+      required: [enabled]
+      properties:
+        enabled: { type: boolean }
+    RespondToAgentNetworkMatchInput:
+      type: object
+      required: [interested]
+      properties:
+        interested: { type: boolean }
+    ConfirmAgentNetworkSubmissionResult:
+      type: object
+      required: [submission, recordType, recordId, matches]
+      properties:
+        submission: { $ref: "#/components/schemas/AgentNetworkSubmission" }
+        recordType: { type: string, enum: [property, buyer_requirement] }
+        recordId: { type: integer }
+        matches:
+          type: array
+          items: { $ref: "#/components/schemas/AgentNetworkMatch" }
+    AgentNetworkSharingResult:
+      type: object
+      required: [propertyId, networkEnabled, matches]
+      properties:
+        propertyId: { type: integer }
+        networkEnabled: { type: boolean }
+        matches:
+          type: array
+          items: { $ref: "#/components/schemas/AgentNetworkMatch" }
+    AgentNetworkMatch:
+      type: object
+      required: [id, propertyId, requirementId, matchPercent, category, reasons, status, listingAgentInterested, buyerAgentInterested, contactReleased, listing, requirementSummary]
+      properties:
+        id: { type: integer }
+        propertyId: { type: integer }
+        requirementId: { type: integer }
+        matchPercent: { type: integer, minimum: 0, maximum: 100 }
+        category: { type: string, enum: [strong, potential, weak] }
+        reasons: { type: array, items: { type: string } }
+        status: { type: string, enum: [open, accepted, declined] }
+        listingAgentInterested: { type: boolean }
+        buyerAgentInterested: { type: boolean }
+        contactReleased: { type: boolean }
+        listing:
+          type: object
+          required: [id, reference, title, propertyType, listingType, price, currency, suburb, city, bedrooms, features, agencyName, agentName]
+          properties:
+            id: { type: integer }
+            reference: { type: string }
+            title: { type: string }
+            propertyType: { type: string }
+            listingType: { type: string }
+            price: { type: number }
+            currency: { type: string }
+            suburb: { type: string }
+            city: { type: string }
+            bedrooms: { type: ["integer", "null"] }
+            features: { type: array, items: { type: string } }
+            photos: { type: array, items: { type: string } }
+            agencyName: { type: string }
+            agentName: { type: string }
+          additionalProperties: false
+        requirementSummary:
+          type: object
+          required: [propertyType, listingType, areas, budgetMin, budgetMax, currency, bedroomsMin, bedroomsMax, requiredFeatures, preferredFeatures]
+          properties:
+            propertyType: { type: ["string", "null"] }
+            listingType: { type: ["string", "null"] }
+            areas: { type: array, items: { type: string } }
+            budgetMin: { type: ["number", "null"] }
+            budgetMax: { type: ["number", "null"] }
+            currency: { type: string }
+            bedroomsMin: { type: ["integer", "null"] }
+            bedroomsMax: { type: ["integer", "null"] }
+            requiredFeatures: { type: array, items: { type: string } }
+            preferredFeatures: { type: array, items: { type: string } }
+          additionalProperties: false
+        otherAgent:
+          type: ["object", "null"]
+          properties:
+            name: { type: string }
+            agencyName: { type: string }
+            email: { type: ["string", "null"] }
+            phone: { type: ["string", "null"] }
+          additionalProperties: false
+        buyerContact:
+          type: ["object", "null"]
+          properties:
+            name: { type: ["string", "null"] }
+            email: { type: ["string", "null"] }
+            phone: { type: ["string", "null"] }
+          additionalProperties: false

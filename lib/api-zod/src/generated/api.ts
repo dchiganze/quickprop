@@ -553,6 +553,7 @@ export const CreateOfflinePropertySnapshotResponseItem = zod.object({
   "shares": zod.number().optional(),
   "hasBrochure": zod.boolean().optional(),
   "collaborationEnabled": zod.boolean().optional(),
+  "networkEnabled": zod.boolean().optional().describe('Agent has opted the listing into private Agent Network matching.'),
   "publishedAt": zod.string().nullish(),
   "createdAt": zod.string().optional(),
   "updatedAt": zod.string().optional(),
@@ -635,6 +636,7 @@ export const CreateLegacyOfflinePropertySnapshotResponseItem = zod.object({
   "shares": zod.number().optional(),
   "hasBrochure": zod.boolean().optional(),
   "collaborationEnabled": zod.boolean().optional(),
+  "networkEnabled": zod.boolean().optional().describe('Agent has opted the listing into private Agent Network matching.'),
   "publishedAt": zod.string().nullish(),
   "createdAt": zod.string().optional(),
   "updatedAt": zod.string().optional(),
@@ -716,6 +718,7 @@ export const ListPropertiesResponseItem = zod.object({
   "shares": zod.number().optional(),
   "hasBrochure": zod.boolean().optional(),
   "collaborationEnabled": zod.boolean().optional(),
+  "networkEnabled": zod.boolean().optional().describe('Agent has opted the listing into private Agent Network matching.'),
   "publishedAt": zod.string().nullish(),
   "createdAt": zod.string().optional(),
   "updatedAt": zod.string().optional(),
@@ -830,6 +833,7 @@ export const CreatePropertyResponse = zod.object({
   "shares": zod.number().optional(),
   "hasBrochure": zod.boolean().optional(),
   "collaborationEnabled": zod.boolean().optional(),
+  "networkEnabled": zod.boolean().optional().describe('Agent has opted the listing into private Agent Network matching.'),
   "publishedAt": zod.string().nullish(),
   "createdAt": zod.string().optional(),
   "updatedAt": zod.string().optional(),
@@ -901,6 +905,7 @@ export const GetPropertyResponse = zod.object({
   "shares": zod.number().optional(),
   "hasBrochure": zod.boolean().optional(),
   "collaborationEnabled": zod.boolean().optional(),
+  "networkEnabled": zod.boolean().optional().describe('Agent has opted the listing into private Agent Network matching.'),
   "publishedAt": zod.string().nullish(),
   "createdAt": zod.string().optional(),
   "updatedAt": zod.string().optional(),
@@ -1020,6 +1025,7 @@ export const UpdatePropertyResponse = zod.object({
   "shares": zod.number().optional(),
   "hasBrochure": zod.boolean().optional(),
   "collaborationEnabled": zod.boolean().optional(),
+  "networkEnabled": zod.boolean().optional().describe('Agent has opted the listing into private Agent Network matching.'),
   "publishedAt": zod.string().nullish(),
   "createdAt": zod.string().optional(),
   "updatedAt": zod.string().optional(),
@@ -1165,6 +1171,7 @@ export const MarkPropertySoldResponse = zod.object({
   "shares": zod.number().optional(),
   "hasBrochure": zod.boolean().optional(),
   "collaborationEnabled": zod.boolean().optional(),
+  "networkEnabled": zod.boolean().optional().describe('Agent has opted the listing into private Agent Network matching.'),
   "publishedAt": zod.string().nullish(),
   "createdAt": zod.string().optional(),
   "updatedAt": zod.string().optional(),
@@ -1388,6 +1395,7 @@ export const ListCollaborationDiscoveryResponseItem = zod.object({
   "shares": zod.number().optional(),
   "hasBrochure": zod.boolean().optional(),
   "collaborationEnabled": zod.boolean().optional(),
+  "networkEnabled": zod.boolean().optional().describe('Agent has opted the listing into private Agent Network matching.'),
   "publishedAt": zod.string().nullish(),
   "createdAt": zod.string().optional(),
   "updatedAt": zod.string().optional(),
@@ -1471,6 +1479,7 @@ export const ListCollaborationRequestsResponseItem = zod.object({
   "shares": zod.number().optional(),
   "hasBrochure": zod.boolean().optional(),
   "collaborationEnabled": zod.boolean().optional(),
+  "networkEnabled": zod.boolean().optional().describe('Agent has opted the listing into private Agent Network matching.'),
   "publishedAt": zod.string().nullish(),
   "createdAt": zod.string().optional(),
   "updatedAt": zod.string().optional(),
@@ -1565,6 +1574,7 @@ export const CreateCollaborationRequestResponse = zod.object({
   "shares": zod.number().optional(),
   "hasBrochure": zod.boolean().optional(),
   "collaborationEnabled": zod.boolean().optional(),
+  "networkEnabled": zod.boolean().optional().describe('Agent has opted the listing into private Agent Network matching.'),
   "publishedAt": zod.string().nullish(),
   "createdAt": zod.string().optional(),
   "updatedAt": zod.string().optional(),
@@ -1657,6 +1667,7 @@ export const UpdateCollaborationRequestResponse = zod.object({
   "shares": zod.number().optional(),
   "hasBrochure": zod.boolean().optional(),
   "collaborationEnabled": zod.boolean().optional(),
+  "networkEnabled": zod.boolean().optional().describe('Agent has opted the listing into private Agent Network matching.'),
   "publishedAt": zod.string().nullish(),
   "createdAt": zod.string().optional(),
   "updatedAt": zod.string().optional(),
@@ -1736,6 +1747,7 @@ export const GetPipelineResponseItem = zod.object({
   "shares": zod.number().optional(),
   "hasBrochure": zod.boolean().optional(),
   "collaborationEnabled": zod.boolean().optional(),
+  "networkEnabled": zod.boolean().optional().describe('Agent has opted the listing into private Agent Network matching.'),
   "publishedAt": zod.string().nullish(),
   "createdAt": zod.string().optional(),
   "updatedAt": zod.string().optional(),
@@ -2213,6 +2225,7 @@ export const GetBuyerMatchesResponseItem = zod.object({
   "shares": zod.number().optional(),
   "hasBrochure": zod.boolean().optional(),
   "collaborationEnabled": zod.boolean().optional(),
+  "networkEnabled": zod.boolean().optional().describe('Agent has opted the listing into private Agent Network matching.'),
   "publishedAt": zod.string().nullish(),
   "createdAt": zod.string().optional(),
   "updatedAt": zod.string().optional(),
@@ -2363,6 +2376,7 @@ export const GetBuyerRequestMatchesResponseItem = zod.object({
   "shares": zod.number().optional(),
   "hasBrochure": zod.boolean().optional(),
   "collaborationEnabled": zod.boolean().optional(),
+  "networkEnabled": zod.boolean().optional().describe('Agent has opted the listing into private Agent Network matching.'),
   "publishedAt": zod.string().nullish(),
   "createdAt": zod.string().optional(),
   "updatedAt": zod.string().optional(),
@@ -3019,6 +3033,7 @@ export const OfficeSearchResponse = zod.object({
   "shares": zod.number().optional(),
   "hasBrochure": zod.boolean().optional(),
   "collaborationEnabled": zod.boolean().optional(),
+  "networkEnabled": zod.boolean().optional().describe('Agent has opted the listing into private Agent Network matching.'),
   "publishedAt": zod.string().nullish(),
   "createdAt": zod.string().optional(),
   "updatedAt": zod.string().optional(),
@@ -3184,6 +3199,7 @@ export const GetMultiAgentPropertyResponse = zod.object({
   "shares": zod.number().optional(),
   "hasBrochure": zod.boolean().optional(),
   "collaborationEnabled": zod.boolean().optional(),
+  "networkEnabled": zod.boolean().optional().describe('Agent has opted the listing into private Agent Network matching.'),
   "publishedAt": zod.string().nullish(),
   "createdAt": zod.string().optional(),
   "updatedAt": zod.string().optional(),
@@ -5555,6 +5571,7 @@ export const ListDuplicateReviewsResponseItem = zod.object({
   "shares": zod.number().optional(),
   "hasBrochure": zod.boolean().optional(),
   "collaborationEnabled": zod.boolean().optional(),
+  "networkEnabled": zod.boolean().optional().describe('Agent has opted the listing into private Agent Network matching.'),
   "publishedAt": zod.string().nullish(),
   "createdAt": zod.string().optional(),
   "updatedAt": zod.string().optional(),
@@ -5620,6 +5637,7 @@ export const ListDuplicateReviewsResponseItem = zod.object({
   "shares": zod.number().optional(),
   "hasBrochure": zod.boolean().optional(),
   "collaborationEnabled": zod.boolean().optional(),
+  "networkEnabled": zod.boolean().optional().describe('Agent has opted the listing into private Agent Network matching.'),
   "publishedAt": zod.string().nullish(),
   "createdAt": zod.string().optional(),
   "updatedAt": zod.string().optional(),
@@ -5704,6 +5722,7 @@ export const GetDuplicateReviewResponse = zod.object({
   "shares": zod.number().optional(),
   "hasBrochure": zod.boolean().optional(),
   "collaborationEnabled": zod.boolean().optional(),
+  "networkEnabled": zod.boolean().optional().describe('Agent has opted the listing into private Agent Network matching.'),
   "publishedAt": zod.string().nullish(),
   "createdAt": zod.string().optional(),
   "updatedAt": zod.string().optional(),
@@ -5769,6 +5788,7 @@ export const GetDuplicateReviewResponse = zod.object({
   "shares": zod.number().optional(),
   "hasBrochure": zod.boolean().optional(),
   "collaborationEnabled": zod.boolean().optional(),
+  "networkEnabled": zod.boolean().optional().describe('Agent has opted the listing into private Agent Network matching.'),
   "publishedAt": zod.string().nullish(),
   "createdAt": zod.string().optional(),
   "updatedAt": zod.string().optional(),
@@ -5835,6 +5855,7 @@ export const GetDuplicateReviewResponse = zod.object({
   "shares": zod.number().optional(),
   "hasBrochure": zod.boolean().optional(),
   "collaborationEnabled": zod.boolean().optional(),
+  "networkEnabled": zod.boolean().optional().describe('Agent has opted the listing into private Agent Network matching.'),
   "publishedAt": zod.string().nullish(),
   "createdAt": zod.string().optional(),
   "updatedAt": zod.string().optional(),
@@ -5900,6 +5921,7 @@ export const GetDuplicateReviewResponse = zod.object({
   "shares": zod.number().optional(),
   "hasBrochure": zod.boolean().optional(),
   "collaborationEnabled": zod.boolean().optional(),
+  "networkEnabled": zod.boolean().optional().describe('Agent has opted the listing into private Agent Network matching.'),
   "publishedAt": zod.string().nullish(),
   "createdAt": zod.string().optional(),
   "updatedAt": zod.string().optional(),
@@ -6040,6 +6062,7 @@ export const ReviewDuplicateResponse = zod.object({
   "shares": zod.number().optional(),
   "hasBrochure": zod.boolean().optional(),
   "collaborationEnabled": zod.boolean().optional(),
+  "networkEnabled": zod.boolean().optional().describe('Agent has opted the listing into private Agent Network matching.'),
   "publishedAt": zod.string().nullish(),
   "createdAt": zod.string().optional(),
   "updatedAt": zod.string().optional(),
@@ -6105,6 +6128,7 @@ export const ReviewDuplicateResponse = zod.object({
   "shares": zod.number().optional(),
   "hasBrochure": zod.boolean().optional(),
   "collaborationEnabled": zod.boolean().optional(),
+  "networkEnabled": zod.boolean().optional().describe('Agent has opted the listing into private Agent Network matching.'),
   "publishedAt": zod.string().nullish(),
   "createdAt": zod.string().optional(),
   "updatedAt": zod.string().optional(),
@@ -7022,6 +7046,441 @@ export const AskImportAssistantBody = zod.object({
 export const AskImportAssistantResponse = zod.object({
   "message": zod.string(),
   "suggestions": zod.array(zod.string())
+})
+
+
+/**
+ * @summary List the signed-in agent's network message submissions
+ */
+export const listAgentNetworkSubmissionsResponseAttachmentsItemFileNameMax = 255;
+
+export const listAgentNetworkSubmissionsResponseAttachmentsItemSizeBytesMax = 26214400;
+
+
+
+export const ListAgentNetworkSubmissionsResponseItem = zod.object({
+  "id": zod.number(),
+  "sourceText": zod.string(),
+  "attachments": zod.array(zod.object({
+  "fileName": zod.string().max(listAgentNetworkSubmissionsResponseAttachmentsItemFileNameMax),
+  "contentType": zod.string(),
+  "sizeBytes": zod.number().min(1).max(listAgentNetworkSubmissionsResponseAttachmentsItemSizeBytesMax),
+  "storagePath": zod.string()
+})),
+  "extraction": zod.record(zod.string(), zod.unknown()).nullable(),
+  "status": zod.string().describe('needs_review | confirmed | cancelled | failed'),
+  "propertyId": zod.number().nullish(),
+  "requirementId": zod.number().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+export const ListAgentNetworkSubmissionsResponse = zod.array(ListAgentNetworkSubmissionsResponseItem)
+
+
+/**
+ * @summary Extract a typed message and uploaded files for agent review
+ */
+export const createAgentNetworkSubmissionBodyMessageMax = 12000;
+
+export const createAgentNetworkSubmissionBodyAttachmentsItemFileNameMax = 255;
+
+export const createAgentNetworkSubmissionBodyAttachmentsItemSizeBytesMax = 26214400;
+
+export const createAgentNetworkSubmissionBodyAttachmentsMax = 5;
+
+
+
+export const CreateAgentNetworkSubmissionBody = zod.object({
+  "message": zod.string().max(createAgentNetworkSubmissionBodyMessageMax).optional(),
+  "attachments": zod.array(zod.object({
+  "fileName": zod.string().max(createAgentNetworkSubmissionBodyAttachmentsItemFileNameMax),
+  "contentType": zod.string(),
+  "sizeBytes": zod.number().min(1).max(createAgentNetworkSubmissionBodyAttachmentsItemSizeBytesMax),
+  "storagePath": zod.string()
+})).max(createAgentNetworkSubmissionBodyAttachmentsMax).optional()
+})
+
+export const createAgentNetworkSubmissionResponseAttachmentsItemFileNameMax = 255;
+
+export const createAgentNetworkSubmissionResponseAttachmentsItemSizeBytesMax = 26214400;
+
+
+
+export const CreateAgentNetworkSubmissionResponse = zod.object({
+  "id": zod.number(),
+  "sourceText": zod.string(),
+  "attachments": zod.array(zod.object({
+  "fileName": zod.string().max(createAgentNetworkSubmissionResponseAttachmentsItemFileNameMax),
+  "contentType": zod.string(),
+  "sizeBytes": zod.number().min(1).max(createAgentNetworkSubmissionResponseAttachmentsItemSizeBytesMax),
+  "storagePath": zod.string()
+})),
+  "extraction": zod.record(zod.string(), zod.unknown()).nullable(),
+  "status": zod.string().describe('needs_review | confirmed | cancelled | failed'),
+  "propertyId": zod.number().nullish(),
+  "requirementId": zod.number().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+
+
+/**
+ * @summary Request a short-lived upload URL for an authenticated file
+ */
+
+
+
+export const RequestStorageUploadUrlBody = zod.object({
+  "name": zod.string(),
+  "size": zod.number().min(1),
+  "contentType": zod.string()
+})
+
+export const RequestStorageUploadUrlResponse = zod.object({
+  "uploadURL": zod.string(),
+  "objectPath": zod.string(),
+  "metadata": zod.object({
+  "name": zod.string(),
+  "size": zod.number(),
+  "contentType": zod.string()
+})
+})
+
+
+/**
+ * @summary Confirm reviewed data and save it privately to the network
+ */
+export const ConfirmAgentNetworkSubmissionParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const confirmAgentNetworkSubmissionBodyItemIndexDefault = 0;
+export const confirmAgentNetworkSubmissionBodyItemIndexMin = 0;
+export const confirmAgentNetworkSubmissionBodyItemIndexMax = 39;
+
+export const confirmAgentNetworkSubmissionBodyShareWithNetworkDefault = false;
+
+export const ConfirmAgentNetworkSubmissionBody = zod.object({
+  "itemIndex": zod.number().min(confirmAgentNetworkSubmissionBodyItemIndexMin).max(confirmAgentNetworkSubmissionBodyItemIndexMax).default(confirmAgentNetworkSubmissionBodyItemIndexDefault),
+  "recordType": zod.enum(['property', 'buyer_requirement']),
+  "data": zod.record(zod.string(), zod.unknown()),
+  "shareWithNetwork": zod.boolean().default(confirmAgentNetworkSubmissionBodyShareWithNetworkDefault)
+})
+
+export const confirmAgentNetworkSubmissionResponseSubmissionAttachmentsItemFileNameMax = 255;
+
+export const confirmAgentNetworkSubmissionResponseSubmissionAttachmentsItemSizeBytesMax = 26214400;
+
+export const confirmAgentNetworkSubmissionResponseMatchesItemMatchPercentMin = 0;
+export const confirmAgentNetworkSubmissionResponseMatchesItemMatchPercentMax = 100;
+
+
+
+export const ConfirmAgentNetworkSubmissionResponse = zod.object({
+  "submission": zod.object({
+  "id": zod.number(),
+  "sourceText": zod.string(),
+  "attachments": zod.array(zod.object({
+  "fileName": zod.string().max(confirmAgentNetworkSubmissionResponseSubmissionAttachmentsItemFileNameMax),
+  "contentType": zod.string(),
+  "sizeBytes": zod.number().min(1).max(confirmAgentNetworkSubmissionResponseSubmissionAttachmentsItemSizeBytesMax),
+  "storagePath": zod.string()
+})),
+  "extraction": zod.record(zod.string(), zod.unknown()).nullable(),
+  "status": zod.string().describe('needs_review | confirmed | cancelled | failed'),
+  "propertyId": zod.number().nullish(),
+  "requirementId": zod.number().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+}),
+  "recordType": zod.enum(['property', 'buyer_requirement']),
+  "recordId": zod.number(),
+  "matches": zod.array(zod.object({
+  "id": zod.number(),
+  "propertyId": zod.number(),
+  "requirementId": zod.number(),
+  "matchPercent": zod.number().min(confirmAgentNetworkSubmissionResponseMatchesItemMatchPercentMin).max(confirmAgentNetworkSubmissionResponseMatchesItemMatchPercentMax),
+  "category": zod.enum(['strong', 'potential', 'weak']),
+  "reasons": zod.array(zod.string()),
+  "status": zod.enum(['open', 'accepted', 'declined']),
+  "listingAgentInterested": zod.boolean(),
+  "buyerAgentInterested": zod.boolean(),
+  "contactReleased": zod.boolean(),
+  "listing": zod.object({
+  "id": zod.number(),
+  "reference": zod.string(),
+  "title": zod.string(),
+  "propertyType": zod.string(),
+  "listingType": zod.string(),
+  "price": zod.number(),
+  "currency": zod.string(),
+  "suburb": zod.string(),
+  "city": zod.string(),
+  "bedrooms": zod.number().nullable(),
+  "features": zod.array(zod.string()),
+  "photos": zod.array(zod.string()).optional(),
+  "agencyName": zod.string(),
+  "agentName": zod.string()
+}),
+  "requirementSummary": zod.object({
+  "propertyType": zod.string().nullable(),
+  "listingType": zod.string().nullable(),
+  "areas": zod.array(zod.string()),
+  "budgetMin": zod.number().nullable(),
+  "budgetMax": zod.number().nullable(),
+  "currency": zod.string(),
+  "bedroomsMin": zod.number().nullable(),
+  "bedroomsMax": zod.number().nullable(),
+  "requiredFeatures": zod.array(zod.string()),
+  "preferredFeatures": zod.array(zod.string())
+}),
+  "otherAgent": zod.object({
+  "name": zod.string().optional(),
+  "agencyName": zod.string().optional(),
+  "email": zod.string().nullish(),
+  "phone": zod.string().nullish()
+}).nullish(),
+  "buyerContact": zod.object({
+  "name": zod.string().nullish(),
+  "email": zod.string().nullish(),
+  "phone": zod.string().nullish()
+}).nullish()
+}))
+})
+
+
+/**
+ * @summary Cancel a pending network submission
+ */
+export const CancelAgentNetworkSubmissionParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const cancelAgentNetworkSubmissionResponseAttachmentsItemFileNameMax = 255;
+
+export const cancelAgentNetworkSubmissionResponseAttachmentsItemSizeBytesMax = 26214400;
+
+
+
+export const CancelAgentNetworkSubmissionResponse = zod.object({
+  "id": zod.number(),
+  "sourceText": zod.string(),
+  "attachments": zod.array(zod.object({
+  "fileName": zod.string().max(cancelAgentNetworkSubmissionResponseAttachmentsItemFileNameMax),
+  "contentType": zod.string(),
+  "sizeBytes": zod.number().min(1).max(cancelAgentNetworkSubmissionResponseAttachmentsItemSizeBytesMax),
+  "storagePath": zod.string()
+})),
+  "extraction": zod.record(zod.string(), zod.unknown()).nullable(),
+  "status": zod.string().describe('needs_review | confirmed | cancelled | failed'),
+  "propertyId": zod.number().nullish(),
+  "requirementId": zod.number().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+
+
+/**
+ * @summary Opt an agent-owned draft or published listing into network sharing
+ */
+export const UpdateAgentNetworkListingSharingParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const UpdateAgentNetworkListingSharingBody = zod.object({
+  "enabled": zod.boolean()
+})
+
+export const updateAgentNetworkListingSharingResponseMatchesItemMatchPercentMin = 0;
+export const updateAgentNetworkListingSharingResponseMatchesItemMatchPercentMax = 100;
+
+
+
+export const UpdateAgentNetworkListingSharingResponse = zod.object({
+  "propertyId": zod.number(),
+  "networkEnabled": zod.boolean(),
+  "matches": zod.array(zod.object({
+  "id": zod.number(),
+  "propertyId": zod.number(),
+  "requirementId": zod.number(),
+  "matchPercent": zod.number().min(updateAgentNetworkListingSharingResponseMatchesItemMatchPercentMin).max(updateAgentNetworkListingSharingResponseMatchesItemMatchPercentMax),
+  "category": zod.enum(['strong', 'potential', 'weak']),
+  "reasons": zod.array(zod.string()),
+  "status": zod.enum(['open', 'accepted', 'declined']),
+  "listingAgentInterested": zod.boolean(),
+  "buyerAgentInterested": zod.boolean(),
+  "contactReleased": zod.boolean(),
+  "listing": zod.object({
+  "id": zod.number(),
+  "reference": zod.string(),
+  "title": zod.string(),
+  "propertyType": zod.string(),
+  "listingType": zod.string(),
+  "price": zod.number(),
+  "currency": zod.string(),
+  "suburb": zod.string(),
+  "city": zod.string(),
+  "bedrooms": zod.number().nullable(),
+  "features": zod.array(zod.string()),
+  "photos": zod.array(zod.string()).optional(),
+  "agencyName": zod.string(),
+  "agentName": zod.string()
+}),
+  "requirementSummary": zod.object({
+  "propertyType": zod.string().nullable(),
+  "listingType": zod.string().nullable(),
+  "areas": zod.array(zod.string()),
+  "budgetMin": zod.number().nullable(),
+  "budgetMax": zod.number().nullable(),
+  "currency": zod.string(),
+  "bedroomsMin": zod.number().nullable(),
+  "bedroomsMax": zod.number().nullable(),
+  "requiredFeatures": zod.array(zod.string()),
+  "preferredFeatures": zod.array(zod.string())
+}),
+  "otherAgent": zod.object({
+  "name": zod.string().optional(),
+  "agencyName": zod.string().optional(),
+  "email": zod.string().nullish(),
+  "phone": zod.string().nullish()
+}).nullish(),
+  "buyerContact": zod.object({
+  "name": zod.string().nullish(),
+  "email": zod.string().nullish(),
+  "phone": zod.string().nullish()
+}).nullish()
+}))
+})
+
+
+/**
+ * @summary List private network matches for the signed-in agent
+ */
+export const listAgentNetworkMatchesResponseMatchPercentMin = 0;
+export const listAgentNetworkMatchesResponseMatchPercentMax = 100;
+
+
+
+export const ListAgentNetworkMatchesResponseItem = zod.object({
+  "id": zod.number(),
+  "propertyId": zod.number(),
+  "requirementId": zod.number(),
+  "matchPercent": zod.number().min(listAgentNetworkMatchesResponseMatchPercentMin).max(listAgentNetworkMatchesResponseMatchPercentMax),
+  "category": zod.enum(['strong', 'potential', 'weak']),
+  "reasons": zod.array(zod.string()),
+  "status": zod.enum(['open', 'accepted', 'declined']),
+  "listingAgentInterested": zod.boolean(),
+  "buyerAgentInterested": zod.boolean(),
+  "contactReleased": zod.boolean(),
+  "listing": zod.object({
+  "id": zod.number(),
+  "reference": zod.string(),
+  "title": zod.string(),
+  "propertyType": zod.string(),
+  "listingType": zod.string(),
+  "price": zod.number(),
+  "currency": zod.string(),
+  "suburb": zod.string(),
+  "city": zod.string(),
+  "bedrooms": zod.number().nullable(),
+  "features": zod.array(zod.string()),
+  "photos": zod.array(zod.string()).optional(),
+  "agencyName": zod.string(),
+  "agentName": zod.string()
+}),
+  "requirementSummary": zod.object({
+  "propertyType": zod.string().nullable(),
+  "listingType": zod.string().nullable(),
+  "areas": zod.array(zod.string()),
+  "budgetMin": zod.number().nullable(),
+  "budgetMax": zod.number().nullable(),
+  "currency": zod.string(),
+  "bedroomsMin": zod.number().nullable(),
+  "bedroomsMax": zod.number().nullable(),
+  "requiredFeatures": zod.array(zod.string()),
+  "preferredFeatures": zod.array(zod.string())
+}),
+  "otherAgent": zod.object({
+  "name": zod.string().optional(),
+  "agencyName": zod.string().optional(),
+  "email": zod.string().nullish(),
+  "phone": zod.string().nullish()
+}).nullish(),
+  "buyerContact": zod.object({
+  "name": zod.string().nullish(),
+  "email": zod.string().nullish(),
+  "phone": zod.string().nullish()
+}).nullish()
+})
+export const ListAgentNetworkMatchesResponse = zod.array(ListAgentNetworkMatchesResponseItem)
+
+
+/**
+ * @summary Express or decline interest in a network match
+ */
+export const RespondToAgentNetworkMatchParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const RespondToAgentNetworkMatchBody = zod.object({
+  "interested": zod.boolean()
+})
+
+export const respondToAgentNetworkMatchResponseMatchPercentMin = 0;
+export const respondToAgentNetworkMatchResponseMatchPercentMax = 100;
+
+
+
+export const RespondToAgentNetworkMatchResponse = zod.object({
+  "id": zod.number(),
+  "propertyId": zod.number(),
+  "requirementId": zod.number(),
+  "matchPercent": zod.number().min(respondToAgentNetworkMatchResponseMatchPercentMin).max(respondToAgentNetworkMatchResponseMatchPercentMax),
+  "category": zod.enum(['strong', 'potential', 'weak']),
+  "reasons": zod.array(zod.string()),
+  "status": zod.enum(['open', 'accepted', 'declined']),
+  "listingAgentInterested": zod.boolean(),
+  "buyerAgentInterested": zod.boolean(),
+  "contactReleased": zod.boolean(),
+  "listing": zod.object({
+  "id": zod.number(),
+  "reference": zod.string(),
+  "title": zod.string(),
+  "propertyType": zod.string(),
+  "listingType": zod.string(),
+  "price": zod.number(),
+  "currency": zod.string(),
+  "suburb": zod.string(),
+  "city": zod.string(),
+  "bedrooms": zod.number().nullable(),
+  "features": zod.array(zod.string()),
+  "photos": zod.array(zod.string()).optional(),
+  "agencyName": zod.string(),
+  "agentName": zod.string()
+}),
+  "requirementSummary": zod.object({
+  "propertyType": zod.string().nullable(),
+  "listingType": zod.string().nullable(),
+  "areas": zod.array(zod.string()),
+  "budgetMin": zod.number().nullable(),
+  "budgetMax": zod.number().nullable(),
+  "currency": zod.string(),
+  "bedroomsMin": zod.number().nullable(),
+  "bedroomsMax": zod.number().nullable(),
+  "requiredFeatures": zod.array(zod.string()),
+  "preferredFeatures": zod.array(zod.string())
+}),
+  "otherAgent": zod.object({
+  "name": zod.string().optional(),
+  "agencyName": zod.string().optional(),
+  "email": zod.string().nullish(),
+  "phone": zod.string().nullish()
+}).nullish(),
+  "buyerContact": zod.object({
+  "name": zod.string().nullish(),
+  "email": zod.string().nullish(),
+  "phone": zod.string().nullish()
+}).nullish()
 })
 
 

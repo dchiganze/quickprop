@@ -15,7 +15,7 @@ import {
   updateCollaborationRequest,
 } from '@/utils/collaboration';
 import { CollaborationListing, CollaborationRequest } from '@/types';
-import { useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 
 type Section = 'matched' | 'discover' | 'incoming' | 'outgoing';
 
@@ -30,6 +30,7 @@ function propertyLabel(property: CollaborationListing) {
 
 export default function MatchesScreen() {
   const params = useLocalSearchParams<{ section?: string }>();
+  const router = useRouter();
   const generation = useRef(0);
   const colors = useColors();
   const insets = useSafeAreaInsets();
@@ -297,6 +298,16 @@ export default function MatchesScreen() {
           <Text style={[styles.alertsSummaryText, { color: colors.foreground }]}>
             Saved alerts · {alerts.length} criteria{unseenMatchCount ? ` · ${unseenMatchCount} new` : ''}
           </Text>
+          <Ionicons name="chevron-forward" size={16} color={colors.primary} />
+        </TouchableOpacity>
+        <TouchableOpacity
+          accessibilityRole="button"
+          data-testid="button-open-agent-network"
+          onPress={() => router.push('/agent-network')}
+          style={[styles.alertsSummary, { backgroundColor: colors.card, borderColor: colors.border }]}
+        >
+          <Ionicons name="sparkles-outline" size={17} color={colors.primary} />
+          <Text style={[styles.alertsSummaryText, { color: colors.foreground }]}>Private Agent Network</Text>
           <Ionicons name="chevron-forward" size={16} color={colors.primary} />
         </TouchableOpacity>
         <View style={[styles.search, { backgroundColor: colors.input, borderColor: colors.border }]}>

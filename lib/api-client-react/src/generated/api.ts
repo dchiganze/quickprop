@@ -60,6 +60,9 @@ import type {
   AgentContactMandateInput,
   AgentContactReviewInvitation,
   AgentContactUpdateInput,
+  AgentNetworkMatch,
+  AgentNetworkSharingResult,
+  AgentNetworkSubmission,
   AgentPastSaleInput,
   AgentReviewInput,
   AgentReviewResult,
@@ -88,6 +91,9 @@ import type {
   CollaborationMatchRequest,
   CollaborationRequestInput,
   CollaborationRequestStatusUpdate,
+  ConfirmAgentNetworkSubmissionInput,
+  ConfirmAgentNetworkSubmissionResult,
+  CreateAgentNetworkSubmissionInput,
   CreateImportSessionInput,
   CurrentUserAvatarUpdate,
   CurrentUserProfileUpdate,
@@ -211,6 +217,7 @@ import type {
   RentalReferenceInput,
   RentalReferenceSubmission,
   RentalVerificationRequestResult,
+  RespondToAgentNetworkMatchInput,
   ReviewInvitationRetryResult,
   SavedResult,
   SearchRentalAgenciesParams,
@@ -220,12 +227,15 @@ import type {
   SellerUpdate,
   ShareInput,
   ShareResult,
+  StorageUploadRequestInput,
+  StorageUploadTarget,
   StoredMediaUrl,
   Task,
   TaskInput,
   TaskUpdate,
   TimelineEntry,
   TimelineEntryInput,
+  UpdateAgentNetworkListingSharingInput,
   UpdateImportRecordInput,
   UpdateRentalAgencyParams,
   User,
@@ -14073,5 +14083,588 @@ export const useAskImportAssistant = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getAskImportAssistantMutationOptions(options));
+    }
+
+export const getListAgentNetworkSubmissionsUrl = () => {
+
+
+
+
+  return `/api/agent-network/submissions`
+}
+
+/**
+ * @summary List the signed-in agent's network message submissions
+ */
+export const listAgentNetworkSubmissions = async ( options?: RequestInit): Promise<AgentNetworkSubmission[]> => {
+
+  return customFetch<AgentNetworkSubmission[]>(getListAgentNetworkSubmissionsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListAgentNetworkSubmissionsQueryKey = () => {
+    return [
+    `/api/agent-network/submissions`
+    ] as const;
+    }
+
+
+export const getListAgentNetworkSubmissionsQueryOptions = <TData = Awaited<ReturnType<typeof listAgentNetworkSubmissions>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAgentNetworkSubmissions>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListAgentNetworkSubmissionsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listAgentNetworkSubmissions>>> = ({ signal }) => listAgentNetworkSubmissions({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listAgentNetworkSubmissions>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListAgentNetworkSubmissionsQueryResult = NonNullable<Awaited<ReturnType<typeof listAgentNetworkSubmissions>>>
+export type ListAgentNetworkSubmissionsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List the signed-in agent's network message submissions
+ */
+
+export function useListAgentNetworkSubmissions<TData = Awaited<ReturnType<typeof listAgentNetworkSubmissions>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAgentNetworkSubmissions>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListAgentNetworkSubmissionsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateAgentNetworkSubmissionUrl = () => {
+
+
+
+
+  return `/api/agent-network/submissions`
+}
+
+/**
+ * @summary Extract a typed message and uploaded files for agent review
+ */
+export const createAgentNetworkSubmission = async (createAgentNetworkSubmissionInput: CreateAgentNetworkSubmissionInput, options?: RequestInit): Promise<AgentNetworkSubmission> => {
+
+  return customFetch<AgentNetworkSubmission>(getCreateAgentNetworkSubmissionUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(createAgentNetworkSubmissionInput)
+  }
+);}
+
+
+
+
+
+export const getCreateAgentNetworkSubmissionMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAgentNetworkSubmission>>, TError,{data: BodyType<CreateAgentNetworkSubmissionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createAgentNetworkSubmission>>, TError,{data: BodyType<CreateAgentNetworkSubmissionInput>}, TContext> => {
+
+const mutationKey = ['createAgentNetworkSubmission'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createAgentNetworkSubmission>>, {data: BodyType<CreateAgentNetworkSubmissionInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createAgentNetworkSubmission(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateAgentNetworkSubmissionMutationResult = NonNullable<Awaited<ReturnType<typeof createAgentNetworkSubmission>>>
+    export type CreateAgentNetworkSubmissionMutationBody = BodyType<CreateAgentNetworkSubmissionInput>
+    export type CreateAgentNetworkSubmissionMutationError = ErrorType<void>
+
+    /**
+ * @summary Extract a typed message and uploaded files for agent review
+ */
+export const useCreateAgentNetworkSubmission = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAgentNetworkSubmission>>, TError,{data: BodyType<CreateAgentNetworkSubmissionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createAgentNetworkSubmission>>,
+        TError,
+        {data: BodyType<CreateAgentNetworkSubmissionInput>},
+        TContext
+      > => {
+      return useMutation(getCreateAgentNetworkSubmissionMutationOptions(options));
+    }
+
+export const getRequestStorageUploadUrlUrl = () => {
+
+
+
+
+  return `/api/storage/uploads/request-url`
+}
+
+/**
+ * @summary Request a short-lived upload URL for an authenticated file
+ */
+export const requestStorageUploadUrl = async (storageUploadRequestInput: StorageUploadRequestInput, options?: RequestInit): Promise<StorageUploadTarget> => {
+
+  return customFetch<StorageUploadTarget>(getRequestStorageUploadUrlUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(storageUploadRequestInput)
+  }
+);}
+
+
+
+
+
+export const getRequestStorageUploadUrlMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof requestStorageUploadUrl>>, TError,{data: BodyType<StorageUploadRequestInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof requestStorageUploadUrl>>, TError,{data: BodyType<StorageUploadRequestInput>}, TContext> => {
+
+const mutationKey = ['requestStorageUploadUrl'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof requestStorageUploadUrl>>, {data: BodyType<StorageUploadRequestInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  requestStorageUploadUrl(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RequestStorageUploadUrlMutationResult = NonNullable<Awaited<ReturnType<typeof requestStorageUploadUrl>>>
+    export type RequestStorageUploadUrlMutationBody = BodyType<StorageUploadRequestInput>
+    export type RequestStorageUploadUrlMutationError = ErrorType<void>
+
+    /**
+ * @summary Request a short-lived upload URL for an authenticated file
+ */
+export const useRequestStorageUploadUrl = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof requestStorageUploadUrl>>, TError,{data: BodyType<StorageUploadRequestInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof requestStorageUploadUrl>>,
+        TError,
+        {data: BodyType<StorageUploadRequestInput>},
+        TContext
+      > => {
+      return useMutation(getRequestStorageUploadUrlMutationOptions(options));
+    }
+
+export const getConfirmAgentNetworkSubmissionUrl = (id: number,) => {
+
+
+
+
+  return `/api/agent-network/submissions/${id}/confirm`
+}
+
+/**
+ * @summary Confirm reviewed data and save it privately to the network
+ */
+export const confirmAgentNetworkSubmission = async (id: number,
+    confirmAgentNetworkSubmissionInput: ConfirmAgentNetworkSubmissionInput, options?: RequestInit): Promise<ConfirmAgentNetworkSubmissionResult> => {
+
+  return customFetch<ConfirmAgentNetworkSubmissionResult>(getConfirmAgentNetworkSubmissionUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(confirmAgentNetworkSubmissionInput)
+  }
+);}
+
+
+
+
+
+export const getConfirmAgentNetworkSubmissionMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof confirmAgentNetworkSubmission>>, TError,{id: number;data: BodyType<ConfirmAgentNetworkSubmissionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof confirmAgentNetworkSubmission>>, TError,{id: number;data: BodyType<ConfirmAgentNetworkSubmissionInput>}, TContext> => {
+
+const mutationKey = ['confirmAgentNetworkSubmission'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof confirmAgentNetworkSubmission>>, {id: number;data: BodyType<ConfirmAgentNetworkSubmissionInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  confirmAgentNetworkSubmission(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ConfirmAgentNetworkSubmissionMutationResult = NonNullable<Awaited<ReturnType<typeof confirmAgentNetworkSubmission>>>
+    export type ConfirmAgentNetworkSubmissionMutationBody = BodyType<ConfirmAgentNetworkSubmissionInput>
+    export type ConfirmAgentNetworkSubmissionMutationError = ErrorType<void>
+
+    /**
+ * @summary Confirm reviewed data and save it privately to the network
+ */
+export const useConfirmAgentNetworkSubmission = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof confirmAgentNetworkSubmission>>, TError,{id: number;data: BodyType<ConfirmAgentNetworkSubmissionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof confirmAgentNetworkSubmission>>,
+        TError,
+        {id: number;data: BodyType<ConfirmAgentNetworkSubmissionInput>},
+        TContext
+      > => {
+      return useMutation(getConfirmAgentNetworkSubmissionMutationOptions(options));
+    }
+
+export const getCancelAgentNetworkSubmissionUrl = (id: number,) => {
+
+
+
+
+  return `/api/agent-network/submissions/${id}/cancel`
+}
+
+/**
+ * @summary Cancel a pending network submission
+ */
+export const cancelAgentNetworkSubmission = async (id: number, options?: RequestInit): Promise<AgentNetworkSubmission> => {
+
+  return customFetch<AgentNetworkSubmission>(getCancelAgentNetworkSubmissionUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getCancelAgentNetworkSubmissionMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof cancelAgentNetworkSubmission>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof cancelAgentNetworkSubmission>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['cancelAgentNetworkSubmission'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof cancelAgentNetworkSubmission>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  cancelAgentNetworkSubmission(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CancelAgentNetworkSubmissionMutationResult = NonNullable<Awaited<ReturnType<typeof cancelAgentNetworkSubmission>>>
+
+    export type CancelAgentNetworkSubmissionMutationError = ErrorType<void>
+
+    /**
+ * @summary Cancel a pending network submission
+ */
+export const useCancelAgentNetworkSubmission = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof cancelAgentNetworkSubmission>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof cancelAgentNetworkSubmission>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getCancelAgentNetworkSubmissionMutationOptions(options));
+    }
+
+export const getUpdateAgentNetworkListingSharingUrl = (id: number,) => {
+
+
+
+
+  return `/api/agent-network/listings/${id}/sharing`
+}
+
+/**
+ * @summary Opt an agent-owned draft or published listing into network sharing
+ */
+export const updateAgentNetworkListingSharing = async (id: number,
+    updateAgentNetworkListingSharingInput: UpdateAgentNetworkListingSharingInput, options?: RequestInit): Promise<AgentNetworkSharingResult> => {
+
+  return customFetch<AgentNetworkSharingResult>(getUpdateAgentNetworkListingSharingUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(updateAgentNetworkListingSharingInput)
+  }
+);}
+
+
+
+
+
+export const getUpdateAgentNetworkListingSharingMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAgentNetworkListingSharing>>, TError,{id: number;data: BodyType<UpdateAgentNetworkListingSharingInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateAgentNetworkListingSharing>>, TError,{id: number;data: BodyType<UpdateAgentNetworkListingSharingInput>}, TContext> => {
+
+const mutationKey = ['updateAgentNetworkListingSharing'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateAgentNetworkListingSharing>>, {id: number;data: BodyType<UpdateAgentNetworkListingSharingInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateAgentNetworkListingSharing(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateAgentNetworkListingSharingMutationResult = NonNullable<Awaited<ReturnType<typeof updateAgentNetworkListingSharing>>>
+    export type UpdateAgentNetworkListingSharingMutationBody = BodyType<UpdateAgentNetworkListingSharingInput>
+    export type UpdateAgentNetworkListingSharingMutationError = ErrorType<void>
+
+    /**
+ * @summary Opt an agent-owned draft or published listing into network sharing
+ */
+export const useUpdateAgentNetworkListingSharing = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAgentNetworkListingSharing>>, TError,{id: number;data: BodyType<UpdateAgentNetworkListingSharingInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateAgentNetworkListingSharing>>,
+        TError,
+        {id: number;data: BodyType<UpdateAgentNetworkListingSharingInput>},
+        TContext
+      > => {
+      return useMutation(getUpdateAgentNetworkListingSharingMutationOptions(options));
+    }
+
+export const getListAgentNetworkMatchesUrl = () => {
+
+
+
+
+  return `/api/agent-network/matches`
+}
+
+/**
+ * @summary List private network matches for the signed-in agent
+ */
+export const listAgentNetworkMatches = async ( options?: RequestInit): Promise<AgentNetworkMatch[]> => {
+
+  return customFetch<AgentNetworkMatch[]>(getListAgentNetworkMatchesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListAgentNetworkMatchesQueryKey = () => {
+    return [
+    `/api/agent-network/matches`
+    ] as const;
+    }
+
+
+export const getListAgentNetworkMatchesQueryOptions = <TData = Awaited<ReturnType<typeof listAgentNetworkMatches>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAgentNetworkMatches>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListAgentNetworkMatchesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listAgentNetworkMatches>>> = ({ signal }) => listAgentNetworkMatches({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listAgentNetworkMatches>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListAgentNetworkMatchesQueryResult = NonNullable<Awaited<ReturnType<typeof listAgentNetworkMatches>>>
+export type ListAgentNetworkMatchesQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List private network matches for the signed-in agent
+ */
+
+export function useListAgentNetworkMatches<TData = Awaited<ReturnType<typeof listAgentNetworkMatches>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAgentNetworkMatches>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListAgentNetworkMatchesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getRespondToAgentNetworkMatchUrl = (id: number,) => {
+
+
+
+
+  return `/api/agent-network/matches/${id}/interest`
+}
+
+/**
+ * @summary Express or decline interest in a network match
+ */
+export const respondToAgentNetworkMatch = async (id: number,
+    respondToAgentNetworkMatchInput: RespondToAgentNetworkMatchInput, options?: RequestInit): Promise<AgentNetworkMatch> => {
+
+  return customFetch<AgentNetworkMatch>(getRespondToAgentNetworkMatchUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(respondToAgentNetworkMatchInput)
+  }
+);}
+
+
+
+
+
+export const getRespondToAgentNetworkMatchMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof respondToAgentNetworkMatch>>, TError,{id: number;data: BodyType<RespondToAgentNetworkMatchInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof respondToAgentNetworkMatch>>, TError,{id: number;data: BodyType<RespondToAgentNetworkMatchInput>}, TContext> => {
+
+const mutationKey = ['respondToAgentNetworkMatch'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof respondToAgentNetworkMatch>>, {id: number;data: BodyType<RespondToAgentNetworkMatchInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  respondToAgentNetworkMatch(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RespondToAgentNetworkMatchMutationResult = NonNullable<Awaited<ReturnType<typeof respondToAgentNetworkMatch>>>
+    export type RespondToAgentNetworkMatchMutationBody = BodyType<RespondToAgentNetworkMatchInput>
+    export type RespondToAgentNetworkMatchMutationError = ErrorType<void>
+
+    /**
+ * @summary Express or decline interest in a network match
+ */
+export const useRespondToAgentNetworkMatch = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof respondToAgentNetworkMatch>>, TError,{id: number;data: BodyType<RespondToAgentNetworkMatchInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof respondToAgentNetworkMatch>>,
+        TError,
+        {id: number;data: BodyType<RespondToAgentNetworkMatchInput>},
+        TContext
+      > => {
+      return useMutation(getRespondToAgentNetworkMatchMutationOptions(options));
     }
 

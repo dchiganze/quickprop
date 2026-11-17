@@ -840,6 +840,8 @@ export interface Property {
   shares?: number;
   hasBrochure?: boolean;
   collaborationEnabled?: boolean;
+  /** Agent has opted the listing into private Agent Network matching. */
+  networkEnabled?: boolean;
   /** @nullable */
   publishedAt?: string | null;
   createdAt?: string;
@@ -3336,6 +3338,217 @@ export interface ImportAssistantInput {
 export interface ImportAssistantResponse {
   message: string;
   suggestions: string[];
+}
+
+export interface AgentNetworkAttachmentInput {
+  /** @maxLength 255 */
+  fileName: string;
+  contentType: string;
+  /**
+     * @minimum 1
+     * @maximum 26214400
+     */
+  sizeBytes: number;
+  storagePath: string;
+}
+
+export interface StorageUploadRequestInput {
+  name: string;
+  /** @minimum 1 */
+  size: number;
+  contentType: string;
+}
+
+export type StorageUploadTargetMetadata = {
+  name: string;
+  size: number;
+  contentType: string;
+};
+
+export interface StorageUploadTarget {
+  uploadURL: string;
+  objectPath: string;
+  metadata: StorageUploadTargetMetadata;
+}
+
+export interface CreateAgentNetworkSubmissionInput {
+  /** @maxLength 12000 */
+  message?: string;
+  /** @maxItems 5 */
+  attachments?: AgentNetworkAttachmentInput[];
+}
+
+/**
+ * @nullable
+ */
+export type AgentNetworkSubmissionExtraction = { [key: string]: unknown } | null;
+
+export interface AgentNetworkSubmission {
+  id: number;
+  sourceText: string;
+  attachments: AgentNetworkAttachmentInput[];
+  /** @nullable */
+  extraction: AgentNetworkSubmissionExtraction;
+  /** needs_review | confirmed | cancelled | failed */
+  status: string;
+  /** @nullable */
+  propertyId?: number | null;
+  /** @nullable */
+  requirementId?: number | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type ConfirmAgentNetworkSubmissionInputRecordType = typeof ConfirmAgentNetworkSubmissionInputRecordType[keyof typeof ConfirmAgentNetworkSubmissionInputRecordType];
+
+
+export const ConfirmAgentNetworkSubmissionInputRecordType = {
+  property: 'property',
+  buyer_requirement: 'buyer_requirement',
+} as const;
+
+export type ConfirmAgentNetworkSubmissionInputData = { [key: string]: unknown };
+
+export interface ConfirmAgentNetworkSubmissionInput {
+  /**
+     * @minimum 0
+     * @maximum 39
+     */
+  itemIndex?: number;
+  recordType: ConfirmAgentNetworkSubmissionInputRecordType;
+  data: ConfirmAgentNetworkSubmissionInputData;
+  shareWithNetwork?: boolean;
+}
+
+export interface UpdateAgentNetworkListingSharingInput {
+  enabled: boolean;
+}
+
+export interface RespondToAgentNetworkMatchInput {
+  interested: boolean;
+}
+
+export type ConfirmAgentNetworkSubmissionResultRecordType = typeof ConfirmAgentNetworkSubmissionResultRecordType[keyof typeof ConfirmAgentNetworkSubmissionResultRecordType];
+
+
+export const ConfirmAgentNetworkSubmissionResultRecordType = {
+  property: 'property',
+  buyer_requirement: 'buyer_requirement',
+} as const;
+
+export type AgentNetworkMatchCategory = typeof AgentNetworkMatchCategory[keyof typeof AgentNetworkMatchCategory];
+
+
+export const AgentNetworkMatchCategory = {
+  strong: 'strong',
+  potential: 'potential',
+  weak: 'weak',
+} as const;
+
+export type AgentNetworkMatchStatus = typeof AgentNetworkMatchStatus[keyof typeof AgentNetworkMatchStatus];
+
+
+export const AgentNetworkMatchStatus = {
+  open: 'open',
+  accepted: 'accepted',
+  declined: 'declined',
+} as const;
+
+export type AgentNetworkMatchListing = {
+  id: number;
+  reference: string;
+  title: string;
+  propertyType: string;
+  listingType: string;
+  price: number;
+  currency: string;
+  suburb: string;
+  city: string;
+  /** @nullable */
+  bedrooms: number | null;
+  features: string[];
+  photos?: string[];
+  agencyName: string;
+  agentName: string;
+};
+
+export type AgentNetworkMatchRequirementSummary = {
+  /** @nullable */
+  propertyType: string | null;
+  /** @nullable */
+  listingType: string | null;
+  areas: string[];
+  /** @nullable */
+  budgetMin: number | null;
+  /** @nullable */
+  budgetMax: number | null;
+  currency: string;
+  /** @nullable */
+  bedroomsMin: number | null;
+  /** @nullable */
+  bedroomsMax: number | null;
+  requiredFeatures: string[];
+  preferredFeatures: string[];
+};
+
+/**
+ * @nullable
+ */
+export type AgentNetworkMatchOtherAgent = {
+  name?: string;
+  agencyName?: string;
+  /** @nullable */
+  email?: string | null;
+  /** @nullable */
+  phone?: string | null;
+} | null;
+
+/**
+ * @nullable
+ */
+export type AgentNetworkMatchBuyerContact = {
+  /** @nullable */
+  name?: string | null;
+  /** @nullable */
+  email?: string | null;
+  /** @nullable */
+  phone?: string | null;
+} | null;
+
+export interface AgentNetworkMatch {
+  id: number;
+  propertyId: number;
+  requirementId: number;
+  /**
+     * @minimum 0
+     * @maximum 100
+     */
+  matchPercent: number;
+  category: AgentNetworkMatchCategory;
+  reasons: string[];
+  status: AgentNetworkMatchStatus;
+  listingAgentInterested: boolean;
+  buyerAgentInterested: boolean;
+  contactReleased: boolean;
+  listing: AgentNetworkMatchListing;
+  requirementSummary: AgentNetworkMatchRequirementSummary;
+  /** @nullable */
+  otherAgent?: AgentNetworkMatchOtherAgent;
+  /** @nullable */
+  buyerContact?: AgentNetworkMatchBuyerContact;
+}
+
+export interface ConfirmAgentNetworkSubmissionResult {
+  submission: AgentNetworkSubmission;
+  recordType: ConfirmAgentNetworkSubmissionResultRecordType;
+  recordId: number;
+  matches: AgentNetworkMatch[];
+}
+
+export interface AgentNetworkSharingResult {
+  propertyId: number;
+  networkEnabled: boolean;
+  matches: AgentNetworkMatch[];
 }
 
 export type GetStoredMediaUrlParams = {

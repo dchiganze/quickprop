@@ -60,6 +60,7 @@ export const propertiesTable = pgTable("properties", {
   shares: integer("shares").notNull().default(0),
   hasBrochure: boolean("has_brochure").notNull().default(false),
   collaborationEnabled: boolean("collaboration_enabled").notNull().default(false),
+  networkEnabled: boolean("network_enabled").notNull().default(false),
   // Null means this row is the canonical physical property. A non-null value
   // points at the canonical row after an admin-approved merge.
   canonicalPropertyId: integer("canonical_property_id").references((): any => propertiesTable.id),

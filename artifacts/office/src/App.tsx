@@ -32,6 +32,7 @@ import Settings from '@/pages/settings';
 import Housekeeping from '@/pages/housekeeping';
 import Imports from '@/pages/imports';
 import Account from '@/pages/account';
+import AgentNetwork from '@/pages/agent-network';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -93,6 +94,7 @@ function AppRouter() {
       <ProtectedRoute path="/housekeeping" component={Housekeeping} />
       <ProtectedRoute path="/imports" component={Imports} />
       <ProtectedRoute path="/imports/:id" component={Imports} />
+      <ProtectedRoute path="/agent-network" component={AgentNetwork} />
       <ProtectedRoute path="/brochure-setup" component={BrochureSetup} />
       <ProtectedBarePage path="/brochure-catalog" component={BrochureCatalog} />
       <ProtectedBarePage path="/property/:id/brochure" component={PropertyBrochure} />

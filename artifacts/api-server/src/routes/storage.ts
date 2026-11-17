@@ -8,8 +8,18 @@ import { getActiveAgencyBranchIdsForUser } from "../lib/office-inventory-scope";
 const router: IRouter = Router();
 const SIDECAR = "http://127.0.0.1:1106";
 const MAX_UPLOAD_BYTES = 25 * 1024 * 1024;
+const MAX_AUDIO_UPLOAD_BYTES = 8 * 1024 * 1024;
 const MAX_VIDEO_UPLOAD_BYTES = 100 * 1024 * 1024;
 const VIDEO_MIME_TYPES = new Set(["video/mp4", "video/quicktime", "video/webm"]);
+const AUDIO_MIME_TYPES = new Set([
+  "audio/aac",
+  "audio/mp4",
+  "audio/mpeg",
+  "audio/ogg",
+  "audio/wav",
+  "audio/webm",
+  "audio/x-m4a",
+]);
 const PUBLIC_PROPERTY_STATUSES = ["public", "under_offer", "coming_soon"];
 const STORED_OBJECT_NAME = /^uploads\/\d+\/[a-f0-9-]+\.[a-z0-9]{1,8}$/i;
 
@@ -75,6 +85,26 @@ async function canReadStoredMedia(req: Request, objectName: string): Promise<boo
   const user = await currentUser(req);
   if (!user) return false;
   if (objectName.startsWith(`uploads/${user.id}/`)) return true;
+  if (
+    user.status === "active" &&
+    ["agent", "senior_agent", "principal"].includes(user.role)
+  ) {
+    const networkObjectPath = `%/api/storage/objects/${objectName}`;
+    const [networkProperty] = await db.select({ id: propertiesTable.id })
+      .from(propertiesTable)
+      .where(and(
+        eq(propertiesTable.networkEnabled, true),
+        eq(propertiesTable.availabilityStatus, "available"),
+        inArray(propertiesTable.status, ["draft", "internal_only", "public", "private_listing"]),
+        sql`EXISTS (
+          SELECT 1
+          FROM unnest(${propertiesTable.photos}) AS media_path
+          WHERE media_path LIKE ${networkObjectPath}
+        )`,
+      ))
+      .limit(1);
+    if (networkProperty) return true;
+  }
   const agencyBranchIds = await getActiveAgencyBranchIdsForUser(user.branchId);
   if (agencyBranchIds?.length) {
     const directObjectPath = `%/objects/${objectName}`;
@@ -178,15 +208,28 @@ router.post("/storage/uploads/request-url", async (req, res): Promise<void> => {
   }
 
   const { name, size, contentType } = req.body as Record<string, unknown>;
+  const isAudio = typeof contentType === "string" && AUDIO_MIME_TYPES.has(contentType);
+  const isDocument = typeof contentType === "string" && (
+    contentType.startsWith("image/") ||
+    contentType === "text/plain" ||
+    contentType === "text/csv" ||
+    contentType === "application/csv" ||
+    contentType === "application/pdf" ||
+    contentType === "application/vnd.ms-excel" ||
+    contentType === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
+    contentType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+  );
   if (
     typeof name !== "string" || name.trim().length === 0 ||
     typeof size !== "number" || !Number.isInteger(size) || size < 1 ||
     typeof contentType !== "string" ||
-    (contentType.startsWith("image/") || contentType === "text/plain" || contentType === "text/csv" || contentType === "application/csv" || contentType === "application/pdf" || contentType === "application/vnd.ms-excel" || contentType === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" || contentType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-      ? size > MAX_UPLOAD_BYTES
-      : !VIDEO_MIME_TYPES.has(contentType) || size > MAX_VIDEO_UPLOAD_BYTES)
+    (isAudio
+      ? size > MAX_AUDIO_UPLOAD_BYTES
+      : isDocument
+        ? size > MAX_UPLOAD_BYTES
+        : !VIDEO_MIME_TYPES.has(contentType) || size > MAX_VIDEO_UPLOAD_BYTES)
   ) {
-    res.status(400).json({ error: "Upload must be an image or import document under 25 MB, or an MP4, MOV, or WebM video under 100 MB." });
+    res.status(400).json({ error: "Upload must be an image or import document under 25 MB, an audio note under 8 MB, or an MP4, MOV, or WebM video under 100 MB." });
     return;
   }
 

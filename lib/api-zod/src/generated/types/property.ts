@@ -97,6 +97,8 @@ export interface Property {
   shares?: number;
   hasBrochure?: boolean;
   collaborationEnabled?: boolean;
+  /** Agent has opted the listing into private Agent Network matching. */
+  networkEnabled?: boolean;
   /** @nullable */
   publishedAt?: string | null;
   createdAt?: string;

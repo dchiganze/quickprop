@@ -13,7 +13,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { 
   LayoutDashboard, Database, KanbanSquare, Users, Handshake, Home, UserRound,
   Target, CheckSquare, Calendar, FileText, Briefcase, BarChart3, Settings,
-  ShieldAlert, UserCircle, Bell, Search, LogOut, Loader2, Sparkles, UploadCloud, Building2
+  ShieldAlert, UserCircle, Bell, Search, LogOut, Loader2, Sparkles, UploadCloud, Building2, Network
 } from 'lucide-react';
 import { QuickShareDialog } from '@/components/QuickShareDialog';
 
@@ -209,6 +209,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
               <div className="px-3 text-xs font-semibold tracking-wider text-sidebar-foreground/40 uppercase mb-2">People</div>
               <NavItem href="/leads" icon={Target} label="Leads Pipeline" />
               <NavItem href="/matches" icon={Handshake} label="Matches" />
+              <NavItem href="/agent-network" icon={Network} label="Agent Network" />
               <NavItem href="/buyers" icon={Users} label="Buyers" />
               <NavItem href="/sellers" icon={Briefcase} label="Sellers" />
               <NavItem href="/landlords" icon={Home} label="Landlords" />

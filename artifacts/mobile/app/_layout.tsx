@@ -113,6 +113,7 @@ function RootLayoutNav() {
         <Stack.Screen name="housekeeping" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
         <Stack.Screen name="settings" />
         <Stack.Screen name="brochure" />
+        <Stack.Screen name="agent-network" />
       </Stack>
     );
   }

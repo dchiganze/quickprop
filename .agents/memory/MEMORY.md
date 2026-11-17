@@ -1,4 +1,5 @@
 - [QuickProp Mobile Runtime](quickprop-mobile-runtime.md) — Expo Go routing, native/web storage, React Native compatibility, and notification constraints.
+- [QuickProp Agent Network](quickprop-agent-network.md) — live WhatsApp Business delivery is deferred until the user connects the account.
 - [QuickProp Cloud Sync](quickprop-cloud-sync.md) — PostgreSQL is authoritative; mobile persistence is an offline cache with guarded reconciliation.
 - [QuickProp Office CRM](quickprop-office.md) — web CRM lessons: jsonify DB rows before zod parse, wouter param-passing in protected routes, seed esbuild bundling, orval queryKey quirk.
 - [QuickProp Admin Portal](quickprop-admin.md) — deep navy/blue theme; new admin-portal routes; codegen duplicate-schema pitfall; BuyerUpdate lacks status; seeded admin users.
