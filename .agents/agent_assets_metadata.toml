@@ -645,3 +645,17 @@ mtime_ms = 1794901533833
 storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:cf900b3f-04ce-456b-888c-760ecb412036/7b9df3a6-e28f-422a-9dc5-1d38d77fae10/84837a6d-b0bb-4955-a873-68e56a997f89"
 storage_version_token = "1794901550066684"
 content_type = "image/png"
+
+[[outputs]]
+id = "oPeR4itretB3WR8QdAey8"
+uri = "file://attached_assets/quickprop-expo-go-tunnel.png"
+type = "image"
+title = "QuickProp Expo Go QR"
+description = "Fresh QR for the current direct Expo tunnel. Keep the mobile preview workflow running while scanning."
+logical_id = "4b78b83f-c4d5-44f7-bb79-2ac4dd0e995a"
+content_hash = "sha256:0c22f8b117bac39945e559c65ea34f2750eec05cbe4733c5729020b8bb0e015f"
+size = 801
+mtime_ms = 1794907909440
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:cf900b3f-04ce-456b-888c-760ecb412036/4b78b83f-c4d5-44f7-bb79-2ac4dd0e995a/0b81de43-fab8-4686-9fed-229676356014"
+storage_version_token = "1794907928068805"
+content_type = "image/png"
