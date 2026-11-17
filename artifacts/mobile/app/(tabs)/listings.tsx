@@ -29,7 +29,10 @@ import { SearchBar } from '@/components/SearchBar';
 import { EmptyState } from '@/components/EmptyState';
 import { QuickShareSheet } from '@/components/QuickShareSheet';
 import { useNetworkStatus } from '@/contexts/ConnectivityContext';
-import { propertyMatchesQuery } from '@/lib/property-search';
+import {
+  buildPublicListingSearchParams,
+  propertyMatchesQuery,
+} from '@/lib/property-search';
 import {
   buildAgencyDraftQueryParams,
   mergeAgencyListings,
@@ -365,17 +368,27 @@ export default function ListingsScreen() {
     },
   });
 
+  const publicSearchParams = useMemo(
+    () => buildPublicListingSearchParams(query),
+    [query],
+  );
   const publicFeed = useInfiniteQuery({
-    queryKey: ['mobile-public-properties', agentFilter || 'all'],
+    queryKey: ['mobile-public-properties', agentFilter || 'all', publicSearchParams],
     initialPageParam: 1,
     queryFn: ({ pageParam, signal }) => listPublicProperties(
-      { page: pageParam, limit: 20, sort: 'newest', agentId: publicAgentId },
+      {
+        ...publicSearchParams,
+        page: pageParam,
+        limit: 20,
+        sort: 'newest',
+        agentId: publicAgentId,
+      },
       { signal },
     ),
     getNextPageParam: (lastPage) => (
       lastPage.page * lastPage.limit < lastPage.total ? lastPage.page + 1 : undefined
     ),
-    enabled: scope === 'all',
+    enabled: scope === 'all' && visibilityFilter !== 'draft',
     staleTime: 30_000,
   });
   const publicProperties = useMemo(
@@ -491,8 +504,11 @@ export default function ListingsScreen() {
     if (refreshing) return;
     setRefreshing(true);
     try {
-      if (scope === 'agency' && visibilityFilter === 'all' && draftQueryEnabled) {
-        await Promise.all([agencyQuery.refetch(), draftListingsQuery.refetch()]);
+      if ((scope === 'agency' || scope === 'all') && visibilityFilter === 'all' && draftQueryEnabled) {
+        await Promise.all([
+          ...(scope === 'agency' ? [agencyQuery.refetch()] : [publicFeed.refetch()]),
+          draftListingsQuery.refetch(),
+        ]);
       } else if (visibilityFilter === 'draft' && scope !== 'my' && draftQueryEnabled) {
         await draftListingsQuery.refetch();
       } else if (visibilityFilter === 'draft' || scope === 'my') {
@@ -517,11 +533,13 @@ export default function ListingsScreen() {
     let list = visibilityFilter === 'draft'
       ? scope === 'my'
         ? localDraftProperties
-        : scope === 'agency'
+        : scope === 'agency' || scope === 'all'
           ? draftProperties
           : []
       : scope === 'all'
-        ? [...publicProperties]
+        ? visibilityFilter === 'live'
+          ? [...publicProperties]
+          : mergeAgencyListings(publicProperties, draftProperties)
         : scope === 'agency'
           ? visibilityFilter === 'all'
             ? mergeAgencyListings(agencyProperties, draftProperties)
@@ -568,6 +586,10 @@ export default function ListingsScreen() {
   ]);
 
   const canShowOfflineSync = scope === 'my' || scope === 'agency';
+  const canUseCachedAgencyDrafts = Boolean(
+    accountAgencyCache?.draftsSyncedAt
+    && (scope === 'agency' || (scope === 'all' && user?.role === 'agent')),
+  );
   const filteredAllSaved = filtered.length > 0 && filtered.every((property) => (
     savedOfflineIds.has(property.id) || !/^\d+$/.test(property.id)
   ));
@@ -838,9 +860,12 @@ export default function ListingsScreen() {
     ? scope !== 'my'
       && draftQueryEnabled
       && draftListingsQuery.isLoading
-      && !(accountAgencyCache?.draftsSyncedAt && (scope === 'agency' || user?.role === 'agent'))
+      && !canUseCachedAgencyDrafts
     : scope === 'all'
       ? publicFeed.isLoading
+        || (draftQueryEnabled
+          && draftListingsQuery.isLoading
+          && !canUseCachedAgencyDrafts)
       : scope === 'agency'
         && (
           (agencyQuery.isLoading && !accountAgencyCache?.liveSyncedAt)
@@ -854,9 +879,12 @@ export default function ListingsScreen() {
     ? scope !== 'my'
       && draftQueryEnabled
       && draftListingsQuery.isError
-      && !(accountAgencyCache?.draftsSyncedAt && scope === 'agency')
+      && !canUseCachedAgencyDrafts
     : scope === 'all'
       ? publicFeed.isError
+        || (draftQueryEnabled
+          && draftListingsQuery.isError
+          && !canUseCachedAgencyDrafts)
       : scope === 'agency'
         && (
           (agencyQuery.isError && !accountAgencyCache?.liveSyncedAt)

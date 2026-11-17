@@ -13,7 +13,7 @@ export function buildAgencyDraftQueryParams(
   agentId?: number,
 ): AgencyDraftQueryParams | undefined {
   if (
-    scope !== 'agency'
+    scope === 'my'
     || visibilityFilter === 'live'
     || !/^\d+$/.test(userId ?? '')
   ) return undefined;

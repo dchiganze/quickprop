@@ -1,9 +1,14 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { parseListingSearch, propertyMatchesQuery } from './property-search.ts';
+import {
+  buildPublicListingSearchParams,
+  parseListingSearch,
+  propertyMatchesQuery,
+} from './property-search.ts';
 
 const highlandsHome = {
   address: 'Enterprise Road',
+  title: '3-Bed Family Home',
   suburb: 'Highlands',
   referenceNumber: 'QP-1001',
   type: 'sale',
@@ -41,5 +46,25 @@ test('retains simple bedroom shortcuts and combines them with other words', () =
   assert.equal(propertyMatchesQuery(highlandsHome, '3 bed'), true);
   assert.equal(propertyMatchesQuery({ ...highlandsHome, bedrooms: 2 }, '3 bed'), false);
   assert.equal(propertyMatchesQuery(highlandsHome, '3 bed Highlands solar'), true);
+});
+
+test('matches a property-type word in the title even when its type differs', () => {
+  assert.equal(
+    propertyMatchesQuery({ ...highlandsHome, propertyType: 'land', title: 'Residential Stand' }, 'stand'),
+    true,
+  );
+});
+
+test('matches defining characteristics such as solar and borehole', () => {
+  assert.equal(propertyMatchesQuery(highlandsHome, 'solar'), true);
+  assert.equal(propertyMatchesQuery(highlandsHome, 'borehole'), true);
+});
+
+test('builds global search filters for property type and features', () => {
+  assert.deepEqual(buildPublicListingSearchParams('stand'), { q: 'stand' });
+  assert.deepEqual(buildPublicListingSearchParams('in Highlands with solar'), {
+    suburb: 'Highlands',
+    q: 'solar',
+  });
 });
 

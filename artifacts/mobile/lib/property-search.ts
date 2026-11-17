@@ -11,6 +11,7 @@ export interface ParsedListingSearch {
 }
 
 export interface SearchableMobileProperty {
+  title?: string;
   address: string;
   suburb: string;
   referenceNumber: string;
@@ -27,6 +28,14 @@ export interface SearchableMobileProperty {
   garages?: number;
   features: string[];
   seller: { name: string; mandateType: string };
+}
+
+export interface PublicListingSearchParams {
+  listingType?: 'sale' | 'rent';
+  suburb?: string;
+  minBeds?: number;
+  minBaths?: number;
+  q?: string;
 }
 
 const PROPERTY_TYPE_WORDS: Record<string, string> = {
@@ -127,6 +136,24 @@ export function parseListingSearch(query: string): ParsedListingSearch {
   return parsed;
 }
 
+export function buildPublicListingSearchParams(query: string): PublicListingSearchParams {
+  const parsed = parseListingSearch(query);
+  const searchTerms = [
+    ...(parsed.propertyType ? [parsed.propertyType] : []),
+    ...parsed.amenities,
+    ...parsed.keywords,
+  ].filter(Boolean);
+  return {
+    ...(parsed.listingType ? { listingType: parsed.listingType } : {}),
+    ...(parsed.suburb ? { suburb: parsed.suburb } : {}),
+    ...(parsed.minBedrooms != null || parsed.bedrooms != null
+      ? { minBeds: parsed.minBedrooms ?? parsed.bedrooms }
+      : {}),
+    ...(parsed.bathrooms != null ? { minBaths: parsed.bathrooms } : {}),
+    ...(searchTerms.length ? { q: searchTerms.join(' ') } : {}),
+  };
+}
+
 export function propertyMatchesQuery(property: SearchableMobileProperty, query: string): boolean {
   const trimmed = query.trim();
   if (!trimmed) return true;
@@ -144,7 +171,8 @@ export function propertyMatchesQuery(property: SearchableMobileProperty, query: 
   const parsed = parseListingSearch(trimmed);
   if (parsed.propertyType) {
     const propertyType = normalizeSearchText(property.propertyType ?? property.type);
-    if (propertyType !== parsed.propertyType) return false;
+    const titleHasType = normalizeSearchText(property.title ?? '').includes(parsed.propertyType);
+    if (propertyType !== parsed.propertyType && !titleHasType) return false;
   }
   if (parsed.listingType && (property.listingType ?? property.type) !== parsed.listingType) return false;
   if (parsed.bedrooms != null && (property.bedrooms ?? 0) !== parsed.bedrooms) return false;
@@ -160,6 +188,7 @@ export function propertyMatchesQuery(property: SearchableMobileProperty, query: 
   })) return false;
 
   const searchableText = normalizeSearchText([
+    property.title ?? '',
     property.address,
     property.suburb,
     property.referenceNumber,

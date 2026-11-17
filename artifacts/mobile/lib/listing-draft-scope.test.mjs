@@ -8,7 +8,6 @@ import {
 
 test('agency draft requests are limited to the agency listings scope', () => {
   assert.equal(buildAgencyDraftQueryParams('my', 'draft', '12'), undefined);
-  assert.equal(buildAgencyDraftQueryParams('all', 'draft', '12'), undefined);
 });
 
 test('agency drafts are requested for both draft-only and all-status views', () => {
@@ -35,8 +34,21 @@ test('an agent filter narrows agency drafts without changing the agency boundary
   });
 });
 
-test('agency drafts are not queried while only live listings are requested', () => {
+test('All of QuickProp adds only the signed-in user’s agency drafts', () => {
+  assert.deepEqual(buildAgencyDraftQueryParams('all', 'all', '12'), {
+    status: 'draft',
+    agencyInventory: 'agency',
+  });
+  assert.deepEqual(buildAgencyDraftQueryParams('all', 'draft', '12', 34), {
+    status: 'draft',
+    agencyInventory: 'agency',
+    agentId: 34,
+  });
+});
+
+test('drafts are not queried while only live listings are requested', () => {
   assert.equal(buildAgencyDraftQueryParams('agency', 'live', '12'), undefined);
+  assert.equal(buildAgencyDraftQueryParams('all', 'live', '12'), undefined);
 });
 
 test('agency draft requests require a numeric authenticated user id', () => {
@@ -52,6 +64,20 @@ test('the all-status agency view merges live listings with drafts without duplic
     { id: '1', status: 'published' },
     { id: '2', status: 'draft' },
     { id: '3', status: 'draft' },
+  ]);
+});
+
+test('All of QuickProp combines public listings with only the agency-scoped draft results', () => {
+  const publicListings = [
+    { id: 'public-internal', status: 'published' },
+    { id: 'public-external', status: 'published' },
+  ];
+  const internalAgencyDrafts = [{ id: 'internal-draft', status: 'draft' }];
+
+  assert.deepEqual(mergeAgencyListings(publicListings, internalAgencyDrafts), [
+    { id: 'public-internal', status: 'published' },
+    { id: 'public-external', status: 'published' },
+    { id: 'internal-draft', status: 'draft' },
   ]);
 });
 

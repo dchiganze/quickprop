@@ -9,11 +9,17 @@ Agencies group branches for administrative management, logos, and team assignmen
 
 **How to apply:** Keep discovery and collaboration contact details branch-scoped, and restrict contact details to approved requests. Do not expand access across an agency's branches unless explicitly requested.
 
-QuickProp Agent's DBT Properties view must show same-agency drafts under both Draft listings and All statuses; Live shows published listings only. My Listings stays limited to the signed-in agent, All of QuickProp stays published-only, and agency draft visibility does not grant cross-branch editing access.
+QuickProp Agent's All of QuickProp view combines published listings across agencies with drafts from the signed-in user's own agency. All of DBT Properties includes the agency's drafts and live listings; My Listings stays limited to the signed-in agent, and Live remains published-only.
 
-**Why:** The user explicitly confirmed that agents should see drafts across their own agency, including when All statuses is selected, but not across agencies.
+**Why:** The user confirmed that agency drafts are visible within the agency, while All of QuickProp should include those internal drafts alongside public listings from other agencies.
 
-**How to apply:** Derive the agency and its active branches from the signed-in user's branch. Include drafts in the DBT Properties All statuses result, keep the Live filter and global feed published-only, preserve My Listings ownership filtering, and keep edits owner-scoped.
+**How to apply:** Fetch drafts only through the authenticated `agencyInventory=agency` scope derived from the signed-in user's active agency branches. Merge those drafts with the public feed for All of QuickProp, keep other agencies' drafts excluded, and leave edit access owner-scoped.
+
+Mobile listing search must match title terms and defining features such as solar or borehole across all matching pages, not only the currently loaded page.
+
+**Why:** The user requested that property names and searchable characteristics work consistently in agency and global listing scopes.
+
+**How to apply:** Search the agency's already scoped live/draft inventory locally, and pass search terms to the paginated public-listing API so matching global results are found before pagination.
 
 Changing an existing user's assigned branch changes their branch-scoped access. Admin reassignment must be explicitly confirmed, accept only active branches in active agencies, and update the user's branch without silently moving linked listings or import history.
 

@@ -133,15 +133,21 @@ router.get("/public/properties", async (req, res): Promise<void> => {
   if (minBeds) conditions.push(gte(propertiesTable.bedrooms, parseInt(minBeds)));
   if (minBaths) conditions.push(gte(propertiesTable.bathrooms, parseInt(minBaths)));
   if (q) {
-    const like = `%${q}%`;
-    conditions.push(
-      or(
-        ilike(propertiesTable.title, like),
-        ilike(propertiesTable.suburb, like),
-        ilike(propertiesTable.city, like),
-        ilike(propertiesTable.description, like),
-      )!
-    );
+    for (const term of q.trim().split(/\s+/).filter(Boolean)) {
+      const like = `%${term}%`;
+      conditions.push(
+        or(
+          ilike(propertiesTable.title, like),
+          ilike(propertiesTable.reference, like),
+          ilike(propertiesTable.propertyType, like),
+          ilike(propertiesTable.suburb, like),
+          ilike(propertiesTable.city, like),
+          ilike(propertiesTable.address, like),
+          ilike(propertiesTable.description, like),
+          ilike(sql`${propertiesTable.features}::text`, like),
+        )!
+      );
+    }
   }
 
   const pageNum = Math.max(1, parseInt(page));
