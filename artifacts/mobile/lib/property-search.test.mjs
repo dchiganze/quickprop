@@ -42,3 +42,4 @@ test('retains simple bedroom shortcuts and combines them with other words', () =
   assert.equal(propertyMatchesQuery({ ...highlandsHome, bedrooms: 2 }, '3 bed'), false);
   assert.equal(propertyMatchesQuery(highlandsHome, '3 bed Highlands solar'), true);
 });
+
