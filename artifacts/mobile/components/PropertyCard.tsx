@@ -5,6 +5,11 @@ import { useColors } from '@/hooks/useColors';
 import { Property } from '@/types';
 import { getPrimaryListingPhoto } from '@/utils/listingPhoto';
 import { ListingImage } from '@/components/ListingImage';
+import {
+  formatPropertyLocation,
+  getPropertyDisplayTitle,
+  hasVisiblePropertyStats,
+} from '@/lib/property-display';
 
 interface Props {
   property: Property;
@@ -41,6 +46,11 @@ export function PropertyCard({ property, onPress, offlineAction }: Props) {
   const colors = useColors();
   const displayStatus = property.pendingStatus ?? property.status;
   const photoUri = getPrimaryListingPhoto(property);
+  const location = formatPropertyLocation(property.suburb, property.city);
+  const showStats = hasVisiblePropertyStats(property);
+  const displayAddress = property.showAddress && property.address?.trim()
+    ? property.address.trim()
+    : '';
   const [failedPhotoUri, setFailedPhotoUri] = useState<string>();
   const photoFailed = Boolean(photoUri && failedPhotoUri === photoUri);
 
@@ -89,35 +99,46 @@ export function PropertyCard({ property, onPress, offlineAction }: Props) {
         </View>
 
         <TouchableOpacity onPress={onPress} activeOpacity={0.85}>
-          <Text style={[styles.address, { color: colors.foreground }]} numberOfLines={1}>
-            {property.address}
+          <Text style={[styles.title, { color: colors.foreground }]} numberOfLines={2}>
+            {getPropertyDisplayTitle(property.title)}
           </Text>
-          <Text style={[styles.suburb, { color: colors.mutedForeground }]}>{property.suburb}</Text>
+          {!!displayAddress && (
+            <Text style={[styles.address, { color: colors.foreground }]} numberOfLines={1}>
+              {displayAddress}
+            </Text>
+          )}
+          {!!location && <Text style={[styles.suburb, { color: colors.mutedForeground }]}>{location}</Text>}
 
-          {(property.bedrooms !== undefined || property.bathrooms !== undefined) && (
+          {showStats && (
             <View style={styles.stats}>
-              {property.bedrooms !== undefined && (
+              {property.bedrooms != null && (
                 <View style={styles.stat}>
                   <Ionicons name="bed-outline" size={14} color={colors.mutedForeground} />
-                  <Text style={[styles.statText, { color: colors.mutedForeground }]}>{property.bedrooms}</Text>
+                  <Text style={[styles.statText, { color: colors.mutedForeground }]}>{property.bedrooms} beds</Text>
                 </View>
               )}
-              {property.bathrooms !== undefined && (
+              {property.bathrooms != null && (
                 <View style={styles.stat}>
                   <Ionicons name="water-outline" size={14} color={colors.mutedForeground} />
-                  <Text style={[styles.statText, { color: colors.mutedForeground }]}>{property.bathrooms}</Text>
+                  <Text style={[styles.statText, { color: colors.mutedForeground }]}>{property.bathrooms} baths</Text>
                 </View>
               )}
-              {property.garages !== undefined && property.garages > 0 && (
+              {property.garages != null && (
                 <View style={styles.stat}>
                   <Ionicons name="car-outline" size={14} color={colors.mutedForeground} />
-                  <Text style={[styles.statText, { color: colors.mutedForeground }]}>{property.garages}</Text>
+                  <Text style={[styles.statText, { color: colors.mutedForeground }]}>{property.garages} garages</Text>
                 </View>
               )}
               {property.landSize !== undefined && property.landSize > 0 && (
                 <View style={styles.stat}>
                   <Ionicons name="resize-outline" size={14} color={colors.mutedForeground} />
-                  <Text style={[styles.statText, { color: colors.mutedForeground }]}>{property.landSize}m²</Text>
+                  <Text style={[styles.statText, { color: colors.mutedForeground }]}>{property.landSize.toLocaleString()} m² land</Text>
+                </View>
+              )}
+              {property.floorArea !== undefined && property.floorArea > 0 && (
+                <View style={styles.stat}>
+                  <Ionicons name="expand-outline" size={14} color={colors.mutedForeground} />
+                  <Text style={[styles.statText, { color: colors.mutedForeground }]}>{property.floorArea.toLocaleString()} m² floor</Text>
                 </View>
               )}
             </View>
@@ -173,9 +194,10 @@ const styles = StyleSheet.create({
   priceTextButton: { flex: 1, minWidth: 0 },
   price: { fontSize: 20, fontWeight: '800', marginBottom: 2 },
   neg: { fontSize: 14, fontWeight: '600' },
+  title: { fontSize: 16, fontWeight: '700', marginBottom: 3 },
   address: { fontSize: 14, fontWeight: '600', marginBottom: 2 },
   suburb: { fontSize: 13, marginBottom: 8 },
-  stats: { flexDirection: 'row', gap: 14, marginBottom: 8 },
+  stats: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 8 },
   stat: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   statText: { fontSize: 13 },
   ref: { fontSize: 11, fontWeight: '500' },

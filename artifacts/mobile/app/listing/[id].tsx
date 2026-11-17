@@ -20,6 +20,7 @@ import { PropertyFlyer, PropertyFlyerHandle } from '@/components/PropertyFlyer';
 import { FlyerCustomizer } from '@/components/FlyerCustomizer';
 import { useFlyerSettings } from '@/hooks/useFlyerSettings';
 import { parsePrivateContactNotes, toMobileProperty, useData } from '@/contexts/DataContext';
+import { formatPropertyLocation, getPropertyDisplayTitle, hasVisiblePropertyStats } from '@/lib/property-display';
 import { Property } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
 import {
@@ -638,7 +639,14 @@ export default function ListingDetailScreen() {
         <TouchableOpacity style={[styles.backBtn, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={20} color={colors.foreground} />
         </TouchableOpacity>
-        <Text style={[styles.topRef, { color: colors.mutedForeground }]}>{property.referenceNumber}</Text>
+        <View style={styles.topHeading}>
+          <Text style={[styles.topTitle, { color: colors.foreground }]} numberOfLines={2}>
+            {getPropertyDisplayTitle(property.title)}
+          </Text>
+          <Text style={[styles.topRef, { color: colors.mutedForeground }]} numberOfLines={1}>
+            {property.referenceNumber}
+          </Text>
+        </View>
         <View style={styles.topActions}>
           <TouchableOpacity
             style={[styles.iconBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
@@ -784,7 +792,9 @@ export default function ListingDetailScreen() {
           </View>
           {property.showAddress && <Text style={[styles.address, { color: colors.foreground }]}>{property.address}</Text>}
           <View style={styles.suburbRow}>
-            <Text style={[styles.suburb, { color: colors.mutedForeground }]}>{property.suburb}</Text>
+            <Text style={[styles.suburb, { color: colors.mutedForeground }]}>
+              {formatPropertyLocation(property.suburb, property.city) || 'Location not specified'}
+            </Text>
             <View style={[styles.visibilityBadge, {
               backgroundColor: property.showAddress ? colors.accent + '18' : colors.muted,
               borderColor:     property.showAddress ? colors.accent        : colors.border,
@@ -882,23 +892,23 @@ export default function ListingDetailScreen() {
           )}
 
           {/* Key stats */}
-          {(property.bedrooms !== undefined || property.bathrooms !== undefined || property.garages !== undefined) && (
+          {hasVisiblePropertyStats(property) && (
             <View style={[styles.statsRow, { backgroundColor: colors.secondary, borderColor: colors.border }]}>
-              {property.bedrooms !== undefined && (
+              {property.bedrooms != null && (
                 <View style={styles.statItem}>
                   <Ionicons name="bed-outline" size={20} color={colors.primary} />
                   <Text style={[styles.statValue, { color: colors.foreground }]}>{property.bedrooms}</Text>
                   <Text style={[styles.statLabel, { color: colors.mutedForeground }]}>Beds</Text>
                 </View>
               )}
-              {property.bathrooms !== undefined && (
+              {property.bathrooms != null && (
                 <View style={styles.statItem}>
                   <Ionicons name="water-outline" size={20} color={colors.primary} />
                   <Text style={[styles.statValue, { color: colors.foreground }]}>{property.bathrooms}</Text>
                   <Text style={[styles.statLabel, { color: colors.mutedForeground }]}>Baths</Text>
                 </View>
               )}
-              {property.garages !== undefined && property.garages > 0 && (
+              {property.garages != null && (
                 <View style={styles.statItem}>
                   <Ionicons name="car-outline" size={20} color={colors.primary} />
                   <Text style={[styles.statValue, { color: colors.foreground }]}>{property.garages}</Text>
@@ -908,14 +918,14 @@ export default function ListingDetailScreen() {
               {property.landSize !== undefined && property.landSize > 0 && (
                 <View style={styles.statItem}>
                   <Ionicons name="resize-outline" size={20} color={colors.primary} />
-                  <Text style={[styles.statValue, { color: colors.foreground }]}>{property.landSize}</Text>
+                  <Text style={[styles.statValue, { color: colors.foreground }]}>{property.landSize.toLocaleString()}</Text>
                   <Text style={[styles.statLabel, { color: colors.mutedForeground }]}>m² Land</Text>
                 </View>
               )}
               {property.floorArea !== undefined && property.floorArea > 0 && (
                 <View style={styles.statItem}>
                   <Ionicons name="expand-outline" size={20} color={colors.primary} />
-                  <Text style={[styles.statValue, { color: colors.foreground }]}>{property.floorArea}</Text>
+                  <Text style={[styles.statValue, { color: colors.foreground }]}>{property.floorArea.toLocaleString()}</Text>
                   <Text style={[styles.statLabel, { color: colors.mutedForeground }]}>m² Floor</Text>
                 </View>
               )}
@@ -1473,7 +1483,9 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   topBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingBottom: 12, borderBottomWidth: 1, gap: 8 },
   backBtn: { width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
-  topRef: { flex: 1, fontSize: 13, fontWeight: '600' },
+  topHeading: { flex: 1, minWidth: 0, justifyContent: 'center', gap: 2 },
+  topTitle: { fontSize: 14, fontWeight: '700' },
+  topRef: { fontSize: 10, fontWeight: '600' },
   topActions: { flexDirection: 'row', gap: 8 },
   iconBtn: { width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
   content: { paddingBottom: 40 },

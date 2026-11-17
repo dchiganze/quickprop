@@ -595,13 +595,13 @@ id = "Rt3-hYWpEVyDnYQbXTQFn"
 uri = "file://generated-artifacts/quickprop-expo-go-qr.png"
 type = "image"
 title = "Current QuickProp Expo Go QR"
-description = "Fresh QR for the active Expo tunnel. Scan it with your phone camera, or open the Expo Go link from chat."
+description = "Scan with Expo Go. This tunnel QR is temporary and may change after a workflow restart."
 logical_id = "3feb80db-27b1-4750-8610-c356fe2285a3"
-content_hash = "sha256:6b44d7964b35db778efcefa1c5bd7a2cf47d98d2a377becd2e0defc2dbc917cb"
-size = 1153
-mtime_ms = 1794729308071
-storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:cf900b3f-04ce-456b-888c-760ecb412036/3feb80db-27b1-4750-8610-c356fe2285a3/665fdd4e-68fe-4cbe-9072-ab24d5a8c4dc"
-storage_version_token = "1794729433626683"
+content_hash = "sha256:1a0ac1ed7d0a76553e6b380b54e5aea5fc12b4105525fa007555ba5cd67658c2"
+size = 730
+mtime_ms = 1794922151688
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:cf900b3f-04ce-456b-888c-760ecb412036/3feb80db-27b1-4750-8610-c356fe2285a3/7d1e1b34-31fe-414e-b6cf-d0c482e7c3f2"
+storage_version_token = "1794922160254772"
 content_type = "image/png"
 
 [[outputs]]
