@@ -488,32 +488,41 @@ router.post("/properties", async (req, res): Promise<void> => {
     void matchPropertyToAlerts(result.row.id).catch((error) => {
       logger.warn({ propertyId: result.row.id, error }, "Property alert matching failed");
     });
-    const duplicateMatches = await findDuplicateCandidates({
-      address: result.row.address,
-      suburb: result.row.suburb,
-      city: result.row.city,
-      propertyType: result.row.propertyType,
-      bedrooms: result.row.bedrooms,
-      bathrooms: result.row.bathrooms,
-      landSize: result.row.landSize,
-      buildingSize: result.row.buildingSize,
-      price: result.row.price,
-      description: result.row.description,
-      photos: result.row.photos,
-    }, result.row.id);
-    const possibleDuplicate = duplicateMatches[0];
-    if (possibleDuplicate) {
-      await db.insert(propertyDuplicateReviewsTable).values({
-        sourcePropertyId: result.row.id,
-        candidatePropertyId: possibleDuplicate.property.id,
-        confidenceScore: possibleDuplicate.confidenceScore,
-        matchingFields: possibleDuplicate.matchingFields,
-        imageMatches: possibleDuplicate.imageMatches,
-      });
-      await db.update(propertiesTable).set({ duplicateStatus: "review" }).where(eq(propertiesTable.id, result.row.id));
-    }
-    await logActivity("created", `New mandate ${result.row.reference}: ${result.row.title}`, "property", result.row.id, user?.name);
-    await logAudit("created", "property", result.row.id, `Created ${result.row.reference}`, user?.id, user?.name);
+    // The listing is committed at this point. Duplicate review and audit work
+    // must not turn a successful publish into a failed response that the app
+    // mistakes for an unsynced upload.
+    void (async () => {
+      try {
+        const duplicateMatches = await findDuplicateCandidates({
+          address: result.row.address,
+          suburb: result.row.suburb,
+          city: result.row.city,
+          propertyType: result.row.propertyType,
+          bedrooms: result.row.bedrooms,
+          bathrooms: result.row.bathrooms,
+          landSize: result.row.landSize,
+          buildingSize: result.row.buildingSize,
+          price: result.row.price,
+          description: result.row.description,
+          photos: result.row.photos,
+        }, result.row.id);
+        const possibleDuplicate = duplicateMatches[0];
+        if (possibleDuplicate) {
+          await db.insert(propertyDuplicateReviewsTable).values({
+            sourcePropertyId: result.row.id,
+            candidatePropertyId: possibleDuplicate.property.id,
+            confidenceScore: possibleDuplicate.confidenceScore,
+            matchingFields: possibleDuplicate.matchingFields,
+            imageMatches: possibleDuplicate.imageMatches,
+          });
+          await db.update(propertiesTable).set({ duplicateStatus: "review" }).where(eq(propertiesTable.id, result.row.id));
+        }
+        await logActivity("created", `New mandate ${result.row.reference}: ${result.row.title}`, "property", result.row.id, user?.name);
+        await logAudit("created", "property", result.row.id, `Created ${result.row.reference}`, user?.id, user?.name);
+      } catch (error) {
+        logger.warn({ propertyId: result.row.id, error }, "Post-create property processing failed");
+      }
+    })();
   }
   res.status(201).json(CreatePropertyResponse.parse(jsonify(result.row)));
 });

@@ -405,17 +405,11 @@ export default function NewListingScreen() {
        setAssignedAgentId('');
        setAgentNameSearch('');
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      const waitingToSync = property.syncStatus === 'queued';
-      const waitingToPublish = waitingToSync && property.pendingStatus === 'published';
       Alert.alert(
-        waitingToPublish ? 'Listing saved for upload' : status === 'published' ? 'Listing Published' : 'Draft Saved',
-        waitingToPublish
-          ? `${property.referenceNumber} is saved on this device and will be published when the connection returns.`
-          : waitingToSync
-            ? `${property.referenceNumber} is saved on this device and will sync when the connection returns.`
-            : status === 'published'
-              ? `${property.referenceNumber} is now live and visible in your listings.`
-              : `${property.referenceNumber} was saved as a draft.`,
+        status === 'published' ? 'Listing Published' : 'Draft Saved',
+        status === 'published'
+          ? `${property.referenceNumber} is now live and visible in your listings.`
+          : `${property.referenceNumber} was saved as a draft.`,
         [{ text: 'View Listings', onPress: () => router.replace('/(tabs)/listings') }]
       );
     } catch (e: any) {

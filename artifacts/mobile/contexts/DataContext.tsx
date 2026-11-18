@@ -459,6 +459,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const pendingSyncRef = useRef<PendingSync[]>([]);
   const syncedPropertyResultsRef = useRef(new Map<string, Property>());
   const flushingRef = useRef(false);
+  const flushCompletionRef = useRef<Promise<void> | null>(null);
   const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const syncNowRef = useRef<() => Promise<void>>(() => Promise.resolve());
 
@@ -624,8 +625,16 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   };
 
   const flushPendingSync = useCallback(async () => {
-    if (!remoteEnabled(user?.id) || flushingRef.current) return;
+    if (!remoteEnabled(user?.id)) return;
+    if (flushingRef.current) {
+      await flushCompletionRef.current;
+      if (pendingSyncRef.current.length > 0) await flushPendingSync();
+      return;
+    }
     flushingRef.current = true;
+    let completeFlush!: () => void;
+    const flushCompletion = new Promise<void>(resolve => { completeFlush = resolve; });
+    flushCompletionRef.current = flushCompletion;
     setCloudSyncState('syncing');
     const idMap = new Map<string, string>();
     try {
@@ -818,6 +827,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       }
     } finally {
       flushingRef.current = false;
+      completeFlush();
+      if (flushCompletionRef.current === flushCompletion) flushCompletionRef.current = null;
     }
   }, [user?.id]);
 
@@ -1090,12 +1101,14 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
   const addProperty = async (p: Omit<Property, 'id' | 'createdAt' | 'updatedAt'>) => {
     const shouldQueue = remoteEnabled(user?.id);
+    if (shouldQueue && isOffline) {
+      throw new Error('Connect to the internet before saving a listing. Drafts and published listings are saved directly to QuickProp.');
+    }
     const prop: Property = {
       ...p,
       ...(shouldQueue ? {
         status: p.status === 'published' ? 'draft' as const : p.status,
         pendingStatus: p.status,
-        syncStatus: 'queued' as const,
       } : {}),
       id: uid(),
       createdAt: now(),
@@ -1106,43 +1119,112 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     propertiesVersionRef.current += 1;
     setProperties(updated);
     await save(PROPS_KEY, propertiesRef);
+
     if (shouldQueue) {
-      pendingSyncRef.current.push({ kind: 'property-create', localId: prop.id, property: prop });
-      await persistPending();
-      await syncNow();
+      // When online, upload the media and create the listing in one request
+      // path. The outbox is for offline recovery, not the normal publish flow.
+      if (!isOffline) {
+        try {
+          const withDurableMedia = await uploadPropertyMedia(prop);
+          const created = await createProperty(
+            toServerProperty(withDurableMedia, user!.id),
+            { headers: { 'Idempotency-Key': prop.id } },
+          );
+          const remote = toMobileProperty(created);
+          syncedPropertyResultsRef.current.set(prop.id, remote);
+          propertiesRef.current = propertiesRef.current.map(property => (
+            property.id === prop.id ? remote : property
+          ));
+          propertiesVersionRef.current += 1;
+          setProperties(propertiesRef.current);
+          await save(PROPS_KEY, propertiesRef);
+          return remote;
+        } catch (error) {
+          // No listing is left in an offline outbox. Keep the form open so the
+          // agent can retry when connected or correct a validation error.
+          propertiesRef.current = propertiesRef.current.filter(property => property.id !== prop.id);
+          propertiesVersionRef.current += 1;
+          setProperties(propertiesRef.current);
+          await save(PROPS_KEY, propertiesRef);
+          throw error;
+        }
+      }
     }
-    return syncedPropertyResultsRef.current.get(prop.id) ?? prop;
+    return syncedPropertyResultsRef.current.get(prop.id)
+      ?? propertiesRef.current.find(property => property.id === prop.id)
+      ?? prop;
   };
 
   const updateProperty = async (id: string, updates: Partial<Property>) => {
+    const shouldSync = remoteEnabled(user?.id);
+    if (shouldSync && isOffline) {
+      throw new Error('Connect to the internet before changing a listing. Changes are saved directly to QuickProp.');
+    }
+    if (shouldSync && !isServerId(id)) {
+      throw new Error('This listing is not on QuickProp yet. Reopen it after it has been saved online.');
+    }
+
+    const canSendImmediately = shouldSync && isServerId(id);
+    if (canSendImmediately && flushingRef.current) {
+      await flushCompletionRef.current;
+    }
+
     const beforeUpdate = propertiesRef.current.find(p => p.id === id);
-    const shouldQueue = remoteEnabled(user?.id);
+    const existingUpdate = pendingSyncRef.current.find(
+      (operation): operation is Extract<PendingSync, { kind: 'property-update' }> =>
+        operation.kind === 'property-update' && operation.localId === id,
+    );
+    const updatesToSync = beforeUpdate?.syncStatus === 'conflict'
+      ? { ...beforeUpdate, ...updates }
+      : updates;
+    const combinedUpdates = { ...existingUpdate?.updates, ...updatesToSync };
     const updated = propertiesRef.current.map(p => p.id === id
-      ? { ...p, ...updates, updatedAt: now(), ...(shouldQueue ? { syncStatus: 'queued' as const } : {}) }
+      ? { ...p, ...updates, updatedAt: now() }
       : p);
     propertiesRef.current = updated;
     propertiesVersionRef.current += 1;
     setProperties(updated);
     await save(PROPS_KEY, propertiesRef);
-    if (shouldQueue && isServerId(id)) {
-      const existingUpdate = pendingSyncRef.current.find(
+    if (canSendImmediately) {
+      const queuedForProperty = pendingSyncRef.current.filter(
         (operation): operation is Extract<PendingSync, { kind: 'property-update' }> =>
           operation.kind === 'property-update' && operation.localId === id,
       );
+
       pendingSyncRef.current = pendingSyncRef.current.filter(
         operation => !(operation.kind === 'property-update' && operation.localId === id),
       );
-      const updatesToSync = beforeUpdate?.syncStatus === 'conflict'
-        ? { ...beforeUpdate, ...updates }
-        : updates;
-      pendingSyncRef.current.push({
-        kind: 'property-update',
-        localId: id,
-        updates: { ...existingUpdate?.updates, ...updatesToSync },
-        baseUpdatedAt: existingUpdate?.baseUpdatedAt ?? beforeUpdate?.updatedAt,
-      });
       await persistPending();
-      await syncNow();
+      try {
+        const current = propertiesRef.current.find(property => property.id === id);
+        if (!current) throw new Error('This listing is no longer available on this device.');
+        const withDurableMedia = await uploadPropertyMedia(current);
+        const patch = buildServerPropertyUpdatePatch(
+          toServerProperty(withDurableMedia, user!.id),
+          combinedUpdates,
+        ) as PropertyUpdate;
+        const result = Object.keys(patch).length > 0
+          ? await updateRemoteProperty(Number(id), patch)
+          : await listProperties({ agentId: Number(user!.id) }).then(rows => (
+              rows.find(property => String(property.id) === id)
+            ));
+        if (!result) throw new Error('QuickProp could not confirm the saved listing.');
+        const remote = toMobileProperty(result);
+        propertiesRef.current = propertiesRef.current.map(property => property.id === id ? remote : property);
+        propertiesVersionRef.current += 1;
+        setProperties(propertiesRef.current);
+        await save(PROPS_KEY, propertiesRef);
+        await persistPending();
+      } catch (error) {
+        pendingSyncRef.current = [...queuedForProperty, ...pendingSyncRef.current];
+        await persistPending();
+        propertiesRef.current = propertiesRef.current.map(property => (
+          property.id === id && beforeUpdate ? beforeUpdate : property
+        ));
+        setProperties(propertiesRef.current);
+        await save(PROPS_KEY, propertiesRef);
+        throw error;
+      }
     }
   };
 

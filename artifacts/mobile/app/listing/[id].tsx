@@ -147,7 +147,7 @@ export default function ListingDetailScreen() {
     && user?.role === 'agent'
     && String(property.agentId) !== String(user.id),
   );
-  const displayStatus = property?.pendingStatus ?? property?.status ?? 'draft';
+  const displayStatus = property?.status ?? 'draft';
   const queryClient = useQueryClient();
   const offlineSnapshotMutation = useCreateOfflinePropertySnapshot();
   const isOfflineListingSaved = Boolean(

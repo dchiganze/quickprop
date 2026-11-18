@@ -44,7 +44,7 @@ function formatPrice(price: number, currency: string, type: Property['type']) {
 
 export function PropertyCard({ property, onPress, offlineAction }: Props) {
   const colors = useColors();
-  const displayStatus = property.pendingStatus ?? property.status;
+  const displayStatus = property.status;
   const photoUri = getPrimaryListingPhoto(property);
   const location = formatPropertyLocation(property.suburb, property.city);
   const showStats = hasVisiblePropertyStats(property);

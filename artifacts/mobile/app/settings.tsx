@@ -312,7 +312,7 @@ export default function SettingsScreen() {
             }}
           />
           <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 18, padding: 14 }}>
-            Loaded listing details and saved media remain available without internet. New listings are queued on this device until they can upload.
+            Loaded listing details and saved media remain available without internet. New listings and edits must be saved while online.
           </Text>
         </View>
 
