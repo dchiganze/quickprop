@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, useMemo, useRef, useCallback } from 'react';
 import { AppState, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as FileSystem from 'expo-file-system/legacy';
 import { Property, Lead, BuyerMatch, Task, PropertyAlert } from '@/types';
 import { propertyMatchesAlert } from '@/lib/alert-matching';
 import { buildServerPropertyUpdatePatch, legacyStatusPatch, mergeMobilePropertyUpdates } from '@/lib/property-sync';
@@ -8,6 +9,7 @@ import { registerDataReset } from './dataReset';
 import { useNetworkStatus } from './ConnectivityContext';
 import { apiBaseUrl, apiOrigin, getStoredAccessToken, useAuth } from './AuthContext';
 import { cacheMediaForOffline } from '@/utils/offlineMedia';
+import { resolveUploadContentType } from '@/lib/upload-content-type';
 import {
   createProperty, createTask, createViewing, deleteAgentSearchAlert, deleteProperty as deleteRemoteProperty,
   deleteTask as deleteRemoteTask, deleteViewing as deleteRemoteViewing,
@@ -113,6 +115,25 @@ function syncErrorMessage(error: unknown): string {
 function isConnectivityError(error: unknown): boolean {
   const message = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
   return error instanceof TypeError || /network request failed|network error|failed to fetch|offline|timed out|timeout|connection reset|internet disconnected/.test(message);
+}
+
+async function retryTransientUpload<T extends { status: number }>(operation: () => Promise<T>): Promise<T> {
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      const response = await operation();
+      if (
+        attempt < 2 &&
+        (response.status === 429 || response.status >= 500)
+      ) {
+        await new Promise(resolve => setTimeout(resolve, 350 * (attempt + 1)));
+        continue;
+      }
+      return response;
+    } catch (error) {
+      if (!isConnectivityError(error) || attempt >= 2) throw error;
+      await new Promise(resolve => setTimeout(resolve, 350 * (attempt + 1)));
+    }
+  }
 }
 
 function isApiNotFoundError(error: unknown): boolean {
@@ -339,29 +360,77 @@ function toMobileSearchAlert(alert: ApiAgentSearchAlert, agentId: string): Prope
 
 export async function uploadOneMedia(uri: string, mediaKind: 'image' | 'video'): Promise<string> {
   if (!apiBaseUrl || !apiOrigin || /^https?:\/\//.test(uri)) return uri;
-  const source = await fetch(uri);
-  const blob = await source.blob();
+  const isLocalFile = Platform.OS !== 'web' && uri.startsWith('file://');
+  const localFileInfo = isLocalFile
+    ? await FileSystem.getInfoAsync(uri).catch(() => null)
+    : null;
+  if (isLocalFile && (!localFileInfo?.exists || localFileInfo.isDirectory)) {
+    throw new Error(`Could not read the selected ${mediaKind} from this device. Select it again and retry.`);
+  }
+  const blob = isLocalFile ? null : await fetch(uri).then(response => response.blob());
   const fileName = uri.split('/').pop()?.split('?')[0] || (mediaKind === 'video' ? 'listing-video.mp4' : 'listing-photo.jpg');
-  const lowerFileName = fileName.toLowerCase();
-  const contentType = blob.type || (
-    mediaKind === 'video'
-      ? lowerFileName.endsWith('.mov') ? 'video/quicktime' : lowerFileName.endsWith('.webm') ? 'video/webm' : 'video/mp4'
-      : lowerFileName.endsWith('.png') ? 'image/png' : 'image/jpeg'
-  );
+  const contentType = resolveUploadContentType(blob?.type, fileName, mediaKind);
+  const size = localFileInfo?.exists && !localFileInfo.isDirectory
+    ? localFileInfo.size
+    : blob?.size ?? 0;
+  if (!size) throw new Error(`Could not read the selected ${mediaKind} from this device. Select it again and retry.`);
   const token = await getStoredAccessToken();
-  const request = await fetch(`${apiBaseUrl}/storage/uploads/request-url`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    body: JSON.stringify({ name: fileName, size: blob.size, contentType }),
-  });
-  if (!request.ok) throw new Error(`Could not prepare ${mediaKind} upload.`);
-  const { uploadURL, objectPath } = await request.json() as { uploadURL: string; objectPath: string };
-  const upload = await fetch(uploadURL, { method: 'PUT', headers: { 'Content-Type': contentType }, body: blob });
-  if (!upload.ok) throw new Error(`Could not upload ${mediaKind}.`);
-  return `${apiOrigin}/api/storage${objectPath}`;
+  let request: Response;
+  try {
+    request = await retryTransientUpload(() => fetch(`${apiBaseUrl}/storage/uploads/request-url`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({ name: fileName, size, contentType }),
+    }));
+  } catch (error) {
+    if (isConnectivityError(error)) {
+      throw new Error('The internet connection was interrupted. Reconnect and retry the upload.');
+    }
+    throw error;
+  }
+  const requestData = await request.json().catch(() => ({})) as {
+    uploadURL?: string;
+    objectPath?: string;
+    contentType?: string;
+    error?: string;
+  };
+  if (!request.ok) {
+    throw new Error(requestData.error ?? `QuickProp rejected this ${mediaKind} upload (HTTP ${request.status}).`);
+  }
+  if (!requestData.uploadURL || !requestData.objectPath) {
+    throw new Error('QuickProp did not return an upload destination. Please retry.');
+  }
+  const uploadContentType = requestData.contentType ?? contentType;
+  let uploadResult: Response | FileSystem.FileSystemUploadResult;
+  try {
+    if (isLocalFile) {
+      uploadResult = await retryTransientUpload<FileSystem.FileSystemUploadResult>(() =>
+        FileSystem.uploadAsync(requestData.uploadURL!, uri, {
+          httpMethod: 'PUT',
+          uploadType: FileSystem.FileSystemUploadType.BINARY_CONTENT,
+          headers: { 'Content-Type': uploadContentType },
+        }),
+      );
+    } else {
+      uploadResult = await retryTransientUpload<Response>(() => fetch(requestData.uploadURL!, {
+          method: 'PUT',
+          headers: { 'Content-Type': uploadContentType },
+          body: blob,
+        }));
+    }
+  } catch (error) {
+    if (isConnectivityError(error)) {
+      throw new Error('The internet connection was interrupted. Reconnect and retry the upload.');
+    }
+    throw error;
+  }
+  if (uploadResult.status < 200 || uploadResult.status >= 300) {
+    throw new Error(`Storage rejected the ${mediaKind} upload (HTTP ${uploadResult.status}). Please retry.`);
+  }
+  return `${apiOrigin}/api/storage${requestData.objectPath}`;
 }
 
 async function uploadPropertyMedia(property: Property): Promise<Property> {

@@ -249,7 +249,7 @@ export async function clearCachedOfflineMediaForUser(userId: string | null | und
     FileSystem.deleteAsync(directory, { idempotent: true }).catch(() => undefined)));
 }
 
-/** Copy picker/camera files out of the temporary cache before queueing a listing upload. */
+/** Keep picker/camera files available while the agent completes the listing form. */
 export async function persistListingDraftMedia(uri: string, userId: string): Promise<string> {
   if (Platform.OS === 'web' || !FileSystem.documentDirectory || uri.startsWith('http')) return uri;
   const directory = `${FileSystem.documentDirectory}${LISTING_DRAFTS_DIR}/${safeSegment(userId)}/`;

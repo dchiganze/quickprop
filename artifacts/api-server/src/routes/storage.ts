@@ -4,10 +4,12 @@ import { and, eq, inArray, like, or, sql } from "drizzle-orm";
 import { agencySettingsTable, branchesTable, businessAgenciesTable, db, documentsTable, propertiesTable, usersTable } from "@workspace/db";
 import { currentUser } from "./auth";
 import { getActiveAgencyBranchIdsForUser } from "../lib/office-inventory-scope";
+import { resolveUploadContentType } from "../lib/upload-content-type";
 
 const router: IRouter = Router();
 const SIDECAR = "http://127.0.0.1:1106";
-const MAX_UPLOAD_BYTES = 25 * 1024 * 1024;
+const MAX_IMAGE_UPLOAD_BYTES = 50 * 1024 * 1024;
+const MAX_DOCUMENT_UPLOAD_BYTES = 25 * 1024 * 1024;
 const MAX_AUDIO_UPLOAD_BYTES = 8 * 1024 * 1024;
 const MAX_VIDEO_UPLOAD_BYTES = 100 * 1024 * 1024;
 const VIDEO_MIME_TYPES = new Set(["video/mp4", "video/quicktime", "video/webm"]);
@@ -22,7 +24,6 @@ const AUDIO_MIME_TYPES = new Set([
 ]);
 const PUBLIC_PROPERTY_STATUSES = ["public", "under_offer", "coming_soon"];
 const STORED_OBJECT_NAME = /^uploads\/\d+\/[a-f0-9-]+\.[a-z0-9]{1,8}$/i;
-
 function objectDirectory(): string {
   const value = process.env.PRIVATE_OBJECT_DIR;
   if (!value) throw new Error("Object storage is not configured.");
@@ -207,10 +208,13 @@ router.post("/storage/uploads/request-url", async (req, res): Promise<void> => {
     return;
   }
 
-  const { name, size, contentType } = req.body as Record<string, unknown>;
+  const { name, size, contentType: suppliedContentType } = req.body as Record<string, unknown>;
+  const contentType = typeof name === "string"
+    ? resolveUploadContentType(name, suppliedContentType)
+    : "";
   const isAudio = typeof contentType === "string" && AUDIO_MIME_TYPES.has(contentType);
+  const isImage = typeof contentType === "string" && contentType.startsWith("image/");
   const isDocument = typeof contentType === "string" && (
-    contentType.startsWith("image/") ||
     contentType === "text/plain" ||
     contentType === "text/csv" ||
     contentType === "application/csv" ||
@@ -225,11 +229,13 @@ router.post("/storage/uploads/request-url", async (req, res): Promise<void> => {
     typeof contentType !== "string" ||
     (isAudio
       ? size > MAX_AUDIO_UPLOAD_BYTES
-      : isDocument
-        ? size > MAX_UPLOAD_BYTES
+      : isImage
+        ? size > MAX_IMAGE_UPLOAD_BYTES
+        : isDocument
+          ? size > MAX_DOCUMENT_UPLOAD_BYTES
         : !VIDEO_MIME_TYPES.has(contentType) || size > MAX_VIDEO_UPLOAD_BYTES)
   ) {
-    res.status(400).json({ error: "Upload must be an image or import document under 25 MB, an audio note under 8 MB, or an MP4, MOV, or WebM video under 100 MB." });
+    res.status(400).json({ error: "This file is not a supported type or is too large (images up to 50 MB, documents 25 MB, audio 8 MB, video 100 MB)." });
     return;
   }
 
@@ -240,6 +246,7 @@ router.post("/storage/uploads/request-url", async (req, res): Promise<void> => {
     res.json({
       uploadURL,
       objectPath: `/objects/${objectName}`,
+      contentType,
       metadata: { name, size, contentType },
     });
   } catch (error) {

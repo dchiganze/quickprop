@@ -3,11 +3,11 @@ name: QuickProp Cloud Sync
 description: Data ownership and reconciliation rules shared by QuickProp Office and the Agent app.
 ---
 
-Treat the API-backed PostgreSQL database as the source of truth for listings and operational data. Treat mobile AsyncStorage as an offline cache and mutation outbox only.
+Treat the API-backed PostgreSQL database as the source of truth for listings. Mobile AsyncStorage is a read cache; new listing creates and edits must be saved to the API while online and must never enter an offline listing queue.
 
-**Why:** Office and Agent must converge on the same portfolio, while Agent still needs to create, edit, and queue work offline.
+**Why:** The user explicitly wants listing flows to be Upload, Draft, or Published, with no visible or internal offline queue for listing writes.
 
-**How to apply:** Persist mutations locally before syncing them through the API with idempotency keys. Expose pending/error state to the agent and do not clear an existing cloud-backed portfolio when a refresh unexpectedly returns an empty result.
+**How to apply:** If offline, keep the listing form open and require reconnection; show Draft or Published only after the API confirms the save. Preserve existing offline synchronization for unrelated work unless the user changes that requirement. Do not clear an existing cloud-backed portfolio when a refresh unexpectedly returns an empty result.
 
 When an agent reconnects, apply only the mobile-edited listing fields to the latest server record; do not block a queued edit just because the record timestamp advanced elsewhere.
 
@@ -39,8 +39,8 @@ Treat explicitly downloaded mobile listings as account-scoped device copies, not
 
 **How to apply:** Keep the offline manifest scoped to the signed-in account, authorize own listings or active agency listings on the server, and never persist expiring signed media URLs.
 
-On mobile listing photo badges, show the listing's publication state rather than its local sync state.
+On mobile listing badges, show only the API-confirmed publication state, never a local sync or pending-publication state.
 
-**Why:** The user wants these badges to show Draft or Published, not queued or waiting-to-sync labels.
+**Why:** The user wants listing state to be Draft or Published, never queued or waiting-to-sync.
 
-**How to apply:** Derive the badge from `pendingStatus ?? status`; keep outbox retries and the separate conflict warning intact.
+**How to apply:** Derive the badge from the confirmed `status` field. Keep legacy retry handling out of the visible listing state.
