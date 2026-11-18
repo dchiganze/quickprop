@@ -13,7 +13,14 @@ import { useData } from '@/contexts/DataContext';
 import { StatCard } from '@/components/StatCard';
 import { PropertyCard } from '@/components/PropertyCard';
 import { useMatchNotifications } from '@/hooks/useMatchNotifications';
-import { getGetAgentContactsQueryKey, useGetAgentContacts } from '@workspace/api-client-react';
+import {
+  getGetAgentContactsQueryKey,
+  getGetAgencyPropertiesQueryKey,
+  useGetAgentContacts,
+  useGetAgencyProperties,
+  useGetStoredMediaUrl,
+} from '@workspace/api-client-react';
+import { getStoredMediaObjectPath } from '@/utils/listingPhoto';
 
 export default function DashboardScreen() {
   const colors = useColors();
@@ -21,6 +28,28 @@ export default function DashboardScreen() {
   const navigation = useNavigation();
   const { user, loading: authLoading, logout } = useAuth();
   const { properties, leads, syncNow } = useData();
+  const agencyQuery = useGetAgencyProperties({
+    query: {
+      enabled: !authLoading && Boolean(user?.id),
+      queryKey: getGetAgencyPropertiesQueryKey(),
+    },
+  });
+  const agencyName = agencyQuery.data?.agencyName?.trim()
+    || (user?.agency && user.agency !== 'QuickProp' ? user.agency.trim() : '');
+  const agencyLogoUrl = agencyQuery.data?.agencyLogoUrl?.trim() || null;
+  const agencyLogoObjectPath = agencyLogoUrl ? getStoredMediaObjectPath(agencyLogoUrl) : undefined;
+  const agencyLogoMedia = useGetStoredMediaUrl(
+    { objectPath: agencyLogoObjectPath ?? '' },
+    {
+      query: {
+        queryKey: ['dashboard-agency-logo', user?.id, agencyLogoObjectPath],
+        enabled: !authLoading && Boolean(user?.id && agencyLogoObjectPath),
+        staleTime: 10 * 60 * 1000,
+        retry: 1,
+      },
+    },
+  );
+  const agencyLogoSource = agencyLogoObjectPath ? agencyLogoMedia.data?.url : agencyLogoUrl;
   const remoteAgentId = user?.id && /^\d+$/.test(user.id) ? user.id : null;
   const agentContactsEnabled = !authLoading && remoteAgentId !== null;
   const { data: sellers } = useGetAgentContacts(
@@ -194,7 +223,30 @@ export default function DashboardScreen() {
       </View>
 
       {/* Stats */}
-      <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Today's Overview</Text>
+      <View style={styles.overviewHeader}>
+        <Text style={[styles.sectionTitle, styles.overviewTitle, { color: colors.foreground }]}>
+          Today's Overview
+        </Text>
+        {agencyName ? (
+          <View style={styles.agencyIdentity}>
+            <Text
+              style={[styles.agencyName, { color: colors.mutedForeground }]}
+              numberOfLines={1}
+              ellipsizeMode="tail"
+            >
+              {agencyName}
+            </Text>
+            {agencyLogoSource ? (
+              <Image
+                source={{ uri: agencyLogoSource }}
+                style={styles.agencyLogo}
+                resizeMode="contain"
+                accessibilityLabel={`${agencyName} logo`}
+              />
+            ) : null}
+          </View>
+        ) : null}
+      </View>
       <View style={styles.statsRow}>
         <StatCard label="Active Listings" value={activeListings} icon="business-outline" color={colors.primary} subtitle={draftListings > 0 ? `${draftListings} drafts` : undefined} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}); router.push('/(tabs)/listings'); }} />
         <StatCard
@@ -319,6 +371,11 @@ const styles = StyleSheet.create({
   },
   badgeText: { color: '#FFF', fontSize: 10, fontWeight: '800' },
   sectionTitle: { fontSize: 17, fontWeight: '700', marginBottom: 12, letterSpacing: -0.3 },
+  overviewHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 12 },
+  overviewTitle: { marginBottom: 0, flexShrink: 0 },
+  agencyIdentity: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 6, flexShrink: 1, maxWidth: '60%' },
+  agencyName: { fontSize: 12, fontWeight: '700', flexShrink: 1, textAlign: 'right' },
+  agencyLogo: { width: 26, height: 26, flexShrink: 0 },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, marginTop: 22 },
   seeAll: { fontSize: 14, fontWeight: '600' },
   recentEmpty: { minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 14, borderRadius: 14, borderWidth: 1, marginBottom: 12 },
