@@ -3,6 +3,7 @@ import {
   useGetAdminAgencies,
   useGetAdminAgents,
   useGetAdminMyBranch,
+  getListPropertiesQueryKey,
   useListProperties,
   useListLeads,
   useSetAdminMyBranch,
@@ -62,7 +63,13 @@ export default function AgencyDetail({ params }: Props) {
   const validId = Number.isSafeInteger(agencyId) && agencyId > 0;
   const agenciesQuery = useGetAdminAgencies();
   const agentsQuery = useGetAdminAgents();
-  const propertiesQuery = useListProperties();
+  const propertiesQuery = useListProperties(undefined, {
+    query: {
+      queryKey: getListPropertiesQueryKey(),
+      refetchOnMount: 'always',
+      refetchOnWindowFocus: true,
+    },
+  });
   const leadsQuery = useListLeads();
   const myBranchQuery = useGetAdminMyBranch();
   const setMyBranch = useSetAdminMyBranch();
@@ -82,9 +89,15 @@ export default function AgencyDetail({ params }: Props) {
   );
   const agentIds = useMemo(() => new Set(scopedAgents.map((agent) => agent.id)), [scopedAgents]);
   const agentNames = useMemo(() => new Map(scopedAgents.map((agent) => [agent.id, agent.name])), [scopedAgents]);
+  const agentBranchNames = useMemo(() => new Map(scopedAgents.map((agent) => [agent.id, agent.branchName])), [scopedAgents]);
   const listings = useMemo(
-    () => (propertiesQuery.data ?? []).filter((property) => property.branchId != null && branchIds.has(property.branchId)),
-    [propertiesQuery.data, branchIds],
+    () => (propertiesQuery.data ?? []).filter((property) =>
+      property.status === 'public' && (
+        (property.branchId != null && branchIds.has(property.branchId)) ||
+        (property.branchId == null && property.agentId != null && agentIds.has(property.agentId))
+      )
+    ),
+    [propertiesQuery.data, branchIds, agentIds],
   );
   const propertyIds = useMemo(() => new Set(listings.map((property) => property.id)), [listings]);
   const leads = useMemo(
@@ -264,7 +277,7 @@ export default function AgencyDetail({ params }: Props) {
         <div className="flex flex-col gap-3 border-b p-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 className="font-semibold">Agency records</h2>
-            <p className="mt-0.5 text-xs text-muted-foreground">Listings and leads are scoped to this agency’s branches and assigned agents.</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">Live listings are linked by agency branch, or by assigned agent when a synced listing has no branch ID.</p>
           </div>
           <div className="relative w-full sm:max-w-xs">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -280,7 +293,7 @@ export default function AgencyDetail({ params }: Props) {
           <div className="p-5"><ErrorPanel title={`${tab[0].toUpperCase()}${tab.slice(1)} could not be loaded`} onRetry={() => void tabRefetch()} testId={`error-agency-${tab}`} /></div>
         ) : (
           <>
-            {tab === 'listings' && <ListingsTable items={filteredListings} branchNames={branchNames} />}
+             {tab === 'listings' && <ListingsTable items={filteredListings} branchNames={branchNames} agentBranchNames={agentBranchNames} />}
             {tab === 'agents' && <AgentsTable items={filteredAgents} />}
             {tab === 'leads' && <LeadsTable items={filteredLeads} agentNames={agentNames} listings={listings} />}
           </>
@@ -321,7 +334,11 @@ function EmptyRows({ colSpan, title, detail, testId }: { colSpan: number; title:
   </td></tr>;
 }
 
-function ListingsTable({ items, branchNames }: { items: Property[]; branchNames: Map<number, string> }) {
+function ListingsTable({ items, branchNames, agentBranchNames }: {
+  items: Property[];
+  branchNames: Map<number, string>;
+  agentBranchNames: Map<number, string | null | undefined>;
+}) {
   return <div className="overflow-x-auto">
     <table className="w-full min-w-[760px] text-sm">
       <thead><tr className="border-b bg-muted/25 text-left text-xs text-muted-foreground">
@@ -333,7 +350,9 @@ function ListingsTable({ items, branchNames }: { items: Property[]; branchNames:
             <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-muted-foreground">{item.reference}</td>
             <td className="max-w-[260px] px-4 py-3"><p className="truncate font-medium">{item.title}</p><p className="mt-0.5 text-xs capitalize text-muted-foreground">{item.listingType} · {item.propertyType.replaceAll('_', ' ')}</p></td>
             <td className="px-4 py-3 text-xs text-muted-foreground"><span className="inline-flex items-center gap-1"><MapPin className="h-3 w-3" />{[item.suburb, item.city].filter(Boolean).join(', ') || '—'}</span></td>
-            <td className="px-4 py-3 text-xs text-muted-foreground">{item.branchId == null ? '—' : branchNames.get(item.branchId) ?? 'Branch'}</td>
+             <td className="px-4 py-3 text-xs text-muted-foreground">{item.branchId == null
+               ? item.agentId == null ? '—' : agentBranchNames.get(item.agentId) ?? '—'
+               : branchNames.get(item.branchId) ?? 'Branch'}</td>
             <td className="whitespace-nowrap px-4 py-3 text-xs font-medium">{formatPrice(item)}</td>
             <td className="px-4 py-3"><Status value={item.status} /></td>
           </tr>

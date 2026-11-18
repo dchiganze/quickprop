@@ -55,6 +55,7 @@ import {
   getPlatformCleanupPreview,
   PlatformCleanupSnapshotChangedError,
 } from "../lib/platform-data-cleanup";
+import { belongsToAgencyListing } from "../lib/agency-listing-scope";
 
 const router: IRouter = Router();
 
@@ -517,7 +518,11 @@ async function loadAdminAgencySnapshot() {
         id, name, email, phone, role, status, branchId,
       }));
     const memberIds = new Set(members.map((member) => member.id));
-    const branchProperties = properties.filter((property) => property.branchId === branch.id);
+    const branchProperties = properties.filter((property) => belongsToAgencyListing(
+      property,
+      new Set([branch.id]),
+      memberIds,
+    ));
     const branchLeads = leads.filter((lead) => lead.agentId != null && memberIds.has(lead.agentId));
 
     return {
